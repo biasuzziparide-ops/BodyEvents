@@ -319,41 +319,48 @@ textarea.input{resize:none;font-family:inherit}
         <input class="input" style="padding-left:38px;background:var(--s50);border-color:var(--s400)" placeholder="Cerca eventi, insegnanti, location..." id="filter-text" oninput="renderUserEvents()">
       </div>
     </div>
-    <!-- Griglia filtri -->
-    <div style="padding:16px 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end">
+    <!-- Filtri principali (sempre visibili) -->
+    <div style="padding:12px 16px;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end">
       <div>
-        <label class="label" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:4px">Universo</label>
-        <select class="input" id="filter-universe" onchange="renderUserEvents()" style="padding:8px 32px 8px 12px;font-size:.8rem">
+        <label class="label" style="font-size:.65rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:3px">Universo</label>
+        <select class="input" id="filter-universe" onchange="renderUserEvents()" style="padding:7px 28px 7px 10px;font-size:.8rem">
           <option value="">Tutti gli Universi</option>
         </select>
       </div>
       <div>
-        <label class="label" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:4px">Tipo</label>
-        <select class="input" id="filter-type" onchange="renderUserEvents()" style="padding:8px 32px 8px 12px;font-size:.8rem">
+        <label class="label" style="font-size:.65rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:3px">Tipo</label>
+        <select class="input" id="filter-type" onchange="renderUserEvents()" style="padding:7px 28px 7px 10px;font-size:.8rem">
           <option value="">Tutti</option><option value="jam">Jam</option><option value="lezione">Lezione</option><option value="workshop">Workshop</option>
         </select>
       </div>
+    </div>
+    <!-- Toggle filtri avanzati -->
+    <div style="padding:0 16px 8px;text-align:center">
+      <button onclick="document.getElementById('adv-filters').classList.toggle('hidden');this.textContent=document.getElementById('adv-filters').classList.contains('hidden')?'▼ Più filtri':'▲ Meno filtri'" style="background:none;border:none;color:var(--brand-l);font-size:.75rem;cursor:pointer;padding:4px 12px">▼ Più filtri</button>
+    </div>
+    <!-- Filtri avanzati (nascosti di default) -->
+    <div id="adv-filters" class="hidden" style="padding:0 16px 12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end">
       <div>
-        <label class="label" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:4px">Zona</label>
-        <select class="input" id="filter-zona" onchange="renderUserEvents()" style="padding:8px 32px 8px 12px;font-size:.8rem">
+        <label class="label" style="font-size:.65rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:3px">Zona</label>
+        <select class="input" id="filter-zona" onchange="renderUserEvents()" style="padding:7px 28px 7px 10px;font-size:.8rem">
           <option value="">Tutte</option><option value="AcroTreviso">Treviso</option><option value="AcroPadova">Padova</option><option value="AcroVicenza">Vicenza</option>
         </select>
       </div>
       <div>
-        <label class="label" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:4px">Insegnante</label>
-        <input class="input" id="filter-maestro" placeholder="Nome..." oninput="renderUserEvents()" style="padding:8px 12px;font-size:.8rem">
+        <label class="label" style="font-size:.65rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:3px">Insegnante</label>
+        <input class="input" id="filter-maestro" placeholder="Nome..." oninput="renderUserEvents()" style="padding:7px 10px;font-size:.8rem">
       </div>
       <div>
-        <label class="label" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:4px">Dal</label>
-        <input class="input" id="filter-date-from" type="date" onchange="renderUserEvents()" style="padding:8px 12px;font-size:.8rem">
+        <label class="label" style="font-size:.65rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:3px">Dal</label>
+        <input class="input" id="filter-date-from" type="date" onchange="renderUserEvents()" style="padding:7px 10px;font-size:.8rem">
       </div>
       <div>
-        <label class="label" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:4px">Al</label>
-        <input class="input" id="filter-date-to" type="date" onchange="renderUserEvents()" style="padding:8px 12px;font-size:.8rem">
+        <label class="label" style="font-size:.65rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:3px">Al</label>
+        <input class="input" id="filter-date-to" type="date" onchange="renderUserEvents()" style="padding:7px 10px;font-size:.8rem">
       </div>
-      <div>
-        <label class="label" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:4px">Max €</label>
-        <input class="input" id="filter-price-max" type="number" placeholder="—" oninput="renderUserEvents()" style="padding:8px 12px;font-size:.8rem">
+      <div style="grid-column:span 2">
+        <label class="label" style="font-size:.65rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:3px">Max €</label>
+        <input class="input" id="filter-price-max" type="number" placeholder="—" oninput="renderUserEvents()" style="padding:7px 10px;font-size:.8rem;max-width:120px">
       </div>
     </div>
     <!-- Contatore risultati + reset -->
@@ -448,7 +455,7 @@ textarea.input{resize:none;font-family:inherit}
     </div>
     <h1 class="text-2xl font-bold text-white">Jam AcroYoga al Parco</h1>
     <p class="txt3 mt-2">Jam libera al parco! Porta il tuo tappetino e tanta voglia di volare. Tutti i livelli benvenuti.</p>
-    <div class="flex items-center gap-2 mt-3 text-sm txt3">👤 con Marco Rossi</div>
+    <div class="flex items-center gap-2 mt-3 text-sm txt3">👤 Insegnante</div>
     <div class="flex gap-3 mt-4 flex-wrap" style="padding-top:16px;border-top:1px solid var(--s300)">
       <a class="badge" style="background:rgba(59,130,246,.08);color:var(--blue);padding:6px 12px;cursor:pointer">💳 PayPal ↗</a>
       <span class="badge" style="background:var(--green-bg);color:var(--green);padding:6px 12px">💵 Cash il giorno stesso</span>
@@ -511,7 +518,7 @@ textarea.input{resize:none;font-family:inherit}
     </div>
     <h1 class="text-2xl font-bold text-white">Weekend Intensive AcroYoga</h1>
     <p class="txt3 mt-2">Due giorni di pratica intensiva con insegnanti internazionali. Dal base all'avanzato.</p>
-    <div class="flex items-center gap-2 mt-3 text-sm txt3">👤 con Sara Martinez, Marco Rossi</div>
+    <div class="flex items-center gap-2 mt-3 text-sm txt3">👤 Insegnanti</div>
     <div class="flex gap-3 mt-4 flex-wrap" style="padding-top:16px;border-top:1px solid var(--s300)">
       <a class="badge" style="background:rgba(59,130,246,.08);color:var(--blue);padding:6px 12px">💳 PayPal ↗</a>
       <a class="badge" style="background:rgba(6,182,212,.08);color:#22d3ee;padding:6px 12px">💳 Revolut ↗</a>
@@ -624,7 +631,7 @@ textarea.input{resize:none;font-family:inherit}
     <div class="flex gap-2 mb-3"><span class="badge badge-lezione">Lezione</span></div>
     <h1 class="text-2xl font-bold text-white">Lezione Settimanale — Mercoledì</h1>
     <p class="txt3 mt-2">Lezione con due livelli: principianti e intermedi. Puoi partecipare a una o entrambe.</p>
-    <div class="flex items-center gap-2 mt-3 text-sm txt3">👤 con Marco Rossi</div>
+    <div class="flex items-center gap-2 mt-3 text-sm txt3">👤 Insegnante</div>
     <div class="flex gap-3 mt-4 flex-wrap" style="padding-top:16px;border-top:1px solid var(--s300)">
       <a class="badge" style="background:rgba(6,182,212,.08);color:#22d3ee;padding:6px 12px">💳 Revolut ↗</a>
       <span class="badge" style="background:var(--green-bg);color:var(--green);padding:6px 12px">💵 Cash</span>
@@ -979,7 +986,7 @@ textarea.input{resize:none;font-family:inherit}
           <select class="input" id="ne-level"><option value="open">Open Level</option><option value="base">Base</option><option value="intermedio">Intermedio</option><option value="avanzato">Avanzato</option><option value="multi">Multi-livello</option></select></div>
       </div>
       <div class="mb-4">
-        <div><label class="label">Insegnante / Referente</label><input class="input" id="ne-teacher" placeholder="es. Marco Rossi"></div>
+        <div><label class="label">Insegnante / Referente</label><input class="input" id="ne-teacher" placeholder="es. Nome Insegnante"></div>
       </div>
       <div class="mb-3"><label class="label">📍 Location / Indirizzo *</label><input class="input" id="ne-location" placeholder="es. Parco degli Alberi, Via Roma, Treviso"></div>
       <div class="mb-4"><label class="label">🔗 Link Google Maps</label><input class="input" id="ne-location-url" placeholder="https://maps.google.com/..."></div>
@@ -1312,40 +1319,48 @@ textarea.input{resize:none;font-family:inherit}
         <input class="input" style="padding-left:38px;background:var(--s50);border-color:var(--s400)" placeholder="Cerca eventi, insegnanti, location..." id="explore-filter-text" oninput="renderExploreEvents()">
       </div>
     </div>
-    <div style="padding:16px 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end">
+    <!-- Filtri principali -->
+    <div style="padding:12px 16px;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end">
       <div>
-        <label class="label" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:4px">Universo</label>
-        <select class="input" id="explore-filter-universe" onchange="renderExploreEvents()" style="padding:8px 32px 8px 12px;font-size:.8rem">
+        <label class="label" style="font-size:.65rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:3px">Universo</label>
+        <select class="input" id="explore-filter-universe" onchange="renderExploreEvents()" style="padding:7px 28px 7px 10px;font-size:.8rem">
           <option value="">Tutti gli Universi</option>
         </select>
       </div>
       <div>
-        <label class="label" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:4px">Tipo</label>
-        <select class="input" id="explore-filter-type" onchange="renderExploreEvents()" style="padding:8px 32px 8px 12px;font-size:.8rem">
+        <label class="label" style="font-size:.65rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:3px">Tipo</label>
+        <select class="input" id="explore-filter-type" onchange="renderExploreEvents()" style="padding:7px 28px 7px 10px;font-size:.8rem">
           <option value="">Tutti</option><option value="jam">Jam</option><option value="lezione">Lezione</option><option value="workshop">Workshop</option>
         </select>
       </div>
+    </div>
+    <!-- Toggle filtri avanzati -->
+    <div style="padding:0 16px 8px;text-align:center">
+      <button onclick="document.getElementById('explore-adv-filters').classList.toggle('hidden');this.textContent=document.getElementById('explore-adv-filters').classList.contains('hidden')?'▼ Più filtri':'▲ Meno filtri'" style="background:none;border:none;color:var(--brand-l);font-size:.75rem;cursor:pointer;padding:4px 12px">▼ Più filtri</button>
+    </div>
+    <!-- Filtri avanzati -->
+    <div id="explore-adv-filters" class="hidden" style="padding:0 16px 12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end">
       <div>
-        <label class="label" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:4px">Zona</label>
-        <select class="input" id="explore-filter-zona" onchange="renderExploreEvents()" style="padding:8px 32px 8px 12px;font-size:.8rem">
+        <label class="label" style="font-size:.65rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:3px">Zona</label>
+        <select class="input" id="explore-filter-zona" onchange="renderExploreEvents()" style="padding:7px 28px 7px 10px;font-size:.8rem">
           <option value="">Tutte</option><option value="AcroTreviso">Treviso</option><option value="AcroPadova">Padova</option><option value="AcroVicenza">Vicenza</option>
         </select>
       </div>
       <div>
-        <label class="label" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:4px">Insegnante</label>
-        <input class="input" id="explore-filter-maestro" placeholder="Nome..." oninput="renderExploreEvents()" style="padding:8px 12px;font-size:.8rem">
+        <label class="label" style="font-size:.65rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:3px">Insegnante</label>
+        <input class="input" id="explore-filter-maestro" placeholder="Nome..." oninput="renderExploreEvents()" style="padding:7px 10px;font-size:.8rem">
       </div>
       <div>
-        <label class="label" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:4px">Dal</label>
-        <input class="input" id="explore-filter-date-from" type="date" onchange="renderExploreEvents()" style="padding:8px 12px;font-size:.8rem">
+        <label class="label" style="font-size:.65rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:3px">Dal</label>
+        <input class="input" id="explore-filter-date-from" type="date" onchange="renderExploreEvents()" style="padding:7px 10px;font-size:.8rem">
       </div>
       <div>
-        <label class="label" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:4px">Al</label>
-        <input class="input" id="explore-filter-date-to" type="date" onchange="renderExploreEvents()" style="padding:8px 12px;font-size:.8rem">
+        <label class="label" style="font-size:.65rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:3px">Al</label>
+        <input class="input" id="explore-filter-date-to" type="date" onchange="renderExploreEvents()" style="padding:7px 10px;font-size:.8rem">
       </div>
-      <div>
-        <label class="label" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:4px">Max €</label>
-        <input class="input" id="explore-filter-price-max" type="number" placeholder="—" oninput="renderExploreEvents()" style="padding:8px 12px;font-size:.8rem">
+      <div style="grid-column:span 2">
+        <label class="label" style="font-size:.65rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:3px">Max €</label>
+        <input class="input" id="explore-filter-price-max" type="number" placeholder="—" oninput="renderExploreEvents()" style="padding:7px 10px;font-size:.8rem;max-width:120px">
       </div>
     </div>
     <div style="padding:8px 20px 12px;display:flex;justify-content:space-between;align-items:center">
@@ -1602,11 +1617,11 @@ textarea.input{resize:none;font-family:inherit}
 
   <!-- Avatar + info rapida -->
   <div class="card mb-4 flex items-center gap-4" id="profile-header">
-    <div style="width:64px;height:64px;border-radius:50%;background:var(--brand-bg);display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;color:var(--brand-l);flex-shrink:0" id="profile-avatar">MR</div>
+    <div style="width:64px;height:64px;border-radius:50%;background:var(--brand-bg);display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;color:var(--brand-l);flex-shrink:0" id="profile-avatar"></div>
     <div>
-      <h2 class="font-bold text-white text-lg" id="profile-display-name">Marco Rossi</h2>
-      <div class="text-sm txt3" id="profile-email-display">marco@email.it</div>
-      <div class="text-xs txt3 mt-1" id="profile-member-since">Membro dal 15 gennaio 2026</div>
+      <h2 class="font-bold text-white text-lg" id="profile-display-name"></h2>
+      <div class="text-sm txt3" id="profile-email-display"></div>
+      <div class="text-xs txt3 mt-1" id="profile-member-since"></div>
     </div>
   </div>
 
@@ -1615,11 +1630,11 @@ textarea.input{resize:none;font-family:inherit}
     <h3 class="font-semibold text-white mb-4">I miei dati</h3>
     <div class="mb-3">
       <label class="label">Username</label>
-      <input class="input" id="profile-username" value="Marco R.">
+      <input class="input" id="profile-username" value="">
     </div>
     <div class="mb-3">
       <label class="label">Email</label>
-      <input class="input" value="marco@email.it" disabled style="opacity:.6">
+      <input class="input" id="profile-email-field" value="" disabled style="opacity:.6">
       <span class="text-xs txt3">L'email non può essere modificata</span>
     </div>
     <div class="mb-3">
@@ -2409,11 +2424,16 @@ async function loginWithGoogle(){
       if(!mgrDoc.exists){
         // New Google user — create user doc in Firestore
         const now=new Date().toISOString();
+        // Auto-subscribe to all active universes (load from Firestore if store empty)
+        if(!store.universes.length){try{const snap=await fbDb.collection('universes').get();store.universes=[];snap.forEach(doc=>{store.universes.push(doc.data());});}catch(e){}}
+        const activeUnivs=getActiveUniverses();
+        const subscribedUniverses=activeUnivs.map(u=>({universeId:u.id,preferredRole:u.roles&&u.roles[0]||''}));
         const userData={
           id:user.uid,username:user.displayName||user.email.split('@')[0],email:user.email,
           role:'non_so',status:'attivo',registeredAt:now.split('T')[0],authMethod:'google',
           initials:(user.displayName||'??').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase(),
           color:'avatar-brand',
+          subscribedUniverses,
           consents:{privacy:true,privacyDate:now,marketing:false,marketingDate:null}
         };
         await fbDb.collection('users').doc(user.uid).set(userData);
@@ -2542,10 +2562,15 @@ async function submitUserRegistration(){
     const cred=await fbAuth.createUserWithEmailAndPassword(email,password);
     await cred.user.updateProfile({displayName:username});
     const now=new Date().toISOString();
+    // Auto-subscribe to all active universes (load from Firestore if store empty)
+    if(!store.universes.length){try{const snap=await fbDb.collection('universes').get();store.universes=[];snap.forEach(doc=>{store.universes.push(doc.data());});}catch(e){}}
+    const activeUnivs=getActiveUniverses();
+    const subscribedUniverses=activeUnivs.map(u=>({universeId:u.id,preferredRole:u.roles&&u.roles[0]||''}));
     const userData={
-      id:cred.user.uid,username,email,role,status:'attivo',registeredAt:now.split('T')[0],authMethod:'magic_link',
+      id:cred.user.uid,username,email,role,status:'attivo',registeredAt:now.split('T')[0],authMethod:'email',
       initials:username.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase(),
       color:['avatar-brand','avatar-green','avatar-yellow','avatar-blue','avatar-purple'][Math.floor(Math.random()*5)],
+      subscribedUniverses,
       consents:{privacy:true,privacyDate:now,marketing:marketingCheck,marketingDate:marketingCheck?now:null}
     };
     await fbDb.collection('users').doc(cred.user.uid).set(userData);
@@ -2710,10 +2735,22 @@ function go(view){
 
 function populateProfileFields(){
   const u=store.currentUser;
+  // Header card
+  const avatarEl=document.getElementById('profile-avatar');
+  if(avatarEl) avatarEl.textContent=u.initials||(u.username||'??').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+  const displayNameEl=document.getElementById('profile-display-name');
+  if(displayNameEl) displayNameEl.textContent=u.username||'';
+  const emailDisplayEl=document.getElementById('profile-email-display');
+  if(emailDisplayEl) emailDisplayEl.textContent=u.email||'';
+  const memberSinceEl=document.getElementById('profile-member-since');
+  if(memberSinceEl&&u.registeredAt) memberSinceEl.textContent='Membro dal '+fmtDateShort(u.registeredAt);
+  // Form fields
   const usernameEl=document.getElementById('profile-username');
   if(usernameEl) usernameEl.value=u.username||'';
+  const emailFieldEl=document.getElementById('profile-email-field');
+  if(emailFieldEl) emailFieldEl.value=u.email||'';
   const authMethodEl=document.getElementById('profile-auth-method');
-  if(authMethodEl) authMethodEl.textContent='Google';
+  if(authMethodEl) authMethodEl.textContent=u.authMethod==='google'?'Google':u.authMethod==='magic_link'?'Magic Link':'Email + Password';
   // Find user record for consent data
   let record=store.users.find(x=>x.id===u.id)||store.managers.find(x=>x.id===u.id);
   const marketingCheckbox=document.getElementById('profile-marketing-consent');
