@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EventFlow — V2.0.0</title>
+<title>BodyEvents — V2.0.0</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
@@ -240,7 +240,7 @@ textarea.input{resize:none;font-family:inherit}
   <div class="navbar-inner">
     <div class="logo" onclick="go('events')">
       <div class="logo-icon">AY</div>
-      <span class="logo-text">EventFlow</span>
+      <span class="logo-text">BodyEvents</span>
     </div>
     <div class="nav-links" id="navLinks">
       <div class="nav-link active" data-view="events" onclick="go('events')">📅 Eventi</div>
@@ -1644,7 +1644,7 @@ textarea.input{resize:none;font-family:inherit}
   <div style="max-width:400px;width:100%">
     <div class="text-center mb-6">
       <div class="logo-icon mx-auto" style="width:56px;height:56px;font-size:1.2rem;border-radius:16px;margin-bottom:16px">AY</div>
-      <h1 class="text-2xl font-bold text-white">EventFlow</h1>
+      <h1 class="text-2xl font-bold text-white">BodyEvents</h1>
       <p class="txt3 text-sm mt-2">Accedi al tuo account</p>
     </div>
 
@@ -1691,7 +1691,7 @@ textarea.input{resize:none;font-family:inherit}
 
       <div class="text-center mt-4" style="display:flex;flex-direction:column;gap:6px;align-items:center">
         <div><span class="text-sm txt3">Non hai un account? </span><a class="text-sm" style="color:var(--brand-l);cursor:pointer" onclick="go('register')">Registrati come utente</a></div>
-        <div><span class="text-sm txt3">Sei un organizzatore? </span><a class="text-sm" style="color:var(--brand-l);cursor:pointer" onclick="go('register-org')">Registra il tuo gruppo</a></div>
+        <div><span class="text-sm txt3">Sei un organizzatore? </span><a class="text-sm" style="color:var(--brand-l);cursor:pointer" onclick="go('register-org')">Registrati come organizzatore</a></div>
       </div>
     </div>
 
@@ -1762,7 +1762,7 @@ textarea.input{resize:none;font-family:inherit}
       <button class="btn btn-primary w-full mt-4" style="padding:14px" onclick="submitUserRegistration()">Registrati</button>
       <div class="text-center mt-4" style="display:flex;flex-direction:column;gap:6px;align-items:center">
         <div><span class="text-sm txt3">Hai già un account? </span><a class="text-sm" style="color:var(--brand-l);cursor:pointer" onclick="go('login')">Accedi</a></div>
-        <div><span class="text-sm txt3">Sei un organizzatore? </span><a class="text-sm" style="color:var(--brand-l);cursor:pointer" onclick="go('register-org')">Registra il tuo gruppo</a></div>
+        <div><span class="text-sm txt3">Sei un organizzatore? </span><a class="text-sm" style="color:var(--brand-l);cursor:pointer" onclick="go('register-org')">Registrati come organizzatore</a></div>
       </div>
     </div>
 
@@ -1784,7 +1784,7 @@ textarea.input{resize:none;font-family:inherit}
   <div style="max-width:540px;width:100%">
     <div class="text-center mb-6">
       <div class="logo-icon mx-auto" style="width:56px;height:56px;font-size:1.2rem;border-radius:16px;margin-bottom:16px;background:var(--brand)">🛡️</div>
-      <h1 class="text-2xl font-bold text-white">Registra il tuo gruppo</h1>
+      <h1 class="text-2xl font-bold text-white">Registrati come organizzatore</h1>
       <p class="txt3 text-sm mt-2">Crea il profilo del tuo gruppo e inizia ad organizzare eventi</p>
     </div>
 
@@ -1893,7 +1893,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="txt2 text-sm" style="line-height:1.8;color:#9ca3af">
 
         <h2 class="text-lg font-semibold text-white mt-6 mb-3">Titolare del trattamento</h2>
-        <p class="mb-4">EventFlow<br>Email: info@eventflow.app</p>
+        <p class="mb-4">BodyEvents<br>Email: info@bodyevents.app</p>
 
         <h2 class="text-lg font-semibold text-white mt-6 mb-3">Dati personali raccolti</h2>
         <p class="mb-4">Durante la registrazione e l'utilizzo della piattaforma raccogliamo i seguenti dati:</p>
@@ -6964,7 +6964,7 @@ async function downloadExcel(){
   });
 
   const wb=new ExcelJS.Workbook();
-  wb.creator='EventFlow';
+  wb.creator='BodyEvents';
 
   // Colors
   const brandFill={type:'pattern',pattern:'solid',fgColor:{argb:'FF7C3AED'}};
