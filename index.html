@@ -294,7 +294,7 @@ textarea.input{resize:none;font-family:inherit}
     <div class="nav-link master-only" style="display:none" onclick="go('admin-community-events');closeMobileAdmin()">📅 Eventi Organizzati</div>
     <div class="nav-link" onclick="go('admin-community-jams');closeMobileAdmin()">🤝 Community Events</div>
     <div class="nav-link master-only" style="display:none" onclick="go('admin-users');closeMobileAdmin()">👥 Gestione Utenti</div>
-    <div class="nav-link master-only" style="display:none" onclick="go('admin-universes');closeMobileAdmin()">🌌 Universi</div>
+    <div class="nav-link" onclick="go('admin-universes');closeMobileAdmin()">🌌 Universi</div>
     <div class="nav-link" onclick="refreshData();closeMobileAdmin()">🔄 Aggiorna dati</div>
     <div class="nav-link" onclick="doLogout();closeMobileAdmin()">🚪 Esci</div>
   </div>
@@ -710,7 +710,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
-      <div class="sidebar-link master-only" onclick="go('admin-universes')">🌌 Universi</div>
+      <div class="sidebar-link" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -757,7 +757,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
-      <div class="sidebar-link master-only" onclick="go('admin-universes')">🌌 Universi</div>
+      <div class="sidebar-link" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -788,7 +788,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link master-only active" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
-      <div class="sidebar-link master-only" onclick="go('admin-universes')">🌌 Universi</div>
+      <div class="sidebar-link" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -864,18 +864,38 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
-      <div class="sidebar-link master-only active" onclick="go('admin-universes')">🌌 Universi</div>
+      <div class="sidebar-link active" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
     <h1 class="page-title">🌌 Gestione Universi</h1>
-    <p class="page-sub">Gestisci gli universi (discipline) dell'app e approva le proposte degli organizzatori.</p>
+    <p class="page-sub" id="universes-page-sub">Gestisci gli universi (discipline) dell'app.</p>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
       <div class="card" style="text-align:center"><div class="text-sm txt2">Universi attivi</div><div class="text-2xl font-bold text-white" id="active-univs-count">0</div></div>
       <div class="card" style="text-align:center"><div class="text-sm txt2">Proposte in attesa</div><div class="text-2xl font-bold text-white" id="pending-univs-count">0</div></div>
     </div>
 
+    <!-- Form proposta/creazione universo (visibile a tutti i manager) -->
+    <div class="card mb-4" id="propose-universe-card">
+      <h3 class="font-semibold text-white mb-4" id="propose-universe-title">🚀 Proponi nuovo Universo</h3>
+      <p class="text-xs txt3 mb-3" id="propose-universe-desc">Proponi una nuova disciplina. L'admin la approverà e sarà disponibile per tutti.</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div><label class="label">Nome *</label><input class="input" id="propose-univ-name" placeholder="es. Contact Improvisation"></div>
+        <div><label class="label">Emoji</label><input class="input" id="propose-univ-emoji" placeholder="es. 💃" maxlength="4"></div>
+      </div>
+      <div style="margin-bottom:12px">
+        <label class="label">Colore</label>
+        <input type="color" id="propose-univ-color" value="#8b5cf6" style="width:50px;height:36px;border:none;background:none;cursor:pointer">
+      </div>
+      <div style="margin-bottom:12px">
+        <label class="label">Ruoli (separati da virgola)</label>
+        <input class="input" id="propose-univ-roles" placeholder="es. Leader, Follower, Entrambi">
+      </div>
+      <button class="btn btn-primary" id="propose-univ-btn" onclick="handleProposeOrCreateUniverse()">🚀 Proponi Universo</button>
+    </div>
+
+    <!-- Pending universes (master vede approva/rifiuta, organizzatore vede lista) -->
     <div class="card mb-4">
       <h3 class="font-semibold text-white mb-4">⏳ Universi in attesa di approvazione</h3>
       <div id="pending-universes-list"><div class="text-xs txt3">Nessuna proposta in attesa</div></div>
@@ -886,7 +906,7 @@ textarea.input{resize:none;font-family:inherit}
       <div id="active-universes-list"></div>
     </div>
 
-    <div class="card">
+    <div class="card master-only" style="display:none">
       <h3 class="font-semibold text-white mb-4">🔧 Strumenti</h3>
       <button class="btn btn-secondary btn-sm" onclick="migrateToUniverses()">🔄 Migra dati esistenti a Universi</button>
       <p class="text-xs txt3 mt-2">Aggiunge universeId agli eventi e subscribedUniverses agli utenti che non ce l'hanno ancora.</p>
@@ -912,7 +932,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link active" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
-      <div class="sidebar-link master-only" onclick="go('admin-universes')">🌌 Universi</div>
+      <div class="sidebar-link" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -970,7 +990,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
-      <div class="sidebar-link master-only" onclick="go('admin-universes')">🌌 Universi</div>
+      <div class="sidebar-link" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -1258,7 +1278,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
-      <div class="sidebar-link master-only" onclick="go('admin-universes')">🌌 Universi</div>
+      <div class="sidebar-link" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -1307,7 +1327,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
-      <div class="sidebar-link master-only" onclick="go('admin-universes')">🌌 Universi</div>
+      <div class="sidebar-link" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -1402,7 +1422,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
-      <div class="sidebar-link master-only" onclick="go('admin-universes')">🌌 Universi</div>
+      <div class="sidebar-link" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -1438,7 +1458,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
-      <div class="sidebar-link master-only" onclick="go('admin-universes')">🌌 Universi</div>
+      <div class="sidebar-link" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -2153,6 +2173,59 @@ async function rejectUniverse(univId){
   if(currentView==='admin-universes')renderAdminUniversesView();
 }
 
+// Handle propose or create universe from admin panel
+async function handleProposeOrCreateUniverse(){
+  const name=document.getElementById('propose-univ-name').value.trim();
+  if(!name){showToast('Inserisci un nome per l\'universo!','error');return;}
+  const emoji=document.getElementById('propose-univ-emoji').value.trim()||'🌐';
+  const color=document.getElementById('propose-univ-color').value||UNIVERSE_PALETTE[store.universes.length%UNIVERSE_PALETTE.length];
+  const rolesRaw=document.getElementById('propose-univ-roles').value.trim();
+  const roles=rolesRaw?rolesRaw.split(',').map(r=>r.trim()).filter(Boolean):[];
+  // Check duplicate name
+  if(store.universes.find(u=>u.name.toLowerCase()===name.toLowerCase())){showToast('Esiste già un universo con questo nome','error');return;}
+  const isMaster=store.currentUser.masterKey===true;
+  if(isMaster){
+    // Master creates directly as active
+    await createUniverseDirect(name,emoji,color,roles);
+  }else{
+    // Regular manager proposes (pending)
+    await proposeUniverse(name,emoji,color,roles);
+  }
+  // Clear form
+  document.getElementById('propose-univ-name').value='';
+  document.getElementById('propose-univ-emoji').value='';
+  document.getElementById('propose-univ-roles').value='';
+  if(currentView==='admin-universes')renderAdminUniversesView();
+}
+
+// Master creates universe directly as active
+async function createUniverseDirect(name,emoji,color,roles){
+  const univId=genId('univ');
+  const univ={id:univId,name,emoji:emoji||'🌐',color:color||UNIVERSE_PALETTE[store.universes.length%UNIVERSE_PALETTE.length],roles:roles||[],pendingRoles:[],status:'active',createdBy:store.currentUser.id,approvedBy:store.currentUser.id,createdAt:new Date().toISOString(),approvedAt:new Date().toISOString()};
+  store.universes.push(univ);
+  await fsSet('universes',univId,univ);
+  // Auto-add to ALL users
+  for(const user of store.users){
+    if(!user.subscribedUniverses)user.subscribedUniverses=[];
+    if(!user.subscribedUniverses.find(s=>s.universeId===univId)){
+      user.subscribedUniverses.push({universeId:univId,preferredRole:univ.roles[0]||''});
+      fsUpdate('users',user.id,{subscribedUniverses:user.subscribedUniverses}).catch(console.error);
+    }
+  }
+  // Auto-add to ALL managers
+  for(const mgr of store.managers){
+    if(!mgr.universes)mgr.universes=[];
+    if(!mgr.universes.includes(univId)){
+      mgr.universes.push(univId);
+      fsUpdate('managers',mgr.id,{universes:mgr.universes}).catch(console.error);
+    }
+  }
+  // Update currentUser
+  if(!store.currentUser.universes)store.currentUser.universes=[];
+  if(!store.currentUser.universes.includes(univId))store.currentUser.universes.push(univId);
+  showToast('Universo "'+name+'" creato e attivato!');
+}
+
 // Propose role for existing universe (any manager in that universe)
 async function proposeRoleForUniverse(univId,roleName){
   const univ=store.universes.find(u=>u.id===univId);
@@ -2267,10 +2340,27 @@ function renderProfileUniverseSettings(){
 
 // Render admin universes management view
 function renderAdminUniversesView(){
+  const isMaster=store.currentUser.masterKey===true;
   const pending=getPendingUniverses();
   const active=getActiveUniverses();
   const cntA=document.getElementById('active-univs-count');if(cntA)cntA.textContent=active.length;
   const cntP=document.getElementById('pending-univs-count');if(cntP)cntP.textContent=pending.length;
+  // Adapt form label for master vs organizer
+  const formTitle=document.getElementById('propose-universe-title');
+  const formDesc=document.getElementById('propose-universe-desc');
+  const formBtn=document.getElementById('propose-univ-btn');
+  const pageSub=document.getElementById('universes-page-sub');
+  if(isMaster){
+    if(formTitle)formTitle.textContent='✨ Crea nuovo Universo';
+    if(formDesc)formDesc.textContent='Come admin, il nuovo universo sarà attivo immediatamente e aggiunto a tutti gli utenti.';
+    if(formBtn){formBtn.textContent='✨ Crea Universo';formBtn.classList.add('btn-primary');}
+    if(pageSub)pageSub.textContent='Gestisci gli universi (discipline) dell\'app e approva le proposte degli organizzatori.';
+  }else{
+    if(formTitle)formTitle.textContent='🚀 Proponi nuovo Universo';
+    if(formDesc)formDesc.textContent='Proponi una nuova disciplina. L\'admin la approverà e sarà disponibile per tutti.';
+    if(formBtn){formBtn.textContent='🚀 Proponi Universo';formBtn.classList.add('btn-primary');}
+    if(pageSub)pageSub.textContent='Visualizza gli universi disponibili e proponi nuove discipline.';
+  }
   // Pending universes
   const pList=document.getElementById('pending-universes-list');
   if(pList){
@@ -2278,7 +2368,14 @@ function renderAdminUniversesView(){
     else{
       pList.innerHTML=pending.map(u=>{
         const proposer=store.managers.find(m=>m.id===u.createdBy)||store.users.find(us=>us.id===u.createdBy);
-        return '<div class="card mb-3" style="border-left:4px solid '+u.color+'"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><div><div class="font-semibold text-white">'+u.emoji+' '+u.name+'</div><div class="text-xs txt3 mt-1">Ruoli: '+(u.roles.length?u.roles.join(', '):'nessuno')+'</div><div class="text-xs txt3">Proposto da: '+(proposer?.username||u.createdBy)+'</div></div><div style="display:flex;gap:6px"><button class="btn btn-sm btn-primary" onclick="approveUniverse(\''+u.id+'\')">✓ Approva</button><button class="btn btn-sm" style="background:var(--red-bg);color:var(--red)" onclick="rejectUniverse(\''+u.id+'\')">✕ Rifiuta</button></div></div></div>';
+        const isMyProposal=u.createdBy===store.currentUser.id;
+        let actionsHtml='';
+        if(isMaster){
+          actionsHtml='<div style="display:flex;gap:6px"><button class="btn btn-sm btn-primary" onclick="approveUniverse(\''+u.id+'\')">✓ Approva</button><button class="btn btn-sm" style="background:var(--red-bg);color:var(--red)" onclick="rejectUniverse(\''+u.id+'\')">✕ Rifiuta</button></div>';
+        }else if(isMyProposal){
+          actionsHtml='<span class="badge" style="background:var(--yellow-bg);color:var(--yellow)">In attesa</span>';
+        }
+        return '<div class="card mb-3" style="border-left:4px solid '+u.color+'"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><div><div class="font-semibold text-white">'+u.emoji+' '+u.name+'</div><div class="text-xs txt3 mt-1">Ruoli: '+(u.roles.length?u.roles.join(', '):'nessuno')+'</div><div class="text-xs txt3">Proposto da: '+(proposer?.username||u.createdBy)+'</div></div>'+actionsHtml+'</div></div>';
       }).join('');
     }
   }
@@ -2291,10 +2388,20 @@ function renderAdminUniversesView(){
       if(u.pendingRoles&&u.pendingRoles.length){
         pendingRolesHtml='<div class="mt-2"><div class="text-xs txt3 mb-1">Ruoli proposti:</div>'+u.pendingRoles.map(pr=>{
           const proposer=store.managers.find(m=>m.id===pr.proposedBy);
-          return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span class="badge" style="background:var(--yellow-bg);color:var(--yellow)">'+pr.name+'</span><span class="text-xs txt3">da '+(proposer?.username||pr.proposedBy)+'</span><button class="btn btn-sm btn-primary" style="padding:2px 8px;font-size:.7rem" onclick="approveRole(\''+u.id+'\',\''+pr.name+'\')">✓</button><button class="btn btn-sm" style="padding:2px 8px;font-size:.7rem;background:var(--red-bg);color:var(--red)" onclick="rejectRole(\''+u.id+'\',\''+pr.name+'\')">✕</button></div>';
+          if(isMaster){
+            return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span class="badge" style="background:var(--yellow-bg);color:var(--yellow)">'+pr.name+'</span><span class="text-xs txt3">da '+(proposer?.username||pr.proposedBy)+'</span><button class="btn btn-sm btn-primary" style="padding:2px 8px;font-size:.7rem" onclick="approveRole(\''+u.id+'\',\''+pr.name+'\')">✓</button><button class="btn btn-sm" style="padding:2px 8px;font-size:.7rem;background:var(--red-bg);color:var(--red)" onclick="rejectRole(\''+u.id+'\',\''+pr.name+'\')">✕</button></div>';
+          }else{
+            return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span class="badge" style="background:var(--yellow-bg);color:var(--yellow)">'+pr.name+'</span><span class="text-xs txt3">da '+(proposer?.username||pr.proposedBy)+' — in attesa</span></div>';
+          }
         }).join('')+'</div>';
       }
-      return '<div class="card mb-3" style="border-left:4px solid '+u.color+'"><div class="flex items-center justify-between"><div style="flex:1"><div class="font-semibold text-white">'+u.emoji+' '+u.name+'</div><div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">'+rolesHtml+'</div>'+pendingRolesHtml+'</div></div></div>';
+      // Propose role input (visible to all managers for universes they belong to)
+      let proposeRoleHtml='';
+      const mgrUnivs=store.currentUser.universes||[];
+      if(mgrUnivs.includes(u.id)||isMaster){
+        proposeRoleHtml='<div style="display:flex;gap:8px;margin-top:8px;align-items:center"><input class="input" style="flex:1;font-size:.8rem;padding:6px 10px" id="propose-role-'+u.id+'" placeholder="Nuovo ruolo..."><button class="btn btn-sm btn-secondary" style="font-size:.75rem" onclick="proposeRoleForUniverse(\''+u.id+'\',document.getElementById(\'propose-role-'+u.id+'\').value);document.getElementById(\'propose-role-'+u.id+'\').value=\'\';renderAdminUniversesView();">+ Proponi ruolo</button></div>';
+      }
+      return '<div class="card mb-3" style="border-left:4px solid '+u.color+'"><div style="flex:1"><div class="font-semibold text-white">'+u.emoji+' '+u.name+'</div><div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">'+rolesHtml+'</div>'+pendingRolesHtml+proposeRoleHtml+'</div></div>';
     }).join('');
   }
 }
@@ -4022,6 +4129,32 @@ function cancelUserBooking(bId){
 
 
 /* ==============================
+   GEOCODING — Extract coords from Google Maps URL
+============================== */
+function extractCoordsFromUrl(url){
+  if(!url)return null;
+  // Pattern 1: @lat,lng (most common in Google Maps URLs)
+  let m=url.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if(m)return{lat:parseFloat(m[1]),lng:parseFloat(m[2])};
+  // Pattern 2: ?q=lat,lng or &q=lat,lng
+  m=url.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if(m)return{lat:parseFloat(m[1]),lng:parseFloat(m[2])};
+  // Pattern 3: /place/lat,lng
+  m=url.match(/\/place\/(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if(m)return{lat:parseFloat(m[1]),lng:parseFloat(m[2])};
+  // Pattern 4: ll=lat,lng
+  m=url.match(/ll=(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if(m)return{lat:parseFloat(m[1]),lng:parseFloat(m[2])};
+  // Pattern 5: /dir/lat,lng or destination=lat,lng
+  m=url.match(/(?:dir|destination)(?:\/|=)(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if(m)return{lat:parseFloat(m[1]),lng:parseFloat(m[2])};
+  // Pattern 6: short link with data string !3d(lat)!4d(lng)
+  m=url.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+  if(m)return{lat:parseFloat(m[1]),lng:parseFloat(m[2])};
+  return null;
+}
+
+/* ==============================
    MAP VIEW
 ============================== */
 let eventsMap=null;
@@ -4069,8 +4202,9 @@ function renderMapView(){
   if(!evts.length)return;
   const bounds=[];
   evts.forEach(ev=>{
-    if(!ev.coords)return;
-    const {lat,lng}=ev.coords;
+    const resolvedCoords=ev.coords||extractCoordsFromUrl(ev.locationUrl);
+    if(!resolvedCoords)return;
+    const {lat,lng}=resolvedCoords;
     bounds.push([lat,lng]);
     const color=MARKER_COLORS[ev.type]||'#d946ef';
     const icon=L.divIcon({
@@ -6438,7 +6572,7 @@ function collectFormData(){
     level:document.getElementById('ne-level').value||'open',
     location:document.getElementById('ne-location').value||'',
     locationUrl:document.getElementById('ne-location-url').value||'',
-    coords:null,
+    coords:extractCoordsFromUrl(document.getElementById('ne-location-url').value||''),
     teacher:document.getElementById('ne-teacher').value||store.currentUser.username,
     maxSpots:0,
     image:evImages.thumb?.src||evImages.header?.src||null,
