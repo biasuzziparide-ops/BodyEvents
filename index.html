@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BodyEvents — V2.1.0</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤸</text></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
@@ -239,7 +240,7 @@ textarea.input{resize:none;font-family:inherit}
 <nav class="navbar hidden" id="navbar-user" style="top:37px">
   <div class="navbar-inner">
     <div class="logo" onclick="go('events')">
-      <div class="logo-icon">AY</div>
+      <div class="logo-icon">🤸</div>
       <span class="logo-text">BodyEvents</span>
     </div>
     <div class="nav-links" id="navLinks">
@@ -1714,7 +1715,7 @@ textarea.input{resize:none;font-family:inherit}
 <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;background:linear-gradient(135deg,#1a0a1a 0%,#0f0f13 60%,#0a0f1a 100%)">
   <div style="max-width:400px;width:100%">
     <div class="text-center mb-6">
-      <div class="logo-icon mx-auto" style="width:56px;height:56px;font-size:1.2rem;border-radius:16px;margin-bottom:16px">AY</div>
+      <div class="logo-icon mx-auto" style="width:56px;height:56px;font-size:1.8rem;border-radius:16px;margin-bottom:16px">🤸</div>
       <h1 class="text-2xl font-bold text-white">BodyEvents</h1>
       <p class="txt3 text-sm mt-2">Accedi al tuo account</p>
     </div>
@@ -1784,7 +1785,7 @@ textarea.input{resize:none;font-family:inherit}
 <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;background:linear-gradient(135deg,#0a0f1a 0%,#0f0f13 60%,#1a0a1a 100%)">
   <div style="max-width:480px;width:100%">
     <div class="text-center mb-6">
-      <div class="logo-icon mx-auto" style="width:56px;height:56px;font-size:1.2rem;border-radius:16px;margin-bottom:16px">AY</div>
+      <div class="logo-icon mx-auto" style="width:56px;height:56px;font-size:1.8rem;border-radius:16px;margin-bottom:16px">🤸</div>
       <h1 class="text-2xl font-bold text-white">Crea il tuo account</h1>
       <p class="txt3 text-sm mt-2">Unisciti alla community!</p>
     </div>
@@ -6851,7 +6852,7 @@ function renderUsersTab(){
     });
     if(!list.length){c.innerHTML='<div class="card text-center txt2 mt-4">Nessun utente trovato</div>';return;}
     let html='<div class="overflow-auto"><table class="table w-full"><thead><tr>';
-    html+='<th>Utente</th><th>Email</th><th>Ruolo AY</th><th>Stato</th><th>Registrato</th><th>Azioni</th>';
+    html+='<th>Utente</th><th>Email</th><th>Ruolo</th><th>Stato</th><th>Registrato</th><th>Azioni</th>';
     html+='</tr></thead><tbody>';
     list.forEach(u=>{
       const statusBadge=u.status==='attivo'
