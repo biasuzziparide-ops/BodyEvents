@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.0.0</title>
+<title>BodyEvents — V2.1.0</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
@@ -224,7 +224,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.0.0</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.1.0</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -295,6 +295,7 @@ textarea.input{resize:none;font-family:inherit}
     <div class="nav-link master-only" style="display:none" onclick="go('admin-community-events');closeMobileAdmin()">📅 Eventi Organizzati</div>
     <div class="nav-link" onclick="go('admin-community-jams');closeMobileAdmin()">🤝 Community Events</div>
     <div class="nav-link master-only" style="display:none" onclick="go('admin-users');closeMobileAdmin()">👥 Gestione Utenti</div>
+    <div class="nav-link master-only" style="display:none" onclick="go('admin-universes');closeMobileAdmin()">🌌 Universi</div>
     <div class="nav-link" onclick="refreshData();closeMobileAdmin()">🔄 Aggiorna dati</div>
     <div class="nav-link" onclick="doLogout();closeMobileAdmin()">🚪 Esci</div>
   </div>
@@ -319,6 +320,12 @@ textarea.input{resize:none;font-family:inherit}
     </div>
     <!-- Griglia filtri -->
     <div style="padding:16px 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end">
+      <div>
+        <label class="label" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:4px">Universo</label>
+        <select class="input" id="filter-universe" onchange="renderUserEvents()" style="padding:8px 32px 8px 12px;font-size:.8rem">
+          <option value="">Tutti gli Universi</option>
+        </select>
+      </div>
       <div>
         <label class="label" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:4px">Tipo</label>
         <select class="input" id="filter-type" onchange="renderUserEvents()" style="padding:8px 32px 8px 12px;font-size:.8rem">
@@ -698,6 +705,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
+      <div class="sidebar-link master-only" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -729,6 +737,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
+      <div class="sidebar-link master-only" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -760,6 +769,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link master-only active" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
+      <div class="sidebar-link master-only" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -820,6 +830,55 @@ textarea.input{resize:none;font-family:inherit}
 </div>
 </div>
 <!-- ============================================================ -->
+<!-- VIEW: ADMIN — GESTIONE UNIVERSI (solo Master) -->
+<!-- ============================================================ -->
+<div class="view" id="view-admin-universes">
+<div class="admin-wrap">
+  <aside class="sidebar">
+    <div class="sidebar-title"><div class="icon">🛡️</div><div><div class="font-semibold text-white">Organizzatore</div><div class="text-xs txt3">Gestione</div></div></div>
+    <nav class="sidebar-nav">
+      <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
+      <div class="sidebar-link" onclick="go('admin-events')">📅 Eventi</div>
+      <div class="sidebar-link" onclick="go('admin-checkin')">📱 Check-in QR</div>
+      <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
+      <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
+      <div class="sidebar-link" onclick="go('admin-explore')">🌍 Esplora Eventi</div>
+      <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
+      <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
+      <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
+      <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
+      <div class="sidebar-link master-only active" onclick="go('admin-universes')">🌌 Universi</div>
+    </nav>
+  </aside>
+  <main class="admin-content">
+    <h1 class="page-title">🌌 Gestione Universi</h1>
+    <p class="page-sub">Gestisci gli universi (discipline) dell'app e approva le proposte degli organizzatori.</p>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+      <div class="card" style="text-align:center"><div class="text-sm txt2">Universi attivi</div><div class="text-2xl font-bold text-white" id="active-univs-count">0</div></div>
+      <div class="card" style="text-align:center"><div class="text-sm txt2">Proposte in attesa</div><div class="text-2xl font-bold text-white" id="pending-univs-count">0</div></div>
+    </div>
+
+    <div class="card mb-4">
+      <h3 class="font-semibold text-white mb-4">⏳ Universi in attesa di approvazione</h3>
+      <div id="pending-universes-list"><div class="text-xs txt3">Nessuna proposta in attesa</div></div>
+    </div>
+
+    <div class="card mb-4">
+      <h3 class="font-semibold text-white mb-4">✅ Universi attivi</h3>
+      <div id="active-universes-list"></div>
+    </div>
+
+    <div class="card">
+      <h3 class="font-semibold text-white mb-4">🔧 Strumenti</h3>
+      <button class="btn btn-secondary btn-sm" onclick="migrateToUniverses()">🔄 Migra dati esistenti a Universi</button>
+      <p class="text-xs txt3 mt-2">Aggiunge universeId agli eventi e subscribedUniverses agli utenti che non ce l'hanno ancora.</p>
+    </div>
+  </main>
+</div>
+</div>
+
+<!-- ============================================================ -->
 <!-- VIEW: ADMIN — GESTIONE JAM COMUNITÀ (solo Master) -->
 <!-- ============================================================ -->
 <div class="view" id="view-admin-community-jams">
@@ -837,6 +896,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link active" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
+      <div class="sidebar-link master-only" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -895,6 +955,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
+      <div class="sidebar-link master-only" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -905,6 +966,7 @@ textarea.input{resize:none;font-family:inherit}
     <!-- Step 1: Info base -->
     <div class="card mb-4">
       <h3 class="font-semibold text-white mb-4">📝 Informazioni base</h3>
+      <div class="mb-4"><label class="label">🌌 Universo *</label><select class="input" id="ne-universe" required><option value="">Seleziona universo...</option></select></div>
       <div class="mb-4"><label class="label">Titolo evento *</label><input class="input" id="ne-title" placeholder="es. Jam AcroYoga al Parco" required></div>
       <div class="mb-4"><label class="label">Descrizione</label><textarea class="input" id="ne-desc" rows="3" placeholder="Descrivi l'evento..."></textarea></div>
       <div class="grid grid-2 gap-3 mb-4">
@@ -1182,6 +1244,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
+      <div class="sidebar-link master-only" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -1231,6 +1294,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
+      <div class="sidebar-link master-only" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -1248,6 +1312,12 @@ textarea.input{resize:none;font-family:inherit}
       </div>
     </div>
     <div style="padding:16px 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end">
+      <div>
+        <label class="label" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:4px">Universo</label>
+        <select class="input" id="explore-filter-universe" onchange="renderExploreEvents()" style="padding:8px 32px 8px 12px;font-size:.8rem">
+          <option value="">Tutti gli Universi</option>
+        </select>
+      </div>
       <div>
         <label class="label" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:4px">Tipo</label>
         <select class="input" id="explore-filter-type" onchange="renderExploreEvents()" style="padding:8px 32px 8px 12px;font-size:.8rem">
@@ -1305,6 +1375,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
+      <div class="sidebar-link master-only" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -1400,6 +1471,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
+      <div class="sidebar-link master-only" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -1436,6 +1508,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
+      <div class="sidebar-link master-only" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -1549,18 +1622,16 @@ textarea.input{resize:none;font-family:inherit}
       <span class="text-xs txt3">L'email non può essere modificata</span>
     </div>
     <div class="mb-3">
-      <label class="label">Ruolo preferito</label>
-      <select class="input" id="profile-preferred-role" onchange="store.currentUser.preferredRole=this.value">
-        <option value="base">💪 Base</option>
-        <option value="flyer" selected>🦅 Flyer</option>
-        <option value="non_so">🤷 Non lo so ancora</option>
-        <option value="entrambi">🔄 Faccio spesso entrambi</option>
-      </select>
-    </div>
-    <div class="mb-3">
       <label class="label">Metodo di accesso</label>
       <div class="text-sm txt3" id="profile-auth-method">Google</div>
     </div>
+  </div>
+
+  <!-- Universi -->
+  <div class="card mb-4">
+    <h3 class="font-semibold text-white mb-4">🌌 I miei Universi</h3>
+    <p class="text-xs txt3 mb-3">Scegli a quali universi sei interessato e il tuo ruolo preferito in ciascuno.</p>
+    <div id="profile-universes-container"></div>
   </div>
 
   <!-- Privacy e Consensi -->
@@ -1832,6 +1903,21 @@ textarea.input{resize:none;font-family:inherit}
 
       <div style="border-top:1px solid var(--s400);margin:16px 0"></div>
 
+      <h3 class="font-semibold text-white mb-3" style="font-size:.9rem">🌌 Universi</h3>
+      <p class="text-xs txt3 mb-3">Seleziona gli universi in cui operi, oppure proponi un nuovo universo.</p>
+      <div id="rego-universes-list" class="mb-3"></div>
+      <div class="mb-3" style="background:var(--s200);padding:12px;border-radius:10px">
+        <label class="label">Proponi un nuovo universo</label>
+        <div class="grid grid-2 gap-2 mt-1">
+          <input class="input" id="rego-new-univ-name" placeholder="Nome (es. Contact Improv)">
+          <input class="input" id="rego-new-univ-emoji" placeholder="Emoji (es. 💃)" maxlength="4">
+        </div>
+        <input class="input mt-2" id="rego-new-univ-roles" placeholder="Ruoli separati da virgola (es. Leader, Follower)">
+        <p class="text-xs txt3 mt-1">Il nuovo universo dovrà essere approvato dall'admin.</p>
+      </div>
+
+      <div style="border-top:1px solid var(--s400);margin:16px 0"></div>
+
       <h3 class="font-semibold text-white mb-3" style="font-size:.9rem">✓ Consensi e condizioni</h3>
       <label class="flex items-center gap-2 text-sm mb-3" style="cursor:pointer">
         <input type="checkbox" id="rego-age-check">
@@ -1985,7 +2071,8 @@ const store={
   bookings:[],
   subscriptions:[],
   attendances:{},
-  communityJams:[]
+  communityJams:[],
+  universes:[]
 };
 
 /* ==============================
@@ -2012,13 +2099,14 @@ async function loadAllData(){
   try{
     const app=document.getElementById('app');
     if(app&&!_dataLoaded)app.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:60vh;flex-direction:column;gap:16px"><div class="spinner"></div><p class="txt2">Caricamento dati...</p></div>';
-    const [usersSnap,managersSnap,eventsSnap,bookingsSnap,jamsSnap,attendancesSnap]=await Promise.all([
+    const [usersSnap,managersSnap,eventsSnap,bookingsSnap,jamsSnap,attendancesSnap,universesSnap]=await Promise.all([
       fbDb.collection('users').get(),
       fbDb.collection('managers').get(),
       fbDb.collection('events').get(),
       fbDb.collection('bookings').get(),
       fbDb.collection('communityJams').get(),
-      fbDb.collection('attendances').get()
+      fbDb.collection('attendances').get(),
+      fbDb.collection('universes').get()
     ]);
     store.users=[];usersSnap.forEach(doc=>{store.users.push(doc.data());});
     store.managers=[];managersSnap.forEach(doc=>{store.managers.push(doc.data());});
@@ -2026,6 +2114,13 @@ async function loadAllData(){
     store.bookings=[];bookingsSnap.forEach(doc=>{store.bookings.push(doc.data());});
     store.communityJams=[];jamsSnap.forEach(doc=>{store.communityJams.push(doc.data());});
     store.attendances={};attendancesSnap.forEach(doc=>{store.attendances[doc.id]=doc.data().events||[];});
+    store.universes=[];universesSnap.forEach(doc=>{store.universes.push(doc.data());});
+    // Auto-create AcroYoga universe if missing
+    if(!store.universes.find(u=>u.id==='univ_acro')){
+      const acroUniv={id:'univ_acro',name:'AcroYoga',emoji:'🤸',color:'#10b981',roles:['Base','Flyer','Entrambi'],pendingRoles:[],status:'active',createdBy:'system',approvedBy:'system',createdAt:new Date().toISOString()};
+      store.universes.push(acroUniv);
+      fsSet('universes','univ_acro',acroUniv).catch(console.error);
+    }
     _dataLoaded=true;
     console.log('Firestore loaded:',store.events.length,'events,',store.bookings.length,'bookings,',store.users.length,'users');
   }catch(e){
@@ -2045,7 +2140,243 @@ async function refreshData(){
   showToast('Dati aggiornati!');
 }
 
-function resetStoreData(){_dataLoaded=false;store.events=[];store.bookings=[];store.users=[];store.managers=[];store.communityJams=[];store.attendances={};}
+function resetStoreData(){_dataLoaded=false;store.events=[];store.bookings=[];store.users=[];store.managers=[];store.communityJams=[];store.attendances={};store.universes=[];}
+
+/* ==============================
+   UNIVERSI — HELPERS & FUNCTIONS
+============================== */
+const UNIVERSE_PALETTE=['#10b981','#3b82f6','#a855f7','#f59e0b','#ef4444','#ec4899','#06b6d4','#84cc16','#f97316','#6366f1'];
+
+function getUniverseColor(univId){const u=store.universes.find(x=>x.id===univId);return u?u.color:'#a3a3a3';}
+function getUniverseName(univId){const u=store.universes.find(x=>x.id===univId);return u?u.name:'—';}
+function getUniverseEmoji(univId){const u=store.universes.find(x=>x.id===univId);return u?u.emoji:'';}
+function getUniverseBadgeHtml(univId){
+  const u=store.universes.find(x=>x.id===univId);
+  if(!u)return '';
+  return '<span class="badge" style="background:'+u.color+'22;color:'+u.color+';border:1px solid '+u.color+'44">'+u.emoji+' '+u.name+'</span>';
+}
+function getActiveUniverses(){return store.universes.filter(u=>u.status==='active');}
+function getPendingUniverses(){return store.universes.filter(u=>u.status==='pending');}
+function getUserSubscribedUniverseIds(){
+  const subs=store.currentUser.subscribedUniverses||[];
+  return subs.map(s=>s.universeId);
+}
+
+// Propose new universe (manager)
+async function proposeUniverse(name,emoji,color,roles){
+  const univId=genId('univ');
+  const univ={id:univId,name:name,emoji:emoji||'🌐',color:color||UNIVERSE_PALETTE[store.universes.length%UNIVERSE_PALETTE.length],roles:roles||[],pendingRoles:[],status:'pending',createdBy:store.currentUser.id,approvedBy:null,createdAt:new Date().toISOString()};
+  store.universes.push(univ);
+  await fsSet('universes',univId,univ);
+  showToast('Universo "'+name+'" proposto — in attesa di approvazione');
+  return univId;
+}
+
+// Approve universe (master only)
+async function approveUniverse(univId){
+  const univ=store.universes.find(u=>u.id===univId);
+  if(!univ)return;
+  univ.status='active';univ.approvedBy=store.currentUser.id;univ.approvedAt=new Date().toISOString();
+  await fsUpdate('universes',univId,{status:'active',approvedBy:univ.approvedBy,approvedAt:univ.approvedAt});
+  // Auto-add to ALL users
+  for(const user of store.users){
+    if(!user.subscribedUniverses)user.subscribedUniverses=[];
+    if(!user.subscribedUniverses.find(s=>s.universeId===univId)){
+      user.subscribedUniverses.push({universeId:univId,preferredRole:univ.roles[0]||''});
+      fsUpdate('users',user.id,{subscribedUniverses:user.subscribedUniverses}).catch(console.error);
+    }
+  }
+  // Also update currentUser if is a regular user
+  if(!store.currentUser.subscribedUniverses)store.currentUser.subscribedUniverses=[];
+  if(!store.currentUser.subscribedUniverses.find(s=>s.universeId===univId)){
+    store.currentUser.subscribedUniverses.push({universeId:univId,preferredRole:univ.roles[0]||''});
+  }
+  showToast('Universo "'+univ.name+'" approvato e aggiunto a tutti gli utenti!');
+  if(currentView==='admin-universes')renderAdminUniversesView();
+}
+
+// Reject universe (master only)
+async function rejectUniverse(univId){
+  if(!confirm('Rifiutare questo universo?'))return;
+  await fsDelete('universes',univId);
+  store.universes=store.universes.filter(u=>u.id!==univId);
+  showToast('Universo rifiutato');
+  if(currentView==='admin-universes')renderAdminUniversesView();
+}
+
+// Propose role for existing universe (any manager in that universe)
+async function proposeRoleForUniverse(univId,roleName){
+  const univ=store.universes.find(u=>u.id===univId);
+  if(!univ)return;
+  roleName=roleName.trim();
+  if(!roleName){showToast('Inserisci un nome per il ruolo','error');return;}
+  if(univ.roles.includes(roleName)){showToast('Questo ruolo esiste già','error');return;}
+  if(!univ.pendingRoles)univ.pendingRoles=[];
+  if(univ.pendingRoles.find(r=>r.name===roleName)){showToast('Questo ruolo è già stato proposto','error');return;}
+  univ.pendingRoles.push({name:roleName,proposedBy:store.currentUser.id});
+  await fsUpdate('universes',univId,{pendingRoles:univ.pendingRoles});
+  showToast('Ruolo "'+roleName+'" proposto — in attesa di approvazione');
+}
+
+// Approve role (master only)
+async function approveRole(univId,roleName){
+  const univ=store.universes.find(u=>u.id===univId);
+  if(!univ)return;
+  if(!univ.roles.includes(roleName))univ.roles.push(roleName);
+  univ.pendingRoles=(univ.pendingRoles||[]).filter(r=>r.name!==roleName);
+  await fsUpdate('universes',univId,{roles:univ.roles,pendingRoles:univ.pendingRoles});
+  showToast('Ruolo "'+roleName+'" approvato!');
+  if(currentView==='admin-universes')renderAdminUniversesView();
+}
+
+// Reject role (master only)
+async function rejectRole(univId,roleName){
+  const univ=store.universes.find(u=>u.id===univId);
+  if(!univ)return;
+  univ.pendingRoles=(univ.pendingRoles||[]).filter(r=>r.name!==roleName);
+  await fsUpdate('universes',univId,{pendingRoles:univ.pendingRoles});
+  showToast('Ruolo rifiutato');
+  if(currentView==='admin-universes')renderAdminUniversesView();
+}
+
+// Toggle universe subscription for current user
+async function toggleUniverseSubscription(univId,subscribe){
+  if(!store.currentUser.subscribedUniverses)store.currentUser.subscribedUniverses=[];
+  if(subscribe){
+    if(!store.currentUser.subscribedUniverses.find(s=>s.universeId===univId)){
+      const univ=store.universes.find(u=>u.id===univId);
+      store.currentUser.subscribedUniverses.push({universeId:univId,preferredRole:univ?.roles[0]||''});
+    }
+  }else{
+    store.currentUser.subscribedUniverses=store.currentUser.subscribedUniverses.filter(s=>s.universeId!==univId);
+  }
+  const col=store.managers.find(m=>m.id===store.currentUser.id)?'managers':'users';
+  await fsUpdate(col,store.currentUser.id,{subscribedUniverses:store.currentUser.subscribedUniverses});
+  showToast(subscribe?'Iscritto all\'universo':'Disiscritto dall\'universo');
+  renderProfileUniverseSettings();
+}
+
+// Update preferred role for a universe
+async function updateUniversePreferredRole(univId,role){
+  if(!store.currentUser.subscribedUniverses)return;
+  const sub=store.currentUser.subscribedUniverses.find(s=>s.universeId===univId);
+  if(sub){sub.preferredRole=role;}
+  const col=store.managers.find(m=>m.id===store.currentUser.id)?'managers':'users';
+  await fsUpdate(col,store.currentUser.id,{subscribedUniverses:store.currentUser.subscribedUniverses});
+  showToast('Ruolo preferito aggiornato');
+}
+
+// Render universe settings in user profile
+function renderProfileUniverseSettings(){
+  const c=document.getElementById('profile-universes-container');
+  if(!c)return;
+  const activeUnivs=getActiveUniverses();
+  const subs=store.currentUser.subscribedUniverses||[];
+  let html='';
+  activeUnivs.forEach(u=>{
+    const sub=subs.find(s=>s.universeId===u.id);
+    const isSub=!!sub;
+    html+='<div style="padding:12px;background:'+u.color+'11;border:1px solid '+u.color+'33;border-radius:12px;margin-bottom:8px">';
+    html+='<div style="display:flex;align-items:center;justify-content:space-between;gap:12px">';
+    html+='<div><div style="color:'+u.color+';font-weight:600;font-size:.95rem">'+u.emoji+' '+u.name+'</div>';
+    html+='<div class="text-xs txt3 mt-1">Ruoli: '+(u.roles.length?u.roles.join(', '):'nessuno')+'</div></div>';
+    html+='<button class="btn btn-sm '+(isSub?'btn-primary':'btn-secondary')+'" onclick="toggleUniverseSubscription(\''+u.id+'\','+(!isSub)+')">'+(isSub?'✓ Iscritto':'+ Iscriviti')+'</button>';
+    html+='</div>';
+    if(isSub&&u.roles.length){
+      html+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid '+u.color+'33">';
+      html+='<label class="text-xs font-medium txt2">Ruolo preferito:</label>';
+      html+='<select class="input mt-1" style="font-size:.8rem" onchange="updateUniversePreferredRole(\''+u.id+'\',this.value)">';
+      u.roles.forEach(r=>{html+='<option value="'+r+'"'+(sub.preferredRole===r?' selected':'')+'>'+r+'</option>';});
+      html+='</select></div>';
+    }
+    html+='</div>';
+  });
+  c.innerHTML=html||'<div class="text-xs txt3">Nessun universo disponibile</div>';
+}
+
+// Render admin universes management view
+function renderAdminUniversesView(){
+  const pending=getPendingUniverses();
+  const active=getActiveUniverses();
+  const cntA=document.getElementById('active-univs-count');if(cntA)cntA.textContent=active.length;
+  const cntP=document.getElementById('pending-univs-count');if(cntP)cntP.textContent=pending.length;
+  // Pending universes
+  const pList=document.getElementById('pending-universes-list');
+  if(pList){
+    if(!pending.length){pList.innerHTML='<div class="text-xs txt3">Nessuna proposta in attesa</div>';}
+    else{
+      pList.innerHTML=pending.map(u=>{
+        const proposer=store.managers.find(m=>m.id===u.createdBy)||store.users.find(us=>us.id===u.createdBy);
+        return '<div class="card mb-3" style="border-left:4px solid '+u.color+'"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><div><div class="font-semibold text-white">'+u.emoji+' '+u.name+'</div><div class="text-xs txt3 mt-1">Ruoli: '+(u.roles.length?u.roles.join(', '):'nessuno')+'</div><div class="text-xs txt3">Proposto da: '+(proposer?.username||u.createdBy)+'</div></div><div style="display:flex;gap:6px"><button class="btn btn-sm btn-primary" onclick="approveUniverse(\''+u.id+'\')">✓ Approva</button><button class="btn btn-sm" style="background:var(--red-bg);color:var(--red)" onclick="rejectUniverse(\''+u.id+'\')">✕ Rifiuta</button></div></div></div>';
+      }).join('');
+    }
+  }
+  // Active universes
+  const aList=document.getElementById('active-universes-list');
+  if(aList){
+    aList.innerHTML=active.map(u=>{
+      let rolesHtml=u.roles.map(r=>'<span class="badge" style="background:'+u.color+'22;color:'+u.color+'">'+r+'</span>').join(' ');
+      let pendingRolesHtml='';
+      if(u.pendingRoles&&u.pendingRoles.length){
+        pendingRolesHtml='<div class="mt-2"><div class="text-xs txt3 mb-1">Ruoli proposti:</div>'+u.pendingRoles.map(pr=>{
+          const proposer=store.managers.find(m=>m.id===pr.proposedBy);
+          return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span class="badge" style="background:var(--yellow-bg);color:var(--yellow)">'+pr.name+'</span><span class="text-xs txt3">da '+(proposer?.username||pr.proposedBy)+'</span><button class="btn btn-sm btn-primary" style="padding:2px 8px;font-size:.7rem" onclick="approveRole(\''+u.id+'\',\''+pr.name+'\')">✓</button><button class="btn btn-sm" style="padding:2px 8px;font-size:.7rem;background:var(--red-bg);color:var(--red)" onclick="rejectRole(\''+u.id+'\',\''+pr.name+'\')">✕</button></div>';
+        }).join('')+'</div>';
+      }
+      return '<div class="card mb-3" style="border-left:4px solid '+u.color+'"><div class="flex items-center justify-between"><div style="flex:1"><div class="font-semibold text-white">'+u.emoji+' '+u.name+'</div><div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">'+rolesHtml+'</div>'+pendingRolesHtml+'</div></div></div>';
+    }).join('');
+  }
+}
+
+// Populate universe dropdown for event creation form
+function populateEventUniverseDropdown(){
+  const sel=document.getElementById('ne-universe');
+  if(!sel)return;
+  const mgrUnivs=store.currentUser.universes||['univ_acro'];
+  const activeUnivs=getActiveUniverses().filter(u=>mgrUnivs.includes(u.id));
+  sel.innerHTML='<option value="">Seleziona universo...</option>'+activeUnivs.map(u=>'<option value="'+u.id+'">'+u.emoji+' '+u.name+'</option>').join('');
+  if(activeUnivs.length===1)sel.value=activeUnivs[0].id;
+}
+
+// Populate universe filter dropdowns
+function populateUniverseFilters(){
+  const subs=getUserSubscribedUniverseIds();
+  const active=getActiveUniverses();
+  ['filter-universe','explore-filter-universe'].forEach(fid=>{
+    const sel=document.getElementById(fid);
+    if(!sel)return;
+    let html='<option value="">Tutti gli Universi</option>';
+    active.forEach(u=>{
+      html+='<option value="'+u.id+'">'+u.emoji+' '+u.name+'</option>';
+    });
+    sel.innerHTML=html;
+  });
+}
+
+// Migration: ensure all existing data has universe fields
+async function migrateToUniverses(){
+  let migrated=0;
+  // Events without universeId → set to univ_acro
+  for(const ev of store.events){
+    if(!ev.universeId){ev.universeId='univ_acro';fsUpdate('events',ev.id,{universeId:'univ_acro'}).catch(console.error);migrated++;}
+  }
+  // Users without subscribedUniverses → add AcroYoga
+  for(const user of store.users){
+    if(!user.subscribedUniverses||!user.subscribedUniverses.length){
+      user.subscribedUniverses=[{universeId:'univ_acro',preferredRole:user.preferredRole||'Base'}];
+      fsUpdate('users',user.id,{subscribedUniverses:user.subscribedUniverses}).catch(console.error);migrated++;
+    }
+  }
+  // Managers without universes → add AcroYoga
+  for(const mgr of store.managers){
+    if(!mgr.universes||!mgr.universes.length){
+      mgr.universes=['univ_acro'];
+      fsUpdate('managers',mgr.id,{universes:mgr.universes}).catch(console.error);migrated++;
+    }
+  }
+  if(migrated)showToast('Migrazione completata: '+migrated+' record aggiornati');
+  else showToast('Nessuna migrazione necessaria');
+}
 
 /* Helper functions for date/time */
 function getNowTime(){
@@ -2227,6 +2558,19 @@ async function submitUserRegistration(){
   }
 }
 
+// Populate universe checkboxes for org registration
+async function populateRegoUniverses(){
+  const c=document.getElementById('rego-universes-list');
+  if(!c)return;
+  // Load universes if not loaded yet (user might not be logged in)
+  if(!store.universes.length){
+    try{const snap=await fbDb.collection('universes').get();store.universes=[];snap.forEach(doc=>{store.universes.push(doc.data());});}catch(e){console.error('Load universes for reg:',e);}
+  }
+  const active=getActiveUniverses();
+  if(!active.length){c.innerHTML='<div class="text-xs txt3">Nessun universo disponibile ancora.</div>';return;}
+  c.innerHTML=active.map(u=>'<label class="flex items-center gap-2 text-sm mb-2" style="cursor:pointer"><input type="checkbox" class="rego-univ-check" value="'+u.id+'" checked><span style="color:'+u.color+'">'+u.emoji+' '+u.name+'</span></label>').join('');
+}
+
 async function submitOrgRegistration(){
   const username=(document.getElementById('rego-username')?.value||'').trim();
   const email=(document.getElementById('rego-email')?.value||'').trim();
@@ -2239,19 +2583,38 @@ async function submitOrgRegistration(){
   const termsCheck=document.getElementById('rego-terms-check')?.checked||false;
   const marketingCheck=document.getElementById('rego-marketing-check')?.checked||false;
 
+  // Collect selected universes
+  const selectedUnivs=Array.from(document.querySelectorAll('.rego-univ-check:checked')).map(cb=>cb.value);
+  // Check for new universe proposal
+  const newUnivName=(document.getElementById('rego-new-univ-name')?.value||'').trim();
+  const newUnivEmoji=(document.getElementById('rego-new-univ-emoji')?.value||'').trim();
+  const newUnivRoles=(document.getElementById('rego-new-univ-roles')?.value||'').trim();
+
   if(!username||!email||!password||!orgName||!city){showToast('Compila tutti i campi obbligatori (*)','error');return;}
   if(!email.includes('@')){showToast('Email non valida','error');return;}
   if(password.length<6){showToast('La password deve avere almeno 6 caratteri','error');return;}
   if(!ageCheck){showToast('Devi confermare di avere almeno 14 anni','error');return;}
   if(!privacyCheck){showToast('Devi accettare l\'Informativa sulla Privacy','error');return;}
   if(!termsCheck){showToast('Devi accettare le Condizioni d\'Uso','error');return;}
+  if(!selectedUnivs.length&&!newUnivName){showToast('Seleziona almeno un universo o proponi un nuovo','error');return;}
 
   try{
     const cred=await fbAuth.createUserWithEmailAndPassword(email,password);
     await cred.user.updateProfile({displayName:username});
     const now=new Date().toISOString();
+
+    // If proposing a new universe, create it as pending
+    if(newUnivName){
+      const roles=newUnivRoles?newUnivRoles.split(',').map(r=>r.trim()).filter(r=>r):[];
+      const newUnivId=genId('univ');
+      const newUniv={id:newUnivId,name:newUnivName,emoji:newUnivEmoji||'🌐',color:UNIVERSE_PALETTE[store.universes.length%UNIVERSE_PALETTE.length],roles,pendingRoles:[],status:'pending',createdBy:cred.user.uid,approvedBy:null,createdAt:now};
+      await fbDb.collection('universes').doc(newUnivId).set(newUniv);
+      selectedUnivs.push(newUnivId);
+    }
+
     const mgrData={
       id:cred.user.uid,username,email,orgName,city,description:desc,role:'manager',status:'pending_approval',
+      universes:selectedUnivs,
       consents:{privacy:true,privacyDate:now,terms:true,termsDate:now,marketing:marketingCheck,marketingDate:marketingCheck?now:null},
       requestedAt:now.split('T')[0]
     };
@@ -2325,7 +2688,7 @@ function go(view){
   if(view==='events') renderUserEvents();
   if(view==='jams') renderUserJams();
   if(view==='dashboard') renderUserDashboard();
-  if(view==='profile') populateProfileFields();
+  if(view==='profile'){populateProfileFields();renderProfileUniverseSettings();}
   if(view==='admin-events') renderAdminEvents();
   if(view==='admin') renderAdminDashboard();
   if(view==='admin-bookings') renderAdminBookings();
@@ -2338,15 +2701,16 @@ function go(view){
   if(view==='checkin-booked') renderCheckinA();
   if(view==='checkin-walkin') renderCheckinB();
   if(view==='checkin-new') renderCheckinC();
-  if(view==='admin-new-event'&&!editingEventId){restoreFormTitle();initEventDates();}
+  if(view==='admin-new-event'&&!editingEventId){restoreFormTitle();initEventDates();populateEventUniverseDropdown();}
+  if(view==='admin-new-event'&&editingEventId){populateEventUniverseDropdown();}
+  if(view==='admin-universes'){renderAdminUniversesView();}
+  if(view==='register-org'){populateRegoUniverses();}
 }
 
 function populateProfileFields(){
   const u=store.currentUser;
   const usernameEl=document.getElementById('profile-username');
   if(usernameEl) usernameEl.value=u.username||'';
-  const prefRoleEl=document.getElementById('profile-preferred-role');
-  if(prefRoleEl) prefRoleEl.value=u.preferredRole||'flyer';
   const authMethodEl=document.getElementById('profile-auth-method');
   if(authMethodEl) authMethodEl.textContent='Google';
   // Find user record for consent data
@@ -3277,6 +3641,7 @@ function confirmNewCheckin(evId){
 ============================== */
 function renderUserEvents(){
   const c=document.getElementById('user-events-container');if(!c)return;
+  populateUniverseFilters();
   const evts=getFilteredEvents();
   const rc=document.getElementById('filter-results-count');
   const totalPub=store.events.filter(e=>e.status==='pubblicato'&&!(e.alert&&e.alert.type==='cancellato')).length;
@@ -3303,14 +3668,14 @@ function renderUserEvents(){
           <span style="font-size:1.4rem;font-weight:700;color:var(--brand-l)">${dayNum}</span>
           <span style="font-size:.65rem;color:rgba(240,171,252,.5);text-transform:uppercase">${monthStr}</span>
         </div>`;
-    return `<div class="card-hover mb-4" onclick="showEventDetail('${ev.id}')">
+    return `<div class="card-hover mb-4" style="border-left:4px solid ${getUniverseColor(ev.universeId)}" onclick="showEventDetail('${ev.id}')">
       <div class="flex gap-4" style="align-items:flex-start">
         ${cardThumb}
         <div class="flex-1">
           <h3 class="text-lg font-semibold text-white" style="margin-bottom:4px">${ev.title}</h3>
           <p class="text-sm txt3">${ev.description.substring(0,80)}${ev.description.length>80?'...':''}</p>
           <div class="flex gap-2 mt-2 flex-wrap">
-            <span class="badge ${badgeType(ev.type)}">${capitalize(ev.type)}</span>${daysBadge}${levelBadges}${recBadge}${pricingBadge}${confirmBadge}${bookClosedBadge}
+            ${getUniverseBadgeHtml(ev.universeId)}<span class="badge ${badgeType(ev.type)}">${capitalize(ev.type)}</span>${daysBadge}${levelBadges}${recBadge}${pricingBadge}${confirmBadge}${bookClosedBadge}
           </div>
           <div class="flex gap-4 mt-2 text-xs txt3">
             <span>📅 ${dateRange}</span><span>🕐 ${d0?.startTime||''} — ${d0?.endTime||''}</span>
@@ -3332,7 +3697,7 @@ function resetFilters(){
   const today=new Date().toISOString().split('T')[0];
   ['filter-text','filter-maestro','filter-date-to','filter-price-max'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const dfEl=document.getElementById('filter-date-from');if(dfEl)dfEl.value=today;
-  ['filter-type','filter-zona'].forEach(id=>{const el=document.getElementById(id);if(el)el.selectedIndex=0;});
+  ['filter-type','filter-zona','filter-universe'].forEach(id=>{const el=document.getElementById(id);if(el)el.selectedIndex=0;});
   renderUserEvents();
   showToast('Filtri resettati');
 }
@@ -3490,6 +3855,7 @@ function cancelUserBooking(bId){
 ============================== */
 function getExploreFilteredEvents(){
   const q=(document.getElementById('explore-filter-text')||{}).value||'';
+  const univFilter=(document.getElementById('explore-filter-universe')||{}).value||'';
   const tipo=(document.getElementById('explore-filter-type')||{}).value||'';
   const zona=(document.getElementById('explore-filter-zona')||{}).value||'';
   const maestro=(document.getElementById('explore-filter-maestro')||{}).value||'';
@@ -3498,6 +3864,8 @@ function getExploreFilteredEvents(){
   const priceMaxVal=(document.getElementById('explore-filter-price-max')||{}).value;
   const priceMax=priceMaxVal?parseFloat(priceMaxVal):null;
   let evts=store.events.filter(e=>e.status==='pubblicato'&&!(e.alert&&e.alert.type==='cancellato'));
+  // Universe filter
+  if(univFilter){evts=evts.filter(e=>e.universeId===univFilter);}
   if(q){const ql=q.toLowerCase();evts=evts.filter(e=>(e.title+e.description+e.teacher+e.location).toLowerCase().includes(ql));}
   if(tipo)evts=evts.filter(e=>e.type===tipo);
   if(zona)evts=evts.filter(e=>e.orgName===zona);
@@ -3537,14 +3905,14 @@ function renderExploreEvents(){
             <span style="font-size:1.4rem;font-weight:700;color:var(--brand-l)">${dayNum}</span>
             <span style="font-size:.65rem;color:rgba(240,171,252,.5);text-transform:uppercase">${monthStr}</span>
           </div>`;
-      return `<div class="card-hover mb-4" onclick="lastExploreView=true;showEventDetail('${ev.id}')">
+      return `<div class="card-hover mb-4" style="border-left:4px solid ${getUniverseColor(ev.universeId)}" onclick="lastExploreView=true;showEventDetail('${ev.id}')">
         <div class="flex gap-4" style="align-items:flex-start">
           ${exThumb}
           <div class="flex-1">
             <h3 class="text-lg font-semibold text-white" style="margin-bottom:4px">${ev.title}</h3>
             <p class="text-sm txt3">${ev.description.substring(0,80)}${ev.description.length>80?'...':''}</p>
             <div class="flex gap-2 mt-2 flex-wrap">
-              <span class="badge ${badgeType(ev.type)}">${capitalize(ev.type)}</span>${daysBadge}${levelBadges}${recBadge}${pricingBadge}${confirmBadge}${ownBadge}
+              ${getUniverseBadgeHtml(ev.universeId)}<span class="badge ${badgeType(ev.type)}">${capitalize(ev.type)}</span>${daysBadge}${levelBadges}${recBadge}${pricingBadge}${confirmBadge}${ownBadge}
             </div>
             <div class="flex gap-4 mt-2 text-xs txt3">
               <span>📅 ${dateRange}</span><span>🕐 ${d0?.startTime||''} — ${d0?.endTime||''}</span>
@@ -3561,7 +3929,7 @@ function resetExploreFilters(){
   const today=new Date().toISOString().split('T')[0];
   ['explore-filter-text','explore-filter-maestro','explore-filter-date-to','explore-filter-price-max'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const dfEl=document.getElementById('explore-filter-date-from');if(dfEl)dfEl.value=today;
-  ['explore-filter-type','explore-filter-zona'].forEach(id=>{const el=document.getElementById(id);if(el)el.selectedIndex=0;});
+  ['explore-filter-type','explore-filter-zona','explore-filter-universe'].forEach(id=>{const el=document.getElementById(id);if(el)el.selectedIndex=0;});
   renderExploreEvents();
   showToast('Filtri resettati');
 }
@@ -3653,6 +4021,7 @@ function renderMapView(){
 
 function getFilteredEvents(){
   const q=(document.getElementById('filter-text')||{}).value||'';
+  const univFilter=(document.getElementById('filter-universe')||{}).value||'';
   const tipo=(document.getElementById('filter-type')||{}).value||'';
   const zona=(document.getElementById('filter-zona')||{}).value||'';
   const maestro=(document.getElementById('filter-maestro')||{}).value||'';
@@ -3661,6 +4030,9 @@ function getFilteredEvents(){
   const priceMaxVal=(document.getElementById('filter-price-max')||{}).value;
   const priceMax=priceMaxVal?parseFloat(priceMaxVal):null;
   let evts=store.events.filter(e=>e.status==='pubblicato'&&!(e.alert&&e.alert.type==='cancellato'));
+  // Universe filter: if no explicit filter, show only subscribed universes
+  if(univFilter){evts=evts.filter(e=>e.universeId===univFilter);}
+  else{const subIds=getUserSubscribedUniverseIds();if(subIds.length)evts=evts.filter(e=>subIds.includes(e.universeId)||!e.universeId);}
   if(q){const ql=q.toLowerCase();evts=evts.filter(e=>(e.title+e.description+e.teacher+e.location).toLowerCase().includes(ql));}
   if(tipo)evts=evts.filter(e=>e.type===tipo);
   if(zona)evts=evts.filter(e=>e.orgName===zona);
@@ -5862,10 +6234,13 @@ function collectFormData(){
     deadline:document.getElementById('ne-eb-deadline')?.value||null,
     maxCount:parseInt(document.getElementById('ne-eb-max-count')?.value)||null
   };
+  const universeId=document.getElementById('ne-universe')?.value||'univ_acro';
+  if(!universeId){showToast('Seleziona un universo!','error');return null;}
   const eventType=document.getElementById('ne-type').value||'jam';
   const finalType=eventType==='custom'?(document.getElementById('ne-custom-type')?.value||'Evento'):eventType;
   return {
     id:genId('ev'),managerId:store.currentUser.id,orgName:store.currentUser.orgName,
+    universeId,
     title,description:document.getElementById('ne-desc').value||'',
     type:finalType,
     level:document.getElementById('ne-level').value||'open',
@@ -6010,6 +6385,9 @@ function editEvent(id){
   const ev=store.events.find(e=>e.id===id);if(!ev)return;
   editingEventId=id;
   resetForm();
+  // Populate universe
+  populateEventUniverseDropdown();
+  const neUniv=document.getElementById('ne-universe');if(neUniv)neUniv.value=ev.universeId||'univ_acro';
   // Populate basic fields
   document.getElementById('ne-title').value=ev.title||'';
   document.getElementById('ne-desc').value=ev.description||'';
