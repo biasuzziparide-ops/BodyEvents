@@ -974,7 +974,7 @@ textarea.input{resize:none;font-family:inherit}
     <!-- Step 1: Info base -->
     <div class="card mb-4">
       <h3 class="font-semibold text-white mb-4">📝 Informazioni base</h3>
-      <div class="mb-4"><label class="label">🌌 Universo *</label><select class="input" id="ne-universe" required><option value="">Seleziona universo...</option></select></div>
+      <div class="mb-4"><label class="label">🌌 Universi *</label><div id="ne-universes-list" class="flex gap-2 flex-wrap"></div></div>
       <div class="mb-4"><label class="label">Titolo evento *</label><input class="input" id="ne-title" placeholder="es. Jam AcroYoga al Parco" required></div>
       <div class="mb-4"><label class="label">Descrizione</label><textarea class="input" id="ne-desc" rows="3" placeholder="Descrivi l'evento..."></textarea></div>
       <div class="grid grid-2 gap-3 mb-4">
@@ -1692,7 +1692,7 @@ textarea.input{resize:none;font-family:inherit}
   </div>
 
   <div class="flex gap-3">
-    <button class="btn btn-primary flex-1" onclick="showToast('Profilo aggiornato!')">💾 Salva modifiche</button>
+    <button class="btn btn-primary flex-1" id="profile-save-btn" onclick="saveProfileChanges()" disabled style="opacity:.5">💾 Salva modifiche</button>
     <button class="btn btn-ghost" onclick="doLogout()">🚪 Esci</button>
   </div>
 </div>
@@ -2171,6 +2171,17 @@ function getUniverseBadgeHtml(univId){
   if(!u)return '';
   return '<span class="badge" style="background:'+u.color+'22;color:'+u.color+';border:1px solid '+u.color+'44">'+u.emoji+' '+u.name+'</span>';
 }
+function getMultiUniverseBadgesHtml(ev){
+  const ids=ev.universeIds||[ev.universeId].filter(Boolean);
+  return ids.map(id=>getUniverseBadgeHtml(id)).join('');
+}
+function getMultiUniverseBorderStyle(ev){
+  const ids=ev.universeIds||[ev.universeId].filter(Boolean);
+  if(ids.length<=1)return 'border-left:4px solid '+getUniverseColor(ids[0]||'univ_acro');
+  // Multi-universe gradient border
+  const colors=ids.map(id=>getUniverseColor(id));
+  return 'border-left:4px solid '+colors[0]+';border-image:linear-gradient(to bottom,'+colors.join(',')+') 1';
+}
 function getActiveUniverses(){return store.universes.filter(u=>u.status==='active');}
 function getPendingUniverses(){return store.universes.filter(u=>u.status==='pending');}
 function getUserSubscribedUniverseIds(){
@@ -2346,12 +2357,11 @@ function renderAdminUniversesView(){
 
 // Populate universe dropdown for event creation form
 function populateEventUniverseDropdown(){
-  const sel=document.getElementById('ne-universe');
-  if(!sel)return;
+  const c=document.getElementById('ne-universes-list');
+  if(!c)return;
   const mgrUnivs=store.currentUser.universes||['univ_acro'];
   const activeUnivs=getActiveUniverses().filter(u=>mgrUnivs.includes(u.id));
-  sel.innerHTML='<option value="">Seleziona universo...</option>'+activeUnivs.map(u=>'<option value="'+u.id+'">'+u.emoji+' '+u.name+'</option>').join('');
-  if(activeUnivs.length===1)sel.value=activeUnivs[0].id;
+  c.innerHTML=activeUnivs.map(u=>'<label class="flex items-center gap-2 text-sm" style="cursor:pointer;padding:4px 10px;border-radius:8px;border:1px solid '+u.color+'30;background:'+u.color+'10"><input type="checkbox" class="ne-univ-check" value="'+u.id+'"'+(activeUnivs.length===1?' checked':'')+'><span style="color:'+u.color+'">'+u.emoji+' '+u.name+'</span></label>').join('');
 }
 
 // Populate universe filter dropdowns
@@ -2372,9 +2382,10 @@ function populateUniverseFilters(){
 // Migration: ensure all existing data has universe fields
 async function migrateToUniverses(){
   let migrated=0;
-  // Events without universeId → set to univ_acro
+  // Events without universeId/universeIds → set to univ_acro
   for(const ev of store.events){
-    if(!ev.universeId){ev.universeId='univ_acro';fsUpdate('events',ev.id,{universeId:'univ_acro'}).catch(console.error);migrated++;}
+    if(!ev.universeId){ev.universeId='univ_acro';ev.universeIds=['univ_acro'];fsUpdate('events',ev.id,{universeId:'univ_acro',universeIds:['univ_acro']}).catch(console.error);migrated++;}
+    else if(!ev.universeIds){ev.universeIds=[ev.universeId];fsUpdate('events',ev.id,{universeIds:[ev.universeId]}).catch(console.error);migrated++;}
   }
   // Users without subscribedUniverses → add AcroYoga
   for(const user of store.users){
@@ -2695,9 +2706,14 @@ function go(view){
   const noNav=['login','register','register-org','privacy-policy','checkin-booked','checkin-walkin','checkin-new'];
   const hideAll=noNav.includes(view);
   const isManagerOrMaster=store.managers.some(m=>m.id===store.currentUser.id);
-  document.getElementById('modeBanner').style.display=(hideAll||!isManagerOrMaster)?'none':'';
+  const showBanner=!hideAll&&isManagerOrMaster;
+  document.getElementById('modeBanner').style.display=showBanner?'':'none';
   document.getElementById('navbar-user').style.display=(hideAll||currentMode==='admin')?'none':'';
   document.getElementById('navbar-admin').style.display=(hideAll||currentMode==='user'||!isManagerOrMaster)?'none':'';
+  // Adjust navbar top based on modeBanner visibility
+  const navTop=showBanner?'37px':'0';
+  document.getElementById('navbar-user').style.top=navTop;
+  document.getElementById('navbar-admin').style.top=navTop;
   if(view.startsWith('admin') && currentMode!=='admin'){
     currentMode='admin';
     document.getElementById('navbar-user').classList.add('hidden');
@@ -2772,6 +2788,41 @@ function populateProfileFields(){
     }
     logEl.innerHTML=logHtml;
   }
+  // Disable save button after populating, add change listener
+  disableProfileSave();
+  const pu=document.getElementById('profile-username');
+  if(pu)pu.oninput=enableProfileSave;
+}
+
+function enableProfileSave(){
+  const btn=document.getElementById('profile-save-btn');
+  if(btn){btn.disabled=false;btn.style.opacity='1';}
+}
+function disableProfileSave(){
+  const btn=document.getElementById('profile-save-btn');
+  if(btn){btn.disabled=true;btn.style.opacity='.5';}
+}
+
+async function saveProfileChanges(){
+  const newUsername=(document.getElementById('profile-username')?.value||'').trim();
+  if(!newUsername){showToast('Inserisci un username','error');return;}
+  const u=store.currentUser;
+  u.username=newUsername;
+  u.initials=newUsername.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+  // Update in store arrays
+  const rec=store.users.find(x=>x.id===u.id)||store.managers.find(x=>x.id===u.id);
+  if(rec){rec.username=newUsername;rec.initials=u.initials;}
+  // Update Firestore
+  const col=store.managers.some(m=>m.id===u.id)?'managers':'users';
+  fsUpdate(col,u.id,{username:newUsername,initials:u.initials}).catch(console.error);
+  // Update display
+  const avatarEl=document.getElementById('profile-avatar');
+  if(avatarEl)avatarEl.textContent=u.initials;
+  const displayEl=document.getElementById('profile-display-name');
+  if(displayEl)displayEl.textContent=newUsername;
+  document.querySelectorAll('.profile-name-user').forEach(el=>el.textContent=newUsername);
+  disableProfileSave();
+  showToast('Profilo aggiornato!');
 }
 
 function toggleMobile(){document.getElementById('mobileMenu').classList.toggle('open')}
@@ -3706,14 +3757,14 @@ function renderUserEvents(){
           <span style="font-size:1.4rem;font-weight:700;color:var(--brand-l)">${dayNum}</span>
           <span style="font-size:.65rem;color:rgba(240,171,252,.5);text-transform:uppercase">${monthStr}</span>
         </div>`;
-    return `<div class="card-hover mb-4" style="border-left:4px solid ${getUniverseColor(ev.universeId)}" onclick="showEventDetail('${ev.id}')">
+    return `<div class="card-hover mb-4" style="${getMultiUniverseBorderStyle(ev)}" onclick="showEventDetail('${ev.id}')">
       <div class="flex gap-4" style="align-items:flex-start">
         ${cardThumb}
         <div class="flex-1">
           <h3 class="text-lg font-semibold text-white" style="margin-bottom:4px">${ev.title}</h3>
           <p class="text-sm txt3">${ev.description.substring(0,80)}${ev.description.length>80?'...':''}</p>
           <div class="flex gap-2 mt-2 flex-wrap">
-            ${getUniverseBadgeHtml(ev.universeId)}<span class="badge ${badgeType(ev.type)}">${capitalize(ev.type)}</span>${daysBadge}${levelBadges}${recBadge}${pricingBadge}${confirmBadge}${bookClosedBadge}
+            ${getMultiUniverseBadgesHtml(ev)}<span class="badge ${badgeType(ev.type)}">${capitalize(ev.type)}</span>${daysBadge}${levelBadges}${recBadge}${pricingBadge}${confirmBadge}${bookClosedBadge}
           </div>
           <div class="flex gap-4 mt-2 text-xs txt3">
             <span>📅 ${dateRange}</span><span>🕐 ${d0?.startTime||''} — ${d0?.endTime||''}</span>
@@ -3903,7 +3954,7 @@ function getExploreFilteredEvents(){
   const priceMax=priceMaxVal?parseFloat(priceMaxVal):null;
   let evts=store.events.filter(e=>e.status==='pubblicato'&&!(e.alert&&e.alert.type==='cancellato'));
   // Universe filter
-  if(univFilter){evts=evts.filter(e=>e.universeId===univFilter);}
+  if(univFilter){evts=evts.filter(e=>(e.universeIds||[e.universeId]).includes(univFilter));}
   if(q){const ql=q.toLowerCase();evts=evts.filter(e=>(e.title+e.description+e.teacher+e.location).toLowerCase().includes(ql));}
   if(tipo)evts=evts.filter(e=>e.type===tipo);
   if(zona)evts=evts.filter(e=>e.orgName===zona);
@@ -3943,14 +3994,14 @@ function renderExploreEvents(){
             <span style="font-size:1.4rem;font-weight:700;color:var(--brand-l)">${dayNum}</span>
             <span style="font-size:.65rem;color:rgba(240,171,252,.5);text-transform:uppercase">${monthStr}</span>
           </div>`;
-      return `<div class="card-hover mb-4" style="border-left:4px solid ${getUniverseColor(ev.universeId)}" onclick="lastExploreView=true;showEventDetail('${ev.id}')">
+      return `<div class="card-hover mb-4" style="${getMultiUniverseBorderStyle(ev)}" onclick="lastExploreView=true;showEventDetail('${ev.id}')">
         <div class="flex gap-4" style="align-items:flex-start">
           ${exThumb}
           <div class="flex-1">
             <h3 class="text-lg font-semibold text-white" style="margin-bottom:4px">${ev.title}</h3>
             <p class="text-sm txt3">${ev.description.substring(0,80)}${ev.description.length>80?'...':''}</p>
             <div class="flex gap-2 mt-2 flex-wrap">
-              ${getUniverseBadgeHtml(ev.universeId)}<span class="badge ${badgeType(ev.type)}">${capitalize(ev.type)}</span>${daysBadge}${levelBadges}${recBadge}${pricingBadge}${confirmBadge}${ownBadge}
+              ${getMultiUniverseBadgesHtml(ev)}<span class="badge ${badgeType(ev.type)}">${capitalize(ev.type)}</span>${daysBadge}${levelBadges}${recBadge}${pricingBadge}${confirmBadge}${ownBadge}
             </div>
             <div class="flex gap-4 mt-2 text-xs txt3">
               <span>📅 ${dateRange}</span><span>🕐 ${d0?.startTime||''} — ${d0?.endTime||''}</span>
@@ -4069,8 +4120,8 @@ function getFilteredEvents(){
   const priceMax=priceMaxVal?parseFloat(priceMaxVal):null;
   let evts=store.events.filter(e=>e.status==='pubblicato'&&!(e.alert&&e.alert.type==='cancellato'));
   // Universe filter: if no explicit filter, show only subscribed universes
-  if(univFilter){evts=evts.filter(e=>e.universeId===univFilter);}
-  else{const subIds=getUserSubscribedUniverseIds();if(subIds.length)evts=evts.filter(e=>subIds.includes(e.universeId)||!e.universeId);}
+  if(univFilter){evts=evts.filter(e=>(e.universeIds||[e.universeId]).includes(univFilter));}
+  else{const subIds=getUserSubscribedUniverseIds();if(subIds.length)evts=evts.filter(e=>{const eIds=e.universeIds||[e.universeId].filter(Boolean);return eIds.some(id=>subIds.includes(id))||!eIds.length;});}
   if(q){const ql=q.toLowerCase();evts=evts.filter(e=>(e.title+e.description+e.teacher+e.location).toLowerCase().includes(ql));}
   if(tipo)evts=evts.filter(e=>e.type===tipo);
   if(zona)evts=evts.filter(e=>e.orgName===zona);
@@ -4114,6 +4165,10 @@ function openCreateJamModal(){
         </div>
         <input class="input mt-2 hidden" id="jam-custom-type" placeholder="Scrivi il tipo...">
       </div>
+      <div class="mb-4">
+        <label class="label">🌌 Universi *</label>
+        <div id="jam-universes-list" class="flex gap-2 flex-wrap"></div>
+      </div>
       <div class="mb-4"><label class="label">Titolo *</label><input class="input" id="jam-title" placeholder="es. Jam al tramonto"></div>
       <div class="mb-4"><label class="label">Descrizione</label><textarea class="input" id="jam-desc" rows="2" placeholder="Descrivi l'evento..."></textarea></div>
       <div class="mb-4"><label class="label">Data *</label><input class="input" id="jam-date" type="date" onchange="updateJamMinSubsDeadline()"></div>
@@ -4151,6 +4206,12 @@ function openCreateJamModal(){
   document.getElementById('jam-date').value=getTodayDate();
   document.getElementById('jam-start').value=getNowTime();
   updateJamMinSubsDeadline();
+  // Populate universe checkboxes
+  const juc=document.getElementById('jam-universes-list');
+  if(juc){
+    const active=getActiveUniverses();
+    juc.innerHTML=active.map(u=>'<label class="flex items-center gap-2 text-sm" style="cursor:pointer;padding:4px 8px;border-radius:8px;border:1px solid '+u.color+'30;background:'+u.color+'10"><input type="checkbox" class="jam-univ-check" value="'+u.id+'" checked><span style="color:'+u.color+'">'+u.emoji+' '+u.name+'</span></label>').join('');
+  }
 }
 function updateJamMinSubsDeadline(){
   const jd=document.getElementById('jam-date')?.value;
@@ -4178,9 +4239,14 @@ function submitJam(){
   const contactPhone=(document.getElementById('jam-contact-phone')||{}).value||'';
   const contactEmail=(document.getElementById('jam-contact-email')||{}).value||'';
   const jamType=selectedJamType==='custom'?(document.getElementById('jam-custom-type')?.value||'Community Event'):selectedJamType;
+  const selectedUnivIds=Array.from(document.querySelectorAll('.jam-univ-check:checked')).map(cb=>cb.value);
 
   if(!title.trim()||!date||!start||!end||!location.trim()){
     showToast('Compila i campi obbligatori','error');
+    return;
+  }
+  if(!selectedUnivIds.length){
+    showToast('Seleziona almeno un universo','error');
     return;
   }
 
@@ -4189,6 +4255,7 @@ function submitJam(){
     id:jamId,
     userId:store.currentUser.id,
     userName:store.currentUser.username,
+    universeIds:selectedUnivIds,
     title:title.trim(),
     description:desc.trim(),
     date:date,
@@ -4396,7 +4463,7 @@ function renderJamCard(jam,uid,isMine){
       <div class="flex-1">
         <div class="flex gap-2 items-center flex-wrap">
           <h3 class="text-lg font-semibold text-white" style="margin-bottom:0">${jam.title}</h3>
-          ${mineBadge}${joinedBadge}${jConfirmBadge}${alertBadge}
+          ${(jam.universeIds||[]).map(id=>getUniverseBadgeHtml(id)).join('')}${mineBadge}${joinedBadge}${jConfirmBadge}${alertBadge}
         </div>
         <p class="text-sm txt3 mt-1">${jam.description.substring(0,80)}${jam.description.length>80?'...':''}</p>
         <div class="flex gap-4 mt-2 text-xs txt3">
@@ -4443,6 +4510,7 @@ function editJamModal(jamId){
   overlay.innerHTML=`
     <div class="dialog" style="max-width:500px">
       <h2 class="text-xl font-bold text-white mb-4">✏️ Modifica Community Event</h2>
+      <div class="mb-4"><label class="label">🌌 Universi *</label><div id="je-universes-list" class="flex gap-2 flex-wrap"></div></div>
       <div class="mb-4"><label class="label">Titolo *</label><input class="input" id="je-title" value="${jam.title}"></div>
       <div class="mb-4"><label class="label">Descrizione</label><textarea class="input" id="je-desc" rows="2">${jam.description}</textarea></div>
       <div class="mb-4"><label class="label">Data *</label><input class="input" id="je-date" type="date" value="${jam.date}"></div>
@@ -4477,6 +4545,13 @@ function editJamModal(jamId){
   `;
   overlay.onclick=(e)=>{if(e.target===overlay)overlay.remove();};
   document.body.appendChild(overlay);
+  // Populate universe checkboxes for edit
+  const jec=document.getElementById('je-universes-list');
+  if(jec){
+    const active=getActiveUniverses();
+    const jamUnivs=jam.universeIds||[];
+    jec.innerHTML=active.map(u=>'<label class="flex items-center gap-2 text-sm" style="cursor:pointer;padding:4px 8px;border-radius:8px;border:1px solid '+u.color+'30;background:'+u.color+'10"><input type="checkbox" class="je-univ-check" value="'+u.id+'"'+(jamUnivs.includes(u.id)?' checked':'')+'><span style="color:'+u.color+'">'+u.emoji+' '+u.name+'</span></label>').join('');
+  }
 }
 
 function saveJamEdit(jamId){
@@ -4487,11 +4562,14 @@ function saveJamEdit(jamId){
   const start=document.getElementById('je-start')?.value||'';
   const end=document.getElementById('je-end')?.value||'';
   const location=(document.getElementById('je-location')?.value||'').trim();
+  const editUnivIds=Array.from(document.querySelectorAll('.je-univ-check:checked')).map(cb=>cb.value);
   if(!title||!date||!start||!end||!location){showToast('Compila i campi obbligatori','error');return;}
+  if(!editUnivIds.length){showToast('Seleziona almeno un universo','error');return;}
 
   // Track if anything changed
   const changed=jam.title!==title||jam.date!==date||jam.startTime!==start||jam.endTime!==end||jam.location!==location;
 
+  jam.universeIds=editUnivIds;
   jam.title=title;
   jam.description=desc;
   jam.date=date;
@@ -6272,13 +6350,14 @@ function collectFormData(){
     deadline:document.getElementById('ne-eb-deadline')?.value||null,
     maxCount:parseInt(document.getElementById('ne-eb-max-count')?.value)||null
   };
-  const universeId=document.getElementById('ne-universe')?.value||'univ_acro';
-  if(!universeId){showToast('Seleziona un universo!','error');return null;}
+  const universeIds=Array.from(document.querySelectorAll('.ne-univ-check:checked')).map(cb=>cb.value);
+  if(!universeIds.length){showToast('Seleziona almeno un universo!','error');return null;}
+  const universeId=universeIds[0]; // Primary universe for backward compat
   const eventType=document.getElementById('ne-type').value||'jam';
   const finalType=eventType==='custom'?(document.getElementById('ne-custom-type')?.value||'Evento'):eventType;
   return {
     id:genId('ev'),managerId:store.currentUser.id,orgName:store.currentUser.orgName,
-    universeId,
+    universeId,universeIds,
     title,description:document.getElementById('ne-desc').value||'',
     type:finalType,
     level:document.getElementById('ne-level').value||'open',
@@ -6425,7 +6504,9 @@ function editEvent(id){
   resetForm();
   // Populate universe
   populateEventUniverseDropdown();
-  const neUniv=document.getElementById('ne-universe');if(neUniv)neUniv.value=ev.universeId||'univ_acro';
+  // Pre-check universes for edit
+  const editUnivIds=ev.universeIds||[ev.universeId||'univ_acro'];
+  document.querySelectorAll('.ne-univ-check').forEach(cb=>{cb.checked=editUnivIds.includes(cb.value);});
   // Populate basic fields
   document.getElementById('ne-title').value=ev.title||'';
   document.getElementById('ne-desc').value=ev.description||'';
