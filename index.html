@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EventFlow — Preview V1.9.0</title>
+<title>EventFlow — V2.0.0</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
@@ -221,10 +221,10 @@ textarea.input{resize:none;font-family:inherit}
 <body>
 
 <!-- ============ MODE SWITCHER (top banner) ============ -->
-<div id="modeBanner" style="background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
+<div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V1.9.0</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.0.0</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -236,7 +236,7 @@ textarea.input{resize:none;font-family:inherit}
 </div>
 
 <!-- ============ NAVBAR USER ============ -->
-<nav class="navbar" id="navbar-user" style="top:37px">
+<nav class="navbar hidden" id="navbar-user" style="top:37px">
   <div class="navbar-inner">
     <div class="logo" onclick="go('events')">
       <div class="logo-icon">AY</div>
@@ -249,7 +249,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="nav-link" data-view="profile" onclick="go('profile')">👤 Profilo</div>
     </div>
     <div class="nav-auth" style="gap:4px">
-      <span class="text-sm txt3">Ciao, <strong class="text-white profile-name-user">Marco</strong></span>
+      <span class="text-sm txt3">Ciao, <strong class="text-white profile-name-user"></strong></span>
       <button class="btn btn-ghost btn-sm" onclick="refreshData()" title="Aggiorna dati" style="font-size:1rem;padding:6px 8px">🔄</button>
       <button class="btn btn-ghost btn-sm" onclick="doLogout()">Esci</button>
     </div>
@@ -279,7 +279,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="nav-link" data-view="admin-explore" onclick="go('admin-explore')" style="border-left:1px solid var(--s400);margin-left:8px;padding-left:16px">🌍 Esplora Eventi</div>
     </div>
     <div class="nav-auth" style="gap:4px">
-      <span class="text-sm txt3 profile-org">AcroTreviso</span> · <strong class="text-white text-sm profile-name">Marco Rossi</strong>
+      <span class="text-sm txt3 profile-org"></span> · <strong class="text-white text-sm profile-name"></strong>
       <button class="btn btn-ghost btn-sm" onclick="refreshData()" title="Aggiorna dati" style="font-size:1rem;padding:6px 8px">🔄</button>
       <button class="btn btn-ghost btn-sm" onclick="doLogout()">Esci</button>
     </div>
@@ -303,7 +303,7 @@ textarea.input{resize:none;font-family:inherit}
 <!-- ============================================================ -->
 <!-- VIEW: LISTA EVENTI PUBBLICI -->
 <!-- ============================================================ -->
-<div class="view active" id="view-events">
+<div class="view" id="view-events">
 <div class="container" style="padding-top:32px;padding-bottom:48px">
   <h1 class="page-title">Eventi</h1>
   <p class="page-sub mb-6">Scopri i prossimi eventi e prenota il tuo posto</p>
@@ -1639,7 +1639,7 @@ textarea.input{resize:none;font-family:inherit}
 <!-- ============================================================ -->
 <!-- VIEW: LOGIN (Magic Link) -->
 <!-- ============================================================ -->
-<div class="view" id="view-login">
+<div class="view active" id="view-login">
 <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;background:linear-gradient(135deg,#1a0a1a 0%,#0f0f13 60%,#0a0f1a 100%)">
   <div style="max-width:400px;width:100%">
     <div class="text-center mb-6">
@@ -2059,7 +2059,7 @@ function getTodayDate(){
 /* ==============================
    NAVIGATION + UI CORE
 ============================== */
-let currentView='events';
+let currentView='login';
 let currentMode='user';
 
 // === Firebase Auth Functions ===
@@ -2150,6 +2150,9 @@ async function loadCurrentUser(uid){
     if(!store.users.find(u=>u.id===uid)){store.users.push(userDoc.data());}
     // Update navbar name
     document.querySelectorAll('.profile-name-user').forEach(el=>el.textContent=store.currentUser.username||'');
+    // Hide mode banner for regular users
+    document.getElementById('modeBanner').style.display='none';
+    document.getElementById('navbar-user').classList.remove('hidden');
     go('events');
     return;
   }
@@ -2159,7 +2162,10 @@ async function loadCurrentUser(uid){
     if(!store.managers.find(m=>m.id===uid)){store.managers.push(mgrDoc.data());}
     // Update navbar name/org
     document.querySelectorAll('.profile-name').forEach(el=>el.textContent=store.currentUser.username||'');
+    document.querySelectorAll('.profile-name-user').forEach(el=>el.textContent=store.currentUser.username||'');
     document.querySelectorAll('.profile-org').forEach(el=>el.textContent=store.currentUser.orgName||'');
+    // Show mode banner only for managers/masters
+    document.getElementById('modeBanner').style.display='';
     switchMode('admin');
     return;
   }
@@ -2171,6 +2177,10 @@ function doLogout(){
   fbAuth.signOut().then(()=>{
     store.currentUser={id:'guest',username:'Ospite',email:'',role:'non_so'};
     resetStoreData();
+    // Hide navbars and mode banner
+    document.getElementById('modeBanner').style.display='none';
+    document.getElementById('navbar-user').classList.add('hidden');
+    document.getElementById('navbar-admin').classList.add('hidden');
     go('login');
     showToast('Logout effettuato');
   });
