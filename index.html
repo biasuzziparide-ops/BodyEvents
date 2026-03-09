@@ -2063,8 +2063,10 @@ let currentView='login';
 let currentMode='user';
 
 // === Firebase Auth Functions ===
+let _loginInProgress=false;
 async function loginWithGoogle(){
   try{
+    _loginInProgress=true;
     const provider=new firebase.auth.GoogleAuthProvider();
     const result=await fbAuth.signInWithPopup(provider);
     const user=result.user;
@@ -2087,8 +2089,10 @@ async function loginWithGoogle(){
       }
     }
     await loadCurrentUser(user.uid);
+    _loginInProgress=false;
     showToast('Login effettuato!');
   }catch(e){
+    _loginInProgress=false;
     if(e.code!=='auth/popup-closed-by-user')showToast('Errore login Google: '+e.message,'error');
   }
 }
@@ -2301,9 +2305,10 @@ function go(view){
   window.scrollTo(0,0);
   const noNav=['login','register','register-org','privacy-policy','checkin-booked','checkin-walkin','checkin-new'];
   const hideAll=noNav.includes(view);
-  document.getElementById('modeBanner').style.display=hideAll?'none':'';
+  const isManagerOrMaster=store.managers.some(m=>m.id===store.currentUser.id);
+  document.getElementById('modeBanner').style.display=(hideAll||!isManagerOrMaster)?'none':'';
   document.getElementById('navbar-user').style.display=(hideAll||currentMode==='admin')?'none':'';
-  document.getElementById('navbar-admin').style.display=(hideAll||currentMode==='user')?'none':'';
+  document.getElementById('navbar-admin').style.display=(hideAll||currentMode==='user'||!isManagerOrMaster)?'none':'';
   if(view.startsWith('admin') && currentMode!=='admin'){
     currentMode='admin';
     document.getElementById('navbar-user').classList.add('hidden');
@@ -7490,6 +7495,8 @@ document.addEventListener('click',function(e){
 // Firebase Auth State Listener
 fbAuth.onAuthStateChanged(async(user)=>{
   if(user){
+    // Skip if loginWithGoogle is handling things (avoids race condition)
+    if(_loginInProgress) return;
     // Check for magic link sign-in
     if(fbAuth.isSignInWithEmailLink(window.location.href)){
       let email=window.localStorage.getItem('emailForSignIn');
