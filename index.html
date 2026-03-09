@@ -109,8 +109,8 @@ textarea.input{resize:none;font-family:inherit}
 .admin-content{flex:1;padding:32px;max-width:1100px}
 
 /* === MODAL / DIALOG === */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:50;display:flex;align-items:center;justify-content:center;padding:16px}
-.dialog{background:var(--s100);border:1px solid var(--s300);border-radius:16px;padding:24px;max-width:420px;width:100%;box-shadow:0 25px 50px rgba(0,0,0,.4)}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:24px 16px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.dialog{background:var(--s100);border:1px solid var(--s300);border-radius:16px;padding:24px;max-width:420px;width:100%;box-shadow:0 25px 50px rgba(0,0,0,.4);margin:auto 0}
 .dialog-icon{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:12px}
 .dialog-icon.warn{background:var(--yellow-bg);color:var(--yellow)}
 .dialog-icon.danger{background:var(--red-bg);color:var(--red)}
@@ -1592,7 +1592,7 @@ textarea.input{resize:none;font-family:inherit}
 <div class="view" id="view-dashboard">
 <div class="container" style="padding-top:32px;padding-bottom:48px;max-width:700px">
   <h1 class="page-title">Le mie prenotazioni</h1>
-  <p class="page-sub mb-6">Ciao ${store?.currentUser?.nome||''}! Ecco i tuoi prossimi eventi.</p>
+  <p class="page-sub mb-6" id="dashboard-greeting">Ecco i tuoi prossimi eventi e iscrizioni.</p>
   <div id="user-dashboard-container"></div>
 </div>
 </div>
@@ -1655,10 +1655,10 @@ textarea.input{resize:none;font-family:inherit}
     <h3 class="font-semibold text-white mb-4">🔒 Privacy e consensi</h3>
     <div class="mb-4">
       <label class="flex items-center gap-3 text-sm" style="cursor:default">
-        <input type="checkbox" checked disabled style="opacity:.6">
+        <input type="checkbox" id="profile-privacy-check" disabled style="opacity:.6">
         <span class="text-white">Informativa privacy accettata</span>
       </label>
-      <div class="text-xs txt3 mt-1" id="profile-privacy-date">Consenso prestato il: 15/01/2026</div>
+      <div class="text-xs txt3 mt-1" id="profile-privacy-date"></div>
     </div>
     <div class="mb-4">
       <label class="flex items-center gap-3 text-sm" style="cursor:pointer">
@@ -1669,14 +1669,11 @@ textarea.input{resize:none;font-family:inherit}
     </div>
     <div style="border-top:1px solid var(--s400);padding-top:16px;margin-top:16px">
       <div class="text-xs txt3 mb-3" style="text-transform:uppercase;letter-spacing:.5px">Registro consensi</div>
-      <div class="text-xs txt3" id="profile-consent-log" style="line-height:1.8">
-        <div>✅ Privacy: accettata il 15/01/2026</div>
-        <div>📧 Marketing: non attivo</div>
-      </div>
+      <div class="text-xs txt3" id="profile-consent-log" style="line-height:1.8"></div>
     </div>
     <div class="flex gap-2 mt-4 flex-wrap">
       <a class="btn btn-sm btn-secondary" onclick="go('privacy-policy')" style="cursor:pointer">📄 Informativa Privacy</a>
-      <button class="btn btn-sm btn-secondary" onclick="showToast('Funzionalità disponibile nella versione online')">📥 Scarica i miei dati</button>
+      <button class="btn btn-sm btn-secondary" onclick="exportMyData()">📥 Scarica i miei dati</button>
       <button class="btn btn-sm" style="background:var(--red-bg);color:var(--red);border:1px solid var(--red)" onclick="confirmAccountDeletion()">🗑️ Cancella account</button>
     </div>
   </div>
@@ -1684,10 +1681,10 @@ textarea.input{resize:none;font-family:inherit}
   <!-- Stats personali -->
   <div class="card mb-4">
     <h3 class="font-semibold text-white mb-3">Le mie statistiche</h3>
-    <div class="grid grid-3 gap-3">
-      <div class="stat-card"><div class="value" style="color:var(--brand-l)">12</div><div class="label">Eventi totali</div></div>
-      <div class="stat-card"><div class="value" style="color:var(--green)">10</div><div class="label">Presenze</div></div>
-      <div class="stat-card"><div class="value" style="color:var(--yellow)">€145</div><div class="label">Donazioni totali</div></div>
+    <div class="grid grid-3 gap-3" id="profile-stats-grid">
+      <div class="stat-card"><div class="value" style="color:var(--brand-l)" id="stat-events-total">0</div><div class="label">Eventi totali</div></div>
+      <div class="stat-card"><div class="value" style="color:var(--green)" id="stat-presenze">0</div><div class="label">Presenze</div></div>
+      <div class="stat-card"><div class="value" style="color:var(--yellow)" id="stat-donazioni">€0</div><div class="label">Donazioni totali</div></div>
     </div>
   </div>
 
@@ -2041,13 +2038,22 @@ textarea.input{resize:none;font-family:inherit}
           <li>Revoca del consenso (per il marketing)</li>
         </ul>
 
-        <p class="mb-4">Per esercitare questi diritti, contattare: info@acroyoga-manager.app</p>
+        <p class="mb-4">Per esercitare questi diritti, contattare: info@bodyevents.app oppure utilizza i pulsanti "Scarica i miei dati" e "Cancella account" nella sezione Profilo dell'app.</p>
+
+        <h2 class="text-lg font-semibold text-white mt-6 mb-3">Condivisione con terze parti</h2>
+        <p class="mb-4">I dati sono archiviati su infrastruttura <strong>Google Firebase</strong> (Firestore Database, Firebase Authentication), servizio conforme al GDPR e certificato ISO 27001. Google agisce come Responsabile del trattamento ai sensi dell'Art. 28 GDPR. I dati sono conservati in data center europei (europe-west). Nessun dato personale viene condiviso con altre terze parti, venduto o utilizzato per profilazione pubblicitaria.</p>
+
+        <h2 class="text-lg font-semibold text-white mt-6 mb-3">Cookie e tecnologie di tracciamento</h2>
+        <p class="mb-4">L'applicazione utilizza esclusivamente cookie tecnici necessari per l'autenticazione (Firebase Auth) e il corretto funzionamento del servizio. Non vengono utilizzati cookie di profilazione, analytics di terze parti o tecnologie di tracciamento pubblicitario.</p>
+
+        <h2 class="text-lg font-semibold text-white mt-6 mb-3">Periodo di conservazione</h2>
+        <p class="mb-4">I dati del profilo sono conservati per tutta la durata dell'account. Le prenotazioni e i dati di partecipazione sono conservati per 24 mesi dall'evento. In caso di cancellazione dell'account, tutti i dati personali vengono eliminati immediatamente, ad eccezione dei dati anonimizzati necessari per statistiche aggregate.</p>
 
         <h2 class="text-lg font-semibold text-white mt-6 mb-3">Contatti</h2>
-        <p class="mb-4">Per domande sulla privacy o per esercitare i tuoi diritti, contattaci a: <strong>info@acroyoga-manager.app</strong></p>
+        <p class="mb-4">Per domande sulla privacy o per esercitare i tuoi diritti, contattaci a: <strong>info@bodyevents.app</strong></p>
 
         <div style="border-top:1px solid var(--s400);margin-top:24px;padding-top:16px">
-          <p class="text-xs txt3">Data di ultimo aggiornamento: 5 marzo 2026</p>
+          <p class="text-xs txt3">Data di ultimo aggiornamento: 9 marzo 2026</p>
         </div>
 
       </div>
@@ -2366,14 +2372,20 @@ function populateEventUniverseDropdown(){
 
 // Populate universe filter dropdowns
 function populateUniverseFilters(){
-  const subs=getUserSubscribedUniverseIds();
-  const active=getActiveUniverses();
+  let active=getActiveUniverses();
+  // Fallback: if store.universes is empty, ensure at least AcroYoga is present
+  if(!active.length&&!store.universes.length){
+    const acroUniv={id:'univ_acro',name:'AcroYoga',emoji:'🤸',color:'#10b981',roles:['Base','Flyer','Entrambi'],pendingRoles:[],status:'active',createdBy:'system',approvedBy:'system',createdAt:new Date().toISOString()};
+    store.universes.push(acroUniv);
+    active=[acroUniv];
+  }
   ['filter-universe','explore-filter-universe'].forEach(fid=>{
     const sel=document.getElementById(fid);
     if(!sel)return;
+    const curVal=sel.value;
     let html='<option value="">Tutti gli Universi</option>';
     active.forEach(u=>{
-      html+='<option value="'+u.id+'">'+u.emoji+' '+u.name+'</option>';
+      html+='<option value="'+u.id+'"'+(curVal===u.id?' selected':'')+'>'+u.emoji+' '+u.name+'</option>';
     });
     sel.innerHTML=html;
   });
@@ -2445,7 +2457,7 @@ async function loginWithGoogle(){
           initials:(user.displayName||'??').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase(),
           color:'avatar-brand',
           subscribedUniverses,
-          consents:{privacy:true,privacyDate:now,marketing:false,marketingDate:null}
+          consents:{privacy:false,privacyDate:null,marketing:false,marketingDate:null}
         };
         await fbDb.collection('users').doc(user.uid).set(userData);
         userDoc=await fbDb.collection('users').doc(user.uid).get();
@@ -2521,6 +2533,7 @@ async function loadCurrentUser(uid){
     document.getElementById('modeBanner').style.display='none';
     document.getElementById('navbar-user').classList.remove('hidden');
     go('events');
+    checkPrivacyConsent();
     return;
   }
   let mgrDoc=await fbDb.collection('managers').doc(uid).get();
@@ -2534,6 +2547,7 @@ async function loadCurrentUser(uid){
     // Show mode banner only for managers/masters
     document.getElementById('modeBanner').style.display='';
     switchMode('admin');
+    checkPrivacyConsent();
     return;
   }
   showToast('Profilo non trovato. Contatta il supporto.','error');
@@ -2582,7 +2596,7 @@ async function submitUserRegistration(){
       initials:username.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase(),
       color:['avatar-brand','avatar-green','avatar-yellow','avatar-blue','avatar-purple'][Math.floor(Math.random()*5)],
       subscribedUniverses,
-      consents:{privacy:true,privacyDate:now,marketing:marketingCheck,marketingDate:marketingCheck?now:null}
+      consents:{privacy:privacyCheck,privacyDate:privacyCheck?now:null,marketing:marketingCheck,marketingDate:marketingCheck?now:null}
     };
     await fbDb.collection('users').doc(cred.user.uid).set(userData);
     document.getElementById('reg-form').classList.add('hidden');
@@ -2652,7 +2666,7 @@ async function submitOrgRegistration(){
     const mgrData={
       id:cred.user.uid,username,email,orgName,city,description:desc,role:'manager',status:'pending_approval',
       universes:selectedUnivs,
-      consents:{privacy:true,privacyDate:now,terms:true,termsDate:now,marketing:marketingCheck,marketingDate:marketingCheck?now:null},
+      consents:{privacy:privacyCheck,privacyDate:privacyCheck?now:null,terms:termsCheck,termsDate:termsCheck?now:null,marketing:marketingCheck,marketingDate:marketingCheck?now:null},
       requestedAt:now.split('T')[0]
     };
     await fbDb.collection('managers').doc(cred.user.uid).set(mgrData);
@@ -2769,25 +2783,63 @@ function populateProfileFields(){
   if(authMethodEl) authMethodEl.textContent=u.authMethod==='google'?'Google':u.authMethod==='magic_link'?'Magic Link':'Email + Password';
   // Find user record for consent data
   let record=store.users.find(x=>x.id===u.id)||store.managers.find(x=>x.id===u.id);
+  const consents=(record&&record.consents)||u.consents||{};
+  // Update privacy checkbox state
+  const privacyCheckEl=document.getElementById('profile-privacy-check');
+  if(privacyCheckEl) privacyCheckEl.checked=!!consents.privacy;
+  // Update privacy date display
+  const privacyDateEl=document.getElementById('profile-privacy-date');
+  if(privacyDateEl){
+    if(consents.privacy&&consents.privacyDate){
+      privacyDateEl.textContent='Consenso prestato il: '+fmtDateShort(consents.privacyDate.split('T')[0]);
+    } else {
+      privacyDateEl.textContent='Privacy non ancora accettata';
+      privacyDateEl.style.color='var(--red)';
+    }
+  }
+  // Update marketing checkbox
   const marketingCheckbox=document.getElementById('profile-marketing-consent');
-  if(marketingCheckbox&&record&&record.consents){
-    marketingCheckbox.checked=record.consents.marketing||false;
+  if(marketingCheckbox){
+    marketingCheckbox.checked=consents.marketing||false;
+  }
+  const marketingDateEl=document.getElementById('profile-marketing-date');
+  if(marketingDateEl){
+    if(consents.marketing&&consents.marketingDate){
+      marketingDateEl.textContent='Attivo dal '+fmtDateShort(consents.marketingDate.split('T')[0]);
+    } else {
+      marketingDateEl.textContent='';
+    }
   }
   // Update consent log
   const logEl=document.getElementById('profile-consent-log');
-  if(logEl&&record&&record.consents){
-    let logHtml='<p class="text-xs txt3 mt-2"><strong>Registro consensi:</strong></p>';
-    logHtml+='<p class="text-xs txt3">✅ Privacy accettata il '+(record.consents.privacyDate||'N/D')+'</p>';
-    if(record.consents.marketing){
-      logHtml+='<p class="text-xs txt3">✅ Marketing attivo dal '+(record.consents.marketingDate?.split('T')[0]||'N/D')+'</p>';
+  if(logEl){
+    let logHtml='';
+    if(consents.privacy&&consents.privacyDate){
+      logHtml+='<div>✅ Privacy accettata il '+fmtDateShort(consents.privacyDate.split('T')[0])+'</div>';
     } else {
-      logHtml+='<p class="text-xs txt3">❌ Marketing non attivo</p>';
+      logHtml+='<div>⚠️ Privacy non ancora accettata</div>';
     }
-    if(record.consents.terms){
-      logHtml+='<p class="text-xs txt3">✅ Condizioni d\'uso accettate il '+(record.consents.termsDate||'N/D')+'</p>';
+    if(consents.marketing){
+      logHtml+='<div>✅ Marketing attivo dal '+(consents.marketingDate?fmtDateShort(consents.marketingDate.split('T')[0]):'N/D')+'</div>';
+    } else {
+      logHtml+='<div>❌ Marketing non attivo</div>';
+    }
+    if(consents.terms){
+      logHtml+='<div>✅ Condizioni d\'uso accettate il '+(consents.termsDate?fmtDateShort(consents.termsDate.split('T')[0]):'N/D')+'</div>';
     }
     logEl.innerHTML=logHtml;
   }
+  // Populate real stats
+  const uEmail=u.email;const uName=u.username;
+  const myBookings=store.bookings.filter(b=>b.status!=='cancellata'&&(b.email===uEmail||b.userName===uName));
+  const myAttendances=store.attendances[u.id]||[];
+  const totalDonations=myBookings.reduce((sum,b)=>sum+parseFloat(b.amount||0),0);
+  const statEvEl=document.getElementById('stat-events-total');
+  if(statEvEl)statEvEl.textContent=myBookings.length;
+  const statPresEl=document.getElementById('stat-presenze');
+  if(statPresEl)statPresEl.textContent=myAttendances.length;
+  const statDonEl=document.getElementById('stat-donazioni');
+  if(statDonEl)statDonEl.textContent='€'+Math.round(totalDonations);
   // Disable save button after populating, add change listener
   disableProfileSave();
   const pu=document.getElementById('profile-username');
@@ -2881,7 +2933,7 @@ function minPrice(ev){
   if(t){if(t.basso!=null)prices.push(t.basso);if(t.medio!=null)prices.push(t.medio);if(t.alto!=null)prices.push(t.alto);}
   ev.days.forEach(d=>{
     const dt=d.tiers;if(dt){if(dt.basso!=null)prices.push(dt.basso);if(dt.medio!=null)prices.push(dt.medio);if(dt.alto!=null)prices.push(dt.alto);}
-    d.sessions.forEach(s=>{const st=s.tiers;if(st){if(st.basso!=null)prices.push(st.basso);if(st.medio!=null)prices.push(st.medio);if(st.alto!=null)prices.push(st.alto);}});
+    (d.sessions||[]).forEach(s=>{const st=s.tiers;if(st){if(st.basso!=null)prices.push(st.basso);if(st.medio!=null)prices.push(st.medio);if(st.alto!=null)prices.push(st.alto);}});
   });
   return prices.length?Math.min(...prices):0;
 }
@@ -2892,7 +2944,7 @@ function maxPrice(ev){
   if(t){if(t.basso!=null)prices.push(t.basso);if(t.medio!=null)prices.push(t.medio);if(t.alto!=null)prices.push(t.alto);}
   ev.days.forEach(d=>{
     const dt=d.tiers;if(dt){if(dt.basso!=null)prices.push(dt.basso);if(dt.medio!=null)prices.push(dt.medio);if(dt.alto!=null)prices.push(dt.alto);}
-    d.sessions.forEach(s=>{const st=s.tiers;if(st){if(st.basso!=null)prices.push(st.basso);if(st.medio!=null)prices.push(st.medio);if(st.alto!=null)prices.push(st.alto);}});
+    (d.sessions||[]).forEach(s=>{const st=s.tiers;if(st){if(st.basso!=null)prices.push(st.basso);if(st.medio!=null)prices.push(st.medio);if(st.alto!=null)prices.push(st.alto);}});
   });
   return prices.length?Math.max(...prices):0;
 }
@@ -3005,7 +3057,7 @@ function doBook(){
   // Change D: Validate tier selections for conflicts
   const hasEventLevel=!!selectedTiers['tier-evfull-'+ev.id]||!!selectedTiers['tier-ebev-'+ev.id];
   const hasDayLevel=ev.days.some((d,di)=>!!selectedTiers['tier-day-'+ev.id+'-'+di]||!!selectedTiers['tier-ebday-'+ev.id+'-'+di]);
-  const hasSessionLevel=ev.days.some(d=>d.sessions.some(s=>!!selectedTiers['tiers-'+s.id]));
+  const hasSessionLevel=ev.days.some(d=>(d.sessions||[]).some(s=>!!selectedTiers['tiers-'+s.id]));
 
   // Cannot select both event-level AND day-level
   if(hasEventLevel&&hasDayLevel){
@@ -3032,7 +3084,7 @@ function doBook(){
       showToast('Puoi selezionare solo un tipo di prezzo per giornata (standard, early bird, o fedeltà)','error');
       conflicts=true;
     }
-    const sessionsSelected=d.sessions.some(s=>!!selectedTiers['tiers-'+s.id]);
+    const sessionsSelected=(d.sessions||[]).some(s=>!!selectedTiers['tiers-'+s.id]);
     if(daySelected&&sessionsSelected){
       showToast('Non puoi selezionare sia la giornata intera che singole sessioni dello stesso giorno','error');
       conflicts=true;
@@ -3111,7 +3163,7 @@ function doBook(){
     hasSelection=true;
     const tier=selectedTiers[evFullId];
     const price=ev.tiers[tier]||0;
-    items.push({type:'pacchetto evento',name:'Evento completo — '+ev.title,date:fmtDateShort(ev.days[0].date)+' → '+fmtDateShort(ev.days[ev.days.length-1].date),time:'',tier:tierLabel(tier),price});
+    items.push({type:'pacchetto evento',name:'Evento completo — '+ev.title,date:fmtDateShort(ev.days[0]?.date)+' → '+fmtDateShort(ev.days[ev.days.length-1]?.date),time:'',tier:tierLabel(tier),price});
     totalAmount+=price;
   }
   // Event-level loyalty
@@ -3256,7 +3308,7 @@ function doBook(){
     const initials=nameParts.map(p=>p[0]).join('').toUpperCase().substring(0,2);
     // Collect session IDs from items
     const bookedSessionIds=items.filter(it=>it.type==='sessione').map(it=>{
-      const found=[];ev.days.forEach(d=>d.sessions.forEach(s=>{if(s.name===it.name)found.push(s.id);}));return found;
+      const found=[];ev.days.forEach(d=>(d.sessions||[]).forEach(s=>{if(s.name===it.name)found.push(s.id);}));return found;
     }).flat();
     // Determine primary tier from first item
     const primaryTier=items.length?items[0].tier:'Standard';
@@ -3732,14 +3784,11 @@ function renderUserEvents(){
   const c=document.getElementById('user-events-container');if(!c)return;
   populateUniverseFilters();
   const evts=getFilteredEvents();
-  const rc=document.getElementById('filter-results-count');
-  const totalPub=store.events.filter(e=>e.status==='pubblicato'&&!(e.alert&&e.alert.type==='cancellato')).length;
-  if(rc)rc.textContent=evts.length===totalPub?totalPub+' eventi disponibili':evts.length+' di '+totalPub+' eventi';
 
   const eventCards=evts.map(ev=>{
     const d0=ev.days[0];const dd=d0?new Date(d0.date+'T00:00:00'):null;
     const dayNum=dd?dd.getDate():'';const monthStr=dd?MONTHS_IT[dd.getMonth()]:'';
-    const dateRange=ev.days.length>1?fmtDateShort(ev.days[0].date)+' — '+fmtDateShort(ev.days[ev.days.length-1].date):fmtDate(d0?.date);
+    const dateRange=ev.days.length>1?fmtDateShort(ev.days[0]?.date)+' — '+fmtDateShort(ev.days[ev.days.length-1]?.date):fmtDate(d0?.date);
     const levelBadges=ev.level==='multi'?'<span class="badge badge-purple">Multi-livello</span>':'<span class="badge '+badgeLevel(ev.level)+'">'+capitalize(ev.level)+'</span>';
     const daysBadge=ev.days.length>1?'<span class="badge badge-purple">'+ev.days.length+' giorni</span>':'';
     const recBadge=getRecurrenceBadge(ev);
@@ -3776,7 +3825,57 @@ function renderUserEvents(){
     </div>`;
   });
 
-  c.innerHTML=eventCards.length?eventCards.join(''):'<div class="card text-center txt3" style="padding:40px">Nessun evento trovato con questi filtri.</div>';
+  // Add community events (jams) to the main events list
+  const today=new Date().toISOString().split('T')[0];
+  const univFilter=(document.getElementById('filter-universe')||{}).value||'';
+  const qFilter=(document.getElementById('filter-text')||{}).value||'';
+  let communityEvts=store.communityJams.filter(j=>j.status!=='cancellato'&&!(j.alert&&j.alert.type==='cancellato')&&j.date>=today);
+  // Filter by universe
+  if(univFilter){communityEvts=communityEvts.filter(j=>(j.universeIds||[]).includes(univFilter));}
+  else{const subIds=getUserSubscribedUniverseIds();if(subIds.length)communityEvts=communityEvts.filter(j=>{const jIds=j.universeIds||[];return jIds.some(id=>subIds.includes(id))||!jIds.length;});}
+  // Filter by text search
+  if(qFilter){const ql=qFilter.toLowerCase();communityEvts=communityEvts.filter(j=>(j.title+j.description+j.location+(j.userName||'')).toLowerCase().includes(ql));}
+  communityEvts.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+
+  const jamCards=communityEvts.map(jam=>{
+    const dd=jam.date?new Date(jam.date+'T00:00:00'):null;
+    const dayNum=dd?dd.getDate():'';
+    const monthStr=dd?MONTHS_IT[dd.getMonth()]:'';
+    const parts=(jam.participants||[]).length;
+    const spotsText=jam.maxSpots?parts+'/'+jam.maxSpots:parts+'';
+    const uid=store.currentUser.id;
+    const isJoined=(jam.participants||[]).some(p=>p.userId===uid);
+    const joinedBadge=isJoined?'<span class="badge" style="background:rgba(16,185,129,.15);color:var(--green)">✅ Iscritto</span>':'';
+    const univBadges=(jam.universeIds||[]).map(id=>getUniverseBadgeHtml(id)).join('');
+    const borderStyle=(jam.universeIds||[]).length?getMultiUniverseBorderStyle({universeIds:jam.universeIds}):'border-left:4px solid var(--green)';
+    return `<div class="card-hover mb-4" style="${borderStyle}" onclick="showJamDetail('${jam.id}')">
+      <div class="flex gap-4" style="align-items:flex-start">
+        <div style="flex-shrink:0;width:56px;height:56px;border-radius:12px;background:rgba(16,185,129,.1);display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <span style="font-size:1.3rem;font-weight:700;color:var(--green)">${dayNum}</span>
+          <span style="font-size:.6rem;color:rgba(16,185,129,.5)">${monthStr}</span>
+        </div>
+        <div class="flex-1">
+          <div class="flex gap-2 flex-wrap mb-1">${univBadges}<span class="badge badge-jam">${getJamTypeDisplay(jam.type||'jam')}</span><span class="badge" style="background:rgba(16,185,129,.1);color:var(--green)">Community</span>${joinedBadge}</div>
+          <h3 class="font-semibold text-white">${jam.title}</h3>
+          <div class="flex gap-3 mt-1 text-xs txt3">
+            <span>📅 ${fmtDate(jam.date)}</span><span>🕐 ${jam.startTime} — ${jam.endTime}</span>
+          </div>
+          <div class="flex gap-2 mt-1 text-xs txt3"><span>📍 ${jam.location}</span></div>
+          <div class="text-xs txt3 mt-1">proposta da ${jam.userName} · 👥 ${spotsText} partecipanti</div>
+        </div>
+      </div>
+    </div>`;
+  });
+
+  const allCards=[...eventCards,...jamCards];
+  c.innerHTML=allCards.length?allCards.join(''):'<div class="card text-center txt3" style="padding:40px">Nessun evento trovato con questi filtri.</div>';
+
+  // Update count
+  const rc2=document.getElementById('filter-results-count');
+  if(rc2){
+    const totalAll=store.events.filter(e=>e.status==='pubblicato'&&!(e.alert&&e.alert.type==='cancellato')).length+store.communityJams.filter(j=>j.status!=='cancellato'&&!(j.alert&&j.alert.type==='cancellato')&&j.date>=new Date().toISOString().split('T')[0]).length;
+    rc2.textContent=allCards.length===totalAll?totalAll+' eventi disponibili':allCards.length+' di '+totalAll+' eventi';
+  }
 
   // Aggiorna mappa se visibile
   if(currentEventsView==='map')renderMapView();
@@ -3796,13 +3895,16 @@ function resetFilters(){
 ============================== */
 function renderUserDashboard(){
   const c=document.getElementById('user-dashboard-container');if(!c)return;
-  // Get active bookings for current user (simulated: match by email or name)
+  // Get active bookings for current user
   const uEmail=store.currentUser.email;
   const uName=store.currentUser.username;
+  const uid=store.currentUser.id;
   const active=store.bookings.filter(b=>b.status!=='cancellata'&&(b.email===uEmail||b.userName===uName));
   const cancelled=store.bookings.filter(b=>b.status==='cancellata'&&(b.email===uEmail||b.userName===uName));
+  // Get community events user has joined
+  const joinedJams=store.communityJams.filter(j=>j.status!=='cancellato'&&!(j.alert&&j.alert.type==='cancellato')&&(j.participants||[]).some(p=>p.userId===uid));
 
-  if(!active.length&&!cancelled.length){
+  if(!active.length&&!cancelled.length&&!joinedJams.length){
     c.innerHTML='<div class="card text-center txt3" style="padding:40px">Non hai ancora prenotazioni. <a href="#" onclick="go(\'events\');return false" style="color:var(--brand-l)">Esplora gli eventi →</a></div>';
     return;
   }
@@ -3924,6 +4026,41 @@ function renderUserDashboard(){
       </div>`;
     });
   }
+
+  // Community events a cui l'utente è iscritto
+  if(joinedJams.length){
+    html+='<h2 class="font-semibold text-white mb-3 mt-6">🤝 Community Events</h2>';
+    joinedJams.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+    joinedJams.forEach(jam=>{
+      const dd=jam.date?new Date(jam.date+'T00:00:00'):null;
+      const dayNum=dd?dd.getDate():'';
+      const monthStr=dd?MONTHS_IT[dd.getMonth()]:'';
+      const parts=(jam.participants||[]).length;
+      const spotsText=jam.maxSpots?parts+'/'+jam.maxSpots:parts+'';
+      const univBadges=(jam.universeIds||[]).map(id=>getUniverseBadgeHtml(id)).join('');
+      const borderColor='var(--green)';
+      html+=`<div class="card mb-4 card-hover" style="border-color:${borderColor};background:rgba(16,185,129,.03);cursor:pointer" onclick="showJamDetail('${jam.id}')">
+        <div class="flex gap-4" style="align-items:flex-start">
+          <div style="flex-shrink:0;width:56px;height:56px;border-radius:12px;background:rgba(16,185,129,.1);display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <span style="font-size:1.3rem;font-weight:700;color:var(--green)">${dayNum}</span>
+            <span style="font-size:.6rem;color:rgba(16,185,129,.5)">${monthStr}</span>
+          </div>
+          <div class="flex-1">
+            <div class="flex gap-2 flex-wrap mb-1">${univBadges}<span class="badge badge-jam">${getJamTypeDisplay(jam.type||'jam')}</span><span class="badge" style="background:rgba(16,185,129,.15);color:var(--green)">✅ Iscritto</span></div>
+            <h3 class="font-semibold text-white">${jam.title}</h3>
+            <div class="flex gap-3 mt-1 text-xs txt3">
+              <span>📅 ${fmtDate(jam.date)}</span><span>🕐 ${jam.startTime} — ${jam.endTime}</span>
+            </div>
+            <div class="text-xs txt3 mt-1">📍 ${jam.location} · 👥 ${spotsText} partecipanti</div>
+          </div>
+        </div>
+        <div class="flex gap-2 mt-4" style="border-top:1px solid var(--s300);padding-top:12px">
+          <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();leaveJam('${jam.id}');setTimeout(renderUserDashboard,300)">✕ Annulla iscrizione</button>
+        </div>
+      </div>`;
+    });
+  }
+
   c.innerHTML=html;
 }
 function cancelUserBooking(bId){
@@ -3967,6 +4104,7 @@ function getExploreFilteredEvents(){
 }
 function renderExploreEvents(){
   const c=document.getElementById('explore-events-container');if(!c)return;
+  populateUniverseFilters();
   const evts=getExploreFilteredEvents();
   const rc=document.getElementById('explore-results-count');
   const totalPub=store.events.filter(e=>e.status==='pubblicato'&&!(e.alert&&e.alert.type==='cancellato')).length;
@@ -3976,7 +4114,7 @@ function renderExploreEvents(){
     c.innerHTML=evts.map(ev=>{
       const d0=ev.days[0];const dd=d0?new Date(d0.date+'T00:00:00'):null;
       const dayNum=dd?dd.getDate():'';const monthStr=dd?MONTHS_IT[dd.getMonth()]:'';
-      const dateRange=ev.days.length>1?fmtDateShort(ev.days[0].date)+' — '+fmtDateShort(ev.days[ev.days.length-1].date):fmtDate(d0?.date);
+      const dateRange=ev.days.length>1?fmtDateShort(ev.days[0]?.date)+' — '+fmtDateShort(ev.days[ev.days.length-1]?.date):fmtDate(d0?.date);
       const levelBadges=ev.level==='multi'?'<span class="badge badge-purple">Multi-livello</span>':'<span class="badge '+badgeLevel(ev.level)+'">'+capitalize(ev.level)+'</span>';
       const daysBadge=ev.days.length>1?'<span class="badge badge-purple">'+ev.days.length+' giorni</span>':'';
       const recBadge=getRecurrenceBadge(ev);
@@ -5167,7 +5305,7 @@ function showEventDetail(evId){
         } else {
           // Fallback: show sessions from IDs
           const sessionMap={};
-          ev.days.forEach(d=>d.sessions.forEach(s=>{sessionMap[s.id]=s;}));
+          ev.days.forEach(d=>(d.sessions||[]).forEach(s=>{sessionMap[s.id]=s;}));
           if(myBooking.sessions&&myBooking.sessions.length){
             sessionsHtml='<div class="mb-3"><div class="text-xs txt3 mb-2" style="text-transform:uppercase;letter-spacing:.5px">Sessioni prenotate</div>';
             myBooking.sessions.forEach(sid=>{
@@ -5249,7 +5387,7 @@ function renderAdminEvents(){
 
   c.innerHTML=evts.map(ev=>{
     const isOwn=ev.managerId===u.id;
-    const dateStr=ev.days.length>1?fmtDateShort(ev.days[0].date)+' — '+fmtDateShort(ev.days[ev.days.length-1].date):fmtDate(ev.days[0]?.date);
+    const dateStr=ev.days.length>1?fmtDateShort(ev.days[0]?.date)+' — '+fmtDateShort(ev.days[ev.days.length-1]?.date):fmtDate(ev.days[0]?.date);
     const orgLabel=u.role==='master'&&ev.managerId!==u.id?' · <span style="color:var(--brand-l)">'+ev.orgName+'</span>':'';
     const eyeBtn=`<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();showEventDetail('${ev.id}')" title="Anteprima vista utente">👁️</button>`;
     const actions=ev.status==='bozza'?`
@@ -5446,7 +5584,7 @@ function startAlertEdit(){
   const snapshot={
     title:ev.title,description:ev.description,location:ev.location,teacher:ev.teacher,
     days:ev.days.map(d=>({date:d.date,startTime:d.startTime,endTime:d.endTime,
-      sessions:d.sessions.map(s=>({name:s.name,startTime:s.startTime,endTime:s.endTime,
+      sessions:(d.sessions||[]).map(s=>({name:s.name,startTime:s.startTime,endTime:s.endTime,
         tiers:{alto:s.tiers?.alto,medio:s.tiers?.medio,basso:s.tiers?.basso}})),
       tiers:d.tiers?{alto:d.tiers.alto,medio:d.tiers.medio,basso:d.tiers.basso}:null,
       earlyBird:d.earlyBird?{...d.earlyBird}:null,
@@ -5574,7 +5712,7 @@ function renderCommunityEvents(){
   if(communityStatusFilter)evts=evts.filter(e=>e.status===communityStatusFilter);
 
   c.innerHTML=evts.map(ev=>{
-    const dateStr=ev.days.length>1?fmtDateShort(ev.days[0].date)+' — '+fmtDateShort(ev.days[ev.days.length-1].date):fmtDate(ev.days[0]?.date);
+    const dateStr=ev.days.length>1?fmtDateShort(ev.days[0]?.date)+' — '+fmtDateShort(ev.days[ev.days.length-1]?.date):fmtDate(ev.days[0]?.date);
     const orgLabel=' · <span style="color:var(--brand-l)">'+ev.orgName+'</span>';
     const opacity=ev.status==='bozza'?'opacity:.7':'';
     return `<div class="card mb-3" style="${opacity};cursor:pointer" onclick="showAdminEventDetail('${ev.id}')">
@@ -7220,7 +7358,7 @@ function saveUserForm(type,editId){
     } else {
       const now=new Date().toISOString();
       const newId='u'+Date.now();
-      const newUser={id:newId,username,email,role,status:'attivo',registeredAt:now.split('T')[0],authMethod:'magic_link',consents:{privacy:true,privacyDate:now,marketing:false,marketingDate:null}};
+      const newUser={id:newId,username,email,role,status:'attivo',registeredAt:now.split('T')[0],authMethod:'magic_link',consents:{privacy:false,privacyDate:null,marketing:false,marketingDate:null}};
       store.users.push(newUser);
       fsSet('users',newId,newUser).catch(console.error);
       showToast('Utente creato: '+username);
@@ -7239,7 +7377,7 @@ function saveUserForm(type,editId){
     } else {
       const now=new Date().toISOString();
       const newId='m'+Date.now();
-      const newManager={id:newId,username,email,orgName,city:orgCity,description:orgDesc,role:orgRole,status:'pending_approval',consents:{privacy:true,privacyDate:now,terms:true,termsDate:now,marketing:false,marketingDate:null},requestedAt:now.split('T')[0]};
+      const newManager={id:newId,username,email,orgName,city:orgCity,description:orgDesc,role:orgRole,status:'pending_approval',consents:{privacy:false,privacyDate:null,terms:false,termsDate:null,marketing:false,marketingDate:null},requestedAt:now.split('T')[0]};
       store.managers.push(newManager);
       fsSet('managers',newId,newManager).catch(console.error);
       showToast('Organizzatore creato: '+orgName);
@@ -7742,7 +7880,7 @@ function showAdminEventDetail(evId){
   const roles={base:0,flyer:0,non_so:0,entrambi:0};
   active.forEach(b=>{if(b.role&&roles[b.role]!==undefined)roles[b.role]++;});
   // Date display
-  const dateStr=ev.days.length>1?fmtDateShort(ev.days[0].date)+' — '+fmtDateShort(ev.days[ev.days.length-1].date):fmtDate(ev.days[0]?.date);
+  const dateStr=ev.days.length>1?fmtDateShort(ev.days[0]?.date)+' — '+fmtDateShort(ev.days[ev.days.length-1]?.date):fmtDate(ev.days[0]?.date);
   const locLink=ev.locationUrl?`<a href="${ev.locationUrl}" target="_blank" style="color:var(--brand-l)">📍 ${ev.location} ↗</a>`:`📍 ${ev.location}`;
   const roleName=r=>r==='base'?'💪 Base':r==='flyer'?'🦅 Flyer':r==='non_so'?'🤷 Non lo so ancora':r==='entrambi'?'🔄 Entrambi':'—';
   const roleColor=r=>r==='base'?'var(--green)':r==='flyer'?'var(--blue)':r==='non_so'?'var(--txt3)':'var(--purple)';
@@ -7954,33 +8092,138 @@ function toggleMarketingConsent(checked){
   if(record&&record.consents){
     record.consents.marketing=checked;
     record.consents.marketingDate=checked?now:null;
+    // Also update currentUser
+    if(!u.consents)u.consents={};
+    u.consents.marketing=checked;
+    u.consents.marketingDate=checked?now:null;
+    // Persist to Firestore
+    const col=store.managers.some(m=>m.id===u.id)?'managers':'users';
+    fsUpdate(col,u.id,{consents:record.consents}).catch(console.error);
   }
   // Update consent log display
   const logEl=document.getElementById('profile-consent-log');
-  if(logEl){
-    let logHtml='<p class="text-xs txt3 mt-2"><strong>Registro consensi:</strong></p>';
-    if(record&&record.consents){
-      logHtml+='<p class="text-xs txt3">✅ Privacy accettata il '+(record.consents.privacyDate||'N/D')+'</p>';
-      if(record.consents.marketing){
-        logHtml+='<p class="text-xs txt3">✅ Marketing attivo dal '+(record.consents.marketingDate?.split('T')[0]||'N/D')+'</p>';
-      } else {
-        logHtml+='<p class="text-xs txt3">❌ Marketing non attivo</p>';
-      }
-      if(record.consents.terms){
-        logHtml+='<p class="text-xs txt3">✅ Condizioni d\'uso accettate il '+(record.consents.termsDate||'N/D')+'</p>';
-      }
+  if(logEl&&record&&record.consents){
+    const c2=record.consents;
+    let logHtml='';
+    if(c2.privacy&&c2.privacyDate){
+      logHtml+='<div>✅ Privacy accettata il '+fmtDateShort(c2.privacyDate.split('T')[0])+'</div>';
+    } else {
+      logHtml+='<div>⚠️ Privacy non ancora accettata</div>';
+    }
+    if(c2.marketing){
+      logHtml+='<div>✅ Marketing attivo dal '+(c2.marketingDate?fmtDateShort(c2.marketingDate.split('T')[0]):'N/D')+'</div>';
+    } else {
+      logHtml+='<div>❌ Marketing non attivo</div>';
+    }
+    if(c2.terms){
+      logHtml+='<div>✅ Condizioni d\'uso accettate il '+(c2.termsDate?fmtDateShort(c2.termsDate.split('T')[0]):'N/D')+'</div>';
     }
     logEl.innerHTML=logHtml;
+  }
+  // Update privacy checkbox
+  const pc=document.getElementById('profile-privacy-check');
+  if(pc&&record&&record.consents)pc.checked=!!record.consents.privacy;
+  // Update privacy date
+  const pd=document.getElementById('profile-privacy-date');
+  if(pd&&record&&record.consents){
+    if(record.consents.privacy&&record.consents.privacyDate){
+      pd.textContent='Consenso prestato il: '+fmtDateShort(record.consents.privacyDate.split('T')[0]);
+      pd.style.color='';
+    } else {
+      pd.textContent='Privacy non ancora accettata';
+      pd.style.color='var(--red)';
+    }
   }
   showToast(checked?'Consenso marketing attivato':'Consenso marketing disattivato','success');
 }
 
+// GDPR Art. 20: Data Portability - Export all user data as JSON
+function exportMyData(){
+  const u=store.currentUser;if(!u||u.id==='guest')return;
+  const record=store.users.find(x=>x.id===u.id)||store.managers.find(x=>x.id===u.id);
+  // Collect all user data
+  const myBookings=store.bookings.filter(b=>b.email===u.email||b.userName===u.username);
+  const myJams=store.communityJams.filter(j=>j.userId===u.id);
+  const myParticipations=store.communityJams.filter(j=>(j.participants||[]).some(p=>p.userId===u.id)).map(j=>({jamId:j.id,title:j.title,date:j.date,joinedAt:(j.participants.find(p=>p.userId===u.id)||{}).joinedAt}));
+  const myAttendances=store.attendances[u.id]||[];
+  const exportData={
+    exportDate:new Date().toISOString(),
+    appName:'BodyEvents',
+    gdprNote:'Questo file contiene tutti i dati personali associati al tuo account, ai sensi dell\'Art. 20 GDPR (Diritto alla portabilità dei dati).',
+    profile:{
+      id:record?.id||u.id,username:record?.username||u.username,email:record?.email||u.email,
+      role:record?.role||u.role,status:record?.status,registeredAt:record?.registeredAt,
+      authMethod:record?.authMethod,subscribedUniverses:record?.subscribedUniverses||u.subscribedUniverses,
+      orgName:record?.orgName||null,city:record?.city||null
+    },
+    consents:record?.consents||u.consents||{},
+    bookings:myBookings.map(b=>({id:b.id,eventId:b.eventId,date:b.date,status:b.status,tier:b.tier,amount:b.amount,scope:b.scope,sessions:b.sessions})),
+    communityEventsCreated:myJams.map(j=>({id:j.id,title:j.title,date:j.date,location:j.location,type:j.type,participants:(j.participants||[]).length})),
+    communityEventsJoined:myParticipations,
+    attendances:myAttendances
+  };
+  // Download as JSON
+  const blob=new Blob([JSON.stringify(exportData,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='bodyevents_my_data_'+new Date().toISOString().split('T')[0]+'.json';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  showToast('Dati esportati con successo!');
+}
+
+// GDPR Art. 17: Right to Erasure - Delete account and all user data
 function confirmAccountDeletion(){
   showConfirm('Cancella account','⚠️ Sei sicuro di voler cancellare il tuo account? Tutti i tuoi dati verranno eliminati permanentemente.',()=>{
-    showConfirm('Conferma definitiva','Questa azione è IRREVERSIBILE. Vuoi davvero procedere?',()=>{
-      showToast('Funzionalità disponibile nella versione online. Il tuo account verrà cancellato entro 30 giorni dalla richiesta.','info');
-    });
-  });
+    showConfirm('Conferma definitiva','Questa azione è IRREVERSIBILE. Vuoi davvero procedere?',async()=>{
+      try{
+        const u=store.currentUser;
+        const uid=u.id;
+        const col=store.managers.some(m=>m.id===uid)?'managers':'users';
+        // 1. Delete user/manager document
+        await fbDb.collection(col).doc(uid).delete();
+        // 2. Delete all bookings by this user
+        const myBookings=store.bookings.filter(b=>b.email===u.email||b.userName===u.username);
+        for(const b of myBookings){
+          await fbDb.collection('bookings').doc(b.id).delete().catch(console.error);
+        }
+        // 3. Delete attendance records
+        await fbDb.collection('attendances').doc(uid).delete().catch(console.error);
+        // 4. Remove from community event participants
+        const joinedJams=store.communityJams.filter(j=>(j.participants||[]).some(p=>p.userId===uid));
+        for(const j of joinedJams){
+          j.participants=j.participants.filter(p=>p.userId!==uid);
+          await fbDb.collection('communityJams').doc(j.id).update({participants:j.participants}).catch(console.error);
+        }
+        // 5. Anonymize community events created by this user
+        const myJams=store.communityJams.filter(j=>j.userId===uid);
+        for(const j of myJams){
+          await fbDb.collection('communityJams').doc(j.id).update({userName:'[Utente rimosso]',userId:'deleted'}).catch(console.error);
+        }
+        // 6. Delete Firebase Auth account
+        const currentUser=fbAuth.currentUser;
+        if(currentUser){
+          await currentUser.delete().catch(e=>{
+            console.error('Auth delete error (may need re-auth):',e);
+          });
+        }
+        // 7. Clear local state and redirect
+        store.currentUser={id:'guest',username:'Ospite',email:'',role:'non_so'};
+        resetStoreData();
+        document.getElementById('modeBanner').style.display='none';
+        document.getElementById('navbar-user').classList.add('hidden');
+        document.getElementById('navbar-admin').classList.add('hidden');
+        go('login');
+        showToast('Account cancellato con successo. Tutti i tuoi dati sono stati eliminati.','success');
+      }catch(e){
+        console.error('Account deletion error:',e);
+        if(e.code==='auth/requires-recent-login'){
+          showToast('Per sicurezza, effettua di nuovo il login e poi riprova a cancellare l\'account.','error');
+        } else {
+          showToast('Errore durante la cancellazione: '+e.message,'error');
+        }
+      }
+    },'danger');
+  },'danger');
 }
 
 /* Sidebar click delegation */
@@ -7988,6 +8231,48 @@ document.addEventListener('click',function(e){
   const link=e.target.closest('.sidebar-link');
   if(link){link.closest('.sidebar-nav').querySelectorAll('.sidebar-link').forEach(l=>l.classList.remove('active'));link.classList.add('active');}
 });
+
+// === Privacy Consent Flow ===
+function showPrivacyAcceptModal(){
+  const overlay=document.getElementById('privacy-accept-overlay');
+  if(overlay){overlay.style.display='flex';}
+}
+function hidePrivacyAcceptModal(){
+  const overlay=document.getElementById('privacy-accept-overlay');
+  if(overlay){overlay.style.display='none';}
+}
+async function acceptPrivacyConsent(){
+  const now=new Date().toISOString();
+  const marketingCheck=document.getElementById('privacy-marketing-check')?.checked||false;
+  const u=store.currentUser;
+  if(!u.consents)u.consents={};
+  u.consents.privacy=true;
+  u.consents.privacyDate=now;
+  if(marketingCheck){u.consents.marketing=true;u.consents.marketingDate=now;}
+  // Determine collection
+  const col=store.managers.some(m=>m.id===u.id)?'managers':'users';
+  fsUpdate(col,u.id,{consents:u.consents}).catch(console.error);
+  // Also update in store arrays
+  const rec=store.users.find(x=>x.id===u.id)||store.managers.find(x=>x.id===u.id);
+  if(rec)rec.consents=u.consents;
+  hidePrivacyAcceptModal();
+  showToast('Privacy accettata. Benvenuto!');
+}
+function rejectPrivacyAndLogout(){
+  hidePrivacyAcceptModal();
+  showToast('Devi accettare la privacy per utilizzare BodyEvents','error');
+  fbAuth.signOut();
+}
+// Check if privacy consent is needed after login
+function checkPrivacyConsent(){
+  const u=store.currentUser;
+  if(!u||u.id==='guest')return false;
+  if(!u.consents||!u.consents.privacy){
+    showPrivacyAcceptModal();
+    return true; // needs consent
+  }
+  return false; // consent already given
+}
 
 // Firebase Auth State Listener
 fbAuth.onAuthStateChanged(async(user)=>{
@@ -8026,6 +8311,40 @@ document.addEventListener('DOMContentLoaded',()=>{
   autoConcludeEvents();
 });
 </script>
+
+<!-- Privacy Acceptance Modal (obbligatorio al primo accesso) -->
+<div id="privacy-accept-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(6px);z-index:9999;display:none;align-items:center;justify-content:center;padding:24px 16px;overflow-y:auto">
+  <div style="background:var(--s100);border:1px solid var(--s300);border-radius:16px;padding:28px;max-width:480px;width:100%;box-shadow:0 25px 50px rgba(0,0,0,.5);margin:auto">
+    <div style="text-align:center;margin-bottom:20px">
+      <span style="font-size:2.5rem">🔒</span>
+      <h2 class="text-xl font-bold text-white mt-2">Informativa sulla Privacy</h2>
+      <p class="text-sm txt3 mt-2">Per utilizzare BodyEvents è necessario prendere visione e accettare l'informativa sulla privacy.</p>
+    </div>
+    <div style="background:var(--s200);border-radius:12px;padding:16px;max-height:250px;overflow-y:auto;margin-bottom:20px;font-size:.8rem;color:var(--txt3);line-height:1.6">
+      <p class="mb-2"><strong class="text-white">Titolare del trattamento:</strong> BodyEvents</p>
+      <p class="mb-2"><strong class="text-white">Dati raccolti:</strong> nome/username, email, preferenze di ruolo, partecipazione eventi, dati di consenso.</p>
+      <p class="mb-2"><strong class="text-white">Finalità:</strong> gestione account, prenotazione eventi, comunicazioni di servizio, miglioramento piattaforma.</p>
+      <p class="mb-2"><strong class="text-white">Base giuridica:</strong> consenso dell'interessato (art. 6, par. 1, lett. a GDPR).</p>
+      <p class="mb-2"><strong class="text-white">Conservazione:</strong> i dati sono conservati per la durata del rapporto e fino a 24 mesi dalla cancellazione dell'account.</p>
+      <p class="mb-2"><strong class="text-white">Diritti:</strong> puoi richiedere accesso, rettifica, cancellazione, portabilità dei tuoi dati, o revocare il consenso in qualsiasi momento dalla sezione Profilo.</p>
+      <p><strong class="text-white">Contatto:</strong> per esercitare i tuoi diritti, utilizza il pulsante "Scarica i miei dati" o "Cancella account" nel tuo profilo.</p>
+    </div>
+    <div class="mb-4">
+      <label class="flex items-center gap-3 text-sm" style="cursor:pointer">
+        <input type="checkbox" id="privacy-accept-check" onchange="document.getElementById('privacy-accept-btn').disabled=!this.checked;document.getElementById('privacy-accept-btn').style.opacity=this.checked?'1':'.5'">
+        <span class="text-white">Ho letto e accetto l'informativa sulla privacy</span>
+      </label>
+    </div>
+    <div class="mb-3">
+      <label class="flex items-center gap-3 text-sm" style="cursor:pointer">
+        <input type="checkbox" id="privacy-marketing-check">
+        <span class="txt3">Accetto di ricevere comunicazioni su eventi e aggiornamenti community (facoltativo)</span>
+      </label>
+    </div>
+    <button id="privacy-accept-btn" class="btn btn-primary w-full" disabled style="opacity:.5" onclick="acceptPrivacyConsent()">Accetta e continua</button>
+    <button class="btn btn-secondary w-full mt-2" onclick="rejectPrivacyAndLogout()">Rifiuta e esci</button>
+  </div>
+</div>
 
 </body>
 </html>
