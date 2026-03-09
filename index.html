@@ -2527,6 +2527,14 @@ async function loadCurrentUser(uid){
   if(userDoc.exists){
     store.currentUser=userDoc.data();
     if(!store.users.find(u=>u.id===uid)){store.users.push(userDoc.data());}
+    // Check if no master exists — show master setup for first user
+    if(!checkMasterExists()){
+      document.getElementById('modeBanner').style.display='none';
+      document.getElementById('navbar-user').classList.remove('hidden');
+      go('events');
+      showMasterSetup();
+      return;
+    }
     // Update navbar name
     document.querySelectorAll('.profile-name-user').forEach(el=>el.textContent=store.currentUser.username||'');
     // Hide mode banner for regular users
@@ -8232,6 +8240,114 @@ document.addEventListener('click',function(e){
   if(link){link.closest('.sidebar-nav').querySelectorAll('.sidebar-link').forEach(l=>l.classList.remove('active'));link.classList.add('active');}
 });
 
+// === Master Setup Flow (first-run) ===
+function checkMasterExists(){
+  return store.managers.some(m=>m.role==='master'&&m.status==='attivo');
+}
+
+function showMasterSetup(){
+  const overlay=document.getElementById('master-setup-overlay');
+  if(!overlay)return;
+  overlay.style.display='flex';
+  // Pre-fill from current user data
+  const u=store.currentUser;
+  if(u&&u.id!=='guest'){
+    const nameEl=document.getElementById('ms-username');
+    const emailEl=document.getElementById('ms-email');
+    if(nameEl)nameEl.value=u.username||'';
+    if(emailEl)emailEl.value=u.email||'';
+  }
+  // Populate universe checkboxes
+  const active=getActiveUniverses();
+  const univC=document.getElementById('ms-universes');
+  if(univC){
+    univC.innerHTML=active.map(u=>'<label class="flex items-center gap-2 text-sm mb-2" style="cursor:pointer"><input type="checkbox" class="ms-univ-check" value="'+u.id+'" checked><span style="color:'+u.color+'">'+u.emoji+' '+u.name+'</span></label>').join('');
+    if(!active.length) univC.innerHTML='<p class="text-sm txt3">Nessun universo disponibile — ne verrà creato uno di default.</p>';
+  }
+}
+
+function hideMasterSetup(){
+  const overlay=document.getElementById('master-setup-overlay');
+  if(overlay)overlay.style.display='none';
+}
+
+async function submitMasterSetup(){
+  const username=(document.getElementById('ms-username')?.value||'').trim();
+  const orgName=(document.getElementById('ms-orgname')?.value||'').trim();
+  const city=(document.getElementById('ms-city')?.value||'').trim();
+  const desc=(document.getElementById('ms-desc')?.value||'').trim();
+
+  if(!username||!orgName||!city){
+    showToast('Compila tutti i campi obbligatori (*)','error');
+    return;
+  }
+
+  const u=store.currentUser;
+  if(!u||u.id==='guest'){
+    showToast('Errore: nessun utente loggato','error');
+    return;
+  }
+
+  const btn=document.getElementById('ms-submit-btn');
+  if(btn){btn.disabled=true;btn.textContent='Configurazione in corso...';}
+
+  try{
+    const now=new Date().toISOString();
+    const selectedUnivs=Array.from(document.querySelectorAll('.ms-univ-check:checked')).map(cb=>cb.value);
+
+    // Ensure at least AcroYoga universe exists
+    if(!store.universes.length){
+      const acroUniv={id:'univ_acro',name:'AcroYoga',emoji:'🤸',color:'#10b981',roles:['Base','Flyer','Entrambi'],pendingRoles:[],status:'active',createdBy:'system',approvedBy:'system',createdAt:now};
+      await fbDb.collection('universes').doc('univ_acro').set(acroUniv);
+      store.universes.push(acroUniv);
+      if(!selectedUnivs.includes('univ_acro'))selectedUnivs.push('univ_acro');
+    }
+
+    // Build master manager document
+    const mgrData={
+      id:u.id,
+      username:username,
+      email:u.email,
+      orgName:orgName,
+      city:city,
+      description:desc,
+      role:'master',
+      status:'attivo',
+      universes:selectedUnivs.length?selectedUnivs:store.universes.filter(x=>x.status==='active').map(x=>x.id),
+      consents:u.consents||{privacy:false,privacyDate:null,marketing:false,marketingDate:null,terms:true,termsDate:now},
+      requestedAt:(u.registeredAt||now.split('T')[0]),
+      initials:username.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase(),
+      color:u.color||'avatar-brand',
+      authMethod:u.authMethod||'google'
+    };
+
+    // Create manager document in Firestore
+    await fbDb.collection('managers').doc(u.id).set(mgrData);
+
+    // Delete old user document (migration user → master)
+    try{await fbDb.collection('users').doc(u.id).delete();}catch(e){console.warn('Could not delete old user doc:',e);}
+
+    // Update local store
+    store.managers.push(mgrData);
+    store.users=store.users.filter(x=>x.id!==u.id);
+    store.currentUser=mgrData;
+
+    hideMasterSetup();
+    showToast('👑 Benvenuto Master! La tua organizzazione è stata configurata.');
+
+    // Navigate to admin dashboard
+    document.querySelectorAll('.profile-name').forEach(el=>el.textContent=username);
+    document.querySelectorAll('.profile-name-user').forEach(el=>el.textContent=username);
+    document.querySelectorAll('.profile-org').forEach(el=>el.textContent=orgName);
+    document.getElementById('modeBanner').style.display='';
+    switchMode('admin');
+    checkPrivacyConsent();
+  }catch(e){
+    showToast('Errore configurazione: '+e.message,'error');
+    if(btn){btn.disabled=false;btn.textContent='Configura come Master';}
+  }
+}
+
 // === Privacy Consent Flow ===
 function showPrivacyAcceptModal(){
   const overlay=document.getElementById('privacy-accept-overlay');
@@ -8311,6 +8427,58 @@ document.addEventListener('DOMContentLoaded',()=>{
   autoConcludeEvents();
 });
 </script>
+
+<!-- Master Setup Modal (first-run: no master exists) -->
+<div id="master-setup-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);backdrop-filter:blur(8px);z-index:10000;align-items:center;justify-content:center;padding:24px 16px;overflow-y:auto">
+  <div style="background:var(--s100);border:1px solid var(--s300);border-radius:16px;padding:28px;max-width:520px;width:100%;box-shadow:0 25px 50px rgba(0,0,0,.5);margin:auto">
+    <div style="text-align:center;margin-bottom:24px">
+      <span style="font-size:3rem">👑</span>
+      <h2 class="text-xl font-bold text-white mt-2">Configurazione Iniziale</h2>
+      <p class="text-sm txt3 mt-2">Benvenuto! Nessun amministratore è ancora stato configurato. Compila i dati della tua organizzazione per diventare il <strong class="text-white">Master Admin</strong> di BodyEvents.</p>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <!-- Username -->
+      <div>
+        <label class="text-sm text-white mb-1" style="display:block">Nome utente *</label>
+        <input type="text" id="ms-username" class="input" placeholder="Il tuo nome" style="width:100%;padding:10px 14px;background:var(--s200);border:1px solid var(--s300);border-radius:10px;color:#fff">
+      </div>
+
+      <!-- Email (readonly, from auth) -->
+      <div>
+        <label class="text-sm text-white mb-1" style="display:block">Email</label>
+        <input type="email" id="ms-email" class="input" readonly style="width:100%;padding:10px 14px;background:var(--s200);border:1px solid var(--s300);border-radius:10px;color:var(--txt3);opacity:.7">
+      </div>
+
+      <!-- Org Name -->
+      <div>
+        <label class="text-sm text-white mb-1" style="display:block">Nome Organizzazione *</label>
+        <input type="text" id="ms-orgname" class="input" placeholder="Es: BodyEvents, AcroYoga Roma..." style="width:100%;padding:10px 14px;background:var(--s200);border:1px solid var(--s300);border-radius:10px;color:#fff">
+      </div>
+
+      <!-- City -->
+      <div>
+        <label class="text-sm text-white mb-1" style="display:block">Città *</label>
+        <input type="text" id="ms-city" class="input" placeholder="Es: Roma, Milano..." style="width:100%;padding:10px 14px;background:var(--s200);border:1px solid var(--s300);border-radius:10px;color:#fff">
+      </div>
+
+      <!-- Description -->
+      <div>
+        <label class="text-sm text-white mb-1" style="display:block">Descrizione (opzionale)</label>
+        <textarea id="ms-desc" class="input" rows="2" placeholder="Breve descrizione della tua organizzazione..." style="width:100%;padding:10px 14px;background:var(--s200);border:1px solid var(--s300);border-radius:10px;color:#fff;resize:vertical"></textarea>
+      </div>
+
+      <!-- Universes -->
+      <div>
+        <label class="text-sm text-white mb-2" style="display:block">Universi di interesse</label>
+        <div id="ms-universes" style="background:var(--s200);border-radius:10px;padding:12px"></div>
+      </div>
+    </div>
+
+    <button id="ms-submit-btn" class="btn btn-primary w-full mt-4" style="padding:14px;font-size:1rem" onclick="submitMasterSetup()">👑 Configura come Master</button>
+    <p class="text-xs txt3 mt-3" style="text-align:center">Potrai modificare questi dati in qualsiasi momento dal tuo profilo.</p>
+  </div>
+</div>
 
 <!-- Privacy Acceptance Modal (obbligatorio al primo accesso) -->
 <div id="privacy-accept-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(6px);z-index:9999;display:none;align-items:center;justify-content:center;padding:24px 16px;overflow-y:auto">
