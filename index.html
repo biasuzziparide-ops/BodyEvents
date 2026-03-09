@@ -723,6 +723,22 @@ textarea.input{resize:none;font-family:inherit}
     <!-- Prossimi eventi (dinamici) -->
     <h2 class="font-semibold text-white mb-3" id="dash-next-title" style="display:none">Prossimi eventi</h2>
     <div id="admin-dash-events" class="mb-4"></div>
+    <!-- Admin Tools (master only) -->
+    <div class="master-only mt-6" style="display:none">
+      <h2 class="font-semibold text-white mb-3">🛠️ Strumenti Master</h2>
+      <div class="grid grid-2 gap-3">
+        <div class="card" style="padding:16px;cursor:pointer" onclick="exportFullBackup()">
+          <div style="font-size:1.5rem;margin-bottom:8px">💾</div>
+          <div class="font-medium text-white text-sm">Backup Completo</div>
+          <div class="text-xs txt3 mt-1">Scarica un backup JSON di tutti i dati dell'app</div>
+        </div>
+        <div class="card" style="padding:16px;cursor:pointer" onclick="showRestoreBackup()">
+          <div style="font-size:1.5rem;margin-bottom:8px">🔄</div>
+          <div class="font-medium text-white text-sm">Ripristina Backup</div>
+          <div class="text-xs txt3 mt-1">Carica un file di backup per ripristinare i dati</div>
+        </div>
+      </div>
+    </div>
   </main>
 </div>
 </div>
@@ -1081,14 +1097,14 @@ textarea.input{resize:none;font-family:inherit}
       <p class="text-xs txt3 mb-4">Prezzo per l'intero evento (tutte le giornate). Utile per offrire un pacchetto completo scontato rispetto alle singole giornate/sessioni.</p>
       <div class="mb-2">
         <div class="flex items-center gap-3">
-          <div style="flex:1"><label class="label">💰 Prezzo evento (Standard) €</label><input class="input" id="ne-tier-medio" type="number" value="20"></div>
+          <div style="flex:1"><label class="label">💰 Prezzo evento (Standard) €</label><input class="input" id="ne-tier-medio" type="number" value="" placeholder="Es: 10"></div>
           <div style="padding-top:18px"><button type="button" class="btn btn-sm" style="font-size:.7rem;background:var(--green-bg);color:var(--green);border:1px solid var(--green)" onclick="toggleTierExpand(this)">⚙️ Più tier</button></div>
         </div>
       </div>
       <div class="hidden mb-4">
         <div class="grid grid-2 gap-3">
-          <div><label class="label">✦ Sostenitore €</label><input class="input" id="ne-tier-alto" type="number" value="30"></div>
-          <div><label class="label">○ Ridotto €</label><input class="input" id="ne-tier-basso" type="number" value="10"></div>
+          <div><label class="label">✦ Sostenitore €</label><input class="input" id="ne-tier-alto" type="number" value="" placeholder="Es: 15"></div>
+          <div><label class="label">○ Ridotto €</label><input class="input" id="ne-tier-basso" type="number" value="" placeholder="Es: 5"></div>
         </div>
       </div>
       <div class="flex items-center gap-2 mb-2" style="cursor:pointer" onclick="this.nextElementSibling.classList.toggle('hidden');this.querySelector('.toggle-arrow').textContent=this.nextElementSibling.classList.contains('hidden')?'▸':'▾'" id="ne-loyalty-event-toggle">
@@ -5829,6 +5845,84 @@ function resetJamUserFilters(){
 }
 
 /* ==============================
+   BACKUP & RESTORE (Master Tools)
+============================== */
+async function exportFullBackup(){
+  if(store.currentUser.role!=='master'){showToast('Solo il Master può eseguire backup','error');return;}
+  showToast('Preparazione backup in corso...');
+  try{
+    const collections=['users','managers','events','bookings','communityJams','attendances','universes'];
+    const backup={
+      _meta:{
+        appName:'BodyEvents',
+        exportDate:new Date().toISOString(),
+        exportedBy:store.currentUser.email,
+        version:'2.3.0',
+        collections:collections
+      }
+    };
+    for(const col of collections){
+      const snap=await fbDb.collection(col).get();
+      backup[col]=[];
+      snap.forEach(doc=>{backup[col].push({_docId:doc.id,...doc.data()});});
+    }
+    const json=JSON.stringify(backup,null,2);
+    const blob=new Blob([json],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    const date=new Date().toISOString().split('T')[0];
+    a.href=url;a.download='bodyevents_backup_'+date+'.json';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('💾 Backup scaricato con successo! ('+backup._meta.collections.length+' collezioni)');
+  }catch(e){
+    showToast('Errore backup: '+e.message,'error');
+  }
+}
+
+function showRestoreBackup(){
+  if(store.currentUser.role!=='master'){showToast('Solo il Master può ripristinare backup','error');return;}
+  const input=document.createElement('input');
+  input.type='file';input.accept='.json';
+  input.onchange=async(e)=>{
+    const file=e.target.files[0];
+    if(!file){return;}
+    try{
+      const text=await file.text();
+      const data=JSON.parse(text);
+      if(!data._meta||!data._meta.appName||data._meta.appName!=='BodyEvents'){
+        showToast('File non valido: non è un backup BodyEvents','error');return;
+      }
+      // Show confirmation dialog
+      const cols=data._meta.collections||[];
+      let totalDocs=0;
+      cols.forEach(c=>{if(data[c])totalDocs+=data[c].length;});
+      const msg='⚠️ ATTENZIONE: Stai per ripristinare un backup del '+fmtDateShort(data._meta.exportDate.split('T')[0])+'.\n\nContenuto:\n'+cols.map(c=>'• '+c+': '+(data[c]?data[c].length:0)+' documenti').join('\n')+'\n\nTotale: '+totalDocs+' documenti.\n\nQuesta operazione SOVRASCRIVERÀ i dati esistenti.\nSei assolutamente sicuro?';
+      if(!confirm(msg))return;
+      if(!confirm('ULTIMA CONFERMA: Vuoi davvero sovrascrivere TUTTI i dati?'))return;
+      showToast('Ripristino in corso...');
+      let restored=0;
+      for(const col of cols){
+        if(!data[col])continue;
+        for(const doc of data[col]){
+          const docId=doc._docId||doc.id;
+          if(!docId)continue;
+          const docData={...doc};
+          delete docData._docId;
+          await fbDb.collection(col).doc(docId).set(docData,{merge:false});
+          restored++;
+        }
+      }
+      showToast('✅ Ripristino completato! '+restored+' documenti ripristinati. Ricaricamento...');
+      setTimeout(()=>window.location.reload(),2000);
+    }catch(e){
+      showToast('Errore ripristino: '+e.message,'error');
+    }
+  };
+  input.click();
+}
+
+/* ==============================
    RENDER: ADMIN DASHBOARD
 ============================== */
 function renderAdminDashboard(){
@@ -5854,10 +5948,10 @@ function renderAdminDashboard(){
 /* ==============================
    EVENT CREATION FORM
 ============================== */
-let formDays=[{sessions:[{name:'',startTime:'10:00',endTime:'12:30',level:'base',teacher:'',description:'',location:'',locationUrl:'',maxSpots:0,tiers:{alto:null,medio:20,basso:null}}]}];
+let formDays=[{sessions:[{name:'',startTime:'10:00',endTime:'12:30',level:'base',teacher:'',description:'',location:'',locationUrl:'',maxSpots:0,tiers:{alto:null,medio:null,basso:null}}]}];
 
 function resetForm(){
-  formDays=[{sessions:[{name:'',startTime:'10:00',endTime:'12:30',level:'base',teacher:'',description:'',location:'',locationUrl:'',maxSpots:0,tiers:{alto:null,medio:20,basso:null}}]}];
+  formDays=[{sessions:[{name:'',startTime:'10:00',endTime:'12:30',level:'base',teacher:'',description:'',location:'',locationUrl:'',maxSpots:0,tiers:{alto:null,medio:null,basso:null}}]}];
   evImages.thumb=null;evImages.header=null;
   const f=document.getElementById('ne-form');if(f)f.reset();
   ['thumb','header'].forEach(k=>{
@@ -5925,7 +6019,7 @@ function saveFormState(){
       const ta=document.querySelector(`.ne-s-ta[data-di="${di}"][data-si="${si}"]`);
       const tm=document.querySelector(`.ne-s-tm[data-di="${di}"][data-si="${si}"]`);
       const tb=document.querySelector(`.ne-s-tb[data-di="${di}"][data-si="${si}"]`);
-      if(ta)s.tiers={alto:ta.value?parseFloat(ta.value):null,medio:tm?.value?parseFloat(tm.value):20,basso:tb?.value?parseFloat(tb.value):null};
+      if(ta)s.tiers={alto:ta.value?parseFloat(ta.value):null,medio:tm?.value?parseFloat(tm.value):null,basso:tb?.value?parseFloat(tb.value):null};
     });
   });
 }
@@ -6032,7 +6126,7 @@ function renderFormDays(){
       ${hidePricing?'':`<div class="mt-3" style="border-top:1px solid var(--s400);padding-top:12px">
         ${day.sessions.length===1?`
         <p class="text-xs txt3 mb-2" style="font-style:italic">💡 Sessione singola — il prezzo giornata corrisponde automaticamente a quello della sessione</p>
-        <input type="hidden" class="ne-d-tm" data-di="${di}" value="${day.sessions[0].tiers?.medio??20}">
+        <input type="hidden" class="ne-d-tm" data-di="${di}" value="${day.sessions[0].tiers?.medio!=null?day.sessions[0].tiers.medio:''}">
         <input type="hidden" class="ne-d-ta" data-di="${di}" value="${day.sessions[0].tiers?.alto!=null?day.sessions[0].tiers.alto:''}">
         <input type="hidden" class="ne-d-tb" data-di="${di}" value="${day.sessions[0].tiers?.basso!=null?day.sessions[0].tiers.basso:''}">
         `:`
@@ -6151,7 +6245,7 @@ function renderFormSession(di,si,s,hidePricing){
     </div>
     ${hidePricing?'':`<div class="mb-2">
       <div class="flex items-center gap-3">
-        <div style="flex:1"><label class="label">💰 Costo base (Standard) €</label><input class="input ne-s-tm" type="number" value="${s.tiers?.medio??20}" data-di="${di}" data-si="${si}"></div>
+        <div style="flex:1"><label class="label">💰 Costo base (Standard) €</label><input class="input ne-s-tm" type="number" value="${s.tiers?.medio!=null?s.tiers.medio:''}" placeholder="Es: 10" data-di="${di}" data-si="${si}"></div>
         <div style="padding-top:18px"><button type="button" class="btn btn-sm" style="font-size:.7rem;background:var(--green-bg);color:var(--green);border:1px solid var(--green)" onclick="toggleTierExpand(this)">${(s.tiers?.alto!=null||s.tiers?.basso!=null)?'⚙️ Chiudi tier':'⚙️ Più tier'}</button></div>
       </div>
     </div>
@@ -6269,7 +6363,7 @@ function removeFormDay(di){
   if(formDays.length===1&&sd&&ed)ed.value=sd.value;
   renderFormDays();
 }
-function addFormSession(di){formDays[di].sessions.push({name:'',startTime:'10:00',endTime:'12:30',level:'base',teacher:'',description:'',location:'',locationUrl:'',maxSpots:0,tiers:{alto:null,medio:20,basso:null}});renderFormDays();showToast('Sessione aggiunta');}
+function addFormSession(di){formDays[di].sessions.push({name:'',startTime:'10:00',endTime:'12:30',level:'base',teacher:'',description:'',location:'',locationUrl:'',maxSpots:0,tiers:{alto:null,medio:null,basso:null}});renderFormDays();showToast('Sessione aggiunta');}
 function autoFillMaxSpots(inputEl){
   const val=inputEl.value;if(!val)return;
   document.querySelectorAll('.ne-s-max').forEach(el=>{
@@ -6420,7 +6514,7 @@ function collectFormData(){
         location:document.querySelector(`.ne-s-loc[data-di="${di}"][data-si="${si}"]`)?.value||'',
         locationUrl:document.querySelector(`.ne-s-locurl[data-di="${di}"][data-si="${si}"]`)?.value||'',
         maxSpots:parseInt(document.querySelector(`.ne-s-max[data-di="${di}"][data-si="${si}"]`)?.value)||0,
-        tiers:(()=>{const _ta=document.querySelector(`.ne-s-ta[data-di="${di}"][data-si="${si}"]`);const _tm=document.querySelector(`.ne-s-tm[data-di="${di}"][data-si="${si}"]`);const _tb=document.querySelector(`.ne-s-tb[data-di="${di}"][data-si="${si}"]`);return{alto:_ta?.value?parseFloat(_ta.value):null,medio:_tm?.value?parseFloat(_tm.value):20,basso:_tb?.value?parseFloat(_tb.value):null};})()
+        tiers:(()=>{const _ta=document.querySelector(`.ne-s-ta[data-di="${di}"][data-si="${si}"]`);const _tm=document.querySelector(`.ne-s-tm[data-di="${di}"][data-si="${si}"]`);const _tb=document.querySelector(`.ne-s-tb[data-di="${di}"][data-si="${si}"]`);return{alto:_ta?.value?parseFloat(_ta.value):null,medio:_tm?.value?parseFloat(_tm.value):null,basso:_tb?.value?parseFloat(_tb.value):null};})()
       };
     });
     // Tier giornata (opzionali)
@@ -6516,7 +6610,7 @@ function collectFormData(){
     imageThumb:evImages.thumb||null,
     imageHeader:evImages.header||null,
     days,
-    tiers:{alto:parseFloat(document.getElementById('ne-tier-alto').value)||30,medio:parseFloat(document.getElementById('ne-tier-medio').value)||20,basso:parseFloat(document.getElementById('ne-tier-basso').value)||10},
+    tiers:(()=>{const _a=document.getElementById('ne-tier-alto')?.value,_m=document.getElementById('ne-tier-medio')?.value,_b=document.getElementById('ne-tier-basso')?.value;return{alto:_a?parseFloat(_a):null,medio:_m?parseFloat(_m):null,basso:_b?parseFloat(_b):null};})(),
     loyaltyTiers:eventLoyalty,loyaltyRequiredEvents:eventLoyaltyReq.length?eventLoyaltyReq:null,
     earlyBird,
     contactPhone:document.getElementById('ne-contact-phone')?.value||'',
@@ -6709,7 +6803,7 @@ function editEvent(id){
       level:s.level||'base',teacher:s.teacher||'',description:s.description||'',
       location:s.location||'',locationUrl:s.locationUrl||'',
       maxSpots:s.maxSpots||0,
-      tiers:s.tiers?{alto:s.tiers.alto!=null?s.tiers.alto:null,medio:s.tiers.medio!=null?s.tiers.medio:20,basso:s.tiers.basso!=null?s.tiers.basso:null}:{alto:null,medio:20,basso:null}
+      tiers:s.tiers?{alto:s.tiers.alto!=null?s.tiers.alto:null,medio:s.tiers.medio!=null?s.tiers.medio:null,basso:s.tiers.basso!=null?s.tiers.basso:null}:{alto:null,medio:null,basso:null}
     }))
   }));
   renderFormDays();
@@ -6724,9 +6818,9 @@ function editEvent(id){
   if(ev.days.length>1){
     const epSec=document.getElementById('ne-event-pricing-section');
     if(epSec)epSec.style.display='';
-    document.getElementById('ne-tier-alto').value=ev.tiers?.alto!=null?ev.tiers.alto:30;
-    document.getElementById('ne-tier-medio').value=ev.tiers?.medio!=null?ev.tiers.medio:20;
-    document.getElementById('ne-tier-basso').value=ev.tiers?.basso!=null?ev.tiers.basso:10;
+    document.getElementById('ne-tier-alto').value=ev.tiers?.alto!=null?ev.tiers.alto:'';
+    document.getElementById('ne-tier-medio').value=ev.tiers?.medio!=null?ev.tiers.medio:'';
+    document.getElementById('ne-tier-basso').value=ev.tiers?.basso!=null?ev.tiers.basso:'';
     if(ev.loyaltyTiers){
       document.getElementById('ne-ftier-alto').value=ev.loyaltyTiers.alto||'';
       document.getElementById('ne-ftier-medio').value=ev.loyaltyTiers.medio||'';
