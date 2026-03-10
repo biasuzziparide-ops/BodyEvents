@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.8.3</title>
+<title>BodyEvents — V2.8.7</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤸</text></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -294,7 +294,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.8.3</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.8.7</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -447,9 +447,9 @@ textarea.input{resize:none;font-family:inherit}
     <!-- Filtri principali (sempre visibili) -->
     <div class="filter-grid" style="padding:12px 16px;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end">
       <div>
-        <label class="label" style="font-size:.65rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:3px">Universo</label>
-        <select class="input" id="filter-universe" onchange="renderUserEvents()" style="padding:7px 28px 7px 10px;font-size:.8rem">
-          <option value="">Tutti gli Universi</option>
+        <label class="label" style="font-size:.65rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:3px">Zona</label>
+        <select class="input" id="filter-zona" onchange="renderUserEvents()" style="padding:7px 28px 7px 10px;font-size:.8rem">
+          <option value="">Tutte</option>
         </select>
       </div>
       <div>
@@ -459,6 +459,13 @@ textarea.input{resize:none;font-family:inherit}
         </select>
       </div>
     </div>
+    <!-- Toggle Community Events -->
+    <div style="padding:4px 16px 4px;display:flex;align-items:center;gap:8px">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.78rem;color:var(--txt2)">
+        <input type="checkbox" id="filter-community-toggle" checked onchange="renderUserEvents()" style="accent-color:var(--brand)">
+        🤝 Mostra Community Events
+      </label>
+    </div>
     <!-- Toggle filtri avanzati -->
     <div style="padding:0 16px 8px;text-align:center">
       <button onclick="document.getElementById('adv-filters').classList.toggle('hidden');this.textContent=document.getElementById('adv-filters').classList.contains('hidden')?'▼ Più filtri':'▲ Meno filtri'" style="background:none;border:none;color:var(--brand-l);font-size:.75rem;cursor:pointer;padding:4px 12px">▼ Più filtri</button>
@@ -466,9 +473,9 @@ textarea.input{resize:none;font-family:inherit}
     <!-- Filtri avanzati (nascosti di default) -->
     <div id="adv-filters" class="hidden filter-grid" style="padding:0 16px 12px;grid-template-columns:1fr 1fr;gap:8px;align-items:end">
       <div>
-        <label class="label" style="font-size:.65rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:3px">Zona</label>
-        <select class="input" id="filter-zona" onchange="renderUserEvents()" style="padding:7px 28px 7px 10px;font-size:.8rem">
-          <option value="">Tutte</option>
+        <label class="label" style="font-size:.65rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:3px">Universo</label>
+        <select class="input" id="filter-universe" onchange="renderUserEvents()" style="padding:7px 28px 7px 10px;font-size:.8rem">
+          <option value="">Tutti gli Universi</option>
         </select>
       </div>
       <div>
@@ -521,36 +528,7 @@ textarea.input{resize:none;font-family:inherit}
     <h1 class="page-title">🤝 Community Events</h1>
     <button class="btn btn-primary btn-sm" onclick="openCreateJamModal()">+ Proponi Community Event</button>
   </div>
-  <p class="page-sub mb-6">Eventi organizzati dalla community. Proponi il tuo o partecipa!</p>
-  <!-- Filter bar for user jams -->
-  <div class="card mb-6" id="user-jam-filter-panel" style="padding:0;overflow:hidden">
-    <div style="padding:16px 20px;background:var(--s100);border-bottom:1px solid var(--s300)">
-      <div style="position:relative">
-        <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--txt3);font-size:.875rem;pointer-events:none">🔍</span>
-        <input class="input" style="padding-left:38px;background:var(--s50);border-color:var(--s400)" placeholder="Cerca community events..." id="jam-user-filter-text" oninput="renderUserJams()">
-      </div>
-    </div>
-    <div style="padding:16px 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;align-items:end">
-      <div>
-        <label class="label" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:4px">Tipo</label>
-        <select class="input" id="jam-user-filter-type" onchange="renderUserJams()" style="padding:8px 32px 8px 12px;font-size:.8rem">
-          <option value="">Tutti</option>
-        </select>
-      </div>
-      <div>
-        <label class="label" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:4px">Dal</label>
-        <input class="input" id="jam-user-filter-date-from" type="date" onchange="renderUserJams()" style="padding:8px 12px;font-size:.8rem">
-      </div>
-      <div>
-        <label class="label" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:4px">Al</label>
-        <input class="input" id="jam-user-filter-date-to" type="date" onchange="renderUserJams()" style="padding:8px 12px;font-size:.8rem">
-      </div>
-      <div style="display:flex;gap:8px;align-items:flex-end">
-        <span id="jam-user-results-count" class="text-xs txt3">—</span>
-        <button class="btn btn-secondary btn-sm" onclick="resetJamUserFilters()">Reset</button>
-      </div>
-    </div>
-  </div>
+  <p class="page-sub mb-6">Le tue community. Proponi un evento o partecipa!</p>
   <div id="user-jams-container"><!-- renderUserJams() --></div>
 </div>
 </div>
@@ -1040,6 +1018,12 @@ textarea.input{resize:none;font-family:inherit}
       <div id="active-universes-list"></div>
     </div>
 
+    <!-- Richieste associazione universo da organizzatori -->
+    <div class="card mb-4 master-only" style="display:none">
+      <h3 class="font-semibold text-white mb-4">📨 Richieste associazione universo <span id="univ-assoc-requests-count" class="badge" style="background:var(--yellow-bg);color:var(--yellow);font-size:.75rem;margin-left:6px">0</span></h3>
+      <div id="univ-assoc-requests-list"><div class="text-xs txt3">Nessuna richiesta in attesa</div></div>
+    </div>
+
     <div class="card master-only" style="display:none">
       <h3 class="font-semibold text-white mb-4">🔧 Strumenti</h3>
       <button class="btn btn-secondary btn-sm" onclick="migrateToUniverses()">🔄 Migra dati esistenti a Universi</button>
@@ -1090,10 +1074,29 @@ textarea.input{resize:none;font-family:inherit}
         <input class="input" id="org-profile-name" value="" oninput="orgProfileChanged()">
       </div>
       <div class="mb-3">
-        <label class="label">Icona / Emoji</label>
-        <div style="display:flex;gap:8px;align-items:center">
-          <input class="input" id="org-profile-emoji" value="" maxlength="4" style="width:80px;text-align:center;font-size:1.5rem" oninput="orgProfileChanged()">
-          <span class="text-xs txt3">Scegli un emoji che rappresenta la tua organizzazione</span>
+        <label class="label">Icona organizzazione</label>
+        <div style="display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap">
+          <!-- Emoji option -->
+          <div>
+            <div class="text-xs txt3 mb-1">Emoji</div>
+            <input class="input" id="org-profile-emoji" value="" maxlength="4" style="width:80px;text-align:center;font-size:1.5rem" oninput="orgProfileChanged();clearOrgLogo()">
+          </div>
+          <div style="display:flex;align-items:center;padding-top:20px;color:var(--txt3);font-size:.8rem">oppure</div>
+          <!-- Logo upload option -->
+          <div style="flex:1;min-width:180px">
+            <div class="text-xs txt3 mb-1">Logo immagine</div>
+            <div id="org-logo-preview" style="display:none;margin-bottom:8px;position:relative">
+              <div style="width:80px;height:80px;border-radius:16px;overflow:hidden;border:2px solid var(--brand);position:relative" id="org-logo-frame">
+                <img id="org-logo-img" src="" style="width:100%;height:100%;object-fit:cover">
+              </div>
+              <button class="btn btn-sm" style="position:absolute;top:-6px;right:-6px;background:var(--red);color:#fff;border-radius:50%;width:22px;height:22px;padding:0;font-size:.7rem;line-height:1" onclick="removeOrgLogo()">✕</button>
+            </div>
+            <label class="btn btn-sm" style="background:var(--s200);color:var(--txt2);border:1px solid var(--s400);cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+              📷 Carica logo
+              <input type="file" id="org-logo-input" accept="image/*" style="display:none" onchange="handleOrgLogoUpload(this)">
+            </label>
+            <span class="text-xs txt3 ml-2">Max 500KB, verrà ritagliato a quadrato</span>
+          </div>
         </div>
       </div>
       <div class="mb-3">
@@ -1111,6 +1114,21 @@ textarea.input{resize:none;font-family:inherit}
       <h3 class="font-semibold text-white mb-4">🌌 Universi associati</h3>
       <p class="text-xs txt3 mb-3">Gli universi (discipline) a cui la tua organizzazione è associata.</p>
       <div id="org-profile-universes"></div>
+      <div id="org-profile-universe-request" class="mt-4"></div>
+    </div>
+
+    <!-- Contatti organizzazione -->
+    <div class="card mb-4">
+      <h3 class="font-semibold text-white mb-4">📞 Contatti organizzazione</h3>
+      <p class="text-xs txt3 mb-3">Almeno un contatto è obbligatorio (telefono o email di contatto).</p>
+      <div class="mb-3">
+        <label class="label">Telefono</label>
+        <input class="input" id="org-profile-phone" value="" placeholder="Es. +39 333 1234567" oninput="orgProfileChanged()">
+      </div>
+      <div class="mb-3">
+        <label class="label">Email di contatto</label>
+        <input class="input" id="org-profile-contact-email" value="" placeholder="Email pubblica per i partecipanti" oninput="orgProfileChanged()">
+      </div>
     </div>
 
     <!-- Account info -->
@@ -1121,7 +1139,7 @@ textarea.input{resize:none;font-family:inherit}
         <input class="input" id="org-profile-username" value="" oninput="orgProfileChanged()">
       </div>
       <div class="mb-3">
-        <label class="label">Email</label>
+        <label class="label">Email account</label>
         <input class="input" id="org-profile-email" value="" disabled style="opacity:.6">
         <span class="text-xs txt3">L'email non può essere modificata</span>
       </div>
@@ -1131,6 +1149,14 @@ textarea.input{resize:none;font-family:inherit}
     <div class="card mb-4">
       <h3 class="font-semibold text-white mb-3">📊 Statistiche organizzazione</h3>
       <div class="grid grid-4 gap-3" id="org-profile-stats"></div>
+    </div>
+
+    <!-- Assistenza -->
+    <div id="org-assistenza-box" class="mb-4" style="display:none">
+      <div style="background:var(--s200);border:1px solid var(--s400);border-radius:12px;padding:14px 18px;text-align:center">
+        <div class="text-xs font-medium" style="color:var(--brand-l);margin-bottom:6px">📞 Assistenza</div>
+        <div id="org-assistenza-content" class="text-sm txt2"></div>
+      </div>
     </div>
 
     <!-- Azioni -->
@@ -1253,7 +1279,7 @@ textarea.input{resize:none;font-family:inherit}
       </div>
 
       <div class="mb-4"><label class="label">Titolo evento *</label><input class="input" id="ne-title" placeholder="es. Jam AcroYoga al Parco" required></div>
-      <div class="mb-4"><label class="label">Descrizione</label><textarea class="input" id="ne-desc" rows="3" placeholder="Descrivi l'evento..."></textarea></div>
+      <div class="mb-4"><label class="label">Descrizione</label><textarea class="input" id="ne-desc" rows="4" placeholder="Descrivi l'evento..." style="min-height:80px;resize:vertical;overflow-y:auto;white-space:pre-wrap"></textarea></div>
       <div class="grid grid-2 gap-3 mb-4">
         <div><label class="label">Tipo evento *</label>
           <select class="input" id="ne-type" onchange="onEventTypeChange()"></select>
@@ -1923,6 +1949,14 @@ textarea.input{resize:none;font-family:inherit}
     </div>
   </div>
 
+  <!-- Assistenza -->
+  <div id="user-assistenza-box" class="mb-4" style="display:none">
+    <div style="background:var(--s200);border:1px solid var(--s400);border-radius:12px;padding:14px 18px;text-align:center">
+      <div class="text-xs font-medium" style="color:var(--brand-l);margin-bottom:6px">📞 Assistenza</div>
+      <div id="user-assistenza-content" class="text-sm txt2"></div>
+    </div>
+  </div>
+
   <div class="flex gap-3">
     <button class="btn btn-primary flex-1" id="profile-save-btn" onclick="saveProfileChanges()" disabled style="opacity:.5">💾 Salva modifiche</button>
     <button class="btn btn-ghost" onclick="doLogout()">🚪 Esci</button>
@@ -2416,8 +2450,7 @@ const OB_TOURS={
   },
   tour_profile:{
     slides:[
-      {icon:'👤',title:'Il tuo Profilo',text:'Qui trovi le tue <b>impostazioni personali</b>: nome utente, email, metodo di autenticazione e consensi privacy/marketing.'},
-      {icon:'🌌',title:'Cosa sono gli Universi?',text:'Gli <b>universi</b> sono le discipline/categorie della piattaforma (es. AcroYoga, Danza, Yoga...). Ogni universo ha un <b>colore</b> e un <b>ruolo</b> specifico. Iscrivendoti a un universo, vedrai i suoi eventi nella home. Puoi gestire le tue iscrizioni qui sotto.'}
+      {icon:'👤',title:'Il tuo Profilo',text:'Qui trovi le tue <b>impostazioni personali</b>: nome utente, email, metodo di autenticazione e consensi privacy/marketing.'}
     ]
   },
   tour_jams:{
@@ -3040,22 +3073,62 @@ async function toggleUniverseSubscription(univId,subscribe){
     }else{
       store.currentUser.subscribedUniverses=store.currentUser.subscribedUniverses.filter(s=>s.universeId!==univId);
     }
-    await fsUpdate('users',store.currentUser.id,{subscribedUniverses:store.currentUser.subscribedUniverses});
+    // Also sync top-level role
+    const _effRole=getUserEffectiveRole(store.currentUser);
+    store.currentUser.role=_effRole;
+    await fsUpdate('users',store.currentUser.id,{subscribedUniverses:store.currentUser.subscribedUniverses,role:_effRole});
     const rec=store.users.find(u=>u.id===store.currentUser.id);
-    if(rec)rec.subscribedUniverses=store.currentUser.subscribedUniverses;
+    if(rec){rec.subscribedUniverses=store.currentUser.subscribedUniverses;rec.role=_effRole;}
   }
   showToast(subscribe?'Iscritto all\'universo':'Disiscritto dall\'universo');
   renderProfileUniverseSettings();
 }
 
 // Update preferred role for a universe (users only — managers don't have preferred roles)
+/* Helper: get user's effective preferred role from subscribedUniverses */
+function getUserEffectiveRole(user){
+  if(!user)return 'non_so';
+  // Check subscribedUniverses for a role
+  const subs=user.subscribedUniverses;
+  if(subs&&subs.length){
+    // Find first universe with a non-empty preferredRole
+    const withRole=subs.find(s=>s.preferredRole&&s.preferredRole!=='');
+    if(withRole){
+      // Map universe role names to internal role keys
+      const r=withRole.preferredRole.toLowerCase();
+      if(r==='flyer'||r==='🦅 flyer')return 'flyer';
+      if(r==='base'||r==='💪 base')return 'base';
+      if(r==='entrambi'||r==='🔄 entrambi')return 'entrambi';
+      // Universe roles use capitalized names like "Base", "Flyer", "Entrambi"
+      if(r.includes('fly'))return 'flyer';
+      if(r.includes('bas'))return 'base';
+      if(r.includes('entramb'))return 'entrambi';
+      return withRole.preferredRole; // Return raw if no match
+    }
+  }
+  // Fallback to top-level role
+  return user.role||'non_so';
+}
+function getRoleLabelHtml(roleKey){
+  if(roleKey==='flyer')return '🦅 Flyer';
+  if(roleKey==='base')return '💪 Base';
+  if(roleKey==='entrambi')return '🔄 Entrambi';
+  if(roleKey==='non_so')return '🤷 Non definito';
+  return roleKey||'🤷 Non definito';
+}
+
 async function updateUniversePreferredRole(univId,role){
   const isManager=store.managers.some(m=>m.id===store.currentUser.id);
   if(isManager)return;
   if(!store.currentUser.subscribedUniverses)return;
   const sub=store.currentUser.subscribedUniverses.find(s=>s.universeId===univId);
   if(sub){sub.preferredRole=role;}
-  await fsUpdate('users',store.currentUser.id,{subscribedUniverses:store.currentUser.subscribedUniverses});
+  // Also sync top-level role field for consistency
+  const effectiveRole=getUserEffectiveRole(store.currentUser);
+  store.currentUser.role=effectiveRole;
+  const userRec=store.users.find(x=>x.id===store.currentUser.id);
+  if(userRec)userRec.role=effectiveRole;
+  await fsUpdate('users',store.currentUser.id,{subscribedUniverses:store.currentUser.subscribedUniverses,role:effectiveRole});
   showToast('Ruolo preferito aggiornato');
 }
 
@@ -3164,6 +3237,55 @@ function renderAdminUniversesView(){
       return '<div class="card mb-3" style="border-left:4px solid '+u.color+'"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><div style="flex:1"><div class="font-semibold text-white">'+u.emoji+' '+u.name+'</div><div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">'+rolesHtml+'</div>'+pendingRolesHtml+proposeRoleHtml+'</div>'+editBtnHtml+'</div></div>';
     }).join('');
   }
+  // Universe association requests from managers (master only)
+  if(isMaster){
+    const reqList=document.getElementById('univ-assoc-requests-list');
+    const reqCount=document.getElementById('univ-assoc-requests-count');
+    const allReqs=[];
+    store.managers.forEach(m=>{
+      if(!m.universeRequests)return;
+      m.universeRequests.filter(r=>r.status==='pending').forEach(r=>{
+        allReqs.push({managerId:m.id,managerName:m.orgName||m.username||m.id,universeId:r.universeId,requestedAt:r.requestedAt});
+      });
+    });
+    if(reqCount)reqCount.textContent=allReqs.length;
+    if(reqList){
+      if(!allReqs.length){reqList.innerHTML='<div class="text-xs txt3">Nessuna richiesta in attesa</div>';}
+      else{
+        reqList.innerHTML=allReqs.map(r=>{
+          const univ=store.universes.find(u=>u.id===r.universeId);
+          const univLabel=univ?(univ.emoji+' '+univ.name):r.universeId;
+          return '<div class="card mb-2" style="border-left:4px solid '+(univ?.color||'var(--brand-l)')+';padding:10px 14px"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><span class="font-semibold text-white">'+r.managerName+'</span><span class="text-xs txt3"> vuole associarsi a </span><span class="badge" style="background:'+(univ?.color||'#666')+'22;color:'+(univ?.color||'#ccc')+'">'+univLabel+'</span></div><div style="display:flex;gap:6px"><button class="btn btn-sm btn-primary" onclick="approveUnivAssocRequest(\''+r.managerId+'\',\''+r.universeId+'\')">✓ Approva</button><button class="btn btn-sm" style="background:var(--red-bg);color:var(--red)" onclick="rejectUnivAssocRequest(\''+r.managerId+'\',\''+r.universeId+'\')">✕ Rifiuta</button></div></div></div>';
+        }).join('');
+      }
+    }
+  }
+}
+
+// Approve/reject universe association requests
+async function approveUnivAssocRequest(managerId,univId){
+  const mgr=store.managers.find(m=>m.id===managerId);if(!mgr)return;
+  // Add universe to manager's universes
+  if(!mgr.universes)mgr.universes=[];
+  if(!mgr.universes.includes(univId))mgr.universes.push(univId);
+  // Update request status
+  if(mgr.universeRequests){
+    const req=mgr.universeRequests.find(r=>r.universeId===univId&&r.status==='pending');
+    if(req){req.status='approvata';req.approvedAt=new Date().toISOString();}
+  }
+  await fsUpdate('managers',managerId,{universes:mgr.universes,universeRequests:mgr.universeRequests||[]}).catch(console.error);
+  showToast('Associazione approvata!');
+  renderAdminUniversesView();
+}
+async function rejectUnivAssocRequest(managerId,univId){
+  const mgr=store.managers.find(m=>m.id===managerId);if(!mgr)return;
+  if(mgr.universeRequests){
+    const req=mgr.universeRequests.find(r=>r.universeId===univId&&r.status==='pending');
+    if(req){req.status='rifiutata';req.rejectedAt=new Date().toISOString();}
+  }
+  await fsUpdate('managers',managerId,{universeRequests:mgr.universeRequests||[]}).catch(console.error);
+  showToast('Richiesta rifiutata');
+  renderAdminUniversesView();
 }
 
 // Edit universe modal (master only)
@@ -3897,9 +4019,11 @@ async function loginWithGoogle(){
         if(!store.universes.length){try{const snap=await fbDb.collection('universes').get();store.universes=[];snap.forEach(doc=>{store.universes.push(doc.data());});}catch(e){}}
         const activeUnivs=getActiveUniverses();
         const subscribedUniverses=activeUnivs.map(u=>({universeId:u.id,preferredRole:u.roles&&u.roles[0]||''}));
+        // Derive initial role from first universe's first role (if any)
+        const _initRole=(()=>{const r=(subscribedUniverses[0]&&subscribedUniverses[0].preferredRole||'').toLowerCase();if(r.includes('fly'))return 'flyer';if(r.includes('bas'))return 'base';if(r.includes('entramb'))return 'entrambi';return 'non_so';})();
         const userData={
           id:user.uid,username:user.displayName||user.email.split('@')[0],email:user.email,
-          role:'non_so',status:'attivo',registeredAt:now.split('T')[0],authMethod:'google',
+          role:_initRole,status:'attivo',registeredAt:now.split('T')[0],authMethod:'google',
           initials:(user.displayName||'??').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase(),
           color:'avatar-brand',
           subscribedUniverses,
@@ -4214,7 +4338,7 @@ function go(view){
   if(view==='events'){renderUserEvents();setTimeout(()=>obShowTour('tour_events'),400);}
   if(view==='jams'){renderUserJams();setTimeout(()=>obShowTour('tour_jams'),400);}
   if(view==='dashboard'){renderUserDashboard();setTimeout(()=>obShowTour('tour_dashboard'),400);}
-  if(view==='profile'){populateProfileFields();renderProfileUniverseSettings();setTimeout(()=>obShowTour('tour_profile'),400);}
+  if(view==='profile'){populateProfileFields();renderProfileUniverseSettings();renderAssistenzaBox();setTimeout(()=>obShowTour('tour_profile'),400);}
   if(view==='admin-events'){renderAdminEvents();setTimeout(()=>obShowTour('tour_admin_events'),400);}
   if(view==='admin'){renderAdminDashboard();setTimeout(()=>obShowTour('tour_admin_intro'),400);}
   if(view==='admin-bookings') renderAdminBookings();
@@ -4230,7 +4354,7 @@ function go(view){
   if(view==='admin-new-event'&&editingEventId){populateEventUniverseDropdown();populateSubTypeCheckboxes();}
   if(view==='admin-subscriptions'){renderAdminSubscriptions();}
   if(view==='admin-universes'){renderAdminUniversesView();setTimeout(()=>obShowTour('tour_admin_universes'),400);}
-  if(view==='admin-org-profile'){populateOrgProfile();}
+  if(view==='admin-org-profile'){populateOrgProfile();renderAssistenzaBox();}
   if(view==='register-org'){populateRegoUniverses();}
   // Show help button on all logged-in views
   if(!['login','register','register-org','privacy-policy'].includes(view))obShowHelpBtn();
@@ -4357,10 +4481,21 @@ function populateOrgProfile(){
   const u=store.currentUser;if(!u)return;
   const mgr=store.managers.find(m=>m.id===u.id);
   if(!mgr)return;
-  // Avatar
+  // Avatar — support logo or emoji
   const emoji=mgr.orgEmoji||'🛡️';
   const avatarEl=document.getElementById('org-profile-avatar');
-  if(avatarEl)avatarEl.textContent=emoji;
+  if(avatarEl){
+    if(mgr.orgLogo)avatarEl.innerHTML='<img src="'+mgr.orgLogo+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+    else avatarEl.textContent=emoji;
+  }
+  // Logo preview
+  if(mgr.orgLogo){
+    const logoPreview=document.getElementById('org-logo-preview');
+    const logoImg=document.getElementById('org-logo-img');
+    if(logoPreview)logoPreview.style.display='block';
+    if(logoImg)logoImg.src=mgr.orgLogo;
+    window._orgLogoData=undefined; // Not changed yet
+  }
   // Display name + badges
   const dn=document.getElementById('org-profile-display-name');
   if(dn)dn.textContent=mgr.orgName||'';
@@ -4380,6 +4515,9 @@ function populateOrgProfile(){
   const descEl=document.getElementById('org-profile-description');if(descEl)descEl.value=mgr.description||'';
   const usernameEl=document.getElementById('org-profile-username');if(usernameEl)usernameEl.value=mgr.username||'';
   const emailEl=document.getElementById('org-profile-email');if(emailEl)emailEl.value=mgr.email||u.email||'';
+  // Phone & contact email
+  const phoneEl=document.getElementById('org-profile-phone');if(phoneEl)phoneEl.value=mgr.phone||'';
+  const contactEmailEl=document.getElementById('org-profile-contact-email');if(contactEmailEl)contactEmailEl.value=mgr.contactEmail||'';
   // Universes
   const uWrap=document.getElementById('org-profile-universes');
   if(uWrap){
@@ -4406,6 +4544,8 @@ function populateOrgProfile(){
       +'<div class="stat-card"><div class="value" style="color:var(--blue)">'+totBks+'</div><div class="label">Prenotazioni</div></div>'
       +'<div class="stat-card"><div class="value" style="color:var(--yellow)">'+subTypes+'</div><div class="label">Tipi abb.</div></div>';
   }
+  // Universe requests
+  renderOrgUniverseRequests();
   disableOrgProfileSave();
 }
 function orgProfileChanged(){
@@ -4423,32 +4563,152 @@ async function saveOrgProfile(){
   const cityVal=(document.getElementById('org-profile-city')?.value||'').trim();
   const descVal=(document.getElementById('org-profile-description')?.value||'').trim();
   const usernameVal=(document.getElementById('org-profile-username')?.value||'').trim();
+  const phoneVal=(document.getElementById('org-profile-phone')?.value||'').trim();
+  const contactEmailVal=(document.getElementById('org-profile-contact-email')?.value||'').trim();
   if(!nameVal){showToast('Il nome organizzazione è obbligatorio','error');return;}
   if(!usernameVal){showToast('Inserisci un username','error');return;}
+  // Validate at least one contact
+  if(!phoneVal&&!contactEmailVal){showToast('Inserisci almeno un contatto (telefono o email)','error');return;}
+  // Get org logo if uploaded
+  const logoData=window._orgLogoData||null;
   // Update store
   const mgr=store.managers.find(m=>m.id===u.id);
   if(mgr){
     mgr.orgName=nameVal;mgr.orgEmoji=emojiVal;mgr.city=cityVal;mgr.description=descVal;mgr.username=usernameVal;
     mgr.initials=usernameVal.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+    mgr.phone=phoneVal;mgr.contactEmail=contactEmailVal;
+    if(logoData)mgr.orgLogo=logoData;else if(logoData===false)mgr.orgLogo=null;
   }
   u.orgName=nameVal;u.orgEmoji=emojiVal;u.city=cityVal;u.description=descVal;u.username=usernameVal;
   u.initials=usernameVal.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+  u.phone=phoneVal;u.contactEmail=contactEmailVal;
+  if(logoData)u.orgLogo=logoData;else if(logoData===false)u.orgLogo=null;
   // Update Firestore
-  await fsUpdate('managers',u.id,{orgName:nameVal,orgEmoji:emojiVal,city:cityVal,description:descVal,username:usernameVal,initials:u.initials}).catch(console.error);
+  const updateData={orgName:nameVal,orgEmoji:emojiVal,city:cityVal,description:descVal,username:usernameVal,initials:u.initials,phone:phoneVal,contactEmail:contactEmailVal};
+  if(logoData)updateData.orgLogo=logoData;
+  else if(logoData===false)updateData.orgLogo=null;
+  await fsUpdate('managers',u.id,updateData).catch(console.error);
   // Update all UI references
   document.querySelectorAll('.profile-org').forEach(el=>el.textContent=nameVal);
   document.querySelectorAll('.profile-name').forEach(el=>el.textContent=usernameVal);
   document.querySelectorAll('.sidebar-org-name').forEach(el=>el.textContent=nameVal||'Organizzatore');
-  document.querySelectorAll('.sidebar-org-icon').forEach(el=>el.textContent=emojiVal||'🛡️');
+  // Sidebar icon: use logo or emoji
+  document.querySelectorAll('.sidebar-org-icon').forEach(el=>{
+    if(mgr&&mgr.orgLogo){el.innerHTML='<img src="'+mgr.orgLogo+'" style="width:100%;height:100%;object-fit:cover;border-radius:8px">';}
+    else{el.textContent=emojiVal||'🛡️';}
+  });
   // Update avatar
   const avatarEl=document.getElementById('org-profile-avatar');
-  if(avatarEl)avatarEl.textContent=emojiVal||'🛡️';
+  if(avatarEl){
+    if(mgr&&mgr.orgLogo)avatarEl.innerHTML='<img src="'+mgr.orgLogo+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+    else avatarEl.textContent=emojiVal||'🛡️';
+  }
   const dn=document.getElementById('org-profile-display-name');
   if(dn)dn.textContent=nameVal;
   // Update orgName on existing events in store (display only)
   store.events.filter(e=>e.managerId===u.id).forEach(e=>{e.orgName=nameVal;});
+  window._orgLogoData=undefined;
   disableOrgProfileSave();
   showToast('Organizzazione aggiornata!');
+}
+/* Org logo upload handling */
+function handleOrgLogoUpload(input){
+  const file=input.files[0];if(!file)return;
+  if(file.size>512000){showToast('Immagine troppo grande (max 500KB)','error');input.value='';return;}
+  const reader=new FileReader();
+  reader.onload=(e)=>{
+    const src=e.target.result;
+    window._orgLogoData=src;
+    const preview=document.getElementById('org-logo-preview');
+    const img=document.getElementById('org-logo-img');
+    if(preview)preview.style.display='block';
+    if(img)img.src=src;
+    // Clear emoji when logo is set
+    const emojiEl=document.getElementById('org-profile-emoji');
+    if(emojiEl)emojiEl.value='';
+    orgProfileChanged();
+  };
+  reader.readAsDataURL(file);
+}
+function removeOrgLogo(){
+  window._orgLogoData=false; // false = explicitly removed
+  const preview=document.getElementById('org-logo-preview');
+  if(preview)preview.style.display='none';
+  const input=document.getElementById('org-logo-input');
+  if(input)input.value='';
+  orgProfileChanged();
+}
+function clearOrgLogo(){
+  // When emoji is typed, clear logo
+  if(window._orgLogoData){
+    window._orgLogoData=false;
+    const preview=document.getElementById('org-logo-preview');
+    if(preview)preview.style.display='none';
+  }
+}
+/* Universe association request system */
+async function requestUniverseAssociation(univId){
+  const mgr=store.managers.find(m=>m.id===store.currentUser.id);if(!mgr)return;
+  const univ=store.universes.find(u=>u.id===univId);if(!univ)return;
+  // Save request
+  if(!mgr.universeRequests)mgr.universeRequests=[];
+  if(mgr.universeRequests.find(r=>r.universeId===univId&&r.status==='pending')){showToast('Richiesta già inviata','error');return;}
+  mgr.universeRequests.push({universeId:univId,status:'pending',requestedAt:new Date().toISOString()});
+  await fsUpdate('managers',mgr.id,{universeRequests:mgr.universeRequests}).catch(console.error);
+  store.currentUser.universeRequests=mgr.universeRequests;
+  showToast('Richiesta di associazione inviata!');
+  renderOrgUniverseRequests();
+}
+function renderOrgUniverseRequests(){
+  const wrap=document.getElementById('org-profile-universe-request');if(!wrap)return;
+  const mgr=store.managers.find(m=>m.id===store.currentUser.id);if(!mgr)return;
+  const currentUnivs=mgr.universes||[];
+  const pendingReqs=(mgr.universeRequests||[]).filter(r=>r.status==='pending').map(r=>r.universeId);
+  const rejectedReqs=(mgr.universeRequests||[]).filter(r=>r.status==='rifiutata').map(r=>r.universeId);
+  const allUnivs=getActiveUniverses();
+  const available=allUnivs.filter(u=>!currentUnivs.includes(u.id)&&!pendingReqs.includes(u.id));
+  const pending=allUnivs.filter(u=>pendingReqs.includes(u.id));
+  const rejected=allUnivs.filter(u=>rejectedReqs.includes(u.id));
+  let html='';
+  if(pending.length){
+    html+='<div class="mb-3"><div class="text-xs font-medium mb-2" style="color:var(--yellow)">⏳ Richieste in attesa</div>';
+    html+=pending.map(u=>'<span class="badge" style="background:var(--yellow-bg);color:var(--yellow);padding:6px 12px;font-size:.8rem;border-radius:10px">'+(u.emoji||'')+' '+u.name+' — in attesa di approvazione</span>').join(' ');
+    html+='</div>';
+  }
+  if(rejected.length){
+    html+='<div class="mb-3"><div class="text-xs font-medium mb-2" style="color:var(--red)">❌ Richieste rifiutate</div>';
+    html+=rejected.map(u=>'<span class="badge" style="background:var(--red-bg);color:var(--red);padding:6px 12px;font-size:.8rem;border-radius:10px">'+(u.emoji||'')+' '+u.name+'</span>').join(' ');
+    html+='</div>';
+  }
+  if(available.length){
+    html+='<div class="text-xs font-medium mb-2 mt-2" style="color:var(--brand-l)">🌐 Universi disponibili</div>';
+    html+='<div class="flex gap-2 flex-wrap">';
+    html+=available.map(u=>'<button class="btn btn-sm" style="background:'+u.color+'15;color:'+u.color+';border:1px solid '+u.color+'40;font-size:.8rem" onclick="requestUniverseAssociation(\''+u.id+'\')">'+(u.emoji||'')+' '+u.name+' — Richiedi</button>').join('');
+    html+='</div>';
+  }
+  if(!pending.length&&!available.length&&!rejected.length){
+    html='<div class="text-xs txt3">Non ci sono altri universi disponibili al momento.</div>';
+  }
+  wrap.innerHTML=html;
+}
+/* Render assistenza box (master phone + email) in settings pages */
+function renderAssistenzaBox(){
+  const master=store.managers.find(m=>m.role==='master');
+  if(!master)return;
+  const phone=master.phone||'';
+  const email=master.contactEmail||master.email||'';
+  if(!phone&&!email)return;
+  let html='';
+  if(phone)html+='<div>📱 <a href="tel:'+phone+'" style="color:var(--brand-l);text-decoration:none">'+phone+'</a></div>';
+  if(email)html+='<div>✉️ <a href="mailto:'+email+'" style="color:var(--brand-l);text-decoration:none">'+email+'</a></div>';
+  // User profile assistenza
+  const userBox=document.getElementById('user-assistenza-box');
+  const userContent=document.getElementById('user-assistenza-content');
+  if(userBox&&userContent){userBox.style.display='block';userContent.innerHTML=html;}
+  // Org profile assistenza
+  const orgBox=document.getElementById('org-assistenza-box');
+  const orgContent=document.getElementById('org-assistenza-content');
+  if(orgBox&&orgContent){orgBox.style.display='block';orgContent.innerHTML=html;}
 }
 function updateSidebarOrgInfo(){
   const u=store.currentUser;if(!u)return;
@@ -4535,6 +4795,7 @@ function maxPrice(ev){
 ============================== */
 const selectedTiers={};
 let currentBookingEventId=null;
+let currentBookingRecDate=null;
 function selectTier(gridId,el,tier){
   const grid=document.getElementById(gridId);
   // Check if already selected - if so, deselect it (Change D: tier deselection)
@@ -4570,13 +4831,16 @@ function doBook(){
   if(!ev){showToast('Errore: evento non trovato','error');return;}
 
   // Block booking after deadline (explicit deadline or end of last event day)
-  const _effDeadline=ev.bookingDeadline||(ev.days&&ev.days.length?ev.days.reduce((mx,d)=>d.date>mx?d.date:mx,ev.days[0].date):null);
+  // For recurring events, use the recurring date as the effective deadline
+  const _recDeadline=currentBookingRecDate||null;
+  const _effDeadline=_recDeadline||ev.bookingDeadline||(ev.days&&ev.days.length?ev.days.reduce((mx,d)=>d.date>mx?d.date:mx,ev.days[0].date):null);
   if(_effDeadline&&new Date().toISOString().split('T')[0]>_effDeadline){
     showToast('Le prenotazioni per questo evento sono chiuse'+(ev.bookingDeadline?' dal '+fmtDateShort(ev.bookingDeadline):''),'error');return;
   }
 
-  // Block duplicate booking — check if user already has an active booking for this event
-  const existingBooking=store.bookings.find(b=>b.eventId===ev.id&&b.userId===store.currentUser.id&&b.status!=='cancellata');
+  // Block duplicate booking — check if user already has an active booking for this event+date
+  const _bkRecDate=currentBookingRecDate||null;
+  const existingBooking=store.bookings.find(b=>b.eventId===ev.id&&b.userId===store.currentUser.id&&b.status!=='cancellata'&&(b.recurringDate||null)===_bkRecDate);
   if(existingBooking){showToast('Sei già iscritto a questo evento!','error');return;}
 
   // Check for subscription-based booking
@@ -4639,7 +4903,8 @@ async function bookWithSubscription(subId,eventId){
     initials,color:avatarColors[Math.floor(Math.random()*avatarColors.length)],
     items:[{type:'abbonamento',name:ev.title,date:fmtDateShort(ev.days[0]?.date),time:'',tier:'Abbonamento',price:0}],
     sessions:[],scope:'evento',tier:'medio',amount:0,totalAmount:0,
-    role:store.currentUser.preferredRole||'non_so',status:'confermata',
+    role:getUserEffectiveRole(store.currentUser),recurringDate:currentBookingRecDate||null,
+    status:'confermata',
     depositStatus:null,paymentStatus:'abbonamento',gift:false,subscriptionId:subId,
     bookedAt:new Date().toISOString().split('T')[0],createdAt:new Date().toISOString()
   };
@@ -4693,7 +4958,7 @@ function _doBookNormal(){
         <button class="btn btn-primary btn-sm" id="bookConfirm">${evIsFree?'Iscriviti':'Iscriviti!'}</button>
       </div></div>`;
     document.body.appendChild(o);
-    const prefRole=store.currentUser.preferredRole||'';
+    const prefRole=getUserEffectiveRole(store.currentUser);
     if(prefRole){const prefBtn=o.querySelector(`.book-role-btn[data-role="${prefRole}"]`);if(prefBtn)selectBookRole(prefBtn);}
     o.querySelector('#bookCancel').onclick=()=>o.remove();
     o.querySelector('#bookConfirm').onclick=()=>{
@@ -4874,6 +5139,15 @@ function _doBookNormal(){
           const tier=selectedTiers[gridId];
           const price=s.tiers[tier]||0;
           items.push({type:'sessione',name:s.name,date:fmtDateShort(day.date),time:s.startTime+' — '+s.endTime,tier:tierLabel(tier),price});
+          totalAmount+=price;
+        }
+        // Session-level early bird
+        const sEbGridId='tier-ebs-'+s.id;
+        if(selectedTiers[sEbGridId]&&s.earlyBird){
+          hasSelection=true;
+          const tier=selectedTiers[sEbGridId];
+          const price=s.earlyBird[tier]||0;
+          items.push({type:'early bird sessione',name:'🐦 EB — '+s.name,date:fmtDateShort(day.date),time:s.startTime+' — '+s.endTime,tier:tierLabel(tier)+' (early bird)',price});
           totalAmount+=price;
         }
       });
@@ -5062,7 +5336,7 @@ function _doBookNormal(){
   </div>`;
   document.body.appendChild(o);
   // Pre-select preferred role from profile
-  const prefRole=store.currentUser.preferredRole||'';
+  const prefRole=getUserEffectiveRole(store.currentUser);
   if(prefRole){
     const prefBtn=o.querySelector(`.book-role-btn[data-role="${prefRole}"]`);
     if(prefBtn){selectBookRole(prefBtn);}
@@ -5101,6 +5375,7 @@ function _doBookNormal(){
       amount:totalAmount,
       totalAmount:totalAmount,
       role:selectedBookRole,
+      recurringDate:currentBookingRecDate||null,
       status:needsDeposit?'in_attesa_anticipo':'confermata',
       depositStatus:needsDeposit?'pending':null,
       paymentStatus:null,
@@ -5121,12 +5396,17 @@ function generateQRToken(ev){
   const d0=ev.days[0];const dateStr=d0?d0.date.replace(/-/g,''):'';
   return 'acro_'+ev.id+'_'+dateStr+'_'+Math.random().toString(36).substr(2,6);
 }
-function getCheckinURL(ev,token){
-  return window.location.origin+window.location.pathname+'?checkin='+ev.id+'&token='+token;
+function getCheckinURL(ev,token,recDate){
+  let url=window.location.origin+window.location.pathname+'?checkin='+ev.id+'&token='+token;
+  if(recDate)url+='&recDate='+recDate;
+  return url;
 }
 function updateQRPreview(){
   const v=document.getElementById('qr-event-select');if(!v)return;
-  const ev=store.events.find(e=>e.id===v.value);
+  const rawVal=v.value;
+  let _qrEvId=rawVal,_qrRecDate=null;
+  if(rawVal.includes('__')){const parts=rawVal.split('__');_qrEvId=parts[0];_qrRecDate=parts[1];}
+  const ev=store.events.find(e=>e.id===_qrEvId);
   const wrap=document.getElementById('qr-canvas-wrap');
   const titleEl=document.getElementById('qr-event-title');
   const subEl=document.getElementById('qr-event-subtitle');
@@ -5141,8 +5421,8 @@ function updateQRPreview(){
     return;
   }
   const token=generateQRToken(ev);
-  const url=getCheckinURL(ev,token);
-  ev._lastQRToken=token;ev._lastQRUrl=url;
+  const url=getCheckinURL(ev,token,_qrRecDate);
+  ev._lastQRToken=token;ev._lastQRUrl=url;ev._lastQRRecDate=_qrRecDate;
   if(wrap)wrap.innerHTML='';
   if(wrap&&typeof QRCode!=='undefined'){
     qrInstance=new QRCode(wrap,{text:url,width:180,height:180,colorDark:'#1a1a2e',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
@@ -5151,7 +5431,7 @@ function updateQRPreview(){
   }
   const d0=ev.days[0];
   const dLast=ev.days[ev.days.length-1];
-  const dateRange=d0?(ev.days.length>1?fmtDateShort(d0.date)+' — '+fmtDateShort(dLast.date):fmtDate(d0.date)):'';
+  const dateRange=_qrRecDate?fmtDate(_qrRecDate):(d0?(ev.days.length>1?fmtDateShort(d0.date)+' — '+fmtDateShort(dLast.date):fmtDate(d0.date)):'');
   const endTime=d0?(d0.sessions&&d0.sessions.length?d0.sessions[d0.sessions.length-1].endTime:d0.endTime):'';
   if(titleEl)titleEl.textContent=ev.title;
   if(subEl)subEl.textContent=dateRange;
@@ -5165,7 +5445,9 @@ function downloadQR(){
   const srcCanvas=wrap.querySelector('canvas');
   const srcImg=wrap.querySelector('img');
   const v=document.getElementById('qr-event-select');
-  const ev=v?store.events.find(e=>e.id===v.value):null;
+  const _dlRawVal=v?v.value:'';
+  const _dlEvId=_dlRawVal.includes('__')?_dlRawVal.split('__')[0]:_dlRawVal;
+  const ev=v?store.events.find(e=>e.id===_dlEvId):null;
   const source=srcCanvas||srcImg;
   if(!source){showToast('Genera prima un QR code','error');return;}
   // Create a new canvas with event description below the QR
@@ -5243,10 +5525,17 @@ function populateQRSelect(){
   const myEvts=store.events.filter(e=>isEventVisibleToManager(e,store.currentUser.id)&&(e.status==='pubblicato'));
   sel.innerHTML='<option value="">Scegli un evento...</option>';
   myEvts.forEach(ev=>{
-    const d0=ev.days[0];const dateStr=d0?fmtDate(d0.date):'';
-    const endDate=ev.days.length>1?' — '+fmtDate(ev.days[ev.days.length-1].date):'';
     const pTag=!isEventCapofila(ev,store.currentUser.id)?' 🤝':'';
-    sel.innerHTML+='<option value="'+ev.id+'">'+ev.title+pTag+' — '+dateStr+endDate+'</option>';
+    const recTabs=getRecurringDateTabs(ev);
+    if(recTabs){
+      recTabs.dates.forEach(d=>{
+        sel.innerHTML+='<option value="'+ev.id+'__'+d+'">'+ev.title+pTag+' — '+fmtDate(d)+'</option>';
+      });
+    } else {
+      const d0=ev.days[0];const dateStr=d0?fmtDate(d0.date):'';
+      const endDate=ev.days.length>1?' — '+fmtDate(ev.days[ev.days.length-1].date):'';
+      sel.innerHTML+='<option value="'+ev.id+'">'+ev.title+pTag+' — '+dateStr+endDate+'</option>';
+    }
   });
   // Clear previous QR
   const wrap=document.getElementById('qr-canvas-wrap');
@@ -5260,11 +5549,16 @@ function populateQRSelect(){
    CHECK-IN SCENARIOS (Dynamic)
 ============================== */
 let checkinEventId=null;
+let checkinRecDate=null;
 
 function getCheckinEvent(){
   // Use the last QR-selected event or fallback to first published event
   const sel=document.getElementById('qr-event-select');
-  if(sel&&sel.value){checkinEventId=sel.value;}
+  if(sel&&sel.value){
+    const rawVal=sel.value;
+    if(rawVal.includes('__')){const parts=rawVal.split('__');checkinEventId=parts[0];checkinRecDate=parts[1];}
+    else{checkinEventId=rawVal;checkinRecDate=null;}
+  }
   if(!checkinEventId){
     const first=store.events.find(e=>isEventVisibleToManager(e,store.currentUser.id)&&e.status==='pubblicato');
     if(first)checkinEventId=first.id;
@@ -5277,9 +5571,18 @@ function populateAttendanceSelect(){
   const myEvts=store.events.filter(e=>isEventVisibleToManager(e,store.currentUser.id)&&e.status==='pubblicato');
   sel.innerHTML='';
   myEvts.forEach(ev=>{
-    const d0=ev.days[0];
     const pTag=!isEventCapofila(ev,store.currentUser.id)?' 🤝':'';
-    sel.innerHTML+='<option value="'+ev.id+'">'+ev.title+pTag+' — '+(d0?fmtDateShort(d0.date):'')+'</option>';
+    const recTabs=getRecurringDateTabs(ev);
+    if(recTabs){
+      // Show separate entries per recurring date
+      recTabs.dates.forEach(d=>{
+        const isPast=recTabs.pastDates.includes(d);
+        sel.innerHTML+='<option value="'+ev.id+'__'+d+'">'+ev.title+pTag+' — '+fmtDateShort(d)+(isPast?' (concluso)':'')+'</option>';
+      });
+    } else {
+      const d0=ev.days[0];
+      sel.innerHTML+='<option value="'+ev.id+'">'+ev.title+pTag+' — '+(d0?fmtDateShort(d0.date):'')+'</option>';
+    }
   });
   renderAttendance();
 }
@@ -5288,7 +5591,10 @@ function renderAttendance(){
   const statsEl=document.getElementById('attendance-stats');
   const tableEl=document.getElementById('attendance-table');
   if(!sel||!statsEl||!tableEl)return;
-  const evId=sel.value;
+  const rawVal=sel.value;
+  // Parse evId and optional recurring date (format: "evId__date" or just "evId")
+  let evId=rawVal,attRecDate=null;
+  if(rawVal.includes('__')){const parts=rawVal.split('__');evId=parts[0];attRecDate=parts[1];}
   const ev=store.events.find(e=>e.id===evId);
   if(!ev){statsEl.innerHTML='';tableEl.innerHTML='<p class="txt3">Nessun evento selezionato</p>';return;}
 
@@ -5298,7 +5604,8 @@ function renderAttendance(){
   const canEditPayment=isCapofila; // Only capofila can edit payments
   const canMarkAttendance=isCapofila||isPartner; // Both can mark attendance
 
-  const bks=store.bookings.filter(b=>b.eventId===evId&&b.status!=='cancellata');
+  let bks=store.bookings.filter(b=>b.eventId===evId&&b.status!=='cancellata');
+  if(attRecDate)bks=bks.filter(b=>(b.recurringDate||null)===attRecDate);
   const walkIns=bks.filter(b=>b.walkIn);
   const preBooked=bks.filter(b=>!b.walkIn);
   const checkedIn=bks.filter(b=>b.checkedIn).length;
@@ -5387,7 +5694,7 @@ function renderCheckinA(){
   const ev=getCheckinEvent();
   if(!ev){c.innerHTML='<p class="txt3">Nessun evento selezionato. Torna a Check-in QR e seleziona un evento.</p><button class="btn btn-secondary mt-4" onclick="go(\'admin-checkin\')">← Torna</button>';return;}
   // Find first booked user for this event (for check-in preview)
-  const bk=store.bookings.find(b=>b.eventId===ev.id&&b.status!=='cancellata');
+  const bk=store.bookings.find(b=>b.eventId===ev.id&&b.status!=='cancellata'&&(!checkinRecDate||(b.recurringDate||null)===checkinRecDate));
   const userName=bk?bk.userName:'Nessun utente';
   const d0=ev.days[0];
   const amount=bk?bk.amount:0;
@@ -5420,7 +5727,7 @@ function renderCheckinB(){
   // Reset tier selections for fresh check-in
   Object.keys(selectedTiers).forEach(k=>{if(k.startsWith('wi_'))delete selectedTiers[k];});
   const d0=ev.days[0];
-  const activeBks=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata').length;
+  const activeBks=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata'&&(!checkinRecDate||(b.recurringDate||null)===checkinRecDate)).length;
   const spotsLeft=ev.maxSpots>0?(ev.maxSpots-activeBks):'∞';
   const typeBadge=badgeType(ev.type);const typeBadgeStyle=badgeTypeStyle(ev.type);
   const isFree=ev.pricingMode==='free';
@@ -5470,7 +5777,7 @@ function renderCheckinB(){
       <button class="btn btn-secondary w-full" onclick="go('events')">← Torna agli eventi</button>
     </div>`;
   // Pre-select preferred role
-  const pref=store.currentUser.preferredRole||'';
+  const pref=getUserEffectiveRole(store.currentUser);
   if(pref){const b=c.querySelector('.book-role-btn[data-role="'+pref+'"]');if(b)selectBookRole(b);}
 }
 
@@ -5496,7 +5803,7 @@ function confirmWalkinCheckin(evId){
     initials:store.currentUser.username.split(' ').map(p=>p[0]).join('').toUpperCase().substring(0,2),color:'avatar-brand',
     items:items.length?items:[{type:'walk-in',name:ev.title,date:fmtDateShort(ev.days[0]?.date),time:'',tier:isFree?'Gratuito':'Da definire',price:0}],
     sessions,scope,tier:tierKey,amount:totalAmount,totalAmount,
-    role:selectedBookRole,status:needsDep?'in_attesa_anticipo':'confermata',
+    role:selectedBookRole,recurringDate:checkinRecDate||null,status:needsDep?'in_attesa_anticipo':'confermata',
     depositStatus:needsDep?'pending':null,paymentStatus:isFree?'gratuito':null,gift:false,walkIn:true,
     surveyResponses:surveyResponses,
     bookedAt:new Date().toISOString().split('T')[0],createdAt:new Date().toISOString()
@@ -5630,7 +5937,7 @@ function confirmNewCheckin(evId){
     initials:userName.split(' ').map(w=>w[0]).join('').toUpperCase().substring(0,2),color:'avatar-brand',
     items:items.length?items:[{type:'walk-in (nuovo)',name:ev.title,date:fmtDateShort(ev.days[0]?.date),time:'',tier:isFree?'Gratuito':'Da definire',price:0}],
     sessions,scope,tier:tierKey,amount:totalAmount,totalAmount,
-    role:userRole,status:needsDep?'in_attesa_anticipo':'confermata',
+    role:userRole,recurringDate:checkinRecDate||null,status:needsDep?'in_attesa_anticipo':'confermata',
     depositStatus:needsDep?'pending':null,paymentStatus:isFree?'gratuito':null,gift:false,walkIn:true,newUser:true,
     surveyResponses:surveyResponses,
     bookedAt:new Date().toISOString().split('T')[0],createdAt:new Date().toISOString()
@@ -5675,7 +5982,7 @@ function renderUserEvents(){
           <span style="font-size:1.4rem;font-weight:700;color:var(--brand-l)">${dayNum}</span>
           <span style="font-size:.65rem;color:rgba(240,171,252,.5);text-transform:uppercase">${monthStr}</span>
         </div>`;
-    return `<div class="card-hover mb-4" style="${getMultiUniverseBorderStyle(ev,false)}" onclick="showEventDetail('${ev.id}')">
+    return `<div class="card-hover mb-4" style="${getMultiUniverseBorderStyle(ev,false)}" onclick="showEventDetail('${ev.id}'${ev._recDate?`,'${ev._recDate}'`:''})">
       <div class="flex gap-4" style="align-items:flex-start">
         ${cardThumb}
         <div class="flex-1">
@@ -5695,10 +6002,12 @@ function renderUserEvents(){
   });
 
   // Add community events (jams) to the main events list
+  const showCommunity=document.getElementById('filter-community-toggle');
+  const communityOn=showCommunity?showCommunity.checked:true;
   const today=new Date().toISOString().split('T')[0];
   const univFilter=(document.getElementById('filter-universe')||{}).value||'';
   const qFilter=(document.getElementById('filter-text')||{}).value||'';
-  let communityEvts=store.communityJams.filter(j=>j.status!=='cancellato'&&!(j.alert&&j.alert.type==='cancellato')&&j.date>=today);
+  let communityEvts=communityOn?store.communityJams.filter(j=>j.status!=='cancellato'&&!(j.alert&&j.alert.type==='cancellato')&&j.date>=today):[];
   // Filter by universe
   if(univFilter){communityEvts=communityEvts.filter(j=>(j.universeIds||[]).includes(univFilter));}
   else{const subIds=getUserSubscribedUniverseIds();if(subIds.length)communityEvts=communityEvts.filter(j=>{const jIds=j.universeIds||[];return jIds.some(id=>subIds.includes(id))||!jIds.length;});}
@@ -5755,6 +6064,7 @@ function resetFilters(){
   ['filter-text','filter-maestro','filter-date-to','filter-price-max'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const dfEl=document.getElementById('filter-date-from');if(dfEl)dfEl.value=today;
   ['filter-type','filter-zona','filter-universe'].forEach(id=>{const el=document.getElementById(id);if(el)el.selectedIndex=0;});
+  const ctgl=document.getElementById('filter-community-toggle');if(ctgl)ctgl.checked=true;
   renderUserEvents();
   showToast('Filtri resettati');
 }
@@ -5784,7 +6094,8 @@ function renderUserDashboard(){
     const ev=store.events.find(e=>e.id===b.eventId);
     if(!ev)return;
     const d0=ev.days[0];
-    const dd=d0?new Date(d0.date+'T00:00:00'):null;
+    const _dashDate=b.recurringDate||d0?.date;
+    const dd=_dashDate?new Date(_dashDate+'T00:00:00'):null;
     const dayNum=dd?dd.getDate():'';
     const monthStr=dd?MONTHS_IT[dd.getMonth()]:'';
     const tierLabel=b.tier==='alto'?'Sostenitore':b.tier==='medio'?'Standard':'Ridotto';
@@ -5852,7 +6163,7 @@ function renderUserDashboard(){
       </div>`;
     }
 
-    html+=`<div class="card mb-4 card-hover" style="border-color:${borderColor};background:${bgColor};position:relative;overflow:hidden;cursor:pointer" onclick="showEventDetail('${ev.id}')">
+    html+=`<div class="card mb-4 card-hover" style="border-color:${borderColor};background:${bgColor};position:relative;overflow:hidden;cursor:pointer" onclick="showEventDetail('${ev.id}'${ev._recDate?`,'${ev._recDate}'`:''})">
       ${alertStamp}
       ${i===0&&!hasAlert?'<div class="text-xs txt3 mb-2" style="text-transform:uppercase;letter-spacing:1px;position:relative;z-index:2">Prossimo evento</div>':''}
       <div class="flex gap-4" style="align-items:flex-start;position:relative;z-index:2">
@@ -5862,8 +6173,9 @@ function renderUserDashboard(){
         </div>
         <div class="flex-1">
           <h3 class="font-semibold text-white">${ev.title}</h3>
-          <div class="text-xs txt3 mt-1">📅 ${fmtDate(d0?.date)} · ${d0?.startTime||''} — ${d0?.endTime||''}</div>
+          <div class="text-xs txt3 mt-1">📅 ${fmtDate(_dashDate||d0?.date)} · ${d0?.startTime||''} — ${d0?.endTime||''}</div>
           <div class="text-xs txt3 mt-1">💰 ${tierLabel} — €${b.amount}</div>
+          ${b.recurringDate?'<div class="text-xs mt-1" style="color:var(--yellow)">🔄 Evento ricorrente</div>':''}
           ${b.scope==='sessioni'||b.scope==='sessione'?'<div class="text-xs txt3 mt-1">📋 '+b.sessions.length+' sessione/i</div>':''}
           <div class="flex gap-2 mt-2">
             <span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>
@@ -6820,19 +7132,19 @@ function buildTierBtns(tiers, gridId, activeEB, evId){
   if(!tiers)return '';
   const ebActive=activeEB&&isEarlyBirdActive(activeEB,evId);
   let btns='';
-  if(tiers.alto!=null){
+  if(tiers.alto!=null&&tiers.alto!==''&&tiers.alto!==0){
     const locked=ebActive&&activeEB.alto;
     btns+=locked
       ?`<div class="tier-btn" style="opacity:.35;pointer-events:none;position:relative"><div><span class="tier-icon">✦</span><span class="tier-label">Sostenitore</span></div><div class="tier-price" style="text-decoration:line-through">€${tiers.alto}</div><div style="position:absolute;bottom:4px;right:6px;font-size:.55rem;color:var(--yellow)">🐦 EB</div></div>`
       :`<div class="tier-btn" onclick="selectTier('${gridId}',this,'alto')"><div><span class="tier-icon">✦</span><span class="tier-label">Sostenitore</span></div><div class="tier-price">€${tiers.alto}</div></div>`;
   }
-  if(tiers.medio!=null){
+  if(tiers.medio!=null&&tiers.medio!==''&&tiers.medio!==0){
     const locked=ebActive&&activeEB.medio;
     btns+=locked
       ?`<div class="tier-btn" style="opacity:.35;pointer-events:none;position:relative"><div><span class="tier-icon">●</span><span class="tier-label">Standard</span></div><div class="tier-price" style="text-decoration:line-through">€${tiers.medio}</div><div style="position:absolute;bottom:4px;right:6px;font-size:.55rem;color:var(--yellow)">🐦 EB</div></div>`
       :`<div class="tier-btn" onclick="selectTier('${gridId}',this,'medio')"><div><span class="tier-icon">●</span><span class="tier-label">Standard</span></div><div class="tier-price">€${tiers.medio}</div></div>`;
   }
-  if(tiers.basso!=null){
+  if(tiers.basso!=null&&tiers.basso!==''&&tiers.basso!==0){
     const locked=ebActive&&activeEB.basso;
     btns+=locked
       ?`<div class="tier-btn" style="opacity:.35;pointer-events:none;position:relative"><div><span class="tier-icon">○</span><span class="tier-label">Ridotto</span></div><div class="tier-price" style="text-decoration:line-through">€${tiers.basso}</div><div style="position:absolute;bottom:4px;right:6px;font-size:.55rem;color:var(--yellow)">🐦 EB</div></div>`
@@ -6971,8 +7283,9 @@ function buildFullPricingHtml(ev,prefix){
             <div class="flex gap-2 mt-1 items-center flex-wrap"><span class="text-xs txt3">🕐 ${s.startTime} — ${s.endTime}</span><span class="badge ${badgeLevel(s.level)}">${capitalize(s.level)}</span>${s.teacher?'<span class="text-xs txt3">👤 '+s.teacher+'</span>':''}</div>
           </div></div>
         <div class="tier-grid mb-3 hidden" id="${prefix}tiers-${s.id}">
-          ${buildTierBtns(s.tiers,prefix+'tiers-'+s.id,null,ev.id)}
-        </div>`;
+          ${buildTierBtns(s.tiers,prefix+'tiers-'+s.id,s.earlyBird,ev.id)}
+        </div>
+        ${renderEarlyBirdGrid(s.earlyBird,prefix+'tier-ebs-'+s.id,ev.id)}`;
       });
       if(day.tiers){
         html+=`<div class="card mt-2 mb-2" style="background:rgba(16,185,129,.05);border-color:var(--green);padding:10px">
@@ -7030,6 +7343,8 @@ function collectCheckinBookingData(ev,prefix){
       day.sessions.forEach(s=>{
         const gid=prefix+'tiers-'+s.id;
         if(selectedTiers[gid]){const tier=selectedTiers[gid];const price=s.tiers[tier]||0;items.push({type:'sessione',name:s.name,date:fmtDateShort(day.date),time:s.startTime+' — '+s.endTime,tier:tierLabel(tier),tierKey:tier,price,sessionId:s.id});totalAmount+=price;}
+        const sEb=prefix+'tier-ebs-'+s.id;
+        if(selectedTiers[sEb]&&s.earlyBird){const tier=selectedTiers[sEb];const price=s.earlyBird[tier]||0;items.push({type:'early bird sessione',name:'🐦 EB — '+s.name,date:fmtDateShort(day.date),time:s.startTime+' — '+s.endTime,tier:tierLabel(tier)+' (EB)',tierKey:tier,price,sessionId:s.id});totalAmount+=price;}
       });
       const dayGid=prefix+'tier-day-'+ev.id+'-'+di;
       if(selectedTiers[dayGid]&&day.tiers){const tier=selectedTiers[dayGid];const price=day.tiers[tier]||0;items.push({type:'giornata',name:'Giornata — '+fmtDateShort(day.date),date:fmtDateShort(day.date),time:day.startTime+' — '+day.endTime,tier:tierLabel(tier),tierKey:tier,price});totalAmount+=price;}
@@ -7067,9 +7382,10 @@ function collectCheckinBookingData(ev,prefix){
 /* ==============================
    RENDER: DYNAMIC EVENT DETAIL
 ============================== */
-function showEventDetail(evId){
+function showEventDetail(evId,recDate){
   const ev=store.events.find(e=>e.id===evId);if(!ev)return;
   currentBookingEventId=evId;
+  currentBookingRecDate=recDate||null;
   // Reset tier selections for a clean booking
   Object.keys(selectedTiers).forEach(k=>delete selectedTiers[k]);
   selectedBookRole='';
@@ -7152,9 +7468,10 @@ function showEventDetail(evId){
               <div class="flex gap-2 mt-1 items-center"><span class="text-xs txt3">🕐 ${s.startTime} — ${s.endTime}</span><span class="badge ${badgeLevel(s.level)}">${capitalize(s.level)}</span>${s.teacher?'<span class="text-xs txt3">👤 '+s.teacher+'</span>':''}${s.maxSpots?'<span class="text-xs txt3">👥 Max '+s.maxSpots+'</span>':''}</div>
               ${s.description?'<div class="text-xs txt3 mt-1">'+s.description+'</div>':''}${sLoc}
             </div></div>
-          <div class="tier-grid mb-4 hidden" id="tiers-${s.id}">
-            ${buildTierBtns(s.tiers,'tiers-'+s.id,null,ev.id)}
-          </div>`;
+          <div class="tier-grid mb-2 hidden" id="tiers-${s.id}">
+            ${buildTierBtns(s.tiers,'tiers-'+s.id,s.earlyBird,ev.id)}
+          </div>
+          ${renderEarlyBirdGrid(s.earlyBird,'tier-ebs-'+s.id,ev.id)}`;
         } else {
           daysHtml+=`<div class="mb-2">
             <div class="font-medium text-white text-sm">${s.name}</div>
@@ -7282,7 +7599,7 @@ function showEventDetail(evId){
       ${(()=>{const hd=(ev.imageHeader||ev.image)?{src:ev.imageHeader?.src||ev.image,zoom:ev.imageHeader?.zoom||100,posX:ev.imageHeader?.posX||0,posY:ev.imageHeader?.posY||0}:null;if(!hd)return '';const s=hd.zoom/100;const denomW=420*s-420;const denomH=300*s-300;const px=denomW>0?Math.round(Math.abs(hd.posX)/denomW*100):50;const py=denomH>0?Math.round(Math.abs(hd.posY)/denomH*100):50;const op=`object-position:${isNaN(px)?50:px}% ${isNaN(py)?50:py}%`;return '<div style="margin:-20px -20px 16px;border-radius:16px 16px 0 0;overflow:hidden"><img src="'+hd.src+'" style="width:100%;max-height:300px;object-fit:cover;'+op+'" alt=""></div>';})()}
       <div class="flex gap-2 mb-3 flex-wrap"><span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>${levelBadges}</div>
       <h1 class="text-2xl font-bold text-white">${ev.title}</h1>
-      <p class="txt3 mt-2">${ev.description}</p>
+      <div class="txt3 mt-2" style="white-space:pre-wrap;line-height:1.6">${ev.description.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')}</div>
       <div class="flex items-center gap-2 mt-3 text-sm txt3">👤 con ${ev.teacher}</div>
       <div class="flex items-center gap-2 mt-2 text-sm">${locLink}</div>
       <div class="text-xs mt-2" style="color:var(--brand-l)">${ev.orgName}</div>
@@ -7290,9 +7607,11 @@ function showEventDetail(evId){
       ${payLinks.length?'<div class="flex gap-3 mt-4 flex-wrap" style="padding-top:16px;border-top:1px solid var(--s300)">'+payLinks.join('')+'</div>':''}
       ${contactHtml}
     </div>
+    ${currentBookingRecDate?`<div class="card mb-4" style="background:rgba(234,179,8,.06);border-color:var(--yellow);padding:12px 16px;text-align:center"><span class="text-sm" style="color:var(--yellow)">🔄 Stai prenotando per la data: <strong>${fmtDate(currentBookingRecDate)}</strong></span></div>`:''}
     ${(()=>{
       if(isDisabledByAlert)return '<h2 class="font-semibold text-white mb-3">Programma</h2>'+daysHtml+eventPkgHtml+loyaltyHtml+'<div class="card text-center" style="border:2px solid var(--red);background:var(--red-bg);padding:20px"><p class="font-bold" style="color:var(--red)">🚫 Questo evento è stato annullato</p><p class="text-sm txt3 mt-2">La prenotazione non è disponibile.</p></div>';
-      const myBooking=store.bookings.find(b=>b.eventId===ev.id&&b.userId===store.currentUser.id&&b.status!=='cancellata');
+      const _detRecDate=currentBookingRecDate||null;
+      const myBooking=store.bookings.find(b=>b.eventId===ev.id&&b.userId===store.currentUser.id&&b.status!=='cancellata'&&(b.recurringDate||null)===_detRecDate);
       if(myBooking){
         // === BOOKING SUMMARY VIEW ===
         const tierLbl=myBooking.tier==='alto'?'Sostenitore':myBooking.tier==='medio'?'Standard':'Ridotto';
@@ -7793,7 +8112,7 @@ function startAlertEdit(){
     title:ev.title,description:ev.description,location:ev.location,teacher:ev.teacher,
     days:ev.days.map(d=>({date:d.date,startTime:d.startTime,endTime:d.endTime,
       sessions:(d.sessions||[]).map(s=>({name:s.name,startTime:s.startTime,endTime:s.endTime,
-        tiers:{alto:s.tiers?.alto,medio:s.tiers?.medio,basso:s.tiers?.basso}})),
+        tiers:{alto:s.tiers?.alto,medio:s.tiers?.medio,basso:s.tiers?.basso},earlyBird:s.earlyBird?{...s.earlyBird}:null})),
       tiers:d.tiers?{alto:d.tiers.alto,medio:d.tiers.medio,basso:d.tiers.basso}:null,
       earlyBird:d.earlyBird?{...d.earlyBird}:null,
       loyaltyTiers:d.loyaltyTiers?{...d.loyaltyTiers}:null})),
@@ -8224,6 +8543,14 @@ function saveFormState(){
       const tm=document.querySelector(`.ne-s-tm[data-di="${di}"][data-si="${si}"]`);
       const tb=document.querySelector(`.ne-s-tb[data-di="${di}"][data-si="${si}"]`);
       if(ta)s.tiers={alto:ta.value?parseFloat(ta.value):null,medio:tm?.value?parseFloat(tm.value):null,basso:tb?.value?parseFloat(tb.value):null};
+      // Session early bird
+      const seba=document.querySelector(`.ne-s-eba[data-di="${di}"][data-si="${si}"]`);
+      const sebm=document.querySelector(`.ne-s-ebm[data-di="${di}"][data-si="${si}"]`);
+      const sebb=document.querySelector(`.ne-s-ebb[data-di="${di}"][data-si="${si}"]`);
+      if(seba||sebm||sebb){
+        const sebTypeEl=document.querySelector(`input[name="ne-seb-type-${di}-${si}"]:checked`);
+        s.earlyBird={alto:seba?.value||'',medio:sebm?.value||'',basso:sebb?.value||'',type:sebTypeEl?.value||'date',deadline:document.querySelector(`.ne-s-ebd[data-di="${di}"][data-si="${si}"]`)?.value||'',maxCount:document.querySelector(`.ne-s-ebc[data-di="${di}"][data-si="${si}"]`)?.value||''};
+      }
     });
   });
 }
@@ -8381,26 +8708,11 @@ function renderFormDays(){
             <div class="ne-deb-count-wrap" ${day.earlyBird?.type!=='count'?'style="display:none"':''}><label class="label text-xs">👥 Primi N</label><input class="input ne-d-ebc" type="number" data-di="${di}" min="1" value="${day.earlyBird?.maxCount||''}" placeholder="es. 10"></div>
           </div>
         </div>
-        <!-- Sconto combinato -->
-        <div class="flex items-center gap-2 mb-2" style="cursor:pointer" onclick="this.nextElementSibling.classList.toggle('hidden');this.querySelector('.toggle-arrow').textContent=this.nextElementSibling.classList.contains('hidden')?'▸':'▾'">
-          <span class="toggle-arrow text-xs" style="color:var(--txt3)">${(dlt.alto||dlt.medio||dlt.basso)?'▾':'▸'}</span>
-          <span class="text-xs" style="color:var(--txt3)">🎁 Sconto combinato con abbonamenti ed eventi</span>
-          <span class="text-xs txt3">(clicca per espandere)</span>
-        </div>
-        <div class="${(dlt.alto||dlt.medio||dlt.basso)?'':'hidden'}">
-          <div class="grid grid-3 gap-3 mb-2">
-            <div><label class="label">✦ Fedeltà Alto €</label><input class="input ne-d-fta" type="number" data-di="${di}" value="${dlt.alto||''}" placeholder="—"></div>
-            <div><label class="label">● Fedeltà Medio €</label><input class="input ne-d-ftm" type="number" data-di="${di}" value="${dlt.medio||''}" placeholder="—"></div>
-            <div><label class="label">○ Fedeltà Basso €</label><input class="input ne-d-ftb" type="number" data-di="${di}" value="${dlt.basso||''}" placeholder="—"></div>
-          </div>
-          <div><label class="label text-xs">📋 Prerequisito: eventi a cui devono aver partecipato</label>
-            <div class="ne-d-freq-wrap" data-di="${di}" style="position:relative">
-              <button type="button" class="input text-sm" style="text-align:left;cursor:pointer;color:${pickerColor}" onclick="toggleEventPicker(this.parentNode,'day',${di})">${pickerLabel}</button>
-              <div class="event-picker hidden" style="position:absolute;z-index:20;top:100%;left:0;right:0;max-height:200px;overflow-y:auto;background:var(--s100);border:1px solid var(--s400);border-radius:8px;margin-top:4px;padding:8px">
-              </div>
-            </div>
-          </div>
-        </div>
+        <!-- Sconto combinato: rimosso da qui, ora nella sezione "Sconti, Abbonamenti e Opzioni costo" -->
+        <input type="hidden" class="ne-d-fta" data-di="${di}" value="${dlt.alto||''}">
+        <input type="hidden" class="ne-d-ftm" data-di="${di}" value="${dlt.medio||''}">
+        <input type="hidden" class="ne-d-ftb" data-di="${di}" value="${dlt.basso||''}">
+        <div class="ne-d-freq-wrap hidden" data-di="${di}" style="display:none"></div>
       </div>`}
     </div>`;
   }).join('');
@@ -8464,6 +8776,38 @@ function renderFormSession(di,si,s,hidePricing){
         <div><label class="label">○ Ridotto €</label><input class="input ne-s-tb" type="number" value="${s.tiers?.basso!=null?s.tiers.basso:''}" data-di="${di}" data-si="${si}" onchange="renderFormDays()"></div>
       </div>
       <p class="text-xs txt3 mt-1">Se non impostati, verrà usato solo il costo base Standard.</p>
+    </div>
+    <!-- Early Bird sessione -->
+    <div class="mt-2" style="border-top:1px solid var(--s400);padding-top:8px">
+      <div class="flex items-center gap-2 mb-2" style="cursor:pointer" onclick="this.nextElementSibling.classList.toggle('hidden');this.querySelector('.toggle-arrow').textContent=this.nextElementSibling.classList.contains('hidden')?'▸':'▾'">
+        <span class="toggle-arrow text-xs" style="color:var(--yellow)">${(s.earlyBird?.alto||s.earlyBird?.medio||s.earlyBird?.basso)?'▾':'▸'}</span>
+        <span class="text-xs font-medium" style="color:var(--yellow)">🐦 Early Bird sessione</span>
+        <span class="text-xs txt3">(clicca per espandere)</span>
+      </div>
+      <div class="${(s.earlyBird?.alto||s.earlyBird?.medio||s.earlyBird?.basso)?'':'hidden'} mb-2">
+        <div class="grid grid-${(()=>{let c=0;if(s.tiers?.alto!=null&&s.tiers.alto>0)c++;if(s.tiers?.medio!=null&&s.tiers.medio>0)c++;if(s.tiers?.basso!=null&&s.tiers.basso>0)c++;return c||1;})()}" style="display:grid;grid-template-columns:repeat(${(()=>{let c=0;if(s.tiers?.alto!=null&&s.tiers.alto>0)c++;if(s.tiers?.medio!=null&&s.tiers.medio>0)c++;if(s.tiers?.basso!=null&&s.tiers.basso>0)c++;return c||1;})()},1fr);gap:8px">
+          ${(s.tiers?.alto!=null&&s.tiers.alto>0)?'<div><label class="label text-xs">✦ Early Alto €</label><input class="input ne-s-eba" type="number" data-di="'+di+'" data-si="'+si+'" value="'+(s.earlyBird?.alto||'')+'" placeholder="—"></div>':'<input type="hidden" class="ne-s-eba" data-di="'+di+'" data-si="'+si+'" value="">'}
+          ${(s.tiers?.medio!=null&&s.tiers.medio>0)?'<div><label class="label text-xs">● Early Standard €</label><input class="input ne-s-ebm" type="number" data-di="'+di+'" data-si="'+si+'" value="'+(s.earlyBird?.medio||'')+'" placeholder="—"></div>':'<input type="hidden" class="ne-s-ebm" data-di="'+di+'" data-si="'+si+'" value="">'}
+          ${(s.tiers?.basso!=null&&s.tiers.basso>0)?'<div><label class="label text-xs">○ Early Ridotto €</label><input class="input ne-s-ebb" type="number" data-di="'+di+'" data-si="'+si+'" value="'+(s.earlyBird?.basso||'')+'" placeholder="—"></div>':'<input type="hidden" class="ne-s-ebb" data-di="'+di+'" data-si="'+si+'" value="">'}
+        </div>
+        <div class="grid grid-2 gap-3 mt-2">
+          <div class="mb-2">
+            <label class="label text-xs">Scadenza Early Bird</label>
+            <div class="flex gap-3 mb-2">
+              <label class="flex items-center gap-1 text-xs" style="cursor:pointer">
+                <input type="radio" name="ne-seb-type-${di}-${si}" value="date" ${(!s.earlyBird?.type||s.earlyBird?.type==='date')?'checked':''} onchange="this.closest('.mb-2').parentNode.querySelector('.ne-seb-date-wrap').style.display='';this.closest('.mb-2').parentNode.querySelector('.ne-seb-count-wrap').style.display='none'"> Per data
+              </label>
+              <label class="flex items-center gap-1 text-xs" style="cursor:pointer">
+                <input type="radio" name="ne-seb-type-${di}-${si}" value="count" ${s.earlyBird?.type==='count'?'checked':''} onchange="this.closest('.mb-2').parentNode.querySelector('.ne-seb-date-wrap').style.display='none';this.closest('.mb-2').parentNode.querySelector('.ne-seb-count-wrap').style.display=''"> Per n. iscritti
+              </label>
+            </div>
+          </div>
+          <div class="grid grid-2 gap-3">
+            <div class="ne-seb-date-wrap" ${s.earlyBird?.type==='count'?'style="display:none"':''}><label class="label text-xs">📅 Scadenza</label><input class="input ne-s-ebd" type="date" data-di="${di}" data-si="${si}" value="${s.earlyBird?.deadline||''}"></div>
+            <div class="ne-seb-count-wrap" ${s.earlyBird?.type!=='count'?'style="display:none"':''}><label class="label text-xs">👥 Primi N</label><input class="input ne-s-ebc" type="number" data-di="${di}" data-si="${si}" min="1" value="${s.earlyBird?.maxCount||''}" placeholder="es. 10"></div>
+          </div>
+        </div>
+      </div>
     </div>`}
   </div>`;
 }
@@ -8769,7 +9113,8 @@ function collectFormData(){
         location:document.querySelector(`.ne-s-loc[data-di="${di}"][data-si="${si}"]`)?.value||'',
         locationUrl:document.querySelector(`.ne-s-locurl[data-di="${di}"][data-si="${si}"]`)?.value||'',
         maxSpots:parseInt(document.querySelector(`.ne-s-max[data-di="${di}"][data-si="${si}"]`)?.value)||0,
-        tiers:(()=>{const _ta=document.querySelector(`.ne-s-ta[data-di="${di}"][data-si="${si}"]`);const _tm=document.querySelector(`.ne-s-tm[data-di="${di}"][data-si="${si}"]`);const _tb=document.querySelector(`.ne-s-tb[data-di="${di}"][data-si="${si}"]`);return{alto:_ta?.value?parseFloat(_ta.value):null,medio:_tm?.value?parseFloat(_tm.value):null,basso:_tb?.value?parseFloat(_tb.value):null};})()
+        tiers:(()=>{const _ta=document.querySelector(`.ne-s-ta[data-di="${di}"][data-si="${si}"]`);const _tm=document.querySelector(`.ne-s-tm[data-di="${di}"][data-si="${si}"]`);const _tb=document.querySelector(`.ne-s-tb[data-di="${di}"][data-si="${si}"]`);return{alto:_ta?.value?parseFloat(_ta.value):null,medio:_tm?.value?parseFloat(_tm.value):null,basso:_tb?.value?parseFloat(_tb.value):null};})(),
+        earlyBird:(()=>{const _seba=parseFloat(document.querySelector(`.ne-s-eba[data-di="${di}"][data-si="${si}"]`)?.value)||0;const _sebm=parseFloat(document.querySelector(`.ne-s-ebm[data-di="${di}"][data-si="${si}"]`)?.value)||0;const _sebb=parseFloat(document.querySelector(`.ne-s-ebb[data-di="${di}"][data-si="${si}"]`)?.value)||0;if(!_seba&&!_sebm&&!_sebb)return null;const o={};if(_seba>0)o.alto=_seba;if(_sebm>0)o.medio=_sebm;if(_sebb>0)o.basso=_sebb;if(!o.alto&&!o.medio&&!o.basso)return null;const typeEl=document.querySelector(`input[name="ne-seb-type-${di}-${si}"]:checked`);o.type=typeEl?.value||'date';o.deadline=document.querySelector(`.ne-s-ebd[data-di="${di}"][data-si="${si}"]`)?.value||null;o.maxCount=parseInt(document.querySelector(`.ne-s-ebc[data-di="${di}"][data-si="${si}"]`)?.value)||null;return o;})()
       };
     });
     // Tier giornata (opzionali)
@@ -8800,21 +9145,14 @@ function collectFormData(){
     const debTypeEl=document.querySelector(`input[name="ne-deb-type-${di}"]:checked`);
     const debd=document.querySelector(`.ne-d-ebd[data-di="${di}"]`)?.value||null;
     const debc=parseInt(document.querySelector(`.ne-d-ebc[data-di="${di}"]`)?.value)||null;
-    // Early Bird: sanitize — only keep tiers that exist in the day's base pricing
+    // Early Bird: sanitize — only keep tiers where user actually entered a price > 0
     let dayEarlyBird=null;
     if(deba||debm||debb){
-      const baseTiers=dayTiers||(sessions.length===1?sessions[0].tiers:null);
       const ebObj={type:debTypeEl?.value||'date',deadline:debd,maxCount:debc};
-      // Only include EB tiers that have a corresponding base tier with value
-      if(baseTiers){
-        const hasAlto=!!baseTiers.alto;const hasMedio=!!baseTiers.medio;const hasBasso=!!baseTiers.basso;
-        if(hasMedio)ebObj.medio=debm||0;
-        if(hasAlto)ebObj.alto=deba||0;
-        if(hasBasso)ebObj.basso=debb||0;
-      } else {
-        // Fallback: keep medio only (base pricing is single-tier)
-        ebObj.medio=debm||0;
-      }
+      // Only include EB tiers that have an actual user-entered value
+      if(deba>0)ebObj.alto=deba;
+      if(debm>0)ebObj.medio=debm;
+      if(debb>0)ebObj.basso=debb;
       if(ebObj.alto||ebObj.medio||ebObj.basso)dayEarlyBird=ebObj;
     }
     return {date:dayDate||'',startTime:dayStartTime,endTime:dayEndTime,sessions,
@@ -8829,17 +9167,14 @@ function collectFormData(){
   const ftb=parseFloat(document.getElementById('ne-ftier-basso')?.value)||0;
   const eventLoyalty=(fta||ftm||ftb)?{alto:fta,medio:ftm,basso:ftb}:null;
   const eventLoyaltyReq=getPickerSelected(document.getElementById('ne-freq-eventi-wrap'));
-  // Early Bird — sanitize: only keep tiers matching event base tiers
-  const evTiersAlto=parseFloat(document.getElementById('ne-tier-alto')?.value)||0;
-  const evTiersMedio=parseFloat(document.getElementById('ne-tier-medio')?.value)||0;
-  const evTiersBasso=parseFloat(document.getElementById('ne-tier-basso')?.value)||0;
+  // Early Bird — sanitize: only keep tiers where user actually entered a price > 0
   const ebAltoRaw=parseFloat(document.getElementById('ne-eb-alto')?.value)||0;
   const ebMedioRaw=parseFloat(document.getElementById('ne-eb-medio')?.value)||0;
   const ebBassoRaw=parseFloat(document.getElementById('ne-eb-basso')?.value)||0;
   const earlyBird={
-    alto:evTiersAlto?ebAltoRaw:null,
-    medio:evTiersMedio?ebMedioRaw:null,
-    basso:evTiersBasso?ebBassoRaw:null,
+    alto:ebAltoRaw>0?ebAltoRaw:null,
+    medio:ebMedioRaw>0?ebMedioRaw:null,
+    basso:ebBassoRaw>0?ebBassoRaw:null,
     type:document.querySelector('input[name="ne-eb-type"]:checked')?.value||'date',
     deadline:document.getElementById('ne-eb-deadline')?.value||null,
     maxCount:parseInt(document.getElementById('ne-eb-max-count')?.value)||null
@@ -9560,7 +9895,7 @@ function renderUsersTab(){
         :u.status==='sospeso'
         ?'<span class="badge" style="background:var(--yellow-bg);color:var(--yellow)">Sospeso</span>'
         :'<span class="badge badge-bozza">'+u.status+'</span>';
-      const roleLbl=u.role==='flyer'?'🦅 Flyer':u.role==='base'?'💪 Base':u.role==='entrambi'?'🔄 Entrambi':u.role==='non_so'?'❓ Indeciso':u.role;
+      const roleLbl=getRoleLabelHtml(getUserEffectiveRole(u));
       html+='<tr style="cursor:pointer" onclick="showUserDetail(\''+u.id+'\')">';
       html+='<td class="font-medium">'+u.username+'</td>';
       html+='<td class="text-sm txt2">'+u.email+'</td>';
@@ -9621,7 +9956,7 @@ function showUserDetail(userId){
   const bks=store.bookings.filter(b=>b.userId===userId&&b.status!=='cancellata');
   const cancelled=store.bookings.filter(b=>b.userId===userId&&b.status==='cancellata');
   const checkins=store.attendances[userId]||[];
-  const roleLbl=u.role==='flyer'?'🦅 Flyer':u.role==='base'?'💪 Base':u.role==='entrambi'?'🔄 Entrambi':'❓ Indeciso';
+  const roleLbl=getRoleLabelHtml(getUserEffectiveRole(u));
   const statusColor=u.status==='attivo'?'var(--green)':'var(--yellow)';
 
   let bkRows='';
@@ -10270,14 +10605,71 @@ async function downloadExcel(){
   showToast('Excel scaricato!');
 }
 
+/* Helper: get recurring date tabs for admin detail (last completed + next 2 upcoming + "Tutte") */
+function getRecurringDateTabs(ev){
+  if(!ev.recurrence||!ev.recurrence.day)return null;
+  const DAY_MAP_NUM2={lunedi:1,martedi:2,mercoledi:3,giovedi:4,venerdi:5,sabato:6,domenica:0};
+  const targetDay=DAY_MAP_NUM2[ev.recurrence.day];
+  if(targetDay===undefined)return null;
+  const today=new Date();today.setHours(0,0,0,0);
+  const todayStr=today.toISOString().split('T')[0];
+  // Find last completed date (most recent past occurrence)
+  const pastDates=[];
+  const dp=new Date(today);dp.setDate(dp.getDate()-1);// start from yesterday
+  let safety=0;
+  while(dp.getDay()!==targetDay&&safety<7){dp.setDate(dp.getDate()-1);safety++;}
+  // dp is now the most recent past target day
+  const exc=(ev.recurrence.exceptions||{});
+  // Check if this date is skipped
+  const dpStr=dp.toISOString().split('T')[0];
+  if(!(exc[dpStr]&&(exc[dpStr].type==='skip'||exc[dpStr].type==='cancellato'))){
+    pastDates.push(dpStr);
+  } else {
+    // Try the one before
+    dp.setDate(dp.getDate()-7);
+    const dp2Str=dp.toISOString().split('T')[0];
+    if(!(exc[dp2Str]&&(exc[dp2Str].type==='skip'||exc[dp2Str].type==='cancellato'))){
+      pastDates.push(dp2Str);
+    }
+  }
+  // Future dates (next 2)
+  const futureDates=getNextRecurringDates(ev,2);
+  const allDates=[...pastDates,...futureDates];
+  if(!allDates.length)return null;
+  // Find default tab: first future date, or last past date
+  const defaultDate=futureDates.length?futureDates[0]:(pastDates.length?pastDates[pastDates.length-1]:allDates[0]);
+  return {dates:allDates,defaultDate,pastDates,futureDates};
+}
+
+// Track selected recurring date tab in admin detail
+let _adminRecDateFilter=null;
+
+function setAdminRecDateFilter(dateStr,evId){
+  _adminRecDateFilter=dateStr;
+  window._adminDetailKeepScroll=true;
+  showAdminEventDetail(evId);
+}
+
 function showAdminEventDetail(evId){
   window._currentAdminDetailEvId=evId;
   const ev=store.events.find(e=>e.id===evId);if(!ev)return;
   if(currentView==='admin-community-events')lastAdminListView='admin-community-events';
   else if(currentView==='admin-events')lastAdminListView='admin-events';
   const c=document.getElementById('admin-event-detail-content');if(!c)return;
-  // Get bookings for this event
-  const allBks=store.bookings.filter(b=>b.eventId===evId);
+  // Recurring date tabs
+  const recTabs=getRecurringDateTabs(ev);
+  let recDateFilter=null;
+  if(recTabs){
+    if(_adminRecDateFilter===null)_adminRecDateFilter=recTabs.defaultDate;
+    recDateFilter=_adminRecDateFilter;
+  } else {
+    _adminRecDateFilter=null;
+  }
+  // Get bookings for this event, filtered by recurring date if applicable
+  let allBks=store.bookings.filter(b=>b.eventId===evId);
+  if(recDateFilter&&recDateFilter!=='__all__'){
+    allBks=allBks.filter(b=>(b.recurringDate||null)===recDateFilter);
+  }
   // Session toggle logic
   const totalSessions=ev.days.reduce((sum,d)=>sum+(d.sessions?.length||0),0);
   const showSessionToggle=totalSessions>1;
@@ -10324,7 +10716,7 @@ function showAdminEventDetail(evId){
   const roles={base:0,flyer:0,non_so:0,entrambi:0};
   active.forEach(b=>{if(b.role&&roles[b.role]!==undefined)roles[b.role]++;});
   // Date display
-  const dateStr=ev.days.length>1?fmtDateShort(ev.days[0]?.date)+' — '+fmtDateShort(ev.days[ev.days.length-1]?.date):fmtDate(ev.days[0]?.date);
+  const dateStr=recTabs?(recDateFilter&&recDateFilter!=='__all__'?fmtDate(recDateFilter):'🔄 Ricorrente — ogni '+({lunedi:'lunedì',martedi:'martedì',mercoledi:'mercoledì',giovedi:'giovedì',venerdi:'venerdì',sabato:'sabato',domenica:'domenica'}[ev.recurrence.day]||ev.recurrence.day)):(ev.days.length>1?fmtDateShort(ev.days[0]?.date)+' — '+fmtDateShort(ev.days[ev.days.length-1]?.date):fmtDate(ev.days[0]?.date));
   const locLink=ev.locationUrl?`<a href="${ev.locationUrl}" target="_blank" style="color:var(--brand-l)">📍 ${ev.location} ↗</a>`:`📍 ${ev.location}`;
   const roleName=r=>r==='base'?'💪 Base':r==='flyer'?'🦅 Flyer':r==='non_so'?'🤷 Non lo so ancora':r==='entrambi'?'🔄 Entrambi':'—';
   const roleColor=r=>r==='base'?'var(--green)':r==='flyer'?'var(--blue)':r==='non_so'?'var(--txt3)':'var(--purple)';
@@ -10368,6 +10760,25 @@ function showAdminEventDetail(evId){
     viewToggleHtml=`<div style="display:flex;justify-content:flex-end;margin-bottom:20px">${excelBtn}</div>`;
   }
 
+  // Recurring date tabs HTML
+  let recTabsHtml='';
+  if(recTabs){
+    const tabBtns=recTabs.dates.map(d=>{
+      const isPast=recTabs.pastDates.includes(d);
+      const isActive=recDateFilter===d;
+      const label=fmtDate(d);
+      const icon=isPast?'📋':'📅';
+      const pastLabel=isPast?' (concluso)':'';
+      return `<button class="btn btn-sm" style="padding:6px 14px;font-size:.78rem;border-radius:20px;${isActive?'background:var(--brand);color:#fff;border:1px solid var(--brand)':'background:var(--s200);color:var(--txt2);border:1px solid var(--s400)'}" onclick="setAdminRecDateFilter('${d}','${evId}')">${icon} ${label}${pastLabel}</button>`;
+    }).join('');
+    const allActive=recDateFilter==='__all__';
+    const allBtn=`<button class="btn btn-sm" style="padding:6px 14px;font-size:.78rem;border-radius:20px;${allActive?'background:var(--brand);color:#fff;border:1px solid var(--brand)':'background:var(--s200);color:var(--txt2);border:1px solid var(--s400)'}" onclick="setAdminRecDateFilter('__all__','${evId}')">📊 Tutte le date</button>`;
+    recTabsHtml=`<div class="mb-4" style="border:1px solid var(--s300);border-radius:12px;padding:12px 16px;background:rgba(217,70,239,.03)">
+      <div class="text-xs font-medium mb-2" style="color:var(--brand-l)">🔄 Date evento ricorrente</div>
+      <div class="flex gap-2 flex-wrap">${tabBtns}${allBtn}</div>
+    </div>`;
+  }
+
   c.innerHTML=`<div class="container" style="padding-top:32px;padding-bottom:48px;max-width:1100px">
     <div class="text-sm txt3 mb-6" style="cursor:pointer" onclick="resetAdminDetailView();go(lastAdminListView||'admin-events')">← Torna agli eventi</div>
 
@@ -10379,7 +10790,7 @@ function showAdminEventDetail(evId){
         ${getRecurrenceBadge(ev)}
       </div>
       <h1 class="text-2xl font-bold text-white">${ev.title}</h1>
-      <p class="txt3 mt-2">${ev.description}</p>
+      <div class="txt3 mt-2" style="white-space:pre-wrap;line-height:1.6">${ev.description.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')}</div>
       <div class="flex gap-4 mt-3 flex-wrap text-sm txt3">
         <span>📅 ${dateStr}</span>
         <span>🕐 ${ev.days[0]?.startTime||''} — ${ev.days[0]?.endTime||''}</span>
@@ -10390,6 +10801,7 @@ function showAdminEventDetail(evId){
       ${!isEventCapofila(ev,store.currentUser.id)?'<div style="margin-top:6px"><span style="display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:8px;font-size:.75rem;background:rgba(168,85,247,.12);color:#a855f7;border:1px solid rgba(168,85,247,.25)">🤝 Sei partner di questo evento — visualizzazione in sola lettura</span></div>':''}
     </div>
 
+    ${recTabsHtml}
     ${viewToggleHtml}
 
     <!-- Stats overview -->
@@ -10835,10 +11247,11 @@ function checkDeepLink(){
   const eventId=params.get('event');
   const checkinId=params.get('checkin');
   const token=params.get('token');
+  const recDateParam=params.get('recDate');
   if(eventId){
     _pendingDeepLink={type:'event',id:eventId};
   } else if(checkinId&&token){
-    _pendingDeepLink={type:'checkin',id:checkinId,token:token};
+    _pendingDeepLink={type:'checkin',id:checkinId,token:token,recDate:recDateParam||null};
   }
   // Clean URL params (keep clean address bar) but preserve mode=signIn for magic links
   if((eventId||checkinId)&&!params.get('mode')){
@@ -10862,9 +11275,10 @@ function handleDeepLink(){
     // Handle check-in deep link
     const ev=store.events.find(e=>e.id===dl.id);
     if(ev){
+      checkinRecDate=dl.recDate||null;
       go('events');
-      setTimeout(()=>showEventDetail(dl.id),300);
-      showToast('Check-in: '+ev.title);
+      setTimeout(()=>showEventDetail(dl.id,dl.recDate||undefined),300);
+      showToast('Check-in: '+ev.title+(dl.recDate?' — '+fmtDate(dl.recDate):''));
     } else {
       showToast('Evento non trovato per il check-in','error');
     }
