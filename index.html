@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.8.1</title>
+<title>BodyEvents — V2.8.3</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤸</text></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -39,7 +39,7 @@ a{color:var(--brand-l);text-decoration:none}
 .text-center{text-align:center}.text-right{text-align:right}.text-sm{font-size:.875rem}.text-xs{font-size:.75rem}.text-lg{font-size:1.125rem}.text-xl{font-size:1.25rem}.text-2xl{font-size:1.5rem}.text-3xl{font-size:1.875rem}
 .font-bold{font-weight:700}.font-semibold{font-weight:600}.font-medium{font-weight:500}
 .txt2{color:var(--txt2)}.txt3{color:var(--txt3)}.text-white{color:#fff}
-.hidden{display:none!important}.block{display:block}
+.hidden{display:none!important}.block{display:block}.filter-grid{display:grid}
 .w-full{width:100%}.max-w-md{max-width:28rem}.max-w-sm{max-width:24rem}.mx-auto{margin-left:auto;margin-right:auto}
 .truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .relative{position:relative}.sticky{position:sticky}
@@ -177,16 +177,25 @@ textarea.input{resize:none;font-family:inherit}
 .qr-box{width:220px;height:220px;background:#fff;border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto;padding:10px}
 .qr-box canvas,.qr-box img{border-radius:8px}
 
+/* === MOBILE TOP-NAV === */
+.mobile-topnav{display:none}
+.mtn-avatar{cursor:pointer;flex-shrink:0}
+.mtn-items{display:flex;gap:2px;flex:1;justify-content:center}
+.mtn-item{display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;cursor:pointer;font-size:1.1rem;transition:all .15s}
+.mtn-item:hover{background:var(--s200)}
+.mtn-item.active{background:var(--brand-bg)}
+
 /* === RESPONSIVE === */
 @media(max-width:768px){
   .grid-2,.grid-3{grid-template-columns:1fr}
   .grid-4{grid-template-columns:repeat(2,1fr)}
   .grid-2-resp{grid-template-columns:1fr!important}
-  .filter-grid{grid-template-columns:1fr!important}
+  .filter-grid{grid-template-columns:1fr!important}.filter-grid [style*="grid-column:span 2"]{grid-column:span 1!important}
   .nav-links,.nav-auth{display:none}
   .hamburger{display:flex}
-  .mobile-quickbar{display:block}
-  .mqb-item{min-width:52px;min-height:44px;padding:6px 12px}
+  .mobile-topnav{display:flex!important;align-items:center;flex:1;gap:8px;margin:0 8px}
+  .mobile-quickbar{display:none!important}
+  .logo{display:none!important}
   .sidebar{display:none}
   .admin-content{padding:16px}
   .admin-wrap{min-height:auto}
@@ -285,7 +294,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.8.1</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.8.3</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -302,6 +311,16 @@ textarea.input{resize:none;font-family:inherit}
     <div class="logo" onclick="go('events')">
       <div class="logo-icon">🤸</div>
       <span class="logo-text">BodyEvents</span>
+    </div>
+    <!-- Mobile top-nav: avatar + nav icons (hidden on desktop) -->
+    <div class="mobile-topnav">
+      <div class="mtn-avatar" onclick="go('profile')"><span style="width:30px;height:30px;border-radius:50%;background:var(--brand-bg);display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:var(--brand-l)" class="nav-user-avatar"></span></div>
+      <div class="mtn-items">
+        <div class="mtn-item active" data-view="events" onclick="go('events')">📅</div>
+        <div class="mtn-item" data-view="jams" onclick="go('jams')">🤝</div>
+        <div class="mtn-item" data-view="dashboard" onclick="go('dashboard')">🎫</div>
+        <div class="mtn-item" data-view="profile" onclick="go('profile')">👤</div>
+      </div>
     </div>
     <div class="nav-links" id="navLinks">
       <div class="nav-link active" data-view="events" onclick="go('events')">📅 Bacheca</div>
@@ -347,9 +366,19 @@ textarea.input{resize:none;font-family:inherit}
 <!-- ============ NAVBAR ADMIN (hidden by default) ============ -->
 <nav class="navbar hidden" id="navbar-admin" style="top:37px;border-bottom-color:var(--brand-d)">
   <div class="navbar-inner">
-    <div class="logo" onclick="go('admin')">
+    <div class="logo" onclick="go('admin-org-profile')">
       <div class="logo-icon sidebar-org-icon" style="background:var(--brand)">🛡️</div>
       <span class="logo-text sidebar-org-name" style="color:var(--brand-l)">Organizzatore</span>
+    </div>
+    <!-- Mobile top-nav: org icon + nav icons (hidden on desktop) -->
+    <div class="mobile-topnav">
+      <div class="mtn-avatar" onclick="go('admin-org-profile')"><span class="sidebar-org-icon" style="width:30px;height:30px;border-radius:50%;background:var(--brand);display:flex;align-items:center;justify-content:center;font-size:.8rem">🛡️</span></div>
+      <div class="mtn-items">
+        <div class="mtn-item active" data-view="admin" onclick="go('admin')">📊</div>
+        <div class="mtn-item" data-view="admin-events" onclick="go('admin-events')">📅</div>
+        <div class="mtn-item" data-view="admin-checkin" onclick="go('admin-checkin')">📱</div>
+        <div class="mtn-item" data-view="admin-subscriptions" onclick="go('admin-subscriptions')">💳</div>
+      </div>
     </div>
     <div class="nav-links">
       <div class="nav-link active" data-view="admin" onclick="go('admin')">📊 Dashboard</div>
@@ -370,7 +399,6 @@ textarea.input{resize:none;font-family:inherit}
     <div class="mobile-quickbar-inner">
       <div class="mqb-item active" data-view="admin" onclick="go('admin');closeMobileAdmin()"><span class="mqb-icon">📊</span><span class="mqb-label">Dashboard</span></div>
       <div class="mqb-item" data-view="admin-events" onclick="go('admin-events');closeMobileAdmin()"><span class="mqb-icon">📅</span><span class="mqb-label">Eventi</span></div>
-      <div class="mqb-item" data-view="admin-new-event" onclick="go('admin-new-event');closeMobileAdmin()"><span class="mqb-icon">➕</span><span class="mqb-label">Nuovo</span></div>
       <div class="mqb-item" data-view="admin-checkin" onclick="go('admin-checkin');closeMobileAdmin()"><span class="mqb-icon">📱</span><span class="mqb-label">Check-in</span></div>
       <div class="mqb-item" data-view="admin-subscriptions" onclick="go('admin-subscriptions');closeMobileAdmin()"><span class="mqb-icon">💳</span><span class="mqb-label">Abbonamenti</span></div>
     </div>
@@ -394,7 +422,6 @@ textarea.input{resize:none;font-family:inherit}
     </div>
     <div class="mm-group">
       <div class="mm-group-label">Impostazioni</div>
-      <div class="nav-link" onclick="go('admin-org-profile');closeMobileAdmin()">⚙️ La mia organizzazione</div>
       <div class="nav-link" onclick="refreshData();closeMobileAdmin()">🔄 Aggiorna dati</div>
     </div>
   </div>
@@ -437,7 +464,7 @@ textarea.input{resize:none;font-family:inherit}
       <button onclick="document.getElementById('adv-filters').classList.toggle('hidden');this.textContent=document.getElementById('adv-filters').classList.contains('hidden')?'▼ Più filtri':'▲ Meno filtri'" style="background:none;border:none;color:var(--brand-l);font-size:.75rem;cursor:pointer;padding:4px 12px">▼ Più filtri</button>
     </div>
     <!-- Filtri avanzati (nascosti di default) -->
-    <div id="adv-filters" class="hidden filter-grid" style="padding:0 16px 12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end">
+    <div id="adv-filters" class="hidden filter-grid" style="padding:0 16px 12px;grid-template-columns:1fr 1fr;gap:8px;align-items:end">
       <div>
         <label class="label" style="font-size:.65rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:3px">Zona</label>
         <select class="input" id="filter-zona" onchange="renderUserEvents()" style="padding:7px 28px 7px 10px;font-size:.8rem">
@@ -810,8 +837,6 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
       <div class="sidebar-link" onclick="go('admin-universes')">🌌 Universi</div>
-      <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
-      <div class="sidebar-link" onclick="go('admin-org-profile')">⚙️ La mia organizzazione</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -858,8 +883,6 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
       <div class="sidebar-link" onclick="go('admin-universes')">🌌 Universi</div>
-      <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
-      <div class="sidebar-link" onclick="go('admin-org-profile')">⚙️ La mia organizzazione</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -890,8 +913,6 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
       <div class="sidebar-link" onclick="go('admin-universes')">🌌 Universi</div>
-      <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
-      <div class="sidebar-link" onclick="go('admin-org-profile')">⚙️ La mia organizzazione</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -966,8 +987,6 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
       <div class="sidebar-link active" onclick="go('admin-universes')">🌌 Universi</div>
-      <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
-      <div class="sidebar-link" onclick="go('admin-org-profile')">⚙️ La mia organizzazione</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -1047,12 +1066,10 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
       <div class="sidebar-link" onclick="go('admin-universes')">🌌 Universi</div>
-      <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
-      <div class="sidebar-link active" onclick="go('admin-org-profile')">⚙️ La mia organizzazione</div>
     </nav>
   </aside>
   <main class="admin-content">
-    <h1 class="page-title">⚙️ La mia organizzazione</h1>
+    <h1 class="page-title">⚙️ Profilo Organizzazione</h1>
     <p class="page-sub mb-6">Gestisci il profilo e le impostazioni della tua organizzazione</p>
 
     <!-- Avatar + info rapida -->
@@ -1142,8 +1159,6 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link active" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
       <div class="sidebar-link" onclick="go('admin-universes')">🌌 Universi</div>
-      <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
-      <div class="sidebar-link" onclick="go('admin-org-profile')">⚙️ La mia organizzazione</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -1201,8 +1216,6 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
       <div class="sidebar-link" onclick="go('admin-universes')">🌌 Universi</div>
-      <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
-      <div class="sidebar-link" onclick="go('admin-org-profile')">⚙️ La mia organizzazione</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -1372,27 +1385,6 @@ textarea.input{resize:none;font-family:inherit}
           <div><label class="label">○ Ridotto €</label><input class="input" id="ne-tier-basso" type="number" value="" placeholder="Es: 5"></div>
         </div>
       </div>
-      <div class="flex items-center gap-2 mb-2" style="cursor:pointer" onclick="this.nextElementSibling.classList.toggle('hidden');this.querySelector('.toggle-arrow').textContent=this.nextElementSibling.classList.contains('hidden')?'▸':'▾'" id="ne-loyalty-event-toggle">
-        <span class="toggle-arrow text-xs" style="color:var(--txt3)">▸</span>
-        <span class="text-xs" style="color:var(--txt3)">🎁 Sconto combinato con abbonamenti ed eventi</span>
-        <span class="text-xs txt3">(clicca per espandere)</span>
-      </div>
-      <div class="hidden" id="ne-loyalty-event-section">
-        <p class="text-xs txt3 mb-3">Prezzo speciale riservato a chi ha partecipato a eventi specifici (fidelizzazione).</p>
-        <div class="grid grid-3 gap-3 mb-3">
-          <div><label class="label">✦ Fedeltà Alto €</label><input class="input" id="ne-ftier-alto" type="number" placeholder="—"></div>
-          <div><label class="label">● Fedeltà Medio €</label><input class="input" id="ne-ftier-medio" type="number" placeholder="—"></div>
-          <div><label class="label">○ Fedeltà Basso €</label><input class="input" id="ne-ftier-basso" type="number" placeholder="—"></div>
-        </div>
-        <div><label class="label">📋 Prerequisito: eventi a cui devono aver partecipato</label>
-          <div id="ne-freq-eventi-wrap" style="position:relative">
-            <button type="button" class="input text-sm" style="text-align:left;cursor:pointer;color:var(--txt3)" onclick="toggleEventPicker(this.parentNode,'event')">Seleziona eventi…</button>
-            <div class="event-picker hidden" style="position:absolute;z-index:20;top:100%;left:0;right:0;max-height:200px;overflow-y:auto;background:var(--s100);border:1px solid var(--s400);border-radius:8px;margin-top:4px;padding:8px">
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- Early Bird -->
       <div class="flex items-center gap-2 mb-2 mt-4" style="cursor:pointer" onclick="this.nextElementSibling.classList.toggle('hidden');this.querySelector('.toggle-arrow').textContent=this.nextElementSibling.classList.contains('hidden')?'▸':'▾'">
         <span class="toggle-arrow text-sm" style="color:var(--yellow)">▸</span>
@@ -1454,34 +1446,95 @@ textarea.input{resize:none;font-family:inherit}
       </div>
     </div>
 
-    <!-- Integrazione Abbonamenti (visible section) -->
+    <!-- Sconti, Abbonamenti e Opzioni costo -->
     <div class="card mb-4">
-      <h3 class="font-semibold text-white mb-3">🎁 Sconti e Abbonamenti</h3>
-      <p class="text-xs txt3 mb-4" style="line-height:1.5">Collega abbonamenti a questo evento. Puoi permettere l'uso di <b style="color:var(--txt)">ingressi</b> (scala dall'abbonamento) e/o applicare uno <b style="color:var(--txt)">sconto</b> sul prezzo (senza consumare ingressi).</p>
-      <div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--s300)">
-        <label class="flex items-center gap-2 text-sm mb-3" style="cursor:pointer"><input type="checkbox" id="ne-sub-bookable" onchange="document.getElementById('ne-sub-bookable-opts').classList.toggle('hidden')"> 🎟️ Prenotabile con ingressi abbonamento</label>
-        <div id="ne-sub-bookable-opts" class="hidden mb-3">
-          <label class="label">Tipologie abbonamento accettate</label>
-          <div id="ne-sub-bookable-types" class="flex flex-wrap gap-2 mb-2"></div>
-          <p class="text-xs txt3">L'utente potrà usare un ingresso del proprio abbonamento per prenotare questo evento, senza pagare.</p>
+      <h3 class="font-semibold text-white mb-3">🎁 Sconti, Abbonamenti e Opzioni costo</h3>
+      <p class="text-xs txt3 mb-4" style="line-height:1.5">Configura modalità di costo speciali, collega abbonamenti, e gestisci sconti fedeltà.</p>
+
+      <!-- Modalità costo speciali -->
+      <div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--s300)" id="ne-pricing-mode-card">
+        <h4 class="text-sm font-semibold mb-3" style="color:var(--txt2)">⚙️ Modalità costo</h4>
+        <div class="mb-3">
+          <label class="flex items-center gap-3 text-sm" style="cursor:pointer">
+            <input type="checkbox" id="ne-free-event" onchange="onPricingModeChange()">
+            <span class="text-white font-medium">🆓 Evento gratuito</span>
+          </label>
+          <p class="text-xs txt3 mt-1" style="margin-left:28px">Nessun costo. I campi prezzo scompariranno.</p>
+        </div>
+        <div class="mb-2">
+          <label class="flex items-center gap-3 text-sm" style="cursor:pointer">
+            <input type="checkbox" id="ne-costs-managed-by-org" onchange="onPricingModeChange()">
+            <span class="text-white font-medium">🤝 Gestione costi con l'organizzatore</span>
+          </label>
+          <p class="text-xs txt3 mt-1" style="margin-left:28px">I costi non saranno mostrati. L'utente contatterà l'organizzatore.</p>
         </div>
       </div>
-      <div>
-        <label class="flex items-center gap-2 text-sm mb-3" style="cursor:pointer"><input type="checkbox" id="ne-sub-discount" onchange="document.getElementById('ne-sub-discount-opts').classList.toggle('hidden')"> 💰 Prezzo scontato per abbonati</label>
-        <div id="ne-sub-discount-opts" class="hidden">
-          <label class="label">Tipologie abbonamento per sconto</label>
-          <div id="ne-sub-discount-types" class="flex flex-wrap gap-2 mb-2"></div>
-          <div class="grid grid-3 gap-3 mb-2">
-            <div><label class="label">✦ Sostenitore (€)</label><input class="input" id="ne-sub-disc-alto" type="number" placeholder="es. 20"></div>
-            <div><label class="label">● Standard (€)</label><input class="input" id="ne-sub-disc-medio" type="number" placeholder="es. 15"></div>
-            <div><label class="label">○ Ridotto (€)</label><input class="input" id="ne-sub-disc-basso" type="number" placeholder="es. 10"></div>
+
+      <!-- Abbonamenti -->
+      <div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--s300)">
+        <h4 class="text-sm font-semibold mb-3" style="color:var(--txt2)">🎟️ Abbonamenti</h4>
+        <div class="mb-3">
+          <label class="flex items-center gap-2 text-sm mb-3" style="cursor:pointer"><input type="checkbox" id="ne-sub-bookable" onchange="document.getElementById('ne-sub-bookable-opts').classList.toggle('hidden')"> 🎟️ Prenotabile con ingressi abbonamento</label>
+          <div id="ne-sub-bookable-opts" class="hidden mb-3">
+            <label class="label">Tipologie abbonamento accettate</label>
+            <div id="ne-sub-bookable-types" class="flex flex-wrap gap-2 mb-2"></div>
+            <p class="text-xs txt3">L'utente potrà usare un ingresso del proprio abbonamento per prenotare questo evento, senza pagare.</p>
           </div>
-          <p class="text-xs txt3">I possessori di un abbonamento compatibile vedranno i prezzi scontati <b>senza consumare ingressi</b>.</p>
+        </div>
+        <div>
+          <label class="flex items-center gap-2 text-sm mb-3" style="cursor:pointer"><input type="checkbox" id="ne-sub-discount" onchange="document.getElementById('ne-sub-discount-opts').classList.toggle('hidden')"> 💰 Prezzo scontato per abbonati</label>
+          <div id="ne-sub-discount-opts" class="hidden">
+            <label class="label">Tipologie abbonamento per sconto</label>
+            <div id="ne-sub-discount-types" class="flex flex-wrap gap-2 mb-2"></div>
+            <div class="grid grid-3 gap-3 mb-2">
+              <div><label class="label">✦ Sostenitore (€)</label><input class="input" id="ne-sub-disc-alto" type="number" placeholder="es. 20"></div>
+              <div><label class="label">● Standard (€)</label><input class="input" id="ne-sub-disc-medio" type="number" placeholder="es. 15"></div>
+              <div><label class="label">○ Ridotto (€)</label><input class="input" id="ne-sub-disc-basso" type="number" placeholder="es. 10"></div>
+            </div>
+            <p class="text-xs txt3">I possessori di un abbonamento compatibile vedranno i prezzi scontati <b>senza consumare ingressi</b>.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sconto combinato (fedeltà) — spostato qui da Prezzo evento -->
+      <div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--s300)">
+        <div class="flex items-center gap-2 mb-2" style="cursor:pointer" onclick="this.nextElementSibling.classList.toggle('hidden');this.querySelector('.toggle-arrow').textContent=this.nextElementSibling.classList.contains('hidden')?'▸':'▾'" id="ne-loyalty-event-toggle">
+          <span class="toggle-arrow text-xs" style="color:var(--txt3)">▸</span>
+          <span class="text-sm font-medium" style="color:var(--txt2)">🎁 Sconto combinato con abbonamenti ed eventi</span>
+          <span class="text-xs txt3">(clicca per espandere)</span>
+        </div>
+        <div class="hidden" id="ne-loyalty-event-section">
+          <p class="text-xs txt3 mb-3">Prezzo speciale riservato a chi ha partecipato a eventi specifici (fidelizzazione). Applicato a livello evento.</p>
+          <div class="grid grid-3 gap-3 mb-3">
+            <div><label class="label">✦ Fedeltà Alto €</label><input class="input" id="ne-ftier-alto" type="number" placeholder="—"></div>
+            <div><label class="label">● Fedeltà Medio €</label><input class="input" id="ne-ftier-medio" type="number" placeholder="—"></div>
+            <div><label class="label">○ Fedeltà Basso €</label><input class="input" id="ne-ftier-basso" type="number" placeholder="—"></div>
+          </div>
+          <div><label class="label">📋 Prerequisito: eventi a cui devono aver partecipato</label>
+            <div id="ne-freq-eventi-wrap" style="position:relative">
+              <button type="button" class="input text-sm" style="text-align:left;cursor:pointer;color:var(--txt3)" onclick="toggleEventPicker(this.parentNode,'event')">Seleziona eventi…</button>
+              <div class="event-picker hidden" style="position:absolute;z-index:20;top:100%;left:0;right:0;max-height:200px;overflow-y:auto;background:var(--s100);border:1px solid var(--s400);border-radius:8px;margin-top:4px;padding:8px">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Anticipo per conferma prenotazione -->
+      <div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--s300)">
+        <h4 class="text-sm font-semibold mb-3" style="color:var(--txt2)">🔒 Anticipo per conferma prenotazione</h4>
+        <label class="flex items-center gap-2 text-sm mb-3" style="cursor:pointer"><input type="checkbox" id="ne-deposit-required" onchange="document.getElementById('ne-deposit-opts').classList.toggle('hidden')"> Richiedi anticipo per confermare la prenotazione</label>
+        <div id="ne-deposit-opts" class="hidden">
+          <div class="grid grid-2 gap-3 mb-3">
+            <div><label class="label">Importo anticipo (€) *</label><input class="input" id="ne-deposit-amount" type="number" placeholder="es. 20"></div>
+            <div><label class="label">Causale da inserire nel versamento *</label><input class="input" id="ne-deposit-causal" placeholder="es. Anticipo Weekend Intensive - Nome Cognome"></div>
+          </div>
+          <p class="text-xs txt3" style="line-height:1.6">La prenotazione resterà in stato <span style="color:var(--yellow)">⏳ In attesa di anticipo</span> fino a conferma ricezione.</p>
         </div>
       </div>
 
       <!-- Partner subscription entry usage (only shown when partners exist) -->
-      <div id="ne-partner-entry-config" class="hidden" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--s300)">
+      <div id="ne-partner-entry-config" class="hidden">
         <h4 class="text-sm font-semibold mb-3" style="color:var(--brand-l)">🤝 Politica ingressi partner</h4>
         <p class="text-xs txt3 mb-3" style="line-height:1.4">Stabilisci se gli abbonamenti dei partner possono essere usati come ingressi o solo per sconti.</p>
         <div class="flex flex-col gap-2">
@@ -1500,45 +1553,12 @@ textarea.input{resize:none;font-family:inherit}
       </div>
       <div id="ne-advanced-opts" class="hidden" style="padding:16px">
 
-        <!-- Specifiche costi non standard -->
-        <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--s300)" id="ne-pricing-mode-card">
-          <h3 class="font-semibold text-white mb-3" style="font-size:.9rem">⚙️ Specifiche costi non standard</h3>
-          <p class="text-xs txt3 mb-3" style="line-height:1.5">Configurazioni particolari relative ai costi (es. evento gratuito o gestione diretta con l'organizzatore).</p>
-          <div class="mb-3">
-            <label class="flex items-center gap-3 text-sm" style="cursor:pointer">
-              <input type="checkbox" id="ne-free-event" onchange="onPricingModeChange()">
-              <span class="text-white font-medium">🆓 Evento gratuito</span>
-            </label>
-            <p class="text-xs txt3 mt-1" style="margin-left:28px">Nessun costo. I campi prezzo scompariranno.</p>
-          </div>
-          <div class="mb-2">
-            <label class="flex items-center gap-3 text-sm" style="cursor:pointer">
-              <input type="checkbox" id="ne-costs-managed-by-org" onchange="onPricingModeChange()">
-              <span class="text-white font-medium">🤝 Gestione costi con l'organizzatore</span>
-            </label>
-            <p class="text-xs txt3 mt-1" style="margin-left:28px">I costi non saranno mostrati. L'utente contatterà l'organizzatore.</p>
-          </div>
-        </div>
-
         <!-- Sondaggio personalizzato -->
-        <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--s300)" id="ne-survey-section">
+        <div id="ne-survey-section">
           <h3 class="font-semibold text-white mb-3" style="font-size:.9rem">📋 Sondaggio personalizzato</h3>
           <p class="text-xs txt3 mb-4">Aggiungi domande per i partecipanti. Le risposte saranno visibili nella lista presenze.</p>
           <div id="ne-survey-questions"></div>
           <button type="button" class="btn btn-secondary btn-sm mt-3" onclick="addSurveyQuestion()">+ Aggiungi domanda</button>
-        </div>
-
-        <!-- Anticipo per conferma prenotazione -->
-        <div>
-          <h3 class="font-semibold text-white mb-3" style="font-size:.9rem">🔒 Anticipo per conferma prenotazione</h3>
-          <label class="flex items-center gap-2 text-sm mb-3" style="cursor:pointer"><input type="checkbox" id="ne-deposit-required" onchange="document.getElementById('ne-deposit-opts').classList.toggle('hidden')"> Richiedi anticipo per confermare la prenotazione</label>
-          <div id="ne-deposit-opts" class="hidden">
-            <div class="grid grid-2 gap-3 mb-3">
-              <div><label class="label">Importo anticipo (€) *</label><input class="input" id="ne-deposit-amount" type="number" placeholder="es. 20"></div>
-              <div><label class="label">Causale da inserire nel versamento *</label><input class="input" id="ne-deposit-causal" placeholder="es. Anticipo Weekend Intensive - Nome Cognome"></div>
-            </div>
-            <p class="text-xs txt3" style="line-height:1.6">La prenotazione resterà in stato <span style="color:var(--yellow)">⏳ In attesa di anticipo</span> fino a conferma ricezione.</p>
-          </div>
         </div>
 
       </div>
@@ -1571,8 +1591,6 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
       <div class="sidebar-link" onclick="go('admin-universes')">🌌 Universi</div>
-      <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
-      <div class="sidebar-link" onclick="go('admin-org-profile')">⚙️ La mia organizzazione</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -1621,17 +1639,39 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
       <div class="sidebar-link" onclick="go('admin-universes')">🌌 Universi</div>
-      <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
-      <div class="sidebar-link" onclick="go('admin-org-profile')">⚙️ La mia organizzazione</div>
     </nav>
   </aside>
   <main class="admin-content">
     <h1 class="page-title">Check-in QR</h1>
     <p class="page-sub mb-6">Genera il QR code per il check-in all'ingresso dell'evento</p>
 
+    <!-- QR Nuovo Utente (registrazione piattaforma) -->
+    <div class="card mb-4" style="border-color:var(--green);background:rgba(16,185,129,.03)">
+      <div class="flex items-center gap-3 mb-3">
+        <span style="font-size:1.5rem">🆕</span>
+        <div>
+          <h3 class="font-semibold text-white">Invita nuovo utente</h3>
+          <p class="text-xs txt3">Genera un QR / link per far registrare qualcuno alla piattaforma</p>
+        </div>
+      </div>
+      <div class="flex gap-2 flex-wrap">
+        <button class="btn btn-sm btn-primary" onclick="generateNewUserQR()">📲 Genera QR Registrazione</button>
+        <button class="btn btn-sm btn-secondary" onclick="copyNewUserLink()">🔗 Copia link registrazione</button>
+      </div>
+      <div id="qr-new-user-display" class="hidden mt-4 text-center">
+        <div class="qr-box mb-3" id="qr-new-user-wrap"></div>
+        <p class="text-sm font-medium" style="color:var(--green)">QR Registrazione Piattaforma</p>
+        <p class="text-xs txt3 mt-1">Scansiona per registrarsi a BodyEvents</p>
+        <div class="flex gap-2 justify-center mt-3">
+          <button class="btn btn-sm btn-primary" onclick="downloadNewUserQR()">📥 Scarica QR</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Seleziona evento -->
     <div class="card mb-4">
-      <h3 class="font-semibold text-white mb-3">Seleziona evento attivo</h3>
+      <h3 class="font-semibold text-white mb-3">QR Check-in Evento</h3>
+      <p class="text-xs txt3 mb-3">Il QR è unico per evento: vale per tutte le sessioni a cui l'utente è iscritto.</p>
       <select class="input mb-4" id="qr-event-select" onchange="updateQRPreview()">
         <option value="">Scegli un evento...</option>
       </select>
@@ -1640,6 +1680,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="text-center" id="qr-display">
         <div class="qr-box mb-4" id="qr-canvas-wrap"></div>
         <p class="text-sm font-medium text-white" id="qr-event-title">Seleziona un evento</p>
+        <p class="text-xs txt3 mt-1" id="qr-event-subtitle"></p>
         <p class="text-xs txt3 mt-1" id="qr-validity"></p>
         <p class="text-xs txt3 mt-1" id="qr-token-display"></p>
         <div class="flex gap-2 justify-center mt-3">
@@ -1652,12 +1693,13 @@ textarea.input{resize:none;font-family:inherit}
     <!-- Come funziona -->
     <div class="card mb-4">
       <h3 class="font-semibold text-white mb-3">Come funziona il check-in</h3>
+      <p class="text-xs txt3 mb-3" style="line-height:1.5;padding:8px 12px;background:rgba(16,185,129,.05);border-radius:8px;border:1px solid rgba(16,185,129,.15)">📌 Il QR è <b style="color:var(--green)">unico per evento</b>: il check-in registra automaticamente la presenza per <b>tutte le sessioni</b> prenotate dall'utente. Puoi anche segnare le presenze manualmente dalla lista.</p>
       <div class="flex flex-col gap-3">
         <div class="flex gap-3 items-center">
           <div style="width:32px;height:32px;border-radius:50%;background:var(--green-bg);color:var(--green);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:700;font-size:.8rem">A</div>
           <div>
             <div class="font-medium text-white text-sm">Prenotato + già loggato</div>
-            <div class="text-xs txt3">Scansiona → presenze registrate automaticamente in 1 tap</div>
+            <div class="text-xs txt3">Scansiona → presenze registrate automaticamente per tutte le sessioni prenotate</div>
           </div>
         </div>
         <div class="flex gap-3 items-center">
@@ -1717,8 +1759,6 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
       <div class="sidebar-link" onclick="go('admin-universes')">🌌 Universi</div>
-      <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
-      <div class="sidebar-link" onclick="go('admin-org-profile')">⚙️ La mia organizzazione</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -1754,8 +1794,6 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
       <div class="sidebar-link" onclick="go('admin-universes')">🌌 Universi</div>
-      <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
-      <div class="sidebar-link" onclick="go('admin-org-profile')">⚙️ La mia organizzazione</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -2420,7 +2458,7 @@ const OB_TOURS={
       {icon:'✨',title:'Crea il tuo Evento',text:'La creazione ha diverse sezioni. I campi con <b>*</b> sono obbligatori. Puoi <b>salvare come bozza</b> in qualsiasi momento e tornare a completare dopo.'},
       {icon:'📅',title:'Giornate e Sessioni',text:'Ogni evento può avere <b>più giornate</b>. Per ogni giornata puoi definire <b>sessioni separate</b> con orari, insegnanti e prezzi diversi. Le sessioni sono i blocchi di attività all\'interno di una giornata.'},
       {icon:'💰',title:'Sistema Prezzi',text:'Di default, ogni evento ha un <b>prezzo standard unico</b>. L\'organizzatore può però attivare un sistema a <b>3 livelli</b>: ✦ Sostenitore, ● Standard, ○ Ridotto. Il contenuto dell\'esperienza <b>non cambia</b> tra i livelli: non si compra un servizio superiore. È una <b>scelta etica e solidale</b>: chi ha più possibilità economica contribuisce a rendere l\'evento accessibile anche a chi ne ha meno. Puoi anche attivare sconti <b>🐦 Early Bird</b> e <b>🎁 Fedeltà</b>.'},
-      {icon:'⚙️',title:'Opzioni Avanzate',text:'Nelle <b>Informazioni base</b> trovi anche: <b>🗓️ Deadline</b> prenotazioni, <b>🔄 Ricorrenza</b> e <b>👥 Numero minimo</b> partecipanti. Nella sezione ⚙️ <b>Opzioni avanzate</b> trovi: <b>💰 Specifiche costi</b> non standard, <b>📝 Sondaggio</b> personalizzato e <b>🔒 Anticipo</b> per conferma prenotazione.'}
+      {icon:'⚙️',title:'Sconti e Opzioni',text:'Nella sezione 🎁 <b>Sconti, Abbonamenti e Opzioni costo</b> trovi: <b>🆓 Evento gratuito</b>, <b>🤝 Gestione costi org</b>, <b>🎟️ Abbonamenti</b>, <b>🎁 Sconto fedeltà</b> e <b>🔒 Anticipo</b> prenotazione. In ⚙️ <b>Opzioni avanzate</b> trovi il <b>📝 Sondaggio</b> personalizzato.'}
     ]
   },
   tour_admin_universes:{
@@ -4145,6 +4183,9 @@ function go(view){
   // Update mobile quickbar active states
   document.querySelectorAll('.mqb-item').forEach(i=>i.classList.remove('active'));
   document.querySelectorAll(`.mqb-item[data-view="${view}"]`).forEach(i=>i.classList.add('active'));
+  // Update mobile top-nav active states
+  document.querySelectorAll('.mtn-item').forEach(i=>i.classList.remove('active'));
+  document.querySelectorAll(`.mtn-item[data-view="${view}"]`).forEach(i=>i.classList.add('active'));
   window.scrollTo(0,0);
   const noNav=['login','register','register-org','privacy-policy','checkin-booked','checkin-walkin','checkin-new'];
   const hideAll=noNav.includes(view);
@@ -4328,7 +4369,7 @@ function populateOrgProfile(){
   const sb=document.getElementById('org-profile-status-badge');
   if(sb){
     const st=mgr.status||'pending_approval';
-    const map={approved:{bg:'var(--green-bg)',c:'var(--green)',t:'✅ Approvato'},pending_approval:{bg:'var(--yellow-bg)',c:'var(--yellow)',t:'⏳ In attesa di approvazione'}};
+    const map={approved:{bg:'var(--green-bg)',c:'var(--green)',t:'✅ Approvato'},attivo:{bg:'var(--green-bg)',c:'var(--green)',t:'✅ Approvato'},pending_approval:{bg:'var(--yellow-bg)',c:'var(--yellow)',t:'⏳ In attesa di approvazione'}};
     const s=map[st]||map.pending_approval;
     sb.innerHTML='<span class="badge" style="background:'+s.bg+';color:'+s.c+'">'+s.t+'</span>';
   }
@@ -4836,12 +4877,13 @@ function _doBookNormal(){
           totalAmount+=price;
         }
       });
-      // Day-level package
+      // Day-level package (also handles single-session where tiers come from session)
       const dayGridId='tier-day-'+ev.id+'-'+di;
-      if(selectedTiers[dayGridId]&&day.tiers){
+      const dayUseTiers=day.tiers||(day.sessions.length===1&&day.sessions[0]?day.sessions[0].tiers:null)||ev.tiers;
+      if(selectedTiers[dayGridId]&&dayUseTiers){
         hasSelection=true;
         const tier=selectedTiers[dayGridId];
-        const price=day.tiers[tier]||0;
+        const price=dayUseTiers[tier]||0;
         items.push({type:'giornata',name:'Giornata intera — '+fmtDateShort(day.date),date:fmtDateShort(day.date),time:day.startTime+' — '+day.endTime,tier:tierLabel(tier),price});
         totalAmount+=price;
       }
@@ -5087,46 +5129,68 @@ function updateQRPreview(){
   const ev=store.events.find(e=>e.id===v.value);
   const wrap=document.getElementById('qr-canvas-wrap');
   const titleEl=document.getElementById('qr-event-title');
+  const subEl=document.getElementById('qr-event-subtitle');
   const validEl=document.getElementById('qr-validity');
   const tokenEl=document.getElementById('qr-token-display');
   if(!ev){
     if(wrap)wrap.innerHTML='<div style="width:160px;height:160px;display:flex;align-items:center;justify-content:center;color:#999;font-size:.8rem">Seleziona un evento</div>';
     if(titleEl)titleEl.textContent='Seleziona un evento';
+    if(subEl)subEl.textContent='';
     if(validEl)validEl.textContent='';
     if(tokenEl)tokenEl.textContent='';
     return;
   }
   const token=generateQRToken(ev);
   const url=getCheckinURL(ev,token);
-  // Store token on event for reference
   ev._lastQRToken=token;ev._lastQRUrl=url;
-  // Clear previous QR
   if(wrap)wrap.innerHTML='';
-  // Generate real QR
   if(wrap&&typeof QRCode!=='undefined'){
     qrInstance=new QRCode(wrap,{text:url,width:180,height:180,colorDark:'#1a1a2e',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
   } else if(wrap){
     wrap.innerHTML='<div style="width:160px;height:160px;display:flex;align-items:center;justify-content:center;color:#999;font-size:.75rem;text-align:center">QR Library non caricata.<br>Serve connessione internet.</div>';
   }
-  // Update info
   const d0=ev.days[0];
+  const dLast=ev.days[ev.days.length-1];
+  const dateRange=d0?(ev.days.length>1?fmtDateShort(d0.date)+' — '+fmtDateShort(dLast.date):fmtDate(d0.date)):'';
   const endTime=d0?(d0.sessions&&d0.sessions.length?d0.sessions[d0.sessions.length-1].endTime:d0.endTime):'';
   if(titleEl)titleEl.textContent=ev.title;
-  if(validEl)validEl.textContent=endTime?'QR valido fino alle '+endTime+' del '+fmtDate(d0.date):'';
+  if(subEl)subEl.textContent=dateRange;
+  if(validEl)validEl.textContent=endTime?'Check-in evento (tutte le sessioni) — valido fino alle '+endTime:'';
   if(tokenEl)tokenEl.innerHTML='Token: <code style="background:var(--s200);padding:2px 8px;border-radius:4px;font-size:.7rem">'+token+'</code>';
   showToast('QR generato per: '+ev.title);
 }
+// Download QR with event description embedded in image
 function downloadQR(){
   const wrap=document.getElementById('qr-canvas-wrap');if(!wrap)return;
-  const canvas=wrap.querySelector('canvas');
-  if(canvas){
-    const a=document.createElement('a');a.download='checkin-qr.png';a.href=canvas.toDataURL('image/png');a.click();
-    showToast('QR scaricato!');
-  } else {
-    const img=wrap.querySelector('img');
-    if(img){const a=document.createElement('a');a.download='checkin-qr.png';a.href=img.src;a.click();showToast('QR scaricato!');}
-    else showToast('Genera prima un QR code','error');
+  const srcCanvas=wrap.querySelector('canvas');
+  const srcImg=wrap.querySelector('img');
+  const v=document.getElementById('qr-event-select');
+  const ev=v?store.events.find(e=>e.id===v.value):null;
+  const source=srcCanvas||srcImg;
+  if(!source){showToast('Genera prima un QR code','error');return;}
+  // Create a new canvas with event description below the QR
+  const qrSize=200;
+  const padding=20;
+  const textHeight=ev?60:0;
+  const totalW=qrSize+padding*2;
+  const totalH=qrSize+padding*2+textHeight;
+  const c=document.createElement('canvas');c.width=totalW;c.height=totalH;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,totalW,totalH);
+  if(srcCanvas)ctx.drawImage(srcCanvas,padding,padding,qrSize,qrSize);
+  else{const img=new Image();img.src=srcImg.src;ctx.drawImage(img,padding,padding,qrSize,qrSize);}
+  if(ev){
+    const d0=ev.days[0];const dLast=ev.days[ev.days.length-1];
+    const dateStr=d0?(ev.days.length>1?fmtDateShort(d0.date)+' — '+fmtDateShort(dLast.date):fmtDateShort(d0.date)):'';
+    ctx.fillStyle='#1a1a2e';ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+    ctx.fillText(ev.title.substring(0,30),totalW/2,qrSize+padding+20);
+    ctx.font='10px sans-serif';ctx.fillStyle='#666';
+    ctx.fillText(dateStr,totalW/2,qrSize+padding+35);
+    ctx.fillText('Check-in evento',totalW/2,qrSize+padding+50);
   }
+  const fname=ev?'checkin-'+ev.title.replace(/[^a-zA-Z0-9]/g,'_').substring(0,20)+'.png':'checkin-qr.png';
+  const a=document.createElement('a');a.download=fname;a.href=c.toDataURL('image/png');a.click();
+  showToast('QR scaricato con descrizione evento!');
 }
 function copyQRLink(){
   const v=document.getElementById('qr-event-select');if(!v)return;
@@ -5134,6 +5198,45 @@ function copyQRLink(){
   if(ev&&ev._lastQRUrl){
     navigator.clipboard.writeText(ev._lastQRUrl).then(()=>showToast('Link copiato!')).catch(()=>showToast('Errore copia','error'));
   } else showToast('Genera prima un QR code','error');
+}
+// === NEW USER REGISTRATION QR ===
+function generateNewUserQR(){
+  const url=window.location.origin+window.location.pathname+'#register';
+  const wrap=document.getElementById('qr-new-user-wrap');
+  const display=document.getElementById('qr-new-user-display');
+  if(!wrap)return;
+  wrap.innerHTML='';
+  if(typeof QRCode!=='undefined'){
+    new QRCode(wrap,{text:url,width:180,height:180,colorDark:'#065f46',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
+  } else {
+    wrap.innerHTML='<div style="width:160px;height:160px;display:flex;align-items:center;justify-content:center;color:#999;font-size:.75rem;text-align:center">QR Library non caricata.</div>';
+  }
+  if(display)display.classList.remove('hidden');
+  showToast('QR registrazione generato!');
+}
+function copyNewUserLink(){
+  const url=window.location.origin+window.location.pathname+'#register';
+  navigator.clipboard.writeText(url).then(()=>showToast('Link registrazione copiato!')).catch(()=>showToast('Errore copia','error'));
+}
+function downloadNewUserQR(){
+  const wrap=document.getElementById('qr-new-user-wrap');if(!wrap)return;
+  const srcCanvas=wrap.querySelector('canvas');
+  const srcImg=wrap.querySelector('img');
+  const source=srcCanvas||srcImg;
+  if(!source){showToast('Genera prima il QR','error');return;}
+  const qrSize=200;const padding=20;const textHeight=50;
+  const totalW=qrSize+padding*2;const totalH=qrSize+padding*2+textHeight;
+  const c=document.createElement('canvas');c.width=totalW;c.height=totalH;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,totalW,totalH);
+  if(srcCanvas)ctx.drawImage(srcCanvas,padding,padding,qrSize,qrSize);
+  else{const img=new Image();img.src=srcImg.src;ctx.drawImage(img,padding,padding,qrSize,qrSize);}
+  ctx.fillStyle='#065f46';ctx.font='bold 12px sans-serif';ctx.textAlign='center';
+  ctx.fillText('BodyEvents — Registrazione',totalW/2,qrSize+padding+20);
+  ctx.font='10px sans-serif';ctx.fillStyle='#666';
+  ctx.fillText('Scansiona per registrarti',totalW/2,qrSize+padding+38);
+  const a=document.createElement('a');a.download='bodyevents-registrazione.png';a.href=c.toDataURL('image/png');a.click();
+  showToast('QR registrazione scaricato!');
 }
 function populateQRSelect(){
   const sel=document.getElementById('qr-event-select');if(!sel)return;
@@ -5189,12 +5292,17 @@ function renderAttendance(){
   const ev=store.events.find(e=>e.id===evId);
   if(!ev){statsEl.innerHTML='';tableEl.innerHTML='<p class="txt3">Nessun evento selezionato</p>';return;}
 
+  // Determine if current user is capofila or partner
+  const isCapofila=isEventCapofila(ev,store.currentUser.id);
+  const isPartner=(ev.partnerIds||[]).includes(store.currentUser.id);
+  const canEditPayment=isCapofila; // Only capofila can edit payments
+  const canMarkAttendance=isCapofila||isPartner; // Both can mark attendance
+
   const bks=store.bookings.filter(b=>b.eventId===evId&&b.status!=='cancellata');
   const walkIns=bks.filter(b=>b.walkIn);
   const preBooked=bks.filter(b=>!b.walkIn);
-  // Estimate checked-in count from attendance records
-  const checkedIn=Math.min(Math.ceil(preBooked.length*0.7),preBooked.length);
-  const notArrived=preBooked.length-checkedIn;
+  const checkedIn=bks.filter(b=>b.checkedIn).length;
+  const notArrived=preBooked.length-preBooked.filter(b=>b.checkedIn).length;
 
   statsEl.innerHTML=`
     <div class="stat-card"><div class="value" style="color:var(--green)">${checkedIn}</div><div class="label">Presenti</div></div>
@@ -5211,44 +5319,67 @@ function renderAttendance(){
       return '<td class="text-xs" title="'+display+'">'+truncated+'</td>';
     }).join('');
   };
-  // Checked-in pre-booked
-  preBooked.slice(0,checkedIn).forEach((b,i)=>{
-    const time='14:'+String(50+i*3).padStart(2,'0');
-    const pay=b.paymentStatus==='pagato'?'Pagato':b.paymentStatus==='gratuito'?'Gratuito':b.depositStatus==='ricevuto'?'Anticipo OK':'In attesa';
-    rows+=`<tr>
-      <td><div class="flex items-center gap-2"><div class="avatar ${b.color||'avatar-green'}">${b.initials}</div><div><div class="font-medium text-white text-sm">${b.userName}</div><div class="text-xs txt3">${b.role?capitalize(b.role):''}</div></div></div></td>
-      <td><span class="text-xs" style="color:var(--green)">✅ ${time}</span></td>
-      <td><span class="badge badge-pubblicato">Prenotato</span></td>
-      <td><span class="text-xs txt3">${pay}</span></td>
-      ${surveyColsHtml(b)}
-    </tr>`;
+  const sessionsLabel=(b)=>{
+    if(!b.sessions||!b.sessions.length)return b.scope==='evento'?'Evento intero':'—';
+    return b.sessions.map(s=>s.name||s.sessionId).join(', ');
+  };
+  // Sort: checked-in first, then not arrived
+  const sortedBks=[...bks].sort((a,b)=>{
+    if(a.checkedIn&&!b.checkedIn)return -1;if(!a.checkedIn&&b.checkedIn)return 1;
+    if(a.walkIn&&!b.walkIn)return 1;if(!a.walkIn&&b.walkIn)return -1;return 0;
   });
-  // Walk-ins
-  walkIns.forEach((b,i)=>{
-    const time='15:'+String(5+i*4).padStart(2,'0');
-    const isNew=b.newUser;
-    rows+=`<tr style="background:rgba(217,70,239,.03)">
-      <td><div class="flex items-center gap-2"><div class="avatar avatar-brand">${isNew?'🆕':'🚶'}</div><div><div class="font-medium text-white text-sm">${b.userName}</div><div class="text-xs txt3">${isNew?'Nuovo iscritto':'Walk-in'}</div></div></div></td>
-      <td><span class="text-xs" style="color:var(--brand-l)">${isNew?'🆕':'🚶'} ${time}</span></td>
-      <td><span class="badge badge-purple">${isNew?'Walk-in (nuovo)':'Walk-in'}</span></td>
-      <td><span class="text-xs txt3">${b.paymentStatus==='gratuito'?'Gratuito':'Cash'}</span></td>
-      ${surveyColsHtml(b)}
-    </tr>`;
-  });
-  // Not yet arrived
-  preBooked.slice(checkedIn).forEach(b=>{
-    rows+=`<tr style="opacity:.45">
-      <td><div class="flex items-center gap-2"><div class="avatar" style="background:var(--s300);color:var(--txt3)">${b.initials}</div><div><div class="font-medium text-white text-sm">${b.userName}</div><div class="text-xs txt3">${b.role?capitalize(b.role):''}</div></div></div></td>
-      <td><span class="text-xs txt3">⏳ In attesa</span></td>
-      <td><span class="badge badge-bozza">Prenotato</span></td>
-      <td><span class="text-xs txt3">—</span></td>
+  sortedBks.forEach(b=>{
+    const isWalkin=b.walkIn;const isNew=b.newUser;
+    const isChecked=b.checkedIn;
+    const pay=b.paymentStatus==='pagato'?'Pagato':b.paymentStatus==='gratuito'?'Gratuito':b.depositStatus==='ricevuto'?'Anticipo OK':b.gift?'🎁 Regalo':'In attesa';
+    const checkinTime=b.checkinTime||'';
+    // Attendance toggle button
+    const attendBtn=canMarkAttendance?
+      (isChecked?
+        `<button class="btn btn-sm" style="font-size:.65rem;padding:3px 8px;background:var(--green-bg);color:var(--green);border:1px solid var(--green)" onclick="toggleAttendance('${b.id}',false)">✅ ${checkinTime||'Presente'}</button>`:
+        `<button class="btn btn-sm" style="font-size:.65rem;padding:3px 8px;background:var(--s200);color:var(--txt3)" onclick="toggleAttendance('${b.id}',true)">⬜ Segna presente</button>`
+      ):
+      (isChecked?`<span class="text-xs" style="color:var(--green)">✅ ${checkinTime||'Presente'}</span>`:'<span class="text-xs txt3">⏳ In attesa</span>');
+    // Payment actions (only capofila)
+    const payBtn=canEditPayment&&b.paymentStatus!=='pagato'&&b.paymentStatus!=='gratuito'?
+      `<div class="flex gap-1 flex-wrap"><span class="text-xs txt3">${pay}</span><button class="btn btn-sm" style="font-size:.6rem;padding:2px 6px;background:var(--green-bg);color:var(--green)" onclick="setBookingPayment('${b.id}','pagato')" title="Conferma pagamento">💰</button>${!b.gift?'<button class="btn btn-sm" style="font-size:.6rem;padding:2px 6px;background:var(--brand-bg);color:var(--brand-l)" onclick="setBookingPayment(\''+b.id+'\',\'regalo\')" title="Segna come regalo">🎁</button>':''}</div>`:
+      `<span class="text-xs txt3">${pay}</span>`;
+    const rowBg=isChecked?(isWalkin?'background:rgba(217,70,239,.03)':''):(isWalkin?'background:rgba(217,70,239,.03);opacity:.6':'opacity:.45');
+    const typeLabel=isNew?'Walk-in (nuovo)':isWalkin?'Walk-in':'Prenotato';
+    const typeBadge=isNew?'badge-purple':isWalkin?'badge-purple':isChecked?'badge-pubblicato':'badge-bozza';
+    const avatarClass=isNew?'avatar-brand':isWalkin?'avatar-brand':isChecked?(b.color||'avatar-green'):'';
+    const avatarStyle=!isChecked&&!isWalkin?'background:var(--s300);color:var(--txt3)':'';
+    rows+=`<tr style="${rowBg}">
+      <td><div class="flex items-center gap-2"><div class="avatar ${avatarClass}" ${avatarStyle?'style="'+avatarStyle+'"':''}>${isNew?'🆕':b.initials||'?'}</div><div><div class="font-medium text-white text-sm">${b.userName}</div><div class="text-xs txt3">${sessionsLabel(b)}</div></div></div></td>
+      <td>${attendBtn}</td>
+      <td><span class="badge ${typeBadge}">${typeLabel}</span></td>
+      <td>${payBtn}</td>
       ${surveyColsHtml(b)}
     </tr>`;
   });
   const surveyHeaderHtml=(ev.surveys||[]).map(sq=>'<th style="white-space:nowrap;font-size:.8rem">'+sq.question.substring(0,15)+(sq.question.length>15?'…':'')+'</th>').join('');
   const emptyColspan=4+(ev.surveys||[]).length;
   if(!rows)rows='<tr><td colspan="'+emptyColspan+'" class="text-center txt3" style="padding:20px">Nessuna prenotazione per questo evento</td></tr>';
-  tableEl.innerHTML=`<div class="card" style="padding:0;overflow:auto"><table class="table"><thead><tr><th>Utente</th><th>Check-in</th><th>Tipo</th><th>Pagamento</th>${surveyHeaderHtml}</tr></thead><tbody>${rows}</tbody></table></div>`;
+  const partnerNote=isPartner&&!isCapofila?'<div class="text-xs mb-3" style="color:var(--yellow);padding:8px 12px;background:rgba(234,179,8,.05);border-radius:8px">🤝 Sei partner di questo evento — puoi segnare le presenze ma non modificare lo stato dei pagamenti.</div>':'';
+  tableEl.innerHTML=partnerNote+`<div class="card" style="padding:0;overflow:auto"><table class="table"><thead><tr><th>Utente</th><th>Check-in</th><th>Tipo</th><th>Pagamento</th>${surveyHeaderHtml}</tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+// Toggle attendance for a booking (session-agnostic: marks all booked sessions)
+function toggleAttendance(bookingId,checkedIn){
+  const b=store.bookings.find(bk=>bk.id===bookingId);if(!b)return;
+  b.checkedIn=checkedIn;
+  b.checkinTime=checkedIn?new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}):'';
+  fsSet('bookings',b.id,b).catch(console.error);
+  renderAttendance();
+  showToast(checkedIn?'✅ Presenza registrata per '+b.userName:'Presenza rimossa per '+b.userName);
+}
+// Set booking payment status (only capofila)
+function setBookingPayment(bookingId,status){
+  const b=store.bookings.find(bk=>bk.id===bookingId);if(!b)return;
+  if(status==='regalo'){b.gift=true;b.paymentStatus='regalo';}
+  else{b.paymentStatus=status;}
+  fsSet('bookings',b.id,b).catch(console.error);
+  renderAttendance();
+  showToast('Stato pagamento aggiornato per '+b.userName);
 }
 
 function renderCheckinA(){
@@ -5261,16 +5392,22 @@ function renderCheckinA(){
   const d0=ev.days[0];
   const amount=bk?bk.amount:0;
   const payStatus=bk?(bk.paymentStatus==='gratuito'?'Gratuito':bk.paymentStatus==='pagato'?'Pagato':'In attesa'):'—';
+  // Session-agnostic: show all sessions the user is booked for
+  const sessionsInfo=bk&&bk.sessions&&bk.sessions.length?bk.sessions.map(s=>'<div class="text-xs mt-1" style="color:var(--green)">✅ '+s.name+'</div>').join(''):'<div class="text-xs mt-1" style="color:var(--green)">✅ Evento intero</div>';
   c.innerHTML=`
     <div style="font-size:4rem;margin-bottom:16px">✅</div>
     <h1 class="text-2xl font-bold text-white" style="margin-bottom:8px">Benvenuto!</h1>
-    <p class="txt3 mb-6">Check-in completato automaticamente</p>
+    <p class="txt3 mb-6">Check-in completato automaticamente per tutte le sessioni prenotate</p>
     <div class="card mb-4" style="text-align:left;border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.05)">
       <div class="flex gap-2 mb-2"><span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span><span class="badge badge-pubblicato">Check-in OK</span></div>
       <h3 class="font-semibold text-white">${ev.title}</h3>
       <div class="text-xs txt3 mt-2">📅 ${d0?fmtDate(d0.date)+' · '+d0.startTime+' — '+d0.endTime:''}</div>
       ${amount>0?`<div class="text-xs txt3 mt-1">💰 €${amount}</div>`:'<div class="text-xs txt3 mt-1">🆓 Gratuito</div>'}
       <div class="text-xs txt3 mt-1">💳 Pagamento: ${payStatus}</div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(16,185,129,.2)">
+        <div class="text-xs font-medium" style="color:var(--green)">Presenze registrate:</div>
+        ${sessionsInfo}
+      </div>
     </div>
     <p class="text-xs txt3 mb-4" style="font-style:italic">Il check-in è stato registrato. Buona pratica!</p>
     <button class="btn btn-secondary w-full" onclick="go('events')">← Torna agli eventi</button>`;
@@ -8151,7 +8288,7 @@ function onPricingModeChange(){
   // Hide/show payment methods & deposit sections
   document.querySelectorAll('#ne-form .card.mb-4').forEach(card=>{
     const h3=card.querySelector('h3');
-    if(h3&&(h3.textContent.includes('Metodi di pagamento')||h3.textContent.includes('Anticipo per conferma')||h3.textContent.includes('Sconti e Abbonamenti'))){
+    if(h3&&(h3.textContent.includes('Metodi di pagamento'))){
       card.style.display=hidden?'none':'';
     }
   });
@@ -9042,8 +9179,8 @@ function editEvent(id){
   // Restore booking deadline
   const bdEl=document.getElementById('ne-booking-deadline');
   if(bdEl&&ev.bookingDeadline){bdEl.value=ev.bookingDeadline;bdEl._userEdited=true;}
-  // Auto-open advanced options panel if any advanced option is active
-  if((ev.deposit&&ev.deposit.required)||ev.freeEvent||ev.costsManagedByOrg||(ev.survey&&ev.survey.length)){
+  // Auto-open advanced options panel if survey is present
+  if(ev.surveys&&ev.surveys.length){
     const advPanel=document.getElementById('ne-advanced-opts');
     const advToggle=document.getElementById('ne-adv-toggle');
     if(advPanel)advPanel.classList.remove('hidden');
