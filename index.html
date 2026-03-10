@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.5.5</title>
+<title>BodyEvents — V2.5.7</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤸</text></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -240,6 +240,15 @@ textarea.input{resize:none;font-family:inherit}
 .ob-infocard-highlight{background:linear-gradient(135deg,rgba(168,96,142,.18),rgba(168,96,142,.06));border:1.5px solid rgba(168,96,142,.5);padding:18px 20px}
 .ob-infocard-highlight .ob-infocard-icon{font-size:1.6rem}
 .ob-infocard-highlight .ob-infocard-text{font-size:.85rem;line-height:1.65;color:var(--txt)}
+/* Tier suggestion banner */
+.tier-suggest-banner{position:fixed;top:0;left:0;right:0;z-index:9999;transform:translateY(-100%);transition:transform .45s cubic-bezier(.4,0,.2,1);pointer-events:none}
+.tier-suggest-banner.visible{transform:translateY(0);pointer-events:auto}
+.tier-suggest-banner-inner{max-width:640px;margin:0 auto;padding:18px 44px 18px 20px;background:linear-gradient(135deg,rgba(168,96,142,.94),rgba(120,88,160,.94));backdrop-filter:blur(12px);border-bottom-left-radius:16px;border-bottom-right-radius:16px;box-shadow:0 6px 28px rgba(0,0,0,.35);position:relative}
+.tier-suggest-banner .tsb-icon{font-size:1.4rem;margin-right:10px;flex-shrink:0}
+.tier-suggest-banner .tsb-text{font-size:.82rem;line-height:1.65;color:#fff}
+.tier-suggest-banner .tsb-close{position:absolute;top:8px;right:10px;background:none;border:none;color:rgba(255,255,255,.7);font-size:1.1rem;cursor:pointer;padding:4px 8px;border-radius:6px;transition:color .2s}
+.tier-suggest-banner .tsb-close:hover{color:#fff}
+.tier-suggest-banner .tsb-progress{position:absolute;bottom:0;left:0;height:3px;background:rgba(255,255,255,.35);border-radius:0 0 16px 16px;transition:width .1s linear}
 .ob-help-btn{position:fixed;bottom:80px;right:16px;width:40px;height:40px;border-radius:50%;background:var(--s200);border:1px solid var(--s400);color:var(--txt2);font-size:1rem;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:100;box-shadow:0 4px 16px rgba(0,0,0,.3);transition:all .15s}
 .ob-help-btn:hover{background:var(--brand-d);color:#fff;border-color:var(--brand)}
 .view-toggle{display:inline-flex;border-radius:10px;overflow:hidden;border:1px solid var(--s400);background:var(--s200)}
@@ -254,7 +263,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.5.5</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.5.7</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -1163,7 +1172,7 @@ textarea.input{resize:none;font-family:inherit}
       </div>
       <div class="flex items-center gap-2 mb-2" style="cursor:pointer" onclick="this.nextElementSibling.classList.toggle('hidden');this.querySelector('.toggle-arrow').textContent=this.nextElementSibling.classList.contains('hidden')?'▸':'▾'" id="ne-loyalty-event-toggle">
         <span class="toggle-arrow text-xs" style="color:var(--txt3)">▸</span>
-        <span class="text-xs" style="color:var(--txt3)">🎁 Sconto combinato con altri eventi</span>
+        <span class="text-xs" style="color:var(--txt3)">🎁 Sconto combinato con abbonamenti ed eventi</span>
         <span class="text-xs txt3">(clicca per espandere)</span>
       </div>
       <div class="hidden" id="ne-loyalty-event-section">
@@ -1249,6 +1258,33 @@ textarea.input{resize:none;font-family:inherit}
       </div>
     </div>
 
+    <!-- Integrazione Abbonamenti (visible section) -->
+    <div class="card mb-4">
+      <h3 class="font-semibold text-white mb-3">🎁 Sconti e Abbonamenti</h3>
+      <p class="text-xs txt3 mb-4" style="line-height:1.5">Collega abbonamenti a questo evento. Puoi permettere l'uso di <b style="color:var(--txt)">ingressi</b> (scala dall'abbonamento) e/o applicare uno <b style="color:var(--txt)">sconto</b> sul prezzo (senza consumare ingressi).</p>
+      <div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--s300)">
+        <label class="flex items-center gap-2 text-sm mb-3" style="cursor:pointer"><input type="checkbox" id="ne-sub-bookable" onchange="document.getElementById('ne-sub-bookable-opts').classList.toggle('hidden')"> 🎟️ Prenotabile con ingressi abbonamento</label>
+        <div id="ne-sub-bookable-opts" class="hidden mb-3">
+          <label class="label">Tipologie abbonamento accettate</label>
+          <div id="ne-sub-bookable-types" class="flex flex-wrap gap-2 mb-2"></div>
+          <p class="text-xs txt3">L'utente potrà usare un ingresso del proprio abbonamento per prenotare questo evento, senza pagare.</p>
+        </div>
+      </div>
+      <div>
+        <label class="flex items-center gap-2 text-sm mb-3" style="cursor:pointer"><input type="checkbox" id="ne-sub-discount" onchange="document.getElementById('ne-sub-discount-opts').classList.toggle('hidden')"> 💰 Prezzo scontato per abbonati</label>
+        <div id="ne-sub-discount-opts" class="hidden">
+          <label class="label">Tipologie abbonamento per sconto</label>
+          <div id="ne-sub-discount-types" class="flex flex-wrap gap-2 mb-2"></div>
+          <div class="grid grid-3 gap-3 mb-2">
+            <div><label class="label">✦ Sostenitore (€)</label><input class="input" id="ne-sub-disc-alto" type="number" placeholder="es. 20"></div>
+            <div><label class="label">● Standard (€)</label><input class="input" id="ne-sub-disc-medio" type="number" placeholder="es. 15"></div>
+            <div><label class="label">○ Ridotto (€)</label><input class="input" id="ne-sub-disc-basso" type="number" placeholder="es. 10"></div>
+          </div>
+          <p class="text-xs txt3">I possessori di un abbonamento compatibile vedranno i prezzi scontati <b>senza consumare ingressi</b>.</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Opzioni avanzate (collapsible) -->
     <div class="card mb-4" style="padding:0;overflow:hidden">
       <div style="padding:12px 16px;text-align:center;border-bottom:1px solid var(--s300)">
@@ -1297,28 +1333,6 @@ textarea.input{resize:none;font-family:inherit}
               <div><label class="label">Causale da inserire nel versamento *</label><input class="input" id="ne-deposit-causal" placeholder="es. Anticipo Weekend Intensive - Nome Cognome"></div>
             </div>
             <p class="text-xs txt3" style="line-height:1.6">L'utente vedrà la richiesta di anticipo al momento della prenotazione. La prenotazione resterà in stato <span style="color:var(--yellow)">⏳ In attesa di anticipo</span> fino a che non confermerai la ricezione dalla pagina prenotazioni.</p>
-          </div>
-        </div>
-
-        <!-- Subscription integration -->
-        <div>
-          <h3 class="font-semibold text-white mb-3" style="font-size:.9rem">💳 Integrazione Abbonamenti</h3>
-          <label class="flex items-center gap-2 text-sm mb-3" style="cursor:pointer"><input type="checkbox" id="ne-sub-bookable" onchange="document.getElementById('ne-sub-bookable-opts').classList.toggle('hidden')"> Prenotabile con ingressi abbonamento</label>
-          <div id="ne-sub-bookable-opts" class="hidden mb-3">
-            <label class="label">Tipologie abbonamento accettate</label>
-            <div id="ne-sub-bookable-types" class="flex flex-wrap gap-2 mb-2"></div>
-            <p class="text-xs txt3">L'utente potrà usare un ingresso del proprio abbonamento per prenotare.</p>
-          </div>
-          <label class="flex items-center gap-2 text-sm mb-3" style="cursor:pointer"><input type="checkbox" id="ne-sub-discount" onchange="document.getElementById('ne-sub-discount-opts').classList.toggle('hidden')"> Prezzo scontato per abbonati</label>
-          <div id="ne-sub-discount-opts" class="hidden">
-            <label class="label">Tipologie abbonamento per sconto</label>
-            <div id="ne-sub-discount-types" class="flex flex-wrap gap-2 mb-2"></div>
-            <div class="grid grid-3 gap-3 mb-2">
-              <div><label class="label">Sostenitore (€)</label><input class="input" id="ne-sub-disc-alto" type="number" placeholder="es. 20"></div>
-              <div><label class="label">Standard (€)</label><input class="input" id="ne-sub-disc-medio" type="number" placeholder="es. 15"></div>
-              <div><label class="label">Ridotto (€)</label><input class="input" id="ne-sub-disc-basso" type="number" placeholder="es. 10"></div>
-            </div>
-            <p class="text-xs txt3">I possessori di un abbonamento compatibile vedranno i prezzi scontati senza consumare ingressi.</p>
           </div>
         </div>
 
@@ -2065,6 +2079,69 @@ function _obSet(k){const f=_obFlags();f[k]=true;localStorage.setItem(OB_KEY,JSON
 function obSeen(k){return !!_obFlags()[k];}
 function obReset(){localStorage.removeItem(OB_KEY);}
 
+// === TIER SUGGESTION BANNER ===
+const TSB_KEY='tsb_tier_suggest';
+let _tsbShownThisSession=false;
+let _tsbTimer=null;
+let _tsbProgressInterval=null;
+
+function _tsbData(){
+  try{const d=JSON.parse(localStorage.getItem(TSB_KEY));return d||{};}catch(e){return {};}
+}
+function _tsbSave(d){localStorage.setItem(TSB_KEY,JSON.stringify(d));}
+
+function checkTierSuggestionBanner(){
+  // Only in NEW event flow, not edit
+  if(editingEventId)return;
+  // Only show once per creation session
+  if(_tsbShownThisSession)return;
+  // Check eligibility: 14-day cooldown
+  const data=_tsbData();
+  const lastShown=data.lastShownAt?new Date(data.lastShownAt):null;
+  const shownCount=data.shownCount||0;
+  if(lastShown){
+    const daysSince=(Date.now()-lastShown.getTime())/(1000*60*60*24);
+    if(daysSince<14)return;
+  }
+  // Eligible — show banner
+  _tsbShownThisSession=true;
+  const isReduced=shownCount>=3;
+  const textFull='Se vuoi, puoi aggiungere altri 2 livelli di prezzo: <b>Sostenitore</b> e <b>Ridotto</b>. È un modo per rendere l\'evento più accessibile ad alcuni e, allo stesso tempo, permettere a chi può di contribuire un po\' di più. Gli utenti potranno scegliere liberamente, e verrà spiegato loro con chiarezza che l\'esperienza è la stessa per tutti. Richiede fiducia, lo sappiamo, ma le comunità si rafforzano anche così: una delle opzioni è partire da qui.';
+  const textShort='Ricordati che puoi aggiungere il livello di prezzo <b>Sostenitore</b> e <b>Ridotto</b> per stimolare una scelta etica nella comunità.';
+  const textEl=document.getElementById('tsb-text');
+  const banner=document.getElementById('tier-suggest-banner');
+  if(!textEl||!banner)return;
+  textEl.innerHTML=isReduced?textShort:textFull;
+  // Update persistence
+  _tsbSave({lastShownAt:new Date().toISOString(),shownCount:shownCount+1});
+  // Show with slide-in animation
+  requestAnimationFrame(()=>{
+    banner.classList.add('visible');
+    // Progress bar countdown
+    const progressEl=document.getElementById('tsb-progress');
+    const duration=10000;
+    const startTime=Date.now();
+    if(progressEl){
+      progressEl.style.width='100%';
+      _tsbProgressInterval=setInterval(()=>{
+        const elapsed=Date.now()-startTime;
+        const pct=Math.max(0,100-elapsed/duration*100);
+        progressEl.style.width=pct+'%';
+        if(pct<=0)clearInterval(_tsbProgressInterval);
+      },50);
+    }
+    // Auto-dismiss after 10 seconds
+    _tsbTimer=setTimeout(()=>dismissTierBanner(),duration);
+  });
+}
+
+function dismissTierBanner(){
+  const banner=document.getElementById('tier-suggest-banner');
+  if(banner)banner.classList.remove('visible');
+  if(_tsbTimer){clearTimeout(_tsbTimer);_tsbTimer=null;}
+  if(_tsbProgressInterval){clearInterval(_tsbProgressInterval);_tsbProgressInterval=null;}
+}
+
 // === TOUR DEFINITIONS ===
 const OB_TOURS={
   // --- WELCOME TOUR (post-registration) ---
@@ -2379,6 +2456,27 @@ function getUserSubscribedUniverseIds(){
 }
 
 // Propose new universe (manager)
+// === TRIPLE CONFIRM FOR UNIVERSE OPERATIONS ===
+function tripleConfirmUniverse(actionLabel,callback){
+  const steps=[
+    {title:'⚠️ Conferma operazione',text:'Stai per: <b>'+actionLabel+'</b>.<br>Questa azione modifica gli universi della piattaforma.',btn:'Continua'},
+    {title:'🔒 Seconda conferma',text:'Le modifiche agli universi impattano <b>tutti gli utenti e gli eventi</b> della piattaforma. Sei sicuro di voler procedere?',btn:'Sì, procedi'},
+    {title:'✅ Conferma finale',text:'Ultima conferma: confermi definitivamente l\'operazione <b>'+actionLabel+'</b>?',btn:'Conferma definitiva'}
+  ];
+  let step=0;
+  function showStep(){
+    const existing=document.getElementById('triple-confirm-overlay');if(existing)existing.remove();
+    if(step>=3){callback();return;}
+    const s=steps[step];
+    const o=document.createElement('div');o.className='overlay';o.id='triple-confirm-overlay';
+    o.innerHTML='<div class="dialog" style="max-width:420px;width:90%;text-align:center;padding:32px"><div style="font-size:2rem;margin-bottom:12px">'+s.title.split(' ')[0]+'</div><h3 class="font-semibold text-white mb-3" style="font-size:1.1rem">'+s.title.substring(s.title.indexOf(' ')+1)+'</h3><p class="text-sm txt2 mb-5" style="line-height:1.6">'+s.text+'</p><div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:center;margin-top:8px"><span class="text-xs txt3">Passaggio '+(step+1)+' di 3</span></div><div class="flex gap-3 mt-4" style="justify-content:center"><button class="btn btn-ghost btn-sm" onclick="document.getElementById(\'triple-confirm-overlay\').remove()">Annulla</button><button class="btn btn-primary btn-sm" id="tc-next-btn">'+s.btn+'</button></div></div>';
+    document.body.appendChild(o);
+    o.addEventListener('click',e=>{if(e.target===o)o.remove()});
+    o.querySelector('#tc-next-btn').onclick=()=>{step++;showStep();};
+  }
+  showStep();
+}
+
 async function proposeUniverse(name,emoji,color,roles){
   const univId=genId('univ');
   const univ={id:univId,name:name,emoji:emoji||'🌐',color:color||UNIVERSE_PALETTE[store.universes.length%UNIVERSE_PALETTE.length],roles:roles||[],pendingRoles:[],status:'pending',createdBy:store.currentUser.id,approvedBy:null,createdAt:new Date().toISOString()};
@@ -2389,60 +2487,60 @@ async function proposeUniverse(name,emoji,color,roles){
 }
 
 // Approve universe (master only)
-async function approveUniverse(univId){
-  const univ=store.universes.find(u=>u.id===univId);
-  if(!univ)return;
-  univ.status='active';univ.approvedBy=store.currentUser.id;univ.approvedAt=new Date().toISOString();
-  await fsUpdate('universes',univId,{status:'active',approvedBy:univ.approvedBy,approvedAt:univ.approvedAt});
-  // Auto-add to ALL users
-  for(const user of store.users){
-    if(!user.subscribedUniverses)user.subscribedUniverses=[];
-    if(!user.subscribedUniverses.find(s=>s.universeId===univId)){
-      user.subscribedUniverses.push({universeId:univId,preferredRole:univ.roles[0]||''});
-      fsUpdate('users',user.id,{subscribedUniverses:user.subscribedUniverses}).catch(console.error);
+function approveUniverse(univId){
+  const univ=store.universes.find(u=>u.id===univId);if(!univ)return;
+  tripleConfirmUniverse('Approvare l\'universo "'+univ.name+'"',async()=>{
+    univ.status='active';univ.approvedBy=store.currentUser.id;univ.approvedAt=new Date().toISOString();
+    await fsUpdate('universes',univId,{status:'active',approvedBy:univ.approvedBy,approvedAt:univ.approvedAt});
+    for(const user of store.users){
+      if(!user.subscribedUniverses)user.subscribedUniverses=[];
+      if(!user.subscribedUniverses.find(s=>s.universeId===univId)){
+        user.subscribedUniverses.push({universeId:univId,preferredRole:univ.roles[0]||''});
+        fsUpdate('users',user.id,{subscribedUniverses:user.subscribedUniverses}).catch(console.error);
+      }
     }
-  }
-  // Also update currentUser if is a regular user
-  if(!store.currentUser.subscribedUniverses)store.currentUser.subscribedUniverses=[];
-  if(!store.currentUser.subscribedUniverses.find(s=>s.universeId===univId)){
-    store.currentUser.subscribedUniverses.push({universeId:univId,preferredRole:univ.roles[0]||''});
-  }
-  showToast('Universo "'+univ.name+'" approvato e aggiunto a tutti gli utenti!');
-  if(currentView==='admin-universes')renderAdminUniversesView();
+    if(!store.currentUser.subscribedUniverses)store.currentUser.subscribedUniverses=[];
+    if(!store.currentUser.subscribedUniverses.find(s=>s.universeId===univId)){
+      store.currentUser.subscribedUniverses.push({universeId:univId,preferredRole:univ.roles[0]||''});
+    }
+    showToast('Universo "'+univ.name+'" approvato e aggiunto a tutti gli utenti!');
+    if(currentView==='admin-universes')renderAdminUniversesView();
+  });
 }
 
 // Reject universe (master only)
-async function rejectUniverse(univId){
-  if(!confirm('Rifiutare questo universo?'))return;
-  await fsDelete('universes',univId);
-  store.universes=store.universes.filter(u=>u.id!==univId);
-  showToast('Universo rifiutato');
-  if(currentView==='admin-universes')renderAdminUniversesView();
+function rejectUniverse(univId){
+  const univ=store.universes.find(u=>u.id===univId);if(!univ)return;
+  tripleConfirmUniverse('Rifiutare l\'universo "'+univ.name+'"',async()=>{
+    await fsDelete('universes',univId);
+    store.universes=store.universes.filter(u=>u.id!==univId);
+    showToast('Universo rifiutato');
+    if(currentView==='admin-universes')renderAdminUniversesView();
+  });
 }
 
 // Handle propose or create universe from admin panel
-async function handleProposeOrCreateUniverse(){
+function handleProposeOrCreateUniverse(){
   const name=document.getElementById('propose-univ-name').value.trim();
   if(!name){showToast('Inserisci un nome per l\'universo!','error');return;}
   const emoji=document.getElementById('propose-univ-emoji').value.trim()||'🌐';
   const color=document.getElementById('propose-univ-color').value||UNIVERSE_PALETTE[store.universes.length%UNIVERSE_PALETTE.length];
   const rolesRaw=document.getElementById('propose-univ-roles').value.trim();
   const roles=rolesRaw?rolesRaw.split(',').map(r=>r.trim()).filter(Boolean):[];
-  // Check duplicate name
   if(store.universes.find(u=>u.name.toLowerCase()===name.toLowerCase())){showToast('Esiste già un universo con questo nome','error');return;}
   const isMaster=store.currentUser.role==='master';
-  if(isMaster){
-    // Master creates directly as active
-    await createUniverseDirect(name,emoji,color,roles);
-  }else{
-    // Regular manager proposes (pending)
-    await proposeUniverse(name,emoji,color,roles);
-  }
-  // Clear form
-  document.getElementById('propose-univ-name').value='';
-  document.getElementById('propose-univ-emoji').value='';
-  document.getElementById('propose-univ-roles').value='';
-  if(currentView==='admin-universes')renderAdminUniversesView();
+  const actionLabel=isMaster?'Creare l\'universo "'+name+'"':'Proporre l\'universo "'+name+'"';
+  tripleConfirmUniverse(actionLabel,async()=>{
+    if(isMaster){
+      await createUniverseDirect(name,emoji,color,roles);
+    }else{
+      await proposeUniverse(name,emoji,color,roles);
+    }
+    document.getElementById('propose-univ-name').value='';
+    document.getElementById('propose-univ-emoji').value='';
+    document.getElementById('propose-univ-roles').value='';
+    if(currentView==='admin-universes')renderAdminUniversesView();
+  });
 }
 
 // Master creates universe directly as active
@@ -2474,38 +2572,41 @@ async function createUniverseDirect(name,emoji,color,roles){
 }
 
 // Propose role for existing universe (any manager in that universe)
-async function proposeRoleForUniverse(univId,roleName){
-  const univ=store.universes.find(u=>u.id===univId);
-  if(!univ)return;
+function proposeRoleForUniverse(univId,roleName){
+  const univ=store.universes.find(u=>u.id===univId);if(!univ)return;
   roleName=roleName.trim();
   if(!roleName){showToast('Inserisci un nome per il ruolo','error');return;}
   if(univ.roles.includes(roleName)){showToast('Questo ruolo esiste già','error');return;}
   if(!univ.pendingRoles)univ.pendingRoles=[];
   if(univ.pendingRoles.find(r=>r.name===roleName)){showToast('Questo ruolo è già stato proposto','error');return;}
-  univ.pendingRoles.push({name:roleName,proposedBy:store.currentUser.id});
-  await fsUpdate('universes',univId,{pendingRoles:univ.pendingRoles});
-  showToast('Ruolo "'+roleName+'" proposto — in attesa di approvazione');
+  tripleConfirmUniverse('Proporre il ruolo "'+roleName+'" per l\'universo "'+univ.name+'"',async()=>{
+    univ.pendingRoles.push({name:roleName,proposedBy:store.currentUser.id});
+    await fsUpdate('universes',univId,{pendingRoles:univ.pendingRoles});
+    showToast('Ruolo "'+roleName+'" proposto — in attesa di approvazione');
+  });
 }
 
 // Approve role (master only)
-async function approveRole(univId,roleName){
-  const univ=store.universes.find(u=>u.id===univId);
-  if(!univ)return;
-  if(!univ.roles.includes(roleName))univ.roles.push(roleName);
-  univ.pendingRoles=(univ.pendingRoles||[]).filter(r=>r.name!==roleName);
-  await fsUpdate('universes',univId,{roles:univ.roles,pendingRoles:univ.pendingRoles});
-  showToast('Ruolo "'+roleName+'" approvato!');
-  if(currentView==='admin-universes')renderAdminUniversesView();
+function approveRole(univId,roleName){
+  const univ=store.universes.find(u=>u.id===univId);if(!univ)return;
+  tripleConfirmUniverse('Approvare il ruolo "'+roleName+'" nell\'universo "'+univ.name+'"',async()=>{
+    if(!univ.roles.includes(roleName))univ.roles.push(roleName);
+    univ.pendingRoles=(univ.pendingRoles||[]).filter(r=>r.name!==roleName);
+    await fsUpdate('universes',univId,{roles:univ.roles,pendingRoles:univ.pendingRoles});
+    showToast('Ruolo "'+roleName+'" approvato!');
+    if(currentView==='admin-universes')renderAdminUniversesView();
+  });
 }
 
 // Reject role (master only)
-async function rejectRole(univId,roleName){
-  const univ=store.universes.find(u=>u.id===univId);
-  if(!univ)return;
-  univ.pendingRoles=(univ.pendingRoles||[]).filter(r=>r.name!==roleName);
-  await fsUpdate('universes',univId,{pendingRoles:univ.pendingRoles});
-  showToast('Ruolo rifiutato');
-  if(currentView==='admin-universes')renderAdminUniversesView();
+function rejectRole(univId,roleName){
+  const univ=store.universes.find(u=>u.id===univId);if(!univ)return;
+  tripleConfirmUniverse('Rifiutare il ruolo "'+roleName+'" dall\'universo "'+univ.name+'"',async()=>{
+    univ.pendingRoles=(univ.pendingRoles||[]).filter(r=>r.name!==roleName);
+    await fsUpdate('universes',univId,{pendingRoles:univ.pendingRoles});
+    showToast('Ruolo rifiutato');
+    if(currentView==='admin-universes')renderAdminUniversesView();
+  });
 }
 
 // Toggle universe subscription for current user (handles both users and managers)
@@ -2703,25 +2804,22 @@ function openEditUniverseModal(univId){
   o.addEventListener('click',e=>{if(e.target===o)o.remove()});
 }
 
-async function saveUniverseEdit(overlay,univId){
+function saveUniverseEdit(overlay,univId){
   const name=(document.getElementById('eu-name')?.value||'').trim();
   if(!name){showToast('Inserisci un nome','error');return;}
   const emoji=(document.getElementById('eu-emoji')?.value||'🌐').trim();
-  const color=document.getElementById('eu-color')?.value||'#10b981';
+  const color=document.getElementById('eu-color')?.value||'#D07840';
   const rolesRaw=(document.getElementById('eu-roles')?.value||'').trim();
   const roles=rolesRaw?rolesRaw.split(',').map(r=>r.trim()).filter(Boolean):[];
-  // Check duplicate name (excluding self)
   if(store.universes.find(u=>u.id!==univId&&u.name.toLowerCase()===name.toLowerCase())){showToast('Esiste già un universo con questo nome','error');return;}
-  const u=store.universes.find(x=>x.id===univId);
-  if(!u)return;
-  const oldColor=u.color;
-  Object.assign(u,{name,emoji,color,roles});
-  await fsUpdate('universes',univId,{name,emoji,color,roles}).catch(console.error);
-  // If color changed, update UNIVERSE_PALETTE reference for consistency
-  // Also update events that reference this universe (cosmetic only, colors are looked up dynamically)
-  overlay.remove();
-  showToast('Universo "'+name+'" aggiornato!');
-  renderAdminUniversesView();
+  const u=store.universes.find(x=>x.id===univId);if(!u)return;
+  tripleConfirmUniverse('Modificare l\'universo "'+u.name+'"',async()=>{
+    Object.assign(u,{name,emoji,color,roles});
+    await fsUpdate('universes',univId,{name,emoji,color,roles}).catch(console.error);
+    overlay.remove();
+    showToast('Universo "'+name+'" aggiornato!');
+    renderAdminUniversesView();
+  });
 }
 
 // Populate universe dropdown for event creation form (toggle buttons)
@@ -3627,7 +3725,7 @@ function go(view){
   if(view==='checkin-booked') renderCheckinA();
   if(view==='checkin-walkin') renderCheckinB();
   if(view==='checkin-new') renderCheckinC();
-  if(view==='admin-new-event'&&!editingEventId){restoreFormTitle();initEventDates();populateEventUniverseDropdown();populateSubTypeCheckboxes();setTimeout(()=>{obShowTour('tour_new_event');setTimeout(()=>obShowInfoCard('ic_admin_new_event','admin-new-event-form'),300);},400);}
+  if(view==='admin-new-event'&&!editingEventId){_tsbShownThisSession=false;dismissTierBanner();restoreFormTitle();initEventDates();populateEventUniverseDropdown();populateSubTypeCheckboxes();setTimeout(()=>{obShowTour('tour_new_event');setTimeout(()=>obShowInfoCard('ic_admin_new_event','admin-new-event-form'),300);},400);}
   if(view==='admin-new-event'&&editingEventId){populateEventUniverseDropdown();populateSubTypeCheckboxes();}
   if(view==='admin-subscriptions'){renderAdminSubscriptions();}
   if(view==='admin-universes'){renderAdminUniversesView();setTimeout(()=>obShowTour('tour_admin_universes'),400);}
@@ -6283,7 +6381,7 @@ function showEventDetail(evId){
         daysHtml+=renderEarlyBirdGrid(day.earlyBird,'tier-ebday-'+ev.id+'-'+di,ev.id);
         if(day.loyaltyTiers){
           daysHtml+=`<div class="card mb-2" style="background:rgba(168,85,247,.05);border-color:var(--purple);padding:12px">
-            <div class="text-xs mb-1" style="color:var(--txt3)">🎁 Sconto combinato con altri eventi</div>
+            <div class="text-xs mb-1" style="color:var(--txt3)">🎁 Sconto combinato con abbonamenti ed eventi</div>
             <div class="text-xs txt3 mb-2">Per chi ha partecipato a: ${(day.loyaltyRequiredEvents||[]).join(', ')||'eventi indicati'}</div>
             <div class="tier-grid" id="tier-lday-${ev.id}-${di}">
               ${buildTierBtns(day.loyaltyTiers,'tier-lday-'+ev.id+'-'+di,null,ev.id)}
@@ -6311,7 +6409,7 @@ function showEventDetail(evId){
         daysHtml+=renderEarlyBirdGrid(day.earlyBird,'tier-ebday-'+ev.id+'-'+di,ev.id);
         if(day.loyaltyTiers){
           daysHtml+=`<div class="card mb-2" style="background:rgba(168,85,247,.05);border-color:var(--purple);padding:12px">
-            <div class="text-xs mb-1" style="color:var(--txt3)">🎁 Sconto combinato con altri eventi</div>
+            <div class="text-xs mb-1" style="color:var(--txt3)">🎁 Sconto combinato con abbonamenti ed eventi</div>
             <div class="text-xs txt3 mb-2">Per chi ha partecipato a: ${(day.loyaltyRequiredEvents||[]).join(', ')||'eventi indicati'}</div>
             <div class="tier-grid" id="tier-lday-${ev.id}-${di}">
               ${buildTierBtns(day.loyaltyTiers,'tier-lday-'+ev.id+'-'+di,null,ev.id)}
@@ -7369,17 +7467,18 @@ function onPricingModeChange(){
   // Hide/show payment methods & deposit sections
   document.querySelectorAll('#ne-form .card.mb-4').forEach(card=>{
     const h3=card.querySelector('h3');
-    if(h3&&(h3.textContent.includes('Metodi di pagamento')||h3.textContent.includes('Anticipo per conferma'))){
+    if(h3&&(h3.textContent.includes('Metodi di pagamento')||h3.textContent.includes('Anticipo per conferma')||h3.textContent.includes('Sconti e Abbonamenti'))){
       card.style.display=hidden?'none':'';
     }
   });
   // Re-render form days to update pricing visibility
   renderFormDays();
 }
+let _skipNextSaveFormState=false;
 function renderFormDays(){
   const c=document.getElementById('ne-days-container');if(!c)return;
-  // Save current state before re-rendering
-  saveFormState();
+  // Save current state before re-rendering (skip if just loaded from editEvent)
+  if(_skipNextSaveFormState){_skipNextSaveFormState=false;}else{saveFormState();}
   const hidePricing=isPricingHidden();
   c.innerHTML=formDays.map((day,di)=>{
     const dayDate=getDayDate(di);
@@ -7464,7 +7563,7 @@ function renderFormDays(){
         <!-- Sconto combinato -->
         <div class="flex items-center gap-2 mb-2" style="cursor:pointer" onclick="this.nextElementSibling.classList.toggle('hidden');this.querySelector('.toggle-arrow').textContent=this.nextElementSibling.classList.contains('hidden')?'▸':'▾'">
           <span class="toggle-arrow text-xs" style="color:var(--txt3)">${(dlt.alto||dlt.medio||dlt.basso)?'▾':'▸'}</span>
-          <span class="text-xs" style="color:var(--txt3)">🎁 Sconto combinato con altri eventi</span>
+          <span class="text-xs" style="color:var(--txt3)">🎁 Sconto combinato con abbonamenti ed eventi</span>
           <span class="text-xs txt3">(clicca per espandere)</span>
         </div>
         <div class="${(dlt.alto||dlt.medio||dlt.basso)?'':'hidden'}">
@@ -7793,7 +7892,7 @@ function collectFormData(){
     const dayDate=getDayDate(di);
     const sessions=fd.sessions.map((s,si)=>{
       return {
-        id:genId('s'),
+        id:s._origId||genId('s'),
         name:document.querySelector(`.ne-s-name[data-di="${di}"][data-si="${si}"]`)?.value||'Sessione',
         startTime:document.querySelector(`.ne-s-start[data-di="${di}"][data-si="${si}"]`)?.value||'10:00',
         endTime:document.querySelector(`.ne-s-end[data-di="${di}"][data-si="${si}"]`)?.value||'12:30',
@@ -8065,20 +8164,21 @@ function editEvent(id){
     document.getElementById('ne-deposit-amount').value=ev.deposit.amount||'';
     document.getElementById('ne-deposit-causal').value=ev.deposit.causal||'';
   }
-  // Subscription settings
+  // Subscription settings — populate buttons first, then restore selections
+  populateSubTypeCheckboxes();
   if(ev.subscriptionBookable?.enabled){
     const sbEl=document.getElementById('ne-sub-bookable');
     if(sbEl){sbEl.checked=true;document.getElementById('ne-sub-bookable-opts')?.classList.remove('hidden');}
-    setTimeout(()=>{(ev.subscriptionBookable.typeIds||[]).forEach(tid=>{const btn=document.querySelector('#ne-sub-bookable-types .ne-subtype-sel[data-id="'+tid+'"]');if(btn){btn.classList.add('selected');btn.style.background='var(--brand-bg)';btn.style.color='var(--brand-l)';btn.style.borderColor='var(--brand)';}});},100);
+    setTimeout(()=>{(ev.subscriptionBookable.typeIds||[]).forEach(tid=>{const btn=document.querySelector('#ne-sub-bookable-types .ne-subtype-sel[data-id="'+tid+'"]');if(btn){btn.classList.add('selected');btn.style.background='var(--brand-bg)';btn.style.color='var(--brand-l)';btn.style.borderColor='var(--brand)';}});},200);
   }
   if(ev.subscriptionDiscount?.enabled){
     const sdEl=document.getElementById('ne-sub-discount');
     if(sdEl){sdEl.checked=true;document.getElementById('ne-sub-discount-opts')?.classList.remove('hidden');}
-    setTimeout(()=>{(ev.subscriptionDiscount.typeIds||[]).forEach(tid=>{const btn=document.querySelector('#ne-sub-discount-types .ne-subtype-sel[data-id="'+tid+'"]');if(btn){btn.classList.add('selected');btn.style.background='var(--brand-bg)';btn.style.color='var(--brand-l)';btn.style.borderColor='var(--brand)';}});},100);
+    setTimeout(()=>{(ev.subscriptionDiscount.typeIds||[]).forEach(tid=>{const btn=document.querySelector('#ne-sub-discount-types .ne-subtype-sel[data-id="'+tid+'"]');if(btn){btn.classList.add('selected');btn.style.background='var(--brand-bg)';btn.style.color='var(--brand-l)';btn.style.borderColor='var(--brand)';}});},200);
     const dTiers=ev.subscriptionDiscount.tiers||{};
-    const dA=document.getElementById('ne-sub-disc-alto');if(dA&&dTiers.alto)dA.value=dTiers.alto;
-    const dM=document.getElementById('ne-sub-disc-medio');if(dM&&dTiers.medio)dM.value=dTiers.medio;
-    const dB=document.getElementById('ne-sub-disc-basso');if(dB&&dTiers.basso)dB.value=dTiers.basso;
+    const dA=document.getElementById('ne-sub-disc-alto');if(dA&&dTiers.alto!=null)dA.value=dTiers.alto;
+    const dM=document.getElementById('ne-sub-disc-medio');if(dM&&dTiers.medio!=null)dM.value=dTiers.medio;
+    const dB=document.getElementById('ne-sub-disc-basso');if(dB&&dTiers.basso!=null)dB.value=dTiers.basso;
   }
   // Recurrence
   if(ev.recurrence){
@@ -8103,6 +8203,7 @@ function editEvent(id){
     loyaltyRequiredEvents:d.loyaltyRequiredEvents||[],
     earlyBird:d.earlyBird?{alto:d.earlyBird.alto!=null?d.earlyBird.alto:'',medio:d.earlyBird.medio!=null?d.earlyBird.medio:'',basso:d.earlyBird.basso!=null?d.earlyBird.basso:'',type:d.earlyBird.type||'date',deadline:d.earlyBird.deadline||'',maxCount:d.earlyBird.maxCount||''}:null,
     sessions:d.sessions.map(s=>({
+      _origId:s.id||null,
       name:s.name||'',startTime:s.startTime||'10:00',endTime:s.endTime||'12:30',
       level:s.level||'base',teacher:s.teacher||'',description:s.description||'',
       location:s.location||'',locationUrl:s.locationUrl||'',
@@ -8110,6 +8211,7 @@ function editEvent(id){
       tiers:s.tiers?{alto:s.tiers.alto!=null?s.tiers.alto:null,medio:s.tiers.medio!=null?s.tiers.medio:null,basso:s.tiers.basso!=null?s.tiers.basso:null}:{alto:null,medio:null,basso:null}
     }))
   }));
+  _skipNextSaveFormState=true;
   renderFormDays();
   // Pricing mode toggles
   const freeEl=document.getElementById('ne-free-event');
@@ -8130,6 +8232,40 @@ function editEvent(id){
       document.getElementById('ne-ftier-medio').value=ev.loyaltyTiers.medio||'';
       document.getElementById('ne-ftier-basso').value=ev.loyaltyTiers.basso||'';
     }
+  }
+  // Restore allowDayPurchase
+  const adpEl=document.getElementById('ne-allow-day-purchase');
+  if(adpEl)adpEl.checked=ev.allowDayPurchase!==false;
+  // Restore event-level loyalty section visibility + required events
+  if(ev.loyaltyTiers&&(ev.loyaltyTiers.alto||ev.loyaltyTiers.medio||ev.loyaltyTiers.basso)){
+    const loySecToggle=document.getElementById('ne-loyalty-event-toggle');
+    const loySec=document.getElementById('ne-loyalty-event-section');
+    if(loySec)loySec.classList.remove('hidden');
+    if(loySecToggle){const arrow=loySecToggle.querySelector('.toggle-arrow');if(arrow)arrow.textContent='\u25be';}
+  }
+  if(ev.loyaltyRequiredEvents&&ev.loyaltyRequiredEvents.length){
+    setTimeout(()=>{
+      const wrap=document.getElementById('ne-freq-eventi-wrap');
+      if(wrap){
+        toggleEventPicker(wrap,'event');
+        setTimeout(()=>{
+          ev.loyaltyRequiredEvents.forEach(eid=>{
+            const cb=wrap.querySelector(`.ep-check[value="${eid}"]`);
+            if(cb){cb.checked=true;cb.dispatchEvent(new Event('change'));}
+          });
+          // Close picker after selecting
+          const picker=wrap.querySelector('.event-picker');
+          if(picker)picker.classList.add('hidden');
+        },100);
+      }
+    },200);
+  }
+  // Restore event-level early bird section visibility
+  if(ev.earlyBird&&(ev.earlyBird.alto||ev.earlyBird.medio||ev.earlyBird.basso)){
+    const ebSec=document.getElementById('ne-earlybird-section');
+    if(ebSec)ebSec.classList.remove('hidden');
+    const ebToggle=ebSec?.previousElementSibling;
+    if(ebToggle){const arrow=ebToggle.querySelector('.toggle-arrow');if(arrow)arrow.textContent='\u25be';}
   }
   // Restore event-level early bird
   if(ev.earlyBird){
@@ -9883,6 +10019,20 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   // Auto-conclude events whose last day has passed (midnight)
   autoConcludeEvents();
+
+  // Tier suggestion banner — delegated listener on price/cost fields
+  const neForm=document.getElementById('ne-form');
+  if(neForm){
+    neForm.addEventListener('input',function(e){
+      const el=e.target;
+      if(!el||el.type!=='number')return;
+      // Check if it's a price/cost field
+      const isPriceField=el.classList.contains('ne-s-tm')||el.classList.contains('ne-s-ta')||el.classList.contains('ne-s-tb')
+        ||el.classList.contains('ne-d-tm')||el.classList.contains('ne-d-ta')||el.classList.contains('ne-d-tb')
+        ||el.id==='ne-tier-alto'||el.id==='ne-tier-medio'||el.id==='ne-tier-basso';
+      if(isPriceField&&el.value)checkTierSuggestionBanner();
+    });
+  }
 });
 </script>
 
@@ -9969,6 +10119,18 @@ document.addEventListener('DOMContentLoaded',()=>{
     </div>
     <button id="privacy-accept-btn" class="btn btn-primary w-full" disabled style="opacity:.5" onclick="acceptPrivacyConsent()">Accetta e continua</button>
     <button class="btn btn-secondary w-full mt-2" onclick="rejectPrivacyAndLogout()">Rifiuta e esci</button>
+  </div>
+</div>
+
+<!-- Tier suggestion banner (fixed, hidden by default) -->
+<div id="tier-suggest-banner" class="tier-suggest-banner">
+  <div class="tier-suggest-banner-inner">
+    <button class="tsb-close" onclick="dismissTierBanner()" aria-label="Chiudi">&times;</button>
+    <div style="display:flex;align-items:flex-start">
+      <span class="tsb-icon">💜</span>
+      <span class="tsb-text" id="tsb-text"></span>
+    </div>
+    <div class="tsb-progress" id="tsb-progress" style="width:100%"></div>
   </div>
 </div>
 
