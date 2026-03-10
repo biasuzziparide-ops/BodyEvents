@@ -2620,9 +2620,76 @@ function renderAdminUniversesView(){
       if(mgrUnivs.includes(u.id)||isMaster){
         proposeRoleHtml='<div style="display:flex;gap:8px;margin-top:8px;align-items:center"><input class="input" style="flex:1;font-size:.8rem;padding:6px 10px" id="propose-role-'+u.id+'" placeholder="Nuovo ruolo..."><button class="btn btn-sm btn-secondary" style="font-size:.75rem" onclick="proposeRoleForUniverse(\''+u.id+'\',document.getElementById(\'propose-role-'+u.id+'\').value);document.getElementById(\'propose-role-'+u.id+'\').value=\'\';renderAdminUniversesView();">+ Proponi ruolo</button></div>';
       }
-      return '<div class="card mb-3" style="border-left:4px solid '+u.color+'"><div style="flex:1"><div class="font-semibold text-white">'+u.emoji+' '+u.name+'</div><div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">'+rolesHtml+'</div>'+pendingRolesHtml+proposeRoleHtml+'</div></div>';
+      let editBtnHtml='';
+      if(isMaster){
+        editBtnHtml='<button class="btn btn-sm btn-secondary" style="flex-shrink:0;font-size:.75rem" onclick="openEditUniverseModal(\''+u.id+'\')">✏️ Modifica</button>';
+      }
+      return '<div class="card mb-3" style="border-left:4px solid '+u.color+'"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><div style="flex:1"><div class="font-semibold text-white">'+u.emoji+' '+u.name+'</div><div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">'+rolesHtml+'</div>'+pendingRolesHtml+proposeRoleHtml+'</div>'+editBtnHtml+'</div></div>';
     }).join('');
   }
+}
+
+// Edit universe modal (master only)
+function openEditUniverseModal(univId){
+  const u=store.universes.find(x=>x.id===univId);if(!u)return;
+  const o=document.createElement('div');o.className='overlay';
+  let rolesVal=(u.roles||[]).join(', ');
+  let html='<h3 class="text-lg font-semibold text-white mb-4">✏️ Modifica Universo</h3>';
+  html+='<div style="max-height:70vh;overflow-y:auto;padding-right:8px">';
+  html+='<div class="mb-3"><label class="label">Nome *</label><input class="input" id="eu-name" value="'+u.name+'"></div>';
+  html+='<div class="grid grid-2 gap-3 mb-3">';
+  html+='<div><label class="label">Emoji</label><input class="input" id="eu-emoji" value="'+(u.emoji||'🌐')+'" style="font-size:1.3rem;text-align:center"></div>';
+  html+='<div><label class="label">Colore</label><input class="input" id="eu-color" type="color" value="'+(u.color||'#10b981')+'" style="height:42px;padding:4px"></div>';
+  html+='</div>';
+  html+='<div class="mb-3"><label class="label">Ruoli (separati da virgola)</label><input class="input" id="eu-roles" value="'+rolesVal+'" placeholder="es. Base, Flyer, Entrambi"></div>';
+  // Preview
+  html+='<div class="mt-3 mb-2"><label class="label">Anteprima</label></div>';
+  html+='<div id="eu-preview" class="card" style="border-left:4px solid '+u.color+';padding:12px"><span style="font-size:1.2rem" id="eu-prev-emoji">'+u.emoji+'</span> <span class="font-semibold text-white" id="eu-prev-name">'+u.name+'</span><div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px" id="eu-prev-roles">'+(u.roles||[]).map(r=>'<span class="badge" style="background:'+u.color+'22;color:'+u.color+'">'+r+'</span>').join(' ')+'</div></div>';
+  html+='</div>';
+  html+='<div class="flex gap-3 mt-4" style="justify-content:flex-end"><button class="btn btn-ghost btn-sm" id="eu-cancel">Annulla</button><button class="btn btn-primary btn-sm" id="eu-save">Salva modifiche</button></div>';
+  o.innerHTML='<div class="dialog" style="max-width:480px;width:92%">'+html+'</div>';
+  document.body.appendChild(o);
+  // Live preview updates
+  const nameIn=o.querySelector('#eu-name');
+  const emojiIn=o.querySelector('#eu-emoji');
+  const colorIn=o.querySelector('#eu-color');
+  const rolesIn=o.querySelector('#eu-roles');
+  const updatePreview=()=>{
+    const c=colorIn.value;
+    o.querySelector('#eu-prev-emoji').textContent=emojiIn.value||'🌐';
+    o.querySelector('#eu-prev-name').textContent=nameIn.value||'Universo';
+    o.querySelector('#eu-preview').style.borderLeftColor=c;
+    const rArr=(rolesIn.value||'').split(',').map(r=>r.trim()).filter(Boolean);
+    o.querySelector('#eu-prev-roles').innerHTML=rArr.map(r=>'<span class="badge" style="background:'+c+'22;color:'+c+'">'+r+'</span>').join(' ');
+  };
+  nameIn.oninput=updatePreview;
+  emojiIn.oninput=updatePreview;
+  colorIn.oninput=updatePreview;
+  rolesIn.oninput=updatePreview;
+  o.querySelector('#eu-cancel').onclick=()=>o.remove();
+  o.querySelector('#eu-save').onclick=()=>saveUniverseEdit(o,univId);
+  o.addEventListener('click',e=>{if(e.target===o)o.remove()});
+}
+
+async function saveUniverseEdit(overlay,univId){
+  const name=(document.getElementById('eu-name')?.value||'').trim();
+  if(!name){showToast('Inserisci un nome','error');return;}
+  const emoji=(document.getElementById('eu-emoji')?.value||'🌐').trim();
+  const color=document.getElementById('eu-color')?.value||'#10b981';
+  const rolesRaw=(document.getElementById('eu-roles')?.value||'').trim();
+  const roles=rolesRaw?rolesRaw.split(',').map(r=>r.trim()).filter(Boolean):[];
+  // Check duplicate name (excluding self)
+  if(store.universes.find(u=>u.id!==univId&&u.name.toLowerCase()===name.toLowerCase())){showToast('Esiste già un universo con questo nome','error');return;}
+  const u=store.universes.find(x=>x.id===univId);
+  if(!u)return;
+  const oldColor=u.color;
+  Object.assign(u,{name,emoji,color,roles});
+  await fsUpdate('universes',univId,{name,emoji,color,roles}).catch(console.error);
+  // If color changed, update UNIVERSE_PALETTE reference for consistency
+  // Also update events that reference this universe (cosmetic only, colors are looked up dynamically)
+  overlay.remove();
+  showToast('Universo "'+name+'" aggiornato!');
+  renderAdminUniversesView();
 }
 
 // Populate universe dropdown for event creation form (toggle buttons)
