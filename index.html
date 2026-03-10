@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.5.9</title>
+<title>BodyEvents — V2.7.0</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤸</text></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -51,7 +51,7 @@ a{color:var(--brand-l);text-decoration:none}
 .card-hover:hover{border-color:rgba(217,70,239,.35);background:var(--s100)}
 
 .badge{display:inline-flex;align-items:center;border-radius:9999px;padding:2px 10px;font-size:.75rem;font-weight:500;gap:4px}
-.badge-jam{background:var(--green-bg);color:var(--green)}.badge-lezione{background:var(--blue-bg);color:var(--blue)}.badge-workshop{background:var(--brand-bg);color:var(--brand)}
+.badge-jam{background:var(--green-bg);color:var(--green)}.badge-lezione{background:var(--blue-bg);color:var(--blue)}.badge-workshop{background:var(--brand-bg);color:var(--brand)}.badge-type-dynamic{background:rgba(168,85,247,.15);color:#a855f7}
 .badge-open{background:rgba(107,114,128,.15);color:#d1d5db}.badge-base{background:var(--green-bg);color:var(--green)}.badge-intermedio{background:var(--yellow-bg);color:var(--yellow)}.badge-avanzato{background:var(--red-bg);color:var(--red)}
 .badge-bozza{background:rgba(107,114,128,.15);color:var(--txt2)}.badge-pubblicato{background:var(--green-bg);color:var(--green)}.badge-concluso{background:var(--blue-bg);color:var(--blue)}.badge-cancellato{background:var(--red-bg);color:var(--red)}.badge-attesa{background:rgba(234,179,8,.15);color:var(--yellow)}.badge-confermato{background:var(--green-bg);color:var(--green)}
 .badge-purple{background:var(--purple-bg);color:var(--purple)}
@@ -423,7 +423,7 @@ textarea.input{resize:none;font-family:inherit}
       <div>
         <label class="label" style="font-size:.65rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:3px">Tipo</label>
         <select class="input" id="filter-type" onchange="renderUserEvents()" style="padding:7px 28px 7px 10px;font-size:.8rem">
-          <option value="">Tutti</option><option value="jam">Jam</option><option value="lezione">Lezione</option><option value="workshop">Workshop</option>
+          <option value="">Tutti</option>
         </select>
       </div>
     </div>
@@ -502,7 +502,7 @@ textarea.input{resize:none;font-family:inherit}
       <div>
         <label class="label" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:4px">Tipo</label>
         <select class="input" id="jam-user-filter-type" onchange="renderUserJams()" style="padding:8px 32px 8px 12px;font-size:.8rem">
-          <option value="">Tutti</option><option value="jam">Jam</option><option value="pratica">Pratica</option><option value="social">Social</option><option value="altro">Altro</option>
+          <option value="">Tutti</option>
         </select>
       </div>
       <div>
@@ -1053,7 +1053,7 @@ textarea.input{resize:none;font-family:inherit}
         <div>
           <label class="label" style="font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:4px">Tipo</label>
           <select class="input" id="jam-admin-filter-type" onchange="renderAdminCommunityJams()" style="padding:8px 32px 8px 12px;font-size:.8rem">
-            <option value="">Tutti</option><option value="jam">Jam</option><option value="pratica">Pratica</option><option value="social">Social</option><option value="altro">Altro</option>
+            <option value="">Tutti</option>
           </select>
         </div>
         <div>
@@ -1103,12 +1103,22 @@ textarea.input{resize:none;font-family:inherit}
     <div class="card mb-4">
       <h3 class="font-semibold text-white mb-4">📝 Informazioni base</h3>
       <div class="mb-4"><label class="label">🌌 Universi *</label><div id="ne-universes-list" class="flex gap-2 flex-wrap"></div></div>
+
+      <!-- Partner Organizations -->
+      <div class="mb-4" style="padding:12px 16px;border-radius:12px;border:1px dashed var(--s400);background:rgba(168,85,247,.04)">
+        <label class="label" style="color:var(--brand-l)">🤝 Organizzazioni Partner</label>
+        <p class="text-xs txt3 mb-3" style="line-height:1.4">Aggiungendo partner, potrai usare i loro abbonamenti ed eventi nella configurazione sconti e ingressi di questo evento.</p>
+        <div id="ne-partners-selected" class="flex gap-2 flex-wrap mb-2"></div>
+        <button type="button" class="btn btn-sm" id="ne-add-partner-btn" onclick="openPartnerSearchModal()" style="border:1px dashed var(--brand);color:var(--brand-l);background:transparent;padding:8px 16px;font-size:.8rem">+ Aggiungi partner</button>
+      </div>
+
       <div class="mb-4"><label class="label">Titolo evento *</label><input class="input" id="ne-title" placeholder="es. Jam AcroYoga al Parco" required></div>
       <div class="mb-4"><label class="label">Descrizione</label><textarea class="input" id="ne-desc" rows="3" placeholder="Descrivi l'evento..."></textarea></div>
       <div class="grid grid-2 gap-3 mb-4">
         <div><label class="label">Tipo evento *</label>
-          <select class="input" id="ne-type" onchange="toggleCustomEventType()"><option value="jam">Jam</option><option value="lezione">Lezione</option><option value="workshop">Workshop</option><option value="custom">Altro</option></select>
-          <input class="input mt-2 hidden" id="ne-custom-type" placeholder="Specifica il tipo...">
+          <select class="input" id="ne-type" onchange="onEventTypeChange()"></select>
+          <input class="input mt-2 hidden" id="ne-custom-type" placeholder="Scrivi la nuova tipologia...">
+          <button type="button" class="btn btn-sm mt-1 hidden" id="ne-custom-type-save" onclick="saveCustomEventTypeFromForm()" style="font-size:.7rem;padding:4px 10px;background:var(--green-bg);color:var(--green);border:1px solid var(--green)">+ Aggiungi tipologia</button>
         </div>
         <div><label class="label">Livello</label>
           <select class="input" id="ne-level"><option value="open">Open Level</option><option value="base">Base</option><option value="intermedio">Intermedio</option><option value="avanzato">Avanzato</option><option value="multi">Multi-livello</option></select></div>
@@ -1331,6 +1341,18 @@ textarea.input{resize:none;font-family:inherit}
             <div><label class="label">○ Ridotto (€)</label><input class="input" id="ne-sub-disc-basso" type="number" placeholder="es. 10"></div>
           </div>
           <p class="text-xs txt3">I possessori di un abbonamento compatibile vedranno i prezzi scontati <b>senza consumare ingressi</b>.</p>
+        </div>
+      </div>
+
+      <!-- Partner subscription entry usage (only shown when partners exist) -->
+      <div id="ne-partner-entry-config" class="hidden" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--s300)">
+        <h4 class="text-sm font-semibold mb-3" style="color:var(--brand-l)">🤝 Politica ingressi partner</h4>
+        <p class="text-xs txt3 mb-3" style="line-height:1.4">Stabilisci se gli abbonamenti dei partner possono essere usati come ingressi o solo per sconti.</p>
+        <div class="flex flex-col gap-2">
+          <label class="flex items-center gap-2 text-sm" style="cursor:pointer"><input type="radio" name="ne-partner-entry-policy" value="discount_only" checked> 💰 Solo sconto — riconosci prezzo scontato ma <b>non</b> scalano ingressi</label>
+          <label class="flex items-center gap-2 text-sm" style="cursor:pointer"><input type="radio" name="ne-partner-entry-policy" value="entries_too"> 🎟️ Anche ingressi — gli abbonamenti partner possono scalare ingressi</label>
+          <label class="flex items-center gap-2 text-sm" style="cursor:pointer"><input type="radio" name="ne-partner-entry-policy" value="both"> 🎟️💰 Entrambi — l'utente sceglie se usare ingresso o sconto</label>
+          <label class="flex items-center gap-2 text-sm" style="cursor:pointer"><input type="radio" name="ne-partner-entry-policy" value="none"> ❌ Nessuno — partner visibili ma nessuna agevolazione</label>
         </div>
       </div>
     </div>
@@ -2210,7 +2232,7 @@ const OB_TOURS={
     slides:[
       {icon:'🔍',title:'Benvenuto nella Home Eventi!',text:'Qui trovi <b>tutti gli eventi</b> dei tuoi universi. Usa i filtri in alto per cercare per tipo, data, zona o insegnante. Puoi anche passare alla <b>vista Mappa 🗺️</b>.'},
       {icon:'🎨',title:'Come leggere le schede',text:'Le schede con bordo <b>pieno (━━)</b> sono organizzate da professionisti (<b>🏷️ Organizzato</b>). Quelle con bordo <b>tratteggiato (╌╌╌)</b> sono proposte dalla community (<b>🤝 Community</b>). Il <b>colore del bordo</b> indica l\'universo (disciplina).'},
-      {icon:'🗺️',title:'La Mappa',text:'Nella vista mappa, i <b>cerchi pieni</b> = eventi organizzati, i <b>cerchi vuoti</b> = community. Ogni marker ha una lettera: <b>J</b>=Jam, <b>L</b>=Lezione, <b>W</b>=Workshop. Il colore corrisponde all\'universo.'}
+      {icon:'🗺️',title:'La Mappa',text:'Nella vista mappa, i <b>cerchi pieni</b> = eventi organizzati, i <b>cerchi vuoti</b> = community. Ogni marker ha una <b>lettera iniziale</b> del tipo evento (es. J=Jam, L=Lezione, W=Workshop…). Il colore corrisponde all\'universo.'}
     ]
   },
   tour_profile:{
@@ -2495,6 +2517,146 @@ function getMultiUniverseBorderStyle(ev,isCommunity){
 }
 function getActiveUniverses(){return store.universes.filter(u=>u.status==='active');}
 function getPendingUniverses(){return store.universes.filter(u=>u.status==='pending');}
+
+/* === EVENT TYPES PER-UNIVERSE CATALOG === */
+const DEFAULT_EVENT_TYPES=['jam','lezione','workshop'];
+const EVENT_TYPE_LABELS={jam:'Jam',lezione:'Lezione',workshop:'Workshop',ritiro:'Ritiro',pratica:'Pratica',social:'Social'};
+const EVENT_TYPE_ICONS={jam:'🤝',lezione:'📚',workshop:'🛠️',ritiro:'🏕️',pratica:'🧘',social:'🎉'};
+function normalizeTypeName(name){return(name||'').trim().toLowerCase().replace(/\s+/g,' ');}
+function getEventTypesForUniverse(univId){
+  const univ=store.universes.find(u=>u.id===univId);
+  return univ?.eventTypes||DEFAULT_EVENT_TYPES.slice();
+}
+function getEventTypesForUniverses(univIds){
+  if(!univIds||!univIds.length) return DEFAULT_EVENT_TYPES.slice();
+  const merged=new Set();
+  univIds.forEach(uid=>{getEventTypesForUniverse(uid).forEach(t=>merged.add(t));});
+  return Array.from(merged);
+}
+function getEventTypeLabel(t){return EVENT_TYPE_LABELS[t]||t.charAt(0).toUpperCase()+t.slice(1);}
+function getEventTypeIcon(t){return EVENT_TYPE_ICONS[t]||'📌';}
+async function addCustomEventType(univId,typeName){
+  const norm=normalizeTypeName(typeName);
+  if(!norm||norm.length<2){showToast('Nome tipologia troppo corto','error');return null;}
+  const univ=store.universes.find(u=>u.id===univId);
+  if(!univ)return null;
+  if(!univ.eventTypes)univ.eventTypes=DEFAULT_EVENT_TYPES.slice();
+  // Check for duplicates (case-insensitive)
+  const existing=univ.eventTypes.find(t=>normalizeTypeName(t)===norm);
+  if(existing){showToast('Tipologia "'+getEventTypeLabel(existing)+'" già esistente','error');return existing;}
+  // Check near-duplicates (Levenshtein-like simple check)
+  const similar=univ.eventTypes.find(t=>{const n=normalizeTypeName(t);return n.includes(norm)||norm.includes(n);});
+  if(similar){
+    if(!confirm('Esiste già una tipologia simile: "'+getEventTypeLabel(similar)+'". Vuoi comunque creare "'+typeName+'"?'))return null;
+  }
+  univ.eventTypes.push(norm);
+  await fsUpdate('universes',univId,{eventTypes:univ.eventTypes}).catch(console.error);
+  // Update label if it's a custom name with proper casing
+  if(!EVENT_TYPE_LABELS[norm])EVENT_TYPE_LABELS[norm]=typeName.trim();
+  showToast('Tipologia "'+typeName.trim()+'" aggiunta!');
+  return norm;
+}
+function ensureUniverseHasEventTypes(univ){
+  if(!univ.eventTypes||!univ.eventTypes.length){
+    univ.eventTypes=DEFAULT_EVENT_TYPES.slice();
+    fsUpdate('universes',univ.id,{eventTypes:univ.eventTypes}).catch(console.error);
+  }
+}
+/* === PARTNER ORGANIZATIONS SYSTEM (V2.7.0) === */
+function getApprovedManagers(){
+  return store.managers.filter(m=>m.status!=='pending_approval'&&m.id!==store.currentUser.id);
+}
+function getPartnerIdsFromForm(){
+  return Array.from(document.querySelectorAll('#ne-partners-selected .ne-partner-chip')).map(c=>c.dataset.mid);
+}
+function renderSelectedPartners(){
+  const wrap=document.getElementById('ne-partners-selected');if(!wrap)return;
+  const ids=getPartnerIdsFromForm();
+  if(!ids.length){wrap.innerHTML='<span class="text-xs txt3">Nessun partner selezionato</span>';togglePartnerEntryConfig(false);return;}
+  wrap.innerHTML=ids.map(mid=>{
+    const mgr=store.managers.find(m=>m.id===mid);if(!mgr)return'';
+    const univs=(mgr.universes||[]).map(uid=>{const u=store.universes.find(x=>x.id===uid);return u?(u.emoji+' '+u.name):'';}).filter(Boolean).join(', ');
+    return '<div class="ne-partner-chip" data-mid="'+mid+'" style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;border:1px solid var(--brand);background:var(--brand-bg);color:var(--brand-l);font-size:.82rem;font-weight:500"><div><div>'+mgr.orgName+'</div><div class="text-xs" style="color:var(--txt3);margin-top:1px">'+univs+'</div></div><button type="button" onclick="removePartner(\''+mid+'\')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:1rem;padding:0 0 0 4px;line-height:1" title="Rimuovi partner">&times;</button></div>';
+  }).join('');
+  togglePartnerEntryConfig(true);
+}
+function removePartner(mid){
+  const chip=document.querySelector('#ne-partners-selected .ne-partner-chip[data-mid="'+mid+'"]');
+  if(chip)chip.remove();
+  renderSelectedPartners();
+  refreshPartnerAwareSections();
+}
+function togglePartnerEntryConfig(hasPartners){
+  const el=document.getElementById('ne-partner-entry-config');
+  if(el)el.classList.toggle('hidden',!hasPartners);
+}
+function openPartnerSearchModal(){
+  const approved=getApprovedManagers();
+  const alreadySelected=new Set(getPartnerIdsFromForm());
+  const overlay=document.createElement('div');overlay.className='overlay';overlay.id='partner-search-overlay';
+  overlay.innerHTML=`<div class="dialog" style="max-width:520px;width:92%">
+    <h3 class="text-lg font-semibold text-white mb-3">🤝 Seleziona organizzazioni partner</h3>
+    <div class="flex gap-2 mb-3 flex-wrap">
+      <input class="input" id="partner-search-text" placeholder="Cerca per nome..." style="flex:1;min-width:180px;font-size:.85rem" oninput="filterPartnerList()">
+      <select class="input" id="partner-search-univ" style="max-width:180px;font-size:.85rem" onchange="filterPartnerList()">
+        <option value="">Tutti gli universi</option>
+      </select>
+    </div>
+    <div id="partner-search-results" style="max-height:320px;overflow-y:auto;margin-bottom:12px"></div>
+    <div class="flex gap-2 justify-end">
+      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('partner-search-overlay').remove()">Chiudi</button>
+      <button class="btn btn-primary btn-sm" onclick="confirmPartnerSelection()">Conferma</button>
+    </div>
+  </div>`;
+  overlay.onclick=e=>{if(e.target===overlay)overlay.remove()};
+  document.body.appendChild(overlay);
+  // Populate universe filter
+  const univSel=document.getElementById('partner-search-univ');
+  store.universes.filter(u=>u.status==='active').forEach(u=>{
+    univSel.insertAdjacentHTML('beforeend','<option value="'+u.id+'">'+u.emoji+' '+u.name+'</option>');
+  });
+  // Store already-selected for pre-checking
+  window._partnerAlreadySelected=alreadySelected;
+  filterPartnerList();
+}
+function filterPartnerList(){
+  const txt=(document.getElementById('partner-search-text')?.value||'').toLowerCase();
+  const univFilter=document.getElementById('partner-search-univ')?.value||'';
+  const approved=getApprovedManagers();
+  const alreadySelected=window._partnerAlreadySelected||new Set();
+  const filtered=approved.filter(m=>{
+    if(txt&&!m.orgName.toLowerCase().includes(txt)&&!m.username.toLowerCase().includes(txt))return false;
+    if(univFilter&&!(m.universes||[]).includes(univFilter))return false;
+    return true;
+  });
+  const c=document.getElementById('partner-search-results');if(!c)return;
+  if(!filtered.length){c.innerHTML='<div class="text-sm txt3 text-center" style="padding:20px">Nessuna organizzazione trovata</div>';return;}
+  c.innerHTML=filtered.map(m=>{
+    const univs=(m.universes||[]).map(uid=>{const u=store.universes.find(x=>x.id===uid);return u?(u.emoji+' '+u.name):'';}).filter(Boolean).join(', ')||'—';
+    const checked=alreadySelected.has(m.id)?'checked':'';
+    return '<label class="flex items-center gap-3" style="cursor:pointer;padding:10px 12px;border-bottom:1px solid var(--s300)"><input type="checkbox" class="partner-cb" value="'+m.id+'" '+checked+'><div style="flex:1"><div class="text-sm text-white font-medium">'+m.orgName+'</div><div class="text-xs txt3">'+m.username+' · '+univs+'</div></div></label>';
+  }).join('');
+}
+function confirmPartnerSelection(){
+  const checks=document.querySelectorAll('#partner-search-results .partner-cb:checked');
+  const wrap=document.getElementById('ne-partners-selected');if(!wrap)return;
+  // Clear and rebuild
+  wrap.innerHTML='';
+  checks.forEach(cb=>{
+    const mid=cb.value;
+    const mgr=store.managers.find(m=>m.id===mid);if(!mgr)return;
+    const univs=(mgr.universes||[]).map(uid=>{const u=store.universes.find(x=>x.id===uid);return u?(u.emoji+' '+u.name):'';}).filter(Boolean).join(', ');
+    wrap.insertAdjacentHTML('beforeend','<div class="ne-partner-chip" data-mid="'+mid+'" style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;border:1px solid var(--brand);background:var(--brand-bg);color:var(--brand-l);font-size:.82rem;font-weight:500"><div><div>'+mgr.orgName+'</div><div class="text-xs" style="color:var(--txt3);margin-top:1px">'+univs+'</div></div><button type="button" onclick="removePartner(\''+mid+'\')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:1rem;padding:0 0 0 4px;line-height:1" title="Rimuovi partner">&times;</button></div>');
+  });
+  if(!wrap.children.length)wrap.innerHTML='<span class="text-xs txt3">Nessun partner selezionato</span>';
+  togglePartnerEntryConfig(wrap.querySelectorAll('.ne-partner-chip').length>0);
+  document.getElementById('partner-search-overlay')?.remove();
+  refreshPartnerAwareSections();
+}
+function refreshPartnerAwareSections(){
+  populateSubTypeCheckboxes();
+}
+
 function getUserSubscribedUniverseIds(){
   const isManager=store.managers.some(m=>m.id===store.currentUser.id);
   if(isManager){return store.currentUser.universes||[];}
@@ -2526,7 +2688,8 @@ function tripleConfirmUniverse(actionLabel,callback){
 
 async function proposeUniverse(name,emoji,color,roles){
   const univId=genId('univ');
-  const univ={id:univId,name:name,emoji:emoji||'🌐',color:color||UNIVERSE_PALETTE[store.universes.length%UNIVERSE_PALETTE.length],roles:roles||[],pendingRoles:[],status:'pending',createdBy:store.currentUser.id,approvedBy:null,createdAt:new Date().toISOString()};
+  const defaultEventTypes=['jam','lezione','workshop'];
+  const univ={id:univId,name:name,emoji:emoji||'🌐',color:color||UNIVERSE_PALETTE[store.universes.length%UNIVERSE_PALETTE.length],roles:roles||[],pendingRoles:[],eventTypes:defaultEventTypes,status:'pending',createdBy:store.currentUser.id,approvedBy:null,createdAt:new Date().toISOString()};
   store.universes.push(univ);
   await fsSet('universes',univId,univ);
   showToast('Universo "'+name+'" proposto — in attesa di approvazione');
@@ -2876,10 +3039,14 @@ function populateEventUniverseDropdown(){
   const mgrUnivs=store.currentUser.universes||['univ_acro'];
   const activeUnivs=getActiveUniverses().filter(u=>mgrUnivs.includes(u.id));
   const autoSelect=activeUnivs.length===1;
+  activeUnivs.forEach(u=>ensureUniverseHasEventTypes(u));
   c.innerHTML=activeUnivs.map(u=>{
     const sel=autoSelect;
     return '<button type="button" class="ne-univ-btn'+(sel?' ne-univ-selected':'')+'" data-univ="'+u.id+'" onclick="toggleUnivBtn(this)" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:12px;border:2px solid '+(sel?u.color:u.color+'40')+';background:'+(sel?u.color+'25':'transparent')+';color:'+(sel?u.color:'var(--txt2)')+';font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s ease;outline:none"><span style="font-size:1.1rem">'+u.emoji+'</span>'+u.name+'</button>';
   }).join('');
+  // Initialize event type dropdown with auto-selected universes
+  const autoSelectedIds=autoSelect?[activeUnivs[0].id]:[];
+  populateEventTypeDropdown(autoSelectedIds);
 }
 function toggleUnivBtn(btn){
   const isSelected=btn.classList.contains('ne-univ-selected');
@@ -2897,6 +3064,10 @@ function toggleUnivBtn(btn){
     btn.style.background=color+'25';
     btn.style.color=color;
   }
+  // Update event type dropdown based on selected universes
+  const selectedUnivIds=Array.from(document.querySelectorAll('.ne-univ-btn.ne-univ-selected')).map(b=>b.dataset.univ);
+  const currentType=document.getElementById('ne-type')?.value;
+  populateEventTypeDropdown(selectedUnivIds,currentType);
 }
 
 // Populate universe filter dropdowns
@@ -2918,6 +3089,24 @@ function populateUniverseFilters(){
     });
     sel.innerHTML=html;
   });
+  // Populate event type filter dynamically from all active universe catalogs
+  populateEventTypeFilter();
+}
+function populateEventTypeFilter(){
+  const sel=document.getElementById('filter-type');if(!sel)return;
+  const curVal=sel.value;
+  // Collect all unique event types from all active universes
+  const allTypes=new Set();
+  getActiveUniverses().forEach(u=>{
+    (u.eventTypes||DEFAULT_EVENT_TYPES).forEach(t=>allTypes.add(t));
+  });
+  // Also collect types from existing events (for backward compat)
+  store.events.forEach(ev=>{if(ev.type)allTypes.add(ev.type);});
+  let html='<option value="">Tutti</option>';
+  Array.from(allTypes).sort().forEach(t=>{
+    html+='<option value="'+t+'"'+(curVal===t?' selected':'')+'>'+getEventTypeLabel(t)+'</option>';
+  });
+  sel.innerHTML=html;
 }
 
 // Migration: ensure all existing data has universe fields
@@ -2984,8 +3173,7 @@ function renderSubTypes(c){
     const expiredSubs=store.subscriptions.filter(s=>s.typeId===t.id&&s.status==='expired');
     const totalRevenue=store.subscriptions.filter(s=>s.typeId===t.id&&(s.paymentStatus==='pagato'||s.paymentStatus==='parziale')).reduce((sum,s)=>sum+(s.paymentAmount||0),0);
     const compatTypes=(t.compatibleEventTypes||[]).map(et=>{
-      const labels={jam:'Jam',lezione:'Lezione',workshop:'Workshop',ritiro:'Ritiro'};
-      return '<span class="badge" style="background:var(--s300);color:var(--txt2);font-size:.7rem">'+(labels[et]||et)+'</span>';
+      return '<span class="badge" style="background:var(--s300);color:var(--txt2);font-size:.7rem">'+getEventTypeLabel(et)+'</span>';
     }).join(' ');
     html+='<div class="card mb-3" style="border-left:4px solid '+(univ?.color||'var(--brand)')+'">';
     html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">';
@@ -3180,7 +3368,8 @@ function openSubTypeModal(editId){
   const mgr=store.currentUser;
   const mgrUnivs=mgr.universes||['univ_acro'];
   const activeUnivs=getActiveUniverses().filter(u=>mgrUnivs.includes(u.id)||(mgr.role==='master'));
-  const evTypes=[{v:'jam',l:'Jam'},{v:'lezione',l:'Lezione'},{v:'workshop',l:'Workshop'},{v:'ritiro',l:'Ritiro'}];
+  const defaultUnivId=existing?.universeId||(activeUnivs[0]?.id||'univ_acro');
+  activeUnivs.forEach(u=>ensureUniverseHasEventTypes(u));
 
   const o=document.createElement('div');o.className='overlay';
   let formHtml='<h3 class="text-lg font-semibold text-white mb-4">'+(existing?'✏️ Modifica tipologia':'➕ Nuova tipologia abbonamento')+'</h3>';
@@ -3189,24 +3378,52 @@ function openSubTypeModal(editId){
   formHtml+='<div class="grid grid-2 gap-3 mb-3"><div><label class="label">Numero ingressi *</label><input class="input" id="st-entries" type="number" value="'+(existing?.entries||10)+'" placeholder="10"></div>';
   formHtml+='<div><label class="label">Validità (giorni)</label><input class="input" id="st-validity" type="number" value="'+(existing?.validityDays||'')+'" placeholder="es. 90 (vuoto=illimitata)"></div></div>';
   formHtml+='<div class="mb-3"><label class="label">Prezzo (€) *</label><input class="input" id="st-price" type="number" value="'+(existing?.price||'')+'" placeholder="es. 80" style="max-width:180px"></div>';
-  formHtml+='<div class="mb-3"><label class="label">Universo *</label><select class="input" id="st-universe">';
-  activeUnivs.forEach(u=>{formHtml+='<option value="'+u.id+'"'+(existing&&existing.universeId===u.id?' selected':'')+'>'+u.emoji+' '+u.name+'</option>';});
+  formHtml+='<div class="mb-3"><label class="label">Universo *</label><select class="input" id="st-universe" onchange="updateSubTypeCompatTypes()">';
+  activeUnivs.forEach(u=>{formHtml+='<option value="'+u.id+'"'+(u.id===defaultUnivId?' selected':'')+'>'+u.emoji+' '+u.name+'</option>';});
   formHtml+='</select></div>';
-  formHtml+='<div class="mb-3"><label class="label">Tipologie evento compatibili</label><div class="flex gap-2 flex-wrap" id="st-compat-types">';
-  evTypes.forEach(et=>{
-    const sel=existing?.compatibleEventTypes?.includes(et.v);
-    formHtml+='<button type="button" class="btn btn-sm st-compat-btn'+(sel?' selected':'')+'" data-type="'+et.v+'" onclick="this.classList.toggle(\'selected\');this.style.background=this.classList.contains(\'selected\')?\'var(--brand-bg)\':\'var(--s300)\';this.style.color=this.classList.contains(\'selected\')?\'var(--brand-l)\':\'var(--txt2)\';this.style.borderColor=this.classList.contains(\'selected\')?\'var(--brand)\':\'var(--s400)\'" style="border:1px solid '+(sel?'var(--brand)':'var(--s400)')+';background:'+(sel?'var(--brand-bg)':'var(--s300)')+';color:'+(sel?'var(--brand-l)':'var(--txt2)')+'">'+et.l+'</button>';
-  });
-  formHtml+='</div><p class="text-xs txt3 mt-1">Lascia vuoto per tutti i tipi.</p></div>';
+  formHtml+='<div class="mb-3"><label class="label">Tipologie evento compatibili</label><div class="flex gap-2 flex-wrap" id="st-compat-types"></div>';
+  formHtml+='<div class="flex gap-2 mt-2" id="st-custom-type-row"><input class="input" id="st-custom-type-input" placeholder="Nuova tipologia..." style="flex:1;font-size:.8rem"><button type="button" class="btn btn-sm" onclick="addCustomTypeFromSubForm()" style="font-size:.7rem;background:var(--green-bg);color:var(--green);border:1px solid var(--green);white-space:nowrap">+ Aggiungi</button></div>';
+  formHtml+='<p class="text-xs txt3 mt-1">Lascia vuoto per tutti i tipi.</p></div>';
   formHtml+='<div class="mb-3"><label class="label">Note (opzionali)</label><textarea class="input" id="st-notes" rows="2" placeholder="Dettagli, condizioni...">'+(existing?.notes||'')+'</textarea></div>';
   formHtml+='</div>';
   formHtml+='<div class="flex gap-3 mt-4" style="justify-content:flex-end"><button class="btn btn-ghost btn-sm" id="st-cancel">Annulla</button><button class="btn btn-primary btn-sm" id="st-save">'+(existing?'Salva modifiche':'Crea tipologia')+'</button></div>';
 
   o.innerHTML='<div class="dialog" style="max-width:520px;width:92%">'+formHtml+'</div>';
   document.body.appendChild(o);
+  // Render compat type buttons for the initially selected universe
+  window._stExistingCompatTypes=existing?.compatibleEventTypes||[];
+  updateSubTypeCompatTypes();
   o.querySelector('#st-cancel').onclick=()=>o.remove();
   o.querySelector('#st-save').onclick=()=>saveSubType(o,existing?.id||null);
   o.addEventListener('click',e=>{if(e.target===o)o.remove()});
+}
+function updateSubTypeCompatTypes(){
+  const univId=document.getElementById('st-universe')?.value||'univ_acro';
+  const types=getEventTypesForUniverse(univId);
+  const container=document.getElementById('st-compat-types');if(!container)return;
+  const prevSelected=window._stExistingCompatTypes||[];
+  container.innerHTML=types.map(t=>{
+    const sel=prevSelected.includes(t);
+    return '<button type="button" class="btn btn-sm st-compat-btn'+(sel?' selected':'')+'" data-type="'+t+'" onclick="this.classList.toggle(\'selected\');this.style.background=this.classList.contains(\'selected\')?\'var(--brand-bg)\':\'var(--s300)\';this.style.color=this.classList.contains(\'selected\')?\'var(--brand-l)\':\'var(--txt2)\';this.style.borderColor=this.classList.contains(\'selected\')?\'var(--brand)\':\'var(--s400)\'" style="border:1px solid '+(sel?'var(--brand)':'var(--s400)')+';background:'+(sel?'var(--brand-bg)':'var(--s300)')+';color:'+(sel?'var(--brand-l)':'var(--txt2)')+'">'+getEventTypeLabel(t)+'</button>';
+  }).join('');
+  // Reset stored compat types to current selection for future universe changes
+  window._stExistingCompatTypes=Array.from(container.querySelectorAll('.st-compat-btn.selected')).map(b=>b.dataset.type);
+}
+async function addCustomTypeFromSubForm(){
+  const input=document.getElementById('st-custom-type-input');
+  const typeName=(input?.value||'').trim();
+  if(!typeName){showToast('Scrivi il nome della tipologia','error');return;}
+  const univId=document.getElementById('st-universe')?.value;
+  if(!univId){showToast('Seleziona un universo','error');return;}
+  const result=await addCustomEventType(univId,typeName);
+  if(result){
+    input.value='';
+    // Preserve current selections + auto-select the new type
+    const currentSelected=Array.from(document.querySelectorAll('.st-compat-btn.selected')).map(b=>b.dataset.type);
+    currentSelected.push(result);
+    window._stExistingCompatTypes=currentSelected;
+    updateSubTypeCompatTypes();
+  }
 }
 
 async function saveSubType(overlay,editId){
@@ -3344,13 +3561,30 @@ function populateSubTypeCheckboxes(){
   const mgr=store.currentUser;
   const isMaster=mgr.role==='master';
   const myTypes=store.subscriptionTypes.filter(t=>(isMaster||t.managerId===mgr.id)&&(t.status||'active')==='active');
+  // Get partner subscription types
+  const partnerIds=getPartnerIdsFromForm();
+  const partnerTypes=partnerIds.length?store.subscriptionTypes.filter(t=>partnerIds.includes(t.managerId)&&(t.status||'active')==='active'):[];
   ['ne-sub-bookable-types','ne-sub-discount-types'].forEach(containerId=>{
     const c=document.getElementById(containerId);if(!c)return;
-    if(!myTypes.length){c.innerHTML='<span class="text-xs txt3">Nessuna tipologia attiva</span>';return;}
-    c.innerHTML=myTypes.map(t=>{
+    // Save current selections
+    const prevSelected=new Set(Array.from(c.querySelectorAll('.ne-subtype-sel.selected')).map(b=>b.dataset.id));
+    const allTypes=[...myTypes,...partnerTypes];
+    if(!allTypes.length){c.innerHTML='<span class="text-xs txt3">Nessuna tipologia attiva</span>';return;}
+    const renderBtn=(t,isPartner)=>{
       const univ=store.universes.find(u=>u.id===t.universeId);
-      return '<button type="button" class="ne-subtype-sel btn btn-sm" data-id="'+t.id+'" onclick="this.classList.toggle(\'selected\');this.style.background=this.classList.contains(\'selected\')?\'var(--brand-bg)\':\'var(--s300)\';this.style.color=this.classList.contains(\'selected\')?\'var(--brand-l)\':\'var(--txt2)\';this.style.borderColor=this.classList.contains(\'selected\')?\'var(--brand)\':\'var(--s400)\'" style="border:1px solid var(--s400);background:var(--s300);color:var(--txt2)">'+((univ?.emoji||'')+' '+t.name+' ('+t.entries+' ing.)')+'</button>';
-    }).join('');
+      const partnerMgr=isPartner?store.managers.find(m=>m.id===t.managerId):null;
+      const partnerLabel=partnerMgr?' · 🤝 '+partnerMgr.orgName:'';
+      const sel=prevSelected.has(t.id);
+      const bg=sel?'var(--brand-bg)':'var(--s300)';const col=sel?'var(--brand-l)':'var(--txt2)';const bc=sel?'var(--brand)':'var(--s400)';
+      return '<button type="button" class="ne-subtype-sel btn btn-sm'+(sel?' selected':'')+'" data-id="'+t.id+'" data-partner="'+(isPartner?'1':'')+'" onclick="this.classList.toggle(\'selected\');this.style.background=this.classList.contains(\'selected\')?\'var(--brand-bg)\':\'var(--s300)\';this.style.color=this.classList.contains(\'selected\')?\'var(--brand-l)\':\'var(--txt2)\';this.style.borderColor=this.classList.contains(\'selected\')?\'var(--brand)\':\'var(--s400)\'" style="border:1px solid '+bc+';background:'+bg+';color:'+col+'">'+((univ?.emoji||'')+' '+t.name+' ('+t.entries+' ing.)'+partnerLabel)+'</button>';
+    };
+    let html='';
+    if(myTypes.length)html+=myTypes.map(t=>renderBtn(t,false)).join('');
+    if(partnerTypes.length){
+      if(myTypes.length)html+='<div style="width:100%;margin:8px 0 4px;padding-top:8px;border-top:1px dashed var(--s400)"><span class="text-xs txt3">🤝 Abbonamenti partner:</span></div>';
+      html+=partnerTypes.map(t=>renderBtn(t,true)).join('');
+    }
+    c.innerHTML=html;
   });
 }
 
@@ -3932,7 +4166,8 @@ const DAYS_IT=['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì
 const MONTHS_IT=['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
 function fmtDate(ds){if(!ds)return'';const d=new Date(ds+'T00:00:00');return DAYS_IT[d.getDay()].substring(0,3)+' '+d.getDate()+' '+MONTHS_IT[d.getMonth()]+' '+d.getFullYear();}
 function fmtDateShort(ds){if(!ds)return'';const d=new Date(ds+'T00:00:00');return d.getDate()+' '+MONTHS_IT[d.getMonth()];}
-function badgeType(t){return t==='jam'?'badge-jam':t==='lezione'?'badge-lezione':'badge-workshop';}
+function badgeType(t){const known={jam:'badge-jam',lezione:'badge-lezione',workshop:'badge-workshop'};return known[t]||'badge-type-dynamic';}
+function badgeTypeStyle(t){const colors={jam:'var(--green-bg);color:var(--green)',lezione:'var(--blue-bg);color:var(--blue)',workshop:'var(--brand-bg);color:var(--brand)'};return colors[t]?'':'background:rgba(168,85,247,.15);color:#a855f7';}
 function badgeLevel(l){const m={open:'badge-open',base:'badge-base',intermedio:'badge-intermedio',avanzato:'badge-avanzato',multi:'badge-purple'};return m[l]||'badge-open';}
 function badgeStatus(s){return s==='pubblicato'?'badge-pubblicato':s==='bozza'?'badge-bozza':s==='cancellato'?'badge-cancellato':'badge-concluso';}
 function getConfirmationStatus(ev){
@@ -4720,7 +4955,7 @@ function renderCheckinA(){
     <h1 class="text-2xl font-bold text-white" style="margin-bottom:8px">Benvenuto!</h1>
     <p class="txt3 mb-6">Check-in completato automaticamente</p>
     <div class="card mb-4" style="text-align:left;border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.05)">
-      <div class="flex gap-2 mb-2"><span class="badge badge-${ev.type}">${capitalize(ev.type)}</span><span class="badge badge-pubblicato">Check-in OK</span></div>
+      <div class="flex gap-2 mb-2"><span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span><span class="badge badge-pubblicato">Check-in OK</span></div>
       <h3 class="font-semibold text-white">${ev.title}</h3>
       <div class="text-xs txt3 mt-2">📅 ${d0?fmtDate(d0.date)+' · '+d0.startTime+' — '+d0.endTime:''}</div>
       ${amount>0?`<div class="text-xs txt3 mt-1">💰 €${amount}</div>`:'<div class="text-xs txt3 mt-1">🆓 Gratuito</div>'}
@@ -4739,7 +4974,7 @@ function renderCheckinB(){
   const d0=ev.days[0];
   const activeBks=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata').length;
   const spotsLeft=ev.maxSpots>0?(ev.maxSpots-activeBks):'∞';
-  const typeBadge='badge-'+ev.type;
+  const typeBadge=badgeType(ev.type);const typeBadgeStyle=badgeTypeStyle(ev.type);
   const isFree=ev.pricingMode==='free';
   const isManaged=ev.pricingMode==='managed';
 
@@ -4756,7 +4991,7 @@ function renderCheckinB(){
         <p class="txt3 text-sm mt-2">Nessun problema! Puoi fare il check-in come walk-in.</p>
       </div>
       <div class="card mb-3" style="text-align:left">
-        <div class="flex gap-2 mb-2"><span class="badge ${typeBadge}">${capitalize(ev.type)}</span></div>
+        <div class="flex gap-2 mb-2"><span class="badge ${typeBadge}" style="${typeBadgeStyle}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span></div>
         <h3 class="font-semibold text-white">${ev.title}</h3>
         <div class="text-xs txt3 mt-2">📅 ${d0?fmtDate(d0.date)+' · '+d0.startTime+' — '+d0.endTime:''}</div>
         <div class="text-xs txt3 mt-1">👥 Posti disponibili: ${spotsLeft}</div>
@@ -4835,7 +5070,7 @@ function renderCheckinC(){
   Object.keys(selectedTiers).forEach(k=>{if(k.startsWith('np_'))delete selectedTiers[k];});
   const d0=ev.days[0];
   const isFree=ev.pricingMode==='free';const isManaged=ev.pricingMode==='managed';
-  const typeBadge='badge-'+ev.type;
+  const typeBadge=badgeType(ev.type);const typeBadgeStyle=badgeTypeStyle(ev.type);
 
   // Build full pricing structure for step 2
   const pricingHtml=buildFullPricingHtml(ev,'np_');
@@ -4867,7 +5102,7 @@ function renderCheckinC(){
         <p class="txt3 text-sm mt-1">Scegli le sessioni e il contributo per l'evento</p>
       </div>
       <div class="card mb-3" style="text-align:left">
-        <div class="flex gap-2 mb-2"><span class="badge ${typeBadge}">${capitalize(ev.type)}</span></div>
+        <div class="flex gap-2 mb-2"><span class="badge ${typeBadge}" style="${typeBadgeStyle}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span></div>
         <h3 class="font-semibold text-white text-sm">${ev.title}</h3>
         <div class="text-xs txt3 mt-1">📅 ${d0?fmtDate(d0.date)+' · '+d0.startTime+' — '+d0.endTime:''}</div>
       </div>
@@ -4998,7 +5233,7 @@ function renderUserEvents(){
           <h3 class="text-lg font-semibold text-white" style="margin-bottom:4px">${ev.title}</h3>
           <p class="text-sm txt3">${ev.description.substring(0,80)}${ev.description.length>80?'...':''}</p>
           <div class="flex gap-2 mt-2 flex-wrap">
-            ${getMultiUniverseBadgesHtml(ev)}<span class="badge ${badgeType(ev.type)}">${capitalize(ev.type)}</span><span class="badge" style="background:rgba(255,255,255,.04);color:var(--txt2);border:1px solid rgba(255,255,255,.08);font-size:.6rem">🏷️ Organizzato</span>${daysBadge}${levelBadges}${recBadge}${pricingBadge}${confirmBadge}${bookClosedBadge}
+            ${getMultiUniverseBadgesHtml(ev)}<span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span><span class="badge" style="background:rgba(255,255,255,.04);color:var(--txt2);border:1px solid rgba(255,255,255,.08);font-size:.6rem">🏷️ Organizzato</span>${daysBadge}${levelBadges}${recBadge}${pricingBadge}${confirmBadge}${bookClosedBadge}
           </div>
           <div class="flex gap-4 mt-2 text-xs txt3">
             <span>📅 ${dateRange}</span><span>🕐 ${d0?.startTime||''} — ${d0?.endTime||''}</span>
@@ -5040,7 +5275,7 @@ function renderUserEvents(){
           <span style="font-size:.6rem;color:rgba(16,185,129,.5)">${monthStr}</span>
         </div>
         <div class="flex-1">
-          <div class="flex gap-2 flex-wrap mb-1">${univBadges}<span class="badge badge-jam">${getJamTypeDisplay(jam.type||'jam')}</span><span class="badge" style="background:rgba(255,255,255,.04);color:var(--txt2);border:1px dashed rgba(255,255,255,.12);font-size:.6rem">🤝 Community</span>${joinedBadge}</div>
+          <div class="flex gap-2 flex-wrap mb-1">${univBadges}<span class="badge ${badgeType(jam.type||'jam')}" style="${badgeTypeStyle(jam.type||'jam')}">${getJamTypeDisplay(jam.type||'jam')}</span><span class="badge" style="background:rgba(255,255,255,.04);color:var(--txt2);border:1px dashed rgba(255,255,255,.12);font-size:.6rem">🤝 Community</span>${joinedBadge}</div>
           <h3 class="font-semibold text-white">${jam.title}</h3>
           <div class="flex gap-3 mt-1 text-xs txt3">
             <span>📅 ${fmtDate(jam.date)}</span><span>🕐 ${jam.startTime} — ${jam.endTime}</span>
@@ -5182,7 +5417,7 @@ function renderUserDashboard(){
           <div class="text-xs txt3 mt-1">💰 ${tierLabel} — €${b.amount}</div>
           ${b.scope==='sessioni'||b.scope==='sessione'?'<div class="text-xs txt3 mt-1">📋 '+b.sessions.length+' sessione/i</div>':''}
           <div class="flex gap-2 mt-2">
-            <span class="badge ${badgeType(ev.type)}">${capitalize(ev.type)}</span>
+            <span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>
             ${b.depositStatus==='pending'?'<span class="badge badge-yellow">⏳ In attesa di anticipo</span>':'<span class="badge badge-pubblicato">Confermata</span>'}
           </div>
         </div>
@@ -5232,7 +5467,7 @@ function renderUserDashboard(){
             <span style="font-size:.6rem;color:rgba(16,185,129,.5)">${monthStr}</span>
           </div>
           <div class="flex-1">
-            <div class="flex gap-2 flex-wrap mb-1">${univBadges}<span class="badge badge-jam">${getJamTypeDisplay(jam.type||'jam')}</span><span class="badge" style="background:rgba(16,185,129,.15);color:var(--green)">✅ Iscritto</span></div>
+            <div class="flex gap-2 flex-wrap mb-1">${univBadges}<span class="badge ${badgeType(jam.type||'jam')}" style="${badgeTypeStyle(jam.type||'jam')}">${getJamTypeDisplay(jam.type||'jam')}</span><span class="badge" style="background:rgba(16,185,129,.15);color:var(--green)">✅ Iscritto</span></div>
             <h3 class="font-semibold text-white">${jam.title}</h3>
             <div class="flex gap-3 mt-1 text-xs txt3">
               <span>📅 ${fmtDate(jam.date)}</span><span>🕐 ${jam.startTime} — ${jam.endTime}</span>
@@ -5387,7 +5622,7 @@ async function geocodeAndRenderMap(){
     const univ=univIds.length?store.universes.find(u=>u.id===univIds[0]):null;
     const color=univ?univ.color:(MARKER_COLORS[ev.type]||'#d946ef');
     const isCommunity=!!ev._isCommunity;
-    const letter=ev.type==='jam'?'J':ev.type==='lezione'?'L':ev.type==='workshop'?'W':ev.type==='pratica'?'P':ev.type==='social'?'S':'E';
+    const letter=getMarkerLetter(ev.type);
     let markerHtml='';
     if(univIds.length>1){
       // Multi-universe: conic-gradient marker
@@ -5417,7 +5652,7 @@ async function geocodeAndRenderMap(){
     const popup=L.popup({maxWidth:260,closeButton:true}).setContent(
       '<div>'+
         '<div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap">'+
-          '<span class="badge '+badgeType(ev.type)+'" style="font-size:.65rem">'+capitalize(ev.type)+'</span>'+
+          '<span class="badge '+badgeType(ev.type)+'" style="font-size:.65rem;'+badgeTypeStyle(ev.type)+'">'+getEventTypeIcon(ev.type)+' '+getEventTypeLabel(ev.type)+'</span>'+
           (univ?'<span style="font-size:.65rem;padding:2px 8px;border-radius:8px;background:'+univ.color+'25;color:'+univ.color+'">'+univ.emoji+' '+univ.name+'</span>':'')+
           sourceBadge+
         '</div>'+
@@ -5457,7 +5692,8 @@ async function geocodeAndRenderMap(){
 let eventsMap=null;
 let mapMarkers=[];
 let currentEventsView='list';
-const MARKER_COLORS={jam:'#10b981',lezione:'#3b82f6',workshop:'#d946ef'};
+const MARKER_COLORS={jam:'#10b981',lezione:'#3b82f6',workshop:'#d946ef',pratica:'#8b5cf6',social:'#f59e0b',ritiro:'#06b6d4'};
+function getMarkerLetter(type){return(getEventTypeLabel(type)||type||'E').charAt(0).toUpperCase();}
 
 function setEventsView(mode){
   currentEventsView=mode;
@@ -5538,8 +5774,21 @@ function selectJamType(btn){
   if(ci)ci.classList.toggle('hidden',selectedJamType!=='custom');
 }
 function getJamTypeDisplay(type){
-  const typeMap={jam:'🤝 Jam',pratica:'🧘 Pratica',social:'🎉 Social'};
-  return typeMap[type]||`${type}`;
+  return getEventTypeIcon(type)+' '+getEventTypeLabel(type);
+}
+function populateJamTypeFilters(){
+  ['jam-user-filter-type','jam-admin-filter-type'].forEach(selId=>{
+    const sel=document.getElementById(selId);if(!sel)return;
+    const curVal=sel.value;
+    const allTypes=new Set();
+    getActiveUniverses().forEach(u=>{(u.eventTypes||DEFAULT_EVENT_TYPES).forEach(t=>allTypes.add(t));});
+    store.communityJams.forEach(j=>{if(j.type)allTypes.add(j.type);});
+    let html='<option value="">Tutti</option>';
+    Array.from(allTypes).sort().forEach(t=>{
+      html+='<option value="'+t+'"'+(curVal===t?' selected':'')+'>'+getEventTypeLabel(t)+'</option>';
+    });
+    sel.innerHTML=html;
+  });
 }
 function openCreateJamModal(){
   const overlay=document.createElement('div');
@@ -5551,12 +5800,7 @@ function openCreateJamModal(){
       <div id="jam-create-infocard-wrap"></div>
       <div class="mb-4">
         <label class="label">Tipo di evento</label>
-        <div class="flex gap-2 flex-wrap" id="jam-type-btns">
-          <button type="button" class="btn btn-sm jam-type-btn" data-type="jam" onclick="selectJamType(this)" style="background:var(--green-bg);color:var(--green);border:1px solid var(--green)">🤝 Jam</button>
-          <button type="button" class="btn btn-sm jam-type-btn" data-type="pratica" onclick="selectJamType(this)" style="border:1px solid var(--s400)">🧘 Pratica</button>
-          <button type="button" class="btn btn-sm jam-type-btn" data-type="social" onclick="selectJamType(this)" style="border:1px solid var(--s400)">🎉 Social</button>
-          <button type="button" class="btn btn-sm jam-type-btn" data-type="custom" onclick="selectJamType(this)" style="border:1px solid var(--s400)">✏️ Altro</button>
-        </div>
+        <div class="flex gap-2 flex-wrap" id="jam-type-btns"></div>
         <input class="input mt-2 hidden" id="jam-custom-type" placeholder="Scrivi il tipo...">
       </div>
       <div class="mb-4">
@@ -5605,8 +5849,28 @@ function openCreateJamModal(){
   const juc=document.getElementById('jam-universes-list');
   if(juc){
     const active=getActiveUniverses();
-    juc.innerHTML=active.map(u=>'<button type="button" class="jam-univ-btn ne-univ-selected" data-univ="'+u.id+'" onclick="toggleUnivBtn(this)" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:12px;border:2px solid '+u.color+';background:'+u.color+'25;color:'+u.color+';font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s ease;outline:none"><span style="font-size:1.1rem">'+u.emoji+'</span>'+u.name+'</button>').join('');
+    juc.innerHTML=active.map(u=>'<button type="button" class="jam-univ-btn ne-univ-selected" data-univ="'+u.id+'" onclick="toggleJamUnivBtn(this)" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:12px;border:2px solid '+u.color+';background:'+u.color+'25;color:'+u.color+';font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s ease;outline:none"><span style="font-size:1.1rem">'+u.emoji+'</span>'+u.name+'</button>').join('');
   }
+  // Populate type buttons from selected universes
+  populateJamTypeButtons();
+}
+function toggleJamUnivBtn(btn){
+  toggleUnivBtn(btn);
+  populateJamTypeButtons();
+}
+function populateJamTypeButtons(){
+  const btnsWrap=document.getElementById('jam-type-btns');if(!btnsWrap)return;
+  const selectedUnivIds=Array.from(document.querySelectorAll('#jam-universes-list .ne-univ-selected')).map(b=>b.dataset.univ);
+  const types=getEventTypesForUniverses(selectedUnivIds);
+  let html=types.map((t,i)=>{
+    const isFirst=i===0;
+    const style=isFirst?'background:var(--green-bg);color:var(--green);border:1px solid var(--green)':'border:1px solid var(--s400)';
+    return '<button type="button" class="btn btn-sm jam-type-btn'+(isFirst?' jam-type-selected':'')+'" data-type="'+t+'" onclick="selectJamType(this)" style="'+style+'">'+getEventTypeIcon(t)+' '+getEventTypeLabel(t)+'</button>';
+  }).join('');
+  html+='<button type="button" class="btn btn-sm jam-type-btn" data-type="custom" onclick="selectJamType(this)" style="border:1px solid var(--s400)">✏️ Altro</button>';
+  btnsWrap.innerHTML=html;
+  const ci=document.getElementById('jam-custom-type');
+  if(ci)ci.classList.add('hidden');
 }
 function updateJamMinSubsDeadline(){
   const jd=document.getElementById('jam-date')?.value;
@@ -5633,8 +5897,15 @@ function submitJam(){
   const groupLink=(document.getElementById('jam-group-link')||{}).value||'';
   const contactPhone=(document.getElementById('jam-contact-phone')||{}).value||'';
   const contactEmail=(document.getElementById('jam-contact-email')||{}).value||'';
-  const jamType=selectedJamType==='custom'?(document.getElementById('jam-custom-type')?.value||'Community Event'):selectedJamType;
-  const selectedUnivIds=Array.from(document.querySelectorAll('.jam-univ-btn.ne-univ-selected')).map(btn=>btn.dataset.univ);
+  let jamType=selectedJamType;
+  if(selectedJamType==='custom'){
+    const customVal=(document.getElementById('jam-custom-type')?.value||'').trim();
+    jamType=customVal?normalizeTypeName(customVal):'evento';
+    // Add custom type to selected universes catalog
+    const selUnivs=Array.from(document.querySelectorAll('#jam-universes-list .ne-univ-selected')).map(b=>b.dataset.univ);
+    if(customVal)selUnivs.forEach(uid=>addCustomEventType(uid,customVal));
+  }
+  const selectedUnivIds=Array.from(document.querySelectorAll('#jam-universes-list .ne-univ-selected')).map(btn=>btn.dataset.univ);
 
   if(!title.trim()||!date||!start||!end||!location.trim()){
     showToast('Compila i campi obbligatori','error');
@@ -5762,7 +6033,7 @@ function showJamDetail(jamId){
     ${jamAlertBanner}
     <div class="card mb-6">
       <div class="flex gap-2 mb-3 flex-wrap">
-        <span class="badge badge-jam">${getJamTypeDisplay(jam.type||'jam')}</span>
+        <span class="badge ${badgeType(jam.type||'jam')}" style="${badgeTypeStyle(jam.type||'jam')}">${getJamTypeDisplay(jam.type||'jam')}</span>
         ${spotsInfo}
       </div>
       <h1 class="text-2xl font-bold text-white">${jam.title}</h1>
@@ -5797,6 +6068,7 @@ function showJamDetail(jamId){
 
 function renderUserJams(){
   const c=document.getElementById('user-jams-container');if(!c)return;
+  populateJamTypeFilters();
   const uid=store.currentUser.id;
 
   // Get filter values
@@ -6537,7 +6809,7 @@ function showEventDetail(evId){
     ${alertBanner}
     <div class="card mb-6" ${isDisabledByAlert?'style="opacity:.5;pointer-events:none"':''}>
       ${(()=>{const hd=(ev.imageHeader||ev.image)?{src:ev.imageHeader?.src||ev.image,zoom:ev.imageHeader?.zoom||100,posX:ev.imageHeader?.posX||0,posY:ev.imageHeader?.posY||0}:null;if(!hd)return '';const s=hd.zoom/100;const denomW=420*s-420;const denomH=300*s-300;const px=denomW>0?Math.round(Math.abs(hd.posX)/denomW*100):50;const py=denomH>0?Math.round(Math.abs(hd.posY)/denomH*100):50;const op=`object-position:${isNaN(px)?50:px}% ${isNaN(py)?50:py}%`;return '<div style="margin:-20px -20px 16px;border-radius:16px 16px 0 0;overflow:hidden"><img src="'+hd.src+'" style="width:100%;max-height:300px;object-fit:cover;'+op+'" alt=""></div>';})()}
-      <div class="flex gap-2 mb-3 flex-wrap"><span class="badge ${badgeType(ev.type)}">${capitalize(ev.type)}</span>${levelBadges}</div>
+      <div class="flex gap-2 mb-3 flex-wrap"><span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>${levelBadges}</div>
       <h1 class="text-2xl font-bold text-white">${ev.title}</h1>
       <p class="txt3 mt-2">${ev.description}</p>
       <div class="flex items-center gap-2 mt-3 text-sm txt3">👤 con ${ev.teacher}</div>
@@ -6701,7 +6973,7 @@ function renderAdminEvents(){
       <div class="flex justify-between items-center flex-wrap gap-3">
         <div class="flex-1" style="min-width:200px">
           <div class="flex gap-2 items-center mb-1">
-            <span class="badge ${badgeType(ev.type)}">${capitalize(ev.type)}</span>
+            <span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>
             <span class="badge ${badgeStatus(ev.status)}">${capitalize(ev.status)}</span>
             ${getRecurrenceBadge(ev)}
             ${ev.alert?'<span class="badge" style="background:'+(ev.alert.type==='modificato'?'var(--orange-bg)':'var(--red-bg)')+';color:'+(ev.alert.type==='modificato'?'var(--orange)':'var(--red)')+'">⚠️ '+(ev.alert.type==='cancellato'?'Annullato':ev.alert.type==='rimandato'?'Rimandato':'Modificato')+'</span>':''}
@@ -7177,7 +7449,7 @@ function renderCommunityEvents(){
       <div class="flex justify-between items-center flex-wrap gap-3">
         <div class="flex-1" style="min-width:200px">
           <div class="flex gap-2 items-center mb-1">
-            <span class="badge ${badgeType(ev.type)}">${capitalize(ev.type)}</span>
+            <span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>
             <span class="badge ${badgeStatus(ev.status)}">${capitalize(ev.status)}</span>
             ${getRecurrenceBadge(ev)}
           </div>
@@ -7198,6 +7470,7 @@ function renderCommunityEvents(){
 ============================== */
 function renderAdminCommunityJams(){
   const c=document.getElementById('admin-community-jams-container');if(!c)return;
+  populateJamTypeFilters();
 
   // Get filter values
   const filterText=(document.getElementById('jam-admin-filter-text')||{}).value||'';
@@ -7223,7 +7496,7 @@ function renderAdminCommunityJams(){
       <div class="flex justify-between items-center flex-wrap gap-3">
         <div class="flex-1" style="min-width:200px">
           <div class="flex gap-2 items-center mb-1">
-            <span class="badge badge-jam">${getJamTypeDisplay(jam.type||'jam')}</span>
+            <span class="badge ${badgeType(jam.type||'jam')}" style="${badgeTypeStyle(jam.type||'jam')}">${getJamTypeDisplay(jam.type||'jam')}</span>
           </div>
           <h3 class="font-semibold text-white">${jam.title}</h3>
           <p class="text-sm txt3">${jam.description}</p>
@@ -7375,7 +7648,7 @@ function renderAdminDashboard(){
   if(!dc)return;
   if(pub.length){
     if(dt)dt.style.display='';
-    dc.innerHTML=`<div class="card" style="padding:0;overflow:hidden"><table class="table"><thead><tr><th>Evento</th><th>Data</th><th>Tipo</th><th>Org</th><th>Stato</th></tr></thead><tbody>${pub.slice(0,5).map(ev=>`<tr style="cursor:pointer" onclick="showAdminEventDetail('${ev.id}')"><td class="font-medium text-white">${ev.title}</td><td>${ev.days[0]?fmtDateShort(ev.days[0].date):''}</td><td><span class="badge ${badgeType(ev.type)}">${capitalize(ev.type)}</span></td><td class="text-xs txt3">${ev.orgName}</td><td><span class="badge badge-pubblicato">Pubblicato</span></td></tr>`).join('')}</tbody></table></div>`;
+    dc.innerHTML=`<div class="card" style="padding:0;overflow:hidden"><table class="table"><thead><tr><th>Evento</th><th>Data</th><th>Tipo</th><th>Org</th><th>Stato</th></tr></thead><tbody>${pub.slice(0,5).map(ev=>`<tr style="cursor:pointer" onclick="showAdminEventDetail('${ev.id}')"><td class="font-medium text-white">${ev.title}</td><td>${ev.days[0]?fmtDateShort(ev.days[0].date):''}</td><td><span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span></td><td class="text-xs txt3">${ev.orgName}</td><td><span class="badge badge-pubblicato">Pubblicato</span></td></tr>`).join('')}</tbody></table></div>`;
   } else {if(dt)dt.style.display='none';dc.innerHTML='';}
 }
 
@@ -7716,7 +7989,7 @@ function checkNearbyEvents(dateStr,di){
     <div class="flex items-center gap-2 mb-2"><span style="font-size:1rem">⚠️</span><span class="text-sm font-semibold" style="color:var(--yellow)">Eventi vicini a questa data (±5 giorni)</span></div>
     ${nearby.map(ev=>{
       const dates=ev.days.map(d=>fmtDateShort(d.date)).join(', ');
-      return `<div class="flex items-center gap-2 mb-1"><span class="badge ${badgeType(ev.type)} text-xs">${capitalize(ev.type)}</span><span class="text-sm text-white">${ev.title}</span><span class="text-xs txt3">${dates}</span><span class="text-xs txt3">· ${ev.orgName}</span></div>`;
+      return `<div class="flex items-center gap-2 mb-1"><span class="badge ${badgeType(ev.type)} text-xs" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span><span class="text-sm text-white">${ev.title}</span><span class="text-xs txt3">${dates}</span><span class="text-xs txt3">· ${ev.orgName}</span></div>`;
     }).join('')}
   </div>`;
 }
@@ -7746,7 +8019,7 @@ function toggleEventPicker(wrapEl,scope,di){
     const dateRange=ev.days&&ev.days.length>1?evDate+' → '+fmtDateShort(ev.days[ev.days.length-1].date):evDate;
     return `<label class="flex items-center gap-2 text-sm" style="cursor:pointer;padding:6px 0;border-bottom:1px solid var(--s300)">
       <input type="checkbox" value="${ev.title}" class="ep-check" ${checked} onchange="updatePickerLabel(this)">
-      <span class="badge ${badgeType(ev.type)}" style="font-size:.6rem;padding:2px 6px">${capitalize(ev.type)}</span>
+      <span class="badge ${badgeType(ev.type)}" style="font-size:.6rem;padding:2px 6px;${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>
       <span style="flex:1"><span class="text-white">${ev.title}</span><br><span class="text-xs txt3">📅 ${dateRange}</span></span>${statusBadge}
     </label>`;
   }).join(''):'<div class="text-xs txt3">Nessun evento trovato</div>';
@@ -7811,13 +8084,48 @@ function autoFillMaxSpots(inputEl){
 }
 function removeFormSession(di,si){formDays[di].sessions.splice(si,1);renderFormDays();}
 
-function toggleCustomEventType(){
+function toggleCustomEventType(){onEventTypeChange();}
+function onEventTypeChange(){
   const typeSelect=document.getElementById('ne-type');
   const customInput=document.getElementById('ne-custom-type');
-  if(typeSelect.value==='custom'){
-    customInput.classList.remove('hidden');
-  }else{
-    customInput.classList.add('hidden');
+  const saveBtn=document.getElementById('ne-custom-type-save');
+  const isCustom=typeSelect.value==='__custom__';
+  if(customInput){customInput.classList.toggle('hidden',!isCustom);if(!isCustom)customInput.value='';}
+  if(saveBtn)saveBtn.classList.toggle('hidden',!isCustom);
+}
+function populateEventTypeDropdown(selectedUnivIds,currentValue){
+  const sel=document.getElementById('ne-type');if(!sel)return;
+  const types=getEventTypesForUniverses(selectedUnivIds||[]);
+  let html='';
+  types.forEach(t=>{html+='<option value="'+t+'">'+getEventTypeLabel(t)+'</option>';});
+  html+='<option value="__custom__">✏️ Altro (crea nuova tipologia)</option>';
+  sel.innerHTML=html;
+  if(currentValue){
+    if(types.includes(currentValue)){sel.value=currentValue;}
+    else if(currentValue==='__custom__'||currentValue==='custom'){sel.value='__custom__';}
+    else{
+      // Custom type that's not in the catalog yet — add as temp option
+      sel.insertAdjacentHTML('beforeend','<option value="'+currentValue+'">'+getEventTypeLabel(currentValue)+'</option>');
+      sel.value=currentValue;
+    }
+  }
+  onEventTypeChange();
+}
+async function saveCustomEventTypeFromForm(){
+  const input=document.getElementById('ne-custom-type');
+  const typeName=(input?.value||'').trim();
+  if(!typeName){showToast('Scrivi il nome della tipologia','error');return;}
+  const selectedUnivIds=Array.from(document.querySelectorAll('.ne-univ-btn.ne-univ-selected')).map(b=>b.dataset.univ);
+  if(!selectedUnivIds.length){showToast('Seleziona prima un universo','error');return;}
+  // Add to all selected universes
+  let addedType=null;
+  for(const uid of selectedUnivIds){
+    const result=await addCustomEventType(uid,typeName);
+    if(result)addedType=result;
+  }
+  if(addedType){
+    populateEventTypeDropdown(selectedUnivIds,addedType);
+    input.value='';
   }
 }
 
@@ -8032,7 +8340,7 @@ function collectFormData(){
   if(!universeIds.length){showToast('Seleziona almeno un universo!','error');return null;}
   const universeId=universeIds[0]; // Primary universe for backward compat
   const eventType=document.getElementById('ne-type').value||'jam';
-  const finalType=eventType==='custom'?(document.getElementById('ne-custom-type')?.value||'Evento'):eventType;
+  const finalType=eventType==='__custom__'?(normalizeTypeName(document.getElementById('ne-custom-type')?.value)||'evento'):eventType;
   return {
     id:genId('ev'),managerId:store.currentUser.id,orgName:store.currentUser.orgName,
     universeId,universeIds,
@@ -8190,11 +8498,10 @@ function editEvent(id){
   // Populate basic fields
   document.getElementById('ne-title').value=ev.title||'';
   document.getElementById('ne-desc').value=ev.description||'';
-  const typeVal=ev.type||'jam';
-  const isKnownType=['jam','lezione','workshop'].includes(typeVal);
-  document.getElementById('ne-type').value=isKnownType?typeVal:'custom';
-  if(!isKnownType)document.getElementById('ne-custom-type').value=typeVal;
-  toggleCustomEventType();
+  // Populate event type dropdown based on selected universes, then restore value
+  const editUnivIdsForType=ev.universeIds||[ev.universeId||'univ_acro'];
+  populateEventTypeDropdown(editUnivIdsForType,ev.type||'jam');
+  onEventTypeChange();
   document.getElementById('ne-level').value=ev.level||'open';
   document.getElementById('ne-teacher').value=ev.teacher||'';
   document.getElementById('ne-location').value=ev.location||'';
@@ -8542,7 +8849,7 @@ function renderAdminBookings(){
       const isCancelled=b.status==='cancellata';
       const rowStyle=isCancelled?'opacity:.5':b.depositStatus==='pending'?'background:rgba(234,179,8,.03)':'';
       const evType=getEvType(b.eventId);
-      const badgeCls=evType==='jam'?'badge-jam':evType==='lezione'?'badge-lezione':'badge-workshop';
+      const badgeCls=badgeType(evType);
       const depositHtml=b.depositStatus==='pending'?'<span class="badge badge-yellow">⏳ Da verificare</span>'
         :b.depositStatus==='ricevuto'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">✅ Ricevuto</span>'
         :isCancelled?'<span class="badge" style="background:var(--red-bg);color:var(--red)">❌ Cancellata</span>'
@@ -9537,7 +9844,7 @@ function showAdminEventDetail(evId){
     <!-- Event header -->
     <div class="card mb-6">
       <div class="flex gap-2 mb-2 flex-wrap">
-        <span class="badge ${badgeType(ev.type)}">${capitalize(ev.type)}</span>
+        <span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>
         <span class="badge ${badgeStatus(ev.status)}">${capitalize(ev.status)}</span>
         ${getRecurrenceBadge(ev)}
       </div>
