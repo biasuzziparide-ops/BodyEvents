@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.5.7</title>
+<title>BodyEvents — V2.5.9</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤸</text></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -91,9 +91,24 @@ textarea.input{resize:none;font-family:inherit}
 .nav-link:hover{background:var(--s200);color:var(--txt2)}
 .nav-link.active{background:var(--brand-bg);color:var(--brand-l)}
 .nav-auth{display:flex;align-items:center;gap:8px}
-.hamburger{display:none;background:none;border:none;color:var(--txt3);cursor:pointer;padding:8px}
+.hamburger{display:none;background:none;border:none;color:var(--txt3);cursor:pointer;padding:8px;min-width:44px;min-height:44px;font-size:1.4rem;display:none;align-items:center;justify-content:center}
 .mobile-menu{display:none;background:var(--s50);border-top:1px solid var(--s300);padding:8px 16px 16px}
 .mobile-menu.open{display:block}
+.mobile-backdrop{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:99}
+.mobile-backdrop.open{display:block}
+.mobile-menu .mm-group{padding:8px 0}
+.mobile-menu .mm-group+.mm-group{border-top:1px solid var(--s300)}
+.mobile-menu .mm-group-label{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--txt3);padding:4px 12px 6px;opacity:.7}
+/* Mobile quick-access bar */
+.mobile-quickbar{display:none;background:var(--s50);border-bottom:1px solid var(--s300);padding:6px 8px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.mobile-quickbar::-webkit-scrollbar{display:none}
+.mobile-quickbar-inner{display:flex;gap:4px;justify-content:center;min-width:min-content}
+.mqb-item{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 10px;border-radius:10px;cursor:pointer;transition:all .15s;white-space:nowrap;min-width:56px}
+.mqb-item:hover{background:var(--s200)}
+.mqb-item.active{background:var(--brand-bg)}
+.mqb-item .mqb-icon{font-size:1.1rem;line-height:1}
+.mqb-item .mqb-label{font-size:.6rem;font-weight:600;color:var(--txt3);line-height:1}
+.mqb-item.active .mqb-label{color:var(--brand-l)}
 
 /* === HIDE ADMIN NAVBAR (sidebar only) === */
 @media(min-width:769px){#navbar-admin{display:none!important}}
@@ -164,8 +179,12 @@ textarea.input{resize:none;font-family:inherit}
 @media(max-width:768px){
   .grid-2,.grid-3{grid-template-columns:1fr}
   .grid-4{grid-template-columns:repeat(2,1fr)}
+  .grid-2-resp{grid-template-columns:1fr!important}
+  .filter-grid{grid-template-columns:1fr!important}
   .nav-links,.nav-auth{display:none}
-  .hamburger{display:block}
+  .hamburger{display:flex}
+  .mobile-quickbar{display:block}
+  .mqb-item{min-width:52px;min-height:44px;padding:6px 12px}
   .sidebar{display:none}
   .admin-content{padding:16px}
   .admin-wrap{min-height:auto}
@@ -178,6 +197,7 @@ textarea.input{resize:none;font-family:inherit}
   .flex.gap-3{gap:8px}
   .stat-card{padding:12px}
   .stat-card .value{font-size:1.2rem}
+  .tier-suggest-banner-inner{padding:14px 40px 14px 14px}
 }
 @media(max-width:480px){
   .grid-4{grid-template-columns:1fr}
@@ -215,7 +235,7 @@ textarea.input{resize:none;font-family:inherit}
 .map-marker{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;color:#fff;border:2px solid rgba(255,255,255,.3);box-shadow:0 2px 8px rgba(0,0,0,.4);transform:translate(-50%,-50%)}
 .map-marker-outline{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;background:transparent !important;border:3px solid;box-shadow:0 2px 8px rgba(0,0,0,.4);transform:translate(-50%,-50%)}
 /* === ONBOARDING SYSTEM === */
-.ob-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;animation:obFadeIn .25s}
+.ob-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;animation:obFadeIn .25s;overflow-y:auto;-webkit-overflow-scrolling:touch}
 @keyframes obFadeIn{from{opacity:0}to{opacity:1}}
 .ob-tour{background:var(--s100);border:1px solid var(--s400);border-radius:20px;max-width:420px;width:100%;padding:28px 24px 20px;box-shadow:0 16px 48px rgba(0,0,0,.5);position:relative;animation:obSlideUp .3s}
 @keyframes obSlideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
@@ -263,7 +283,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.5.7</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.5.8</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -294,13 +314,31 @@ textarea.input{resize:none;font-family:inherit}
     </div>
     <button class="hamburger" onclick="toggleMobile()">☰</button>
   </div>
+  <!-- Mobile quick-access bar (user) -->
+  <div class="mobile-quickbar" id="quickbar-user">
+    <div class="mobile-quickbar-inner">
+      <div class="mqb-item active" data-view="events" onclick="go('events');closeMobile()"><span class="mqb-icon">📅</span><span class="mqb-label">Bacheca</span></div>
+      <div class="mqb-item" data-view="jams" onclick="go('jams');closeMobile()"><span class="mqb-icon">🤝</span><span class="mqb-label">Community</span></div>
+      <div class="mqb-item" data-view="dashboard" onclick="go('dashboard');closeMobile()"><span class="mqb-icon">🎫</span><span class="mqb-label">Prenotazioni</span></div>
+      <div class="mqb-item" data-view="profile" onclick="go('profile');closeMobile()"><span class="mqb-icon">👤</span><span class="mqb-label">Profilo</span></div>
+    </div>
+  </div>
+  <!-- Mobile full menu (user) -->
   <div class="mobile-menu" id="mobileMenu">
-    <div class="nav-link" onclick="go('events');closeMobile()">📅 Bacheca</div>
-    <div class="nav-link" onclick="go('jams');closeMobile()">🤝 Community Events</div>
-    <div class="nav-link" onclick="go('dashboard');closeMobile()">🎫 Le mie prenotazioni</div>
-    <div class="nav-link" onclick="go('profile');closeMobile()">👤 Profilo</div>
-    <div class="nav-link" onclick="refreshData();closeMobile()">🔄 Aggiorna dati</div>
-    <div class="nav-link" onclick="doLogout();closeMobile()">🚪 Esci</div>
+    <div class="mm-group">
+      <div class="mm-group-label">Esplora</div>
+      <div class="nav-link" onclick="go('events');closeMobile()">📅 Bacheca</div>
+      <div class="nav-link" onclick="go('jams');closeMobile()">🤝 Community Events</div>
+    </div>
+    <div class="mm-group">
+      <div class="mm-group-label">Il mio account</div>
+      <div class="nav-link" onclick="go('dashboard');closeMobile()">🎫 Prenotazioni</div>
+      <div class="nav-link" onclick="go('profile');closeMobile()">👤 Profilo</div>
+    </div>
+    <div class="mm-group">
+      <div class="nav-link" onclick="refreshData();closeMobile()">🔄 Aggiorna dati</div>
+      <div class="nav-link" onclick="doLogout();closeMobile()">🚪 Esci</div>
+    </div>
   </div>
 </nav>
 
@@ -323,18 +361,37 @@ textarea.input{resize:none;font-family:inherit}
     </div>
     <button class="hamburger" onclick="toggleMobileAdmin()">☰</button>
   </div>
+  <!-- Mobile quick-access bar (admin) -->
+  <div class="mobile-quickbar" id="quickbar-admin">
+    <div class="mobile-quickbar-inner">
+      <div class="mqb-item active" data-view="admin" onclick="go('admin');closeMobileAdmin()"><span class="mqb-icon">📊</span><span class="mqb-label">Dashboard</span></div>
+      <div class="mqb-item" data-view="admin-events" onclick="go('admin-events');closeMobileAdmin()"><span class="mqb-icon">📅</span><span class="mqb-label">Eventi</span></div>
+      <div class="mqb-item" data-view="admin-new-event" onclick="go('admin-new-event');closeMobileAdmin()"><span class="mqb-icon">➕</span><span class="mqb-label">Nuovo</span></div>
+      <div class="mqb-item" data-view="admin-checkin" onclick="go('admin-checkin');closeMobileAdmin()"><span class="mqb-icon">📱</span><span class="mqb-label">Check-in</span></div>
+      <div class="mqb-item" data-view="admin-subscriptions" onclick="go('admin-subscriptions');closeMobileAdmin()"><span class="mqb-icon">💳</span><span class="mqb-label">Abbonamenti</span></div>
+    </div>
+  </div>
+  <!-- Mobile full menu (admin) -->
   <div class="mobile-menu" id="mobileMenuAdmin">
-    <div class="nav-link" onclick="go('admin');closeMobileAdmin()">📊 Dashboard</div>
-    <div class="nav-link" onclick="go('admin-events');closeMobileAdmin()">📅 Eventi</div>
-    <div class="nav-link" onclick="go('admin-new-event');closeMobileAdmin()">➕ Nuovo Evento</div>
-    <div class="nav-link" onclick="go('admin-checkin');closeMobileAdmin()">📱 Check-in QR</div>
-    <div class="nav-link" onclick="go('admin-subscriptions');closeMobileAdmin()">💳 Abbonamenti</div>
-    <div class="nav-link master-only" style="display:none" onclick="go('admin-community-events');closeMobileAdmin()">📅 Eventi Organizzati</div>
-    <div class="nav-link" onclick="go('admin-community-jams');closeMobileAdmin()">🤝 Community Events</div>
-    <div class="nav-link master-only" style="display:none" onclick="go('admin-users');closeMobileAdmin()">👥 Gestione Utenti</div>
-    <div class="nav-link" onclick="go('admin-universes');closeMobileAdmin()">🌌 Universi</div>
-    <div class="nav-link" onclick="refreshData();closeMobileAdmin()">🔄 Aggiorna dati</div>
-    <div class="nav-link" onclick="doLogout();closeMobileAdmin()">🚪 Esci</div>
+    <div class="mm-group">
+      <div class="mm-group-label">Gestione eventi</div>
+      <div class="nav-link" onclick="go('admin');closeMobileAdmin()">📊 Dashboard</div>
+      <div class="nav-link" onclick="go('admin-events');closeMobileAdmin()">📅 Eventi</div>
+      <div class="nav-link" onclick="go('admin-new-event');closeMobileAdmin()">➕ Nuovo Evento</div>
+      <div class="nav-link" onclick="go('admin-checkin');closeMobileAdmin()">📱 Check-in QR</div>
+      <div class="nav-link" onclick="go('admin-subscriptions');closeMobileAdmin()">💳 Abbonamenti</div>
+    </div>
+    <div class="mm-group">
+      <div class="mm-group-label">Community e piattaforma</div>
+      <div class="nav-link master-only" style="display:none" onclick="go('admin-community-events');closeMobileAdmin()">📅 Eventi Organizzati</div>
+      <div class="nav-link" onclick="go('admin-community-jams');closeMobileAdmin()">🤝 Community Events</div>
+      <div class="nav-link master-only" style="display:none" onclick="go('admin-users');closeMobileAdmin()">👥 Gestione Utenti</div>
+      <div class="nav-link" onclick="go('admin-universes');closeMobileAdmin()">🌌 Universi</div>
+    </div>
+    <div class="mm-group">
+      <div class="nav-link" onclick="refreshData();closeMobileAdmin()">🔄 Aggiorna dati</div>
+      <div class="nav-link" onclick="doLogout();closeMobileAdmin()">🚪 Esci</div>
+    </div>
   </div>
 </nav>
 
@@ -356,7 +413,7 @@ textarea.input{resize:none;font-family:inherit}
       </div>
     </div>
     <!-- Filtri principali (sempre visibili) -->
-    <div style="padding:12px 16px;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end">
+    <div class="filter-grid" style="padding:12px 16px;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end">
       <div>
         <label class="label" style="font-size:.65rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:3px">Universo</label>
         <select class="input" id="filter-universe" onchange="renderUserEvents()" style="padding:7px 28px 7px 10px;font-size:.8rem">
@@ -375,7 +432,7 @@ textarea.input{resize:none;font-family:inherit}
       <button onclick="document.getElementById('adv-filters').classList.toggle('hidden');this.textContent=document.getElementById('adv-filters').classList.contains('hidden')?'▼ Più filtri':'▲ Meno filtri'" style="background:none;border:none;color:var(--brand-l);font-size:.75rem;cursor:pointer;padding:4px 12px">▼ Più filtri</button>
     </div>
     <!-- Filtri avanzati (nascosti di default) -->
-    <div id="adv-filters" class="hidden" style="padding:0 16px 12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end">
+    <div id="adv-filters" class="hidden filter-grid" style="padding:0 16px 12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end">
       <div>
         <label class="label" style="font-size:.65rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:3px">Zona</label>
         <select class="input" id="filter-zona" onchange="renderUserEvents()" style="padding:7px 28px 7px 10px;font-size:.8rem">
@@ -744,7 +801,6 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-checkin')">📱 Check-in QR</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
-      <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
@@ -791,7 +847,6 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-checkin')">📱 Check-in QR</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
-      <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
@@ -822,7 +877,6 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-checkin')">📱 Check-in QR</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
-      <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only active" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
@@ -851,7 +905,6 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-events')">📅 Eventi</div>
       <div class="sidebar-link" onclick="go('admin-checkin')">📱 Check-in QR</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
-      <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
@@ -898,7 +951,6 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-checkin')">📱 Check-in QR</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
-      <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
@@ -909,7 +961,7 @@ textarea.input{resize:none;font-family:inherit}
     <h1 class="page-title">🌌 Gestione Universi</h1>
     <p class="page-sub" id="universes-page-sub">Gestisci gli universi (discipline) dell'app.</p>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+    <div class="grid-2-resp" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
       <div class="card" style="text-align:center"><div class="text-sm txt2">Universi attivi</div><div class="text-2xl font-bold text-white" id="active-univs-count">0</div></div>
       <div class="card" style="text-align:center"><div class="text-sm txt2">Proposte in attesa</div><div class="text-2xl font-bold text-white" id="pending-univs-count">0</div></div>
     </div>
@@ -918,7 +970,7 @@ textarea.input{resize:none;font-family:inherit}
     <div class="card mb-4" id="propose-universe-card">
       <h3 class="font-semibold text-white mb-4" id="propose-universe-title">🚀 Proponi nuovo Universo</h3>
       <p class="text-xs txt3 mb-3" id="propose-universe-desc">Proponi una nuova disciplina. L'admin la approverà e sarà disponibile per tutti.</p>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div class="grid-2-resp" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
         <div><label class="label">Nome *</label><input class="input" id="propose-univ-name" placeholder="es. Contact Improvisation"></div>
         <div><label class="label">Emoji</label><input class="input" id="propose-univ-emoji" placeholder="es. 💃" maxlength="4"></div>
       </div>
@@ -978,7 +1030,6 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-checkin')">📱 Check-in QR</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
-      <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link active" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
@@ -1035,7 +1086,6 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-events')">📅 Eventi</div>
       <div class="sidebar-link" onclick="go('admin-checkin')">📱 Check-in QR</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
-      <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
@@ -1362,7 +1412,6 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-checkin')">📱 Check-in QR</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
-      <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
@@ -1410,7 +1459,6 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-events')">📅 Eventi</div>
       <div class="sidebar-link active" onclick="go('admin-checkin')">📱 Check-in QR</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
-      <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
@@ -1506,7 +1554,6 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-checkin')">📱 Check-in QR</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
-      <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
@@ -1541,7 +1588,6 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-events')">📅 Eventi</div>
       <div class="sidebar-link" onclick="go('admin-checkin')">📱 Check-in QR</div>
       <div class="sidebar-link active" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
-      <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
@@ -2054,6 +2100,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- Toast container -->
 <div id="toastContainer"></div>
+<div class="mobile-backdrop" id="mobileBackdrop" onclick="closeMobile();closeMobileAdmin()"></div>
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
@@ -2155,7 +2202,7 @@ const OB_TOURS={
     slides:[
       {icon:'👋',title:'Benvenuto su BodyEvents!',text:'Questa piattaforma è una <b>bacheca comunitaria</b> per scoprire, proporre e organizzare eventi. Qui puoi gestire il tuo palinsesto, condividere informazioni logistiche e raggiungere le diverse comunità.'},
       {icon:'🌌',title:'Gli Universi',text:'Gli eventi sono organizzati in <b>universi tematici</b>: ogni universo raccoglie un\'area di pratica (es. AcroYoga, Danza, Yoga...). Al suo interno trovi <b>lezioni, workshop, jam, ritiri</b> e altro. I tuoi eventi saranno collegati agli universi che scegli.'},
-      {icon:'🚀',title:'Inizia subito',text:'Dalla <b>barra laterale sinistra</b> accedi a tutte le sezioni: <b>📅 Eventi</b>, <b>📱 Check-in QR</b>, <b>💳 Abbonamenti</b>, <b>🤝 Community Events</b> e <b>🌌 Universi</b>. Puoi passare alla vista utente in qualsiasi momento dal toggle in alto.'}
+      {icon:'🚀',title:'Inizia subito',text:'Dal <b>menu di navigazione</b> accedi a tutte le sezioni: <b>📅 Eventi</b>, <b>📱 Check-in QR</b>, <b>💳 Abbonamenti</b>, <b>🤝 Community Events</b> e <b>🌌 Universi</b>. Puoi passare alla vista utente in qualsiasi momento dal toggle in alto.'}
     ]
   },
   // --- USER TOURS ---
@@ -2188,7 +2235,7 @@ const OB_TOURS={
   tour_admin_intro:{
     slides:[
       {icon:'🛡️',title:'Pannello Organizzatore',text:'Benvenuto nel tuo pannello! Da qui gestisci <b>eventi, prenotazioni, check-in</b> e community. Le card in alto mostrano le statistiche chiave.'},
-      {icon:'📱',title:'Navigazione',text:'Usa la <b>barra laterale sinistra</b> per navigare tra le sezioni. Puoi tornare alla <b>vista utente</b> in qualsiasi momento dal toggle in alto. Le sezioni principali sono: Eventi, Check-in QR, Abbonamenti, Community Events e Universi.'}
+      {icon:'📱',title:'Navigazione',text:'Usa il <b>menu di navigazione</b> per spostarti tra le sezioni. Puoi tornare alla <b>vista utente</b> in qualsiasi momento dal toggle in alto. Le sezioni principali sono: Eventi, Check-in QR, Abbonamenti, Community Events e Universi.'}
     ]
   },
   tour_admin_events:{
@@ -3654,6 +3701,7 @@ function updateMasterLinks(){
   document.querySelectorAll('.master-only').forEach(el=>el.style.display=isMaster?'':'none');
 }
 function switchMode(mode){
+  closeMobile();closeMobileAdmin();
   currentMode=mode;
   const btnU=document.getElementById('btnModeUser');
   const btnA=document.getElementById('btnModeAdmin');
@@ -3685,6 +3733,9 @@ function go(view){
   currentView=view;
   document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
   document.querySelectorAll(`.nav-link[data-view="${view}"]`).forEach(l=>l.classList.add('active'));
+  // Update mobile quickbar active states
+  document.querySelectorAll('.mqb-item').forEach(i=>i.classList.remove('active'));
+  document.querySelectorAll(`.mqb-item[data-view="${view}"]`).forEach(i=>i.classList.add('active'));
   window.scrollTo(0,0);
   const noNav=['login','register','register-org','privacy-policy','checkin-booked','checkin-walkin','checkin-new'];
   const hideAll=noNav.includes(view);
@@ -3848,10 +3899,10 @@ async function saveProfileChanges(){
   showToast('Profilo aggiornato!');
 }
 
-function toggleMobile(){document.getElementById('mobileMenu').classList.toggle('open')}
-function closeMobile(){document.getElementById('mobileMenu').classList.remove('open')}
-function toggleMobileAdmin(){document.getElementById('mobileMenuAdmin').classList.toggle('open')}
-function closeMobileAdmin(){document.getElementById('mobileMenuAdmin').classList.remove('open')}
+function toggleMobile(){const m=document.getElementById('mobileMenu');m.classList.toggle('open');document.getElementById('mobileBackdrop').classList.toggle('open',m.classList.contains('open'))}
+function closeMobile(){document.getElementById('mobileMenu').classList.remove('open');document.getElementById('mobileBackdrop').classList.remove('open')}
+function toggleMobileAdmin(){const m=document.getElementById('mobileMenuAdmin');m.classList.toggle('open');document.getElementById('mobileBackdrop').classList.toggle('open',m.classList.contains('open'))}
+function closeMobileAdmin(){document.getElementById('mobileMenuAdmin').classList.remove('open');document.getElementById('mobileBackdrop').classList.remove('open')}
 
 function showToast(msg,type='success'){
   const t=document.createElement('div');t.className='toast toast-'+type;
@@ -6542,7 +6593,7 @@ function showEventDetail(evId){
         }
         return '<div class="card mb-4" style="border:2px solid var(--green);background:rgba(16,185,129,.04)">'
           +'<div class="flex items-center gap-2 mb-4"><span style="font-size:1.5rem">✅</span><div><h3 class="font-bold" style="color:var(--green)">Sei iscritto!</h3><p class="text-xs txt3">Prenotazione del '+myBooking.bookedAt+'</p></div></div>'
-          +'<div class="grid gap-3 mb-4" style="grid-template-columns:1fr 1fr">'
+          +'<div class="grid grid-2-resp gap-3 mb-4" style="grid-template-columns:1fr 1fr">'
           +'<div><div class="text-xs txt3">Ruolo preferito</div><div class="text-sm text-white mt-1">'+roleLbl+'</div></div>'
           +'<div><div class="text-xs txt3">Tariffa</div><div class="text-sm text-white mt-1">'+tierLbl+' — <strong>€'+myBooking.amount+'</strong></div></div>'
           +'<div><div class="text-xs txt3">Pagamento</div><div class="text-sm mt-1">'+payLbl+'</div></div>'
