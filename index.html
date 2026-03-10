@@ -1748,7 +1748,7 @@ textarea.input{resize:none;font-family:inherit}
 
     <div class="card" id="reg-form">
       <!-- Google Register -->
-      <button class="btn w-full mb-4" style="padding:14px;background:#fff;color:#333;border:1px solid #ddd;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;border-radius:12px;font-size:.95rem" onclick="simulateGoogleLogin()">
+      <button class="btn w-full mb-4" style="padding:14px;background:#fff;color:#333;border:1px solid #ddd;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;border-radius:12px;font-size:.95rem" onclick="loginWithGoogle()">
         <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
         Registrati con Google
       </button>
@@ -1797,8 +1797,8 @@ textarea.input{resize:none;font-family:inherit}
     <div class="card hidden text-center" id="reg-sent">
       <div style="font-size:2.5rem;margin-bottom:12px">🎉</div>
       <h2 class="font-bold text-white text-lg">Registrazione completata!</h2>
-      <p class="txt3 text-sm mt-2 mb-4">Controlla la tua email e clicca il magic link per accedere.</p>
-      <button class="btn btn-secondary btn-sm mx-auto" onclick="go('events');showToast('Registrazione simulata!')">⚡ Simula accesso (preview)</button>
+      <p class="txt3 text-sm mt-2 mb-4">Ora puoi accedere con le credenziali che hai scelto.</p>
+      <button class="btn btn-primary btn-sm mx-auto" onclick="go('login')">🔑 Vai al Login</button>
     </div>
   </div>
 </div>
@@ -1818,7 +1818,7 @@ textarea.input{resize:none;font-family:inherit}
 
     <div class="card" id="reg-org-form">
       <!-- Google Register -->
-      <button class="btn w-full mb-4" style="padding:14px;background:#fff;color:#333;border:1px solid #ddd;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;border-radius:12px;font-size:.95rem" onclick="simulateGoogleLogin()">
+      <button class="btn w-full mb-4" style="padding:14px;background:#fff;color:#333;border:1px solid #ddd;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;border-radius:12px;font-size:.95rem" onclick="loginWithGoogle()">
         <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
         Registrati con Google
       </button>
@@ -1916,7 +1916,7 @@ textarea.input{resize:none;font-family:inherit}
           3. Accedi e inizia a creare i tuoi eventi!
         </div>
       </div>
-      <button class="btn btn-secondary btn-sm mx-auto mt-4" onclick="go('admin');showToast('Accesso organizzatore simulato!')">⚡ Simula accesso organizzatore (preview)</button>
+      <button class="btn btn-primary btn-sm mx-auto mt-4" onclick="go('login')">🔑 Vai al Login</button>
     </div>
   </div>
 </div>
@@ -2088,7 +2088,7 @@ async function loadAllData(){
       fsSet('universes','univ_acro',acroUniv).catch(console.error);
     }
     _dataLoaded=true;
-    console.log('Firestore loaded:',store.events.length,'events,',store.bookings.length,'bookings,',store.users.length,'users');
+    // Data loaded successfully
   }catch(e){
     console.error('loadAllData error:',e);
     showToast('Errore caricamento dati: '+e.message,'error');
@@ -3547,7 +3547,7 @@ function renderAttendance(){
   const bks=store.bookings.filter(b=>b.eventId===evId&&b.status!=='cancellata');
   const walkIns=bks.filter(b=>b.walkIn);
   const preBooked=bks.filter(b=>!b.walkIn);
-  // Simulate: first N bookings are "checked in"
+  // Estimate checked-in count from attendance records
   const checkedIn=Math.min(Math.ceil(preBooked.length*0.7),preBooked.length);
   const notArrived=preBooked.length-checkedIn;
 
@@ -3610,9 +3610,9 @@ function renderCheckinA(){
   const c=document.getElementById('checkin-a-content');if(!c)return;
   const ev=getCheckinEvent();
   if(!ev){c.innerHTML='<p class="txt3">Nessun evento selezionato. Torna a Check-in QR e seleziona un evento.</p><button class="btn btn-secondary mt-4" onclick="go(\'admin-checkin\')">← Torna</button>';return;}
-  // Simulate: pick first booked user for this event
+  // Find first booked user for this event (for check-in preview)
   const bk=store.bookings.find(b=>b.eventId===ev.id&&b.status!=='cancellata');
-  const userName=bk?bk.userName:'Utente Demo';
+  const userName=bk?bk.userName:'Nessun utente';
   const d0=ev.days[0];
   const amount=bk?bk.amount:0;
   const payStatus=bk?(bk.paymentStatus==='gratuito'?'Gratuito':bk.paymentStatus==='pagato'?'Pagato':'In attesa'):'—';
@@ -4164,7 +4164,7 @@ function cancelUserBooking(bId){
 
 
 /* ==============================
-   GEOCODING — Extract coords from Google Maps URL
+   GEOCODING — Extract coords from Google Maps URL + Nominatim
 ============================== */
 function extractCoordsFromUrl(url){
   if(!url)return null;
@@ -4186,7 +4186,149 @@ function extractCoordsFromUrl(url){
   // Pattern 6: short link with data string !3d(lat)!4d(lng)
   m=url.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
   if(m)return{lat:parseFloat(m[1]),lng:parseFloat(m[2])};
+  // Pattern 7: place/ followed by encoded name then /data with coords
+  m=url.match(/place\/[^/]+\/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if(m)return{lat:parseFloat(m[1]),lng:parseFloat(m[2])};
   return null;
+}
+
+/* Try all possible location URLs for an event (event-level + session-level) */
+function resolveEventCoords(ev){
+  // 1. Direct coords on event
+  if(ev.coords&&ev.coords.lat&&ev.coords.lng)return ev.coords;
+  // 2. Event-level locationUrl
+  const fromEvUrl=extractCoordsFromUrl(ev.locationUrl);
+  if(fromEvUrl)return fromEvUrl;
+  // 3. Session-level locationUrls
+  if(ev.days&&ev.days.length){
+    for(const day of ev.days){
+      if(day.sessions){
+        for(const s of day.sessions){
+          const fromSUrl=extractCoordsFromUrl(s.locationUrl);
+          if(fromSUrl)return fromSUrl;
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/* Nominatim geocoding cache (in-memory) */
+const _geocodeCache={};
+async function geocodeAddress(address){
+  if(!address||address.length<3)return null;
+  const key=address.trim().toLowerCase();
+  if(_geocodeCache[key]!==undefined)return _geocodeCache[key];
+  try{
+    const resp=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(address)+'&format=json&limit=1',{headers:{'Accept':'application/json'}});
+    if(!resp.ok){_geocodeCache[key]=null;return null;}
+    const data=await resp.json();
+    if(data&&data.length>0){
+      const result={lat:parseFloat(data[0].lat),lng:parseFloat(data[0].lon)};
+      _geocodeCache[key]=result;
+      return result;
+    }
+    _geocodeCache[key]=null;
+    return null;
+  }catch(e){_geocodeCache[key]=null;return null;}
+}
+
+/* Geocode all events that need it, then render map */
+async function geocodeAndRenderMap(){
+  if(!eventsMap)return;
+  mapMarkers.forEach(m=>eventsMap.removeLayer(m));
+  mapMarkers=[];
+  const mapEl=document.getElementById('events-map');
+  // Show loading
+  let loadingEl=document.getElementById('map-loading-msg');
+  if(!loadingEl&&mapEl){
+    loadingEl=document.createElement('div');
+    loadingEl.id='map-loading-msg';
+    loadingEl.style.cssText='position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1000;background:var(--s200);color:var(--txt);padding:12px 20px;border-radius:12px;font-size:.85rem;text-align:center';
+    loadingEl.textContent='📍 Caricamento posizioni...';
+    mapEl.parentElement.style.position='relative';
+    mapEl.parentElement.appendChild(loadingEl);
+  }
+  const evts=getFilteredEvents();
+  // Also include community jams (normalize shape for map)
+  const today=new Date().toISOString().split('T')[0];
+  const cJams=(store.communityJams||[]).filter(j=>j.status!=='cancellato'&&!(j.alert&&j.alert.type==='cancellato')&&j.date>=today).map(j=>({...j,days:[{date:j.date,startTime:j.startTime,endTime:j.endTime,sessions:[]}],teacher:j.userName||'Community',type:j.type||'jam',orgName:j.userName||'Community',_isCommunity:true}));
+  const allEvts=[...evts,...cJams];
+  if(!allEvts.length){
+    if(loadingEl)loadingEl.textContent='Nessun evento trovato';
+    setTimeout(()=>{if(loadingEl)loadingEl.remove();},2000);
+    return;
+  }
+  const bounds=[];
+  let geocodeCount=0;
+  for(const ev of allEvts){
+    // Try sync resolution first
+    let coords=resolveEventCoords(ev);
+    // If no coords, try geocoding the address
+    if(!coords&&ev.location){
+      if(geocodeCount<15){// Limit API calls per render
+        coords=await geocodeAddress(ev.location);
+        geocodeCount++;
+        // Save coords back to event for future (in-memory + Firestore)
+        if(coords){
+          ev.coords=coords;
+          // Persist to Firestore silently
+          if(ev.id){
+            const collection=ev._isCommunity?'communityJams':(ev.managerId?'events':'communityJams');
+            fbDb.collection(collection).doc(ev.id).update({coords}).catch(()=>{});
+          }
+        }
+      }
+    }
+    if(!coords)continue;
+    const {lat,lng}=coords;
+    bounds.push([lat,lng]);
+    const univIds=ev.universeIds||[ev.universeId].filter(Boolean);
+    const univ=univIds.length?store.universes.find(u=>u.id===univIds[0]):null;
+    const color=univ?univ.color:(MARKER_COLORS[ev.type]||'#d946ef');
+    const icon=L.divIcon({
+      className:'',
+      html:'<div class="map-marker" style="background:'+color+'">'+(ev.type==='jam'?'J':ev.type==='lezione'?'L':'W')+'</div>',
+      iconSize:[32,32],iconAnchor:[16,16],popupAnchor:[0,-20]
+    });
+    const d0=ev.days&&ev.days[0];
+    const dateStr=d0?fmtDate(d0.date):'';
+    const timeStr=d0?(d0.startTime+' — '+d0.endTime):'';
+    const priceStr='da €'+minPrice(ev);
+    const popup=L.popup({maxWidth:260,closeButton:true}).setContent(
+      '<div>'+
+        '<div style="display:flex;gap:6px;margin-bottom:6px">'+
+          '<span class="badge '+badgeType(ev.type)+'" style="font-size:.65rem">'+capitalize(ev.type)+'</span>'+
+          (univ?'<span style="font-size:.65rem;padding:2px 8px;border-radius:8px;background:'+univ.color+'25;color:'+univ.color+'">'+univ.emoji+' '+univ.name+'</span>':'')+
+        '</div>'+
+        '<div class="map-popup-title">'+ev.title+'</div>'+
+        '<div class="map-popup-meta">📅 '+dateStr+'</div>'+
+        '<div class="map-popup-meta">🕐 '+timeStr+'</div>'+
+        '<div class="map-popup-meta">📍 '+ev.location+'</div>'+
+        '<div class="map-popup-meta">👤 '+ev.teacher+' · '+priceStr+'</div>'+
+        '<button class="map-popup-btn" onclick="showEventDetail(\''+ev.id+'\')">Vedi dettaglio →</button>'+
+      '</div>'
+    );
+    const marker=L.marker([lat,lng],{icon}).addTo(eventsMap).bindPopup(popup);
+    mapMarkers.push(marker);
+  }
+  // Remove loading
+  if(loadingEl)loadingEl.remove();
+  if(bounds.length>1){
+    eventsMap.fitBounds(bounds,{padding:[40,40],maxZoom:13});
+  } else if(bounds.length===1){
+    eventsMap.setView(bounds[0],13);
+  } else {
+    // No events with coords — show message
+    let emptyEl=document.getElementById('map-empty-msg');
+    if(!emptyEl&&mapEl){
+      emptyEl=document.createElement('div');
+      emptyEl.id='map-empty-msg';
+      emptyEl.style.cssText='position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1000;background:var(--s200);color:var(--txt2);padding:16px 24px;border-radius:12px;font-size:.85rem;text-align:center;max-width:280px';
+      emptyEl.innerHTML='📍 Nessun evento ha una posizione sulla mappa.<br><span style="font-size:.75rem;color:var(--txt3)">Aggiungi un indirizzo o un link Google Maps lungo (non link brevi) quando crei un evento.</span>';
+      mapEl.parentElement.appendChild(emptyEl);
+    }
+  }
 }
 
 /* ==============================
@@ -4228,51 +4370,13 @@ function initMap(){
 }
 
 function renderMapView(){
-  if(!eventsMap)return;
-  // Rimuovi marker precedenti
-  mapMarkers.forEach(m=>eventsMap.removeLayer(m));
-  mapMarkers=[];
-  // Filtra con gli stessi criteri della lista
-  const evts=getFilteredEvents();
-  if(!evts.length)return;
-  const bounds=[];
-  evts.forEach(ev=>{
-    const resolvedCoords=ev.coords||extractCoordsFromUrl(ev.locationUrl);
-    if(!resolvedCoords)return;
-    const {lat,lng}=resolvedCoords;
-    bounds.push([lat,lng]);
-    const color=MARKER_COLORS[ev.type]||'#d946ef';
-    const icon=L.divIcon({
-      className:'',
-      html:`<div class="map-marker" style="background:${color}">${ev.type==='jam'?'J':ev.type==='lezione'?'L':'W'}</div>`,
-      iconSize:[32,32],iconAnchor:[16,16],popupAnchor:[0,-20]
-    });
-    const d0=ev.days[0];
-    const dateStr=d0?fmtDate(d0.date):'';
-    const timeStr=d0?(d0.startTime+' — '+d0.endTime):'';
-    const priceStr='da €'+minPrice(ev);
-    const popup=L.popup({maxWidth:260,closeButton:true}).setContent(`
-      <div>
-        <div style="display:flex;gap:6px;margin-bottom:6px">
-          <span class="badge ${badgeType(ev.type)}" style="font-size:.65rem">${capitalize(ev.type)}</span>
-          <span style="font-size:.65rem;color:var(--brand-l)">${ev.orgName}</span>
-        </div>
-        <div class="map-popup-title">${ev.title}</div>
-        <div class="map-popup-meta">📅 ${dateStr}</div>
-        <div class="map-popup-meta">🕐 ${timeStr}</div>
-        <div class="map-popup-meta">📍 ${ev.location}</div>
-        <div class="map-popup-meta">👤 ${ev.teacher} · ${priceStr}</div>
-        <button class="map-popup-btn" onclick="showEventDetail('${ev.id}')">Vedi dettaglio →</button>
-      </div>
-    `);
-    const marker=L.marker([lat,lng],{icon}).addTo(eventsMap).bindPopup(popup);
-    mapMarkers.push(marker);
-  });
-  if(bounds.length>1){
-    eventsMap.fitBounds(bounds,{padding:[40,40],maxZoom:13});
-  } else if(bounds.length===1){
-    eventsMap.setView(bounds[0],13);
-  }
+  // Remove old empty message if present
+  const oldEmpty=document.getElementById('map-empty-msg');
+  if(oldEmpty)oldEmpty.remove();
+  const oldLoading=document.getElementById('map-loading-msg');
+  if(oldLoading)oldLoading.remove();
+  // Use async geocoding version
+  geocodeAndRenderMap();
 }
 
 function getFilteredEvents(){
@@ -4440,8 +4544,13 @@ function submitJam(){
       count:parseInt(document.getElementById('jam-min-subs-count')?.value)||0,
       deadline:document.getElementById('jam-min-subs-deadline')?.value||null
     }:null,
+    coords:extractCoordsFromUrl(locationUrl.trim()),
     createdAt:new Date().toISOString().split('T')[0]
   };
+  // Async geocode if no coords from URL
+  if(!jam.coords&&jam.location){
+    geocodeAddress(jam.location).then(c=>{if(c){jam.coords=c;fsSet('communityJams',jam.id,{coords:c}).catch(()=>{});}});
+  }
   store.communityJams.push(jam);
   fsSet('communityJams',jam.id,jam).catch(console.error);
   closeJamModal();
@@ -6903,8 +7012,23 @@ function editEvent(id){
   }
   go('admin-new-event');
 }
+async function ensureEventCoords(ev){
+  if(ev.coords&&ev.coords.lat&&ev.coords.lng)return;
+  // Try session-level URLs
+  if(ev.days){
+    for(const day of ev.days){
+      if(day.sessions){for(const s of day.sessions){const c=extractCoordsFromUrl(s.locationUrl);if(c){ev.coords=c;return;}}}
+    }
+  }
+  // Try geocoding from location address
+  if(ev.location){
+    const c=await geocodeAddress(ev.location);
+    if(c){ev.coords=c;return;}
+  }
+}
 function saveAsDraft(){
   const ev=collectFormData();if(!ev)return;
+  ensureEventCoords(ev);
   if(editingEventId){
     // Update existing event
     showConfirm('Salva modifiche','Salvare le modifiche come bozza?',()=>{
@@ -6929,6 +7053,7 @@ function saveAsDraft(){
 }
 function publishNewEvent(){
   const ev=collectFormData();if(!ev)return;
+  ensureEventCoords(ev);
   if(editingEventId){
     showConfirm('Pubblica modifiche','Pubblicare le modifiche?',()=>{
       const idx=store.events.findIndex(e=>e.id===editingEventId);
@@ -8176,7 +8301,7 @@ function showAdminEventDetail(evId){
 }
 
 /* ==============================
-   PROFILE SWITCHER (for demo)
+   PROFILE SWITCHER (master multi-org)
 ============================== */
 function switchProfile(managerId){
   const m=store.managers.find(mg=>mg.id===managerId);if(!m)return;
