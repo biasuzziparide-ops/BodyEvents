@@ -1206,49 +1206,59 @@ textarea.input{resize:none;font-family:inherit}
       </div>
     </div>
 
-    <!-- Step 4b: Anticipo obbligatorio -->
-    <div class="card mb-4">
-      <h3 class="font-semibold text-white mb-4">🔒 Anticipo per conferma prenotazione</h3>
-      <label class="flex items-center gap-2 text-sm mb-3" style="cursor:pointer"><input type="checkbox" id="ne-deposit-required" onchange="document.getElementById('ne-deposit-opts').classList.toggle('hidden')"> Richiedi anticipo per confermare la prenotazione</label>
-      <div id="ne-deposit-opts" class="hidden">
-        <div class="grid grid-2 gap-3 mb-3">
-          <div><label class="label">Importo anticipo (€) *</label><input class="input" id="ne-deposit-amount" type="number" placeholder="es. 20"></div>
-          <div><label class="label">Causale da inserire nel versamento *</label><input class="input" id="ne-deposit-causal" placeholder="es. Anticipo Weekend Intensive - Nome Cognome"></div>
+    <!-- Opzioni avanzate (collapsible) -->
+    <div class="card mb-4" style="padding:0;overflow:hidden">
+      <div style="padding:12px 16px;text-align:center;border-bottom:1px solid var(--s300)">
+        <button type="button" id="ne-adv-toggle" onclick="const el=document.getElementById('ne-advanced-opts');const h=el.classList.toggle('hidden');this.innerHTML=h?'⚙️ Opzioni avanzate ▼':'⚙️ Opzioni avanzate ▲'" style="background:none;border:none;color:var(--brand-l);font-size:.85rem;font-weight:600;cursor:pointer;padding:6px 16px;width:100%">⚙️ Opzioni avanzate ▼</button>
+      </div>
+      <div id="ne-advanced-opts" class="hidden" style="padding:16px">
+
+        <!-- Chiusura prenotazioni -->
+        <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--s300)">
+          <h3 class="font-semibold text-white mb-3" style="font-size:.9rem">🔒 Chiusura prenotazioni</h3>
+          <p class="text-xs txt3 mb-3">Imposta una data dopo la quale non sarà più possibile prenotarsi. Se lasciato vuoto, le prenotazioni si chiuderanno automaticamente alla fine dell'ultimo giorno dell'evento (23:59).</p>
+          <div style="max-width:300px"><label class="label">📅 Prenotazioni chiudono il (opzionale)</label><input class="input" id="ne-booking-deadline" type="date" onchange="this._userEdited=true"></div>
         </div>
-        <p class="text-xs txt3" style="line-height:1.6">L'utente vedrà la richiesta di anticipo al momento della prenotazione. La prenotazione resterà in stato <span style="color:var(--yellow)">⏳ In attesa di anticipo</span> fino a che non confermerai la ricezione dalla pagina prenotazioni.</p>
-      </div>
-    </div>
 
-    <!-- Step 5: Ricorrenza -->
-    <div class="card mb-4">
-      <h3 class="font-semibold text-white mb-4">🔄 Ricorrenza (opzionale)</h3>
-      <label class="flex items-center gap-2 text-sm mb-3" style="cursor:pointer"><input type="checkbox" id="ne-recurrence" onchange="document.getElementById('ne-rec-opts').classList.toggle('hidden')"> Evento ricorrente</label>
-      <div id="ne-rec-opts" class="hidden grid grid-2 gap-3">
-        <div><label class="label">Giorno della settimana</label>
-          <select class="input" id="ne-rec-day"><option value="lunedi">Lunedì</option><option value="martedi">Martedì</option><option value="mercoledi" selected>Mercoledì</option><option value="giovedi">Giovedì</option><option value="venerdi">Venerdì</option><option value="sabato">Sabato</option><option value="domenica">Domenica</option></select></div>
-        <div><label class="label">Per quante settimane</label>
-          <select class="input" id="ne-rec-weeks"><option value="4">4 settimane</option><option value="8">8 settimane</option><option value="12" selected>12 settimane</option><option value="24">24 settimane</option></select></div>
-      </div>
-    </div>
-
-    <!-- Step 6: Conferma evento -->
-    <div class="card mb-4">
-      <h3 class="font-semibold text-white mb-4">✅ Conferma evento</h3>
-      <label class="flex items-center gap-2 text-sm mb-3" style="cursor:pointer"><input type="checkbox" id="ne-min-subscribers" onchange="document.getElementById('ne-min-subs-opts').classList.toggle('hidden')"> Richiedi un numero minimo di iscritti per confermare l'evento</label>
-      <div id="ne-min-subs-opts" class="hidden">
-        <div class="grid grid-2 gap-3">
-          <div><label class="label">👥 Numero minimo iscritti</label><input class="input" id="ne-min-subs-count" type="number" min="1" placeholder="es. 5"></div>
-          <div><label class="label">📅 Conferma entro (opzionale)</label><input class="input" id="ne-min-subs-deadline" type="date"></div>
+        <!-- Numero minimo iscritti -->
+        <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--s300)">
+          <h3 class="font-semibold text-white mb-3" style="font-size:.9rem">👥 Richiedi un Numero Minimo di Iscritti</h3>
+          <label class="flex items-center gap-2 text-sm mb-3" style="cursor:pointer"><input type="checkbox" id="ne-min-subscribers" onchange="document.getElementById('ne-min-subs-opts').classList.toggle('hidden')"> Richiedi un numero minimo di iscritti per confermare l'evento</label>
+          <div id="ne-min-subs-opts" class="hidden">
+            <div class="grid grid-2 gap-3">
+              <div><label class="label">👥 Numero minimo iscritti</label><input class="input" id="ne-min-subs-count" type="number" min="1" placeholder="es. 5"></div>
+              <div><label class="label">📅 Conferma entro (opzionale)</label><input class="input" id="ne-min-subs-deadline" type="date"></div>
+            </div>
+            <p class="text-xs txt3 mt-2">L'evento verrà mostrato come "In attesa conferma" finché non raggiunge il numero minimo. Dopo sarà automaticamente "Confermato".</p>
+          </div>
         </div>
-        <p class="text-xs txt3 mt-2">L'evento verrà mostrato come "In attesa conferma" finché non raggiunge il numero minimo. Dopo sarà automaticamente "Confermato".</p>
-      </div>
-    </div>
 
-    <!-- Step 7: Deadline prenotazioni -->
-    <div class="card mb-4">
-      <h3 class="font-semibold text-white mb-4">🔒 Chiusura prenotazioni</h3>
-      <p class="text-xs txt3 mb-3">Dopo questa data non sarà più possibile prenotarsi. Di default: 3 giorni prima dell'inizio dell'evento.</p>
-      <div style="max-width:300px"><label class="label">📅 Prenotazioni chiudono il</label><input class="input" id="ne-booking-deadline" type="date" onchange="this._userEdited=true"></div>
+        <!-- Ricorrenza -->
+        <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--s300)">
+          <h3 class="font-semibold text-white mb-3" style="font-size:.9rem">🔄 Ricorrenza</h3>
+          <label class="flex items-center gap-2 text-sm mb-3" style="cursor:pointer"><input type="checkbox" id="ne-recurrence" onchange="document.getElementById('ne-rec-opts').classList.toggle('hidden')"> Evento ricorrente</label>
+          <div id="ne-rec-opts" class="hidden grid grid-2 gap-3">
+            <div><label class="label">Giorno della settimana</label>
+              <select class="input" id="ne-rec-day"><option value="lunedi">Lunedì</option><option value="martedi">Martedì</option><option value="mercoledi" selected>Mercoledì</option><option value="giovedi">Giovedì</option><option value="venerdi">Venerdì</option><option value="sabato">Sabato</option><option value="domenica">Domenica</option></select></div>
+            <div><label class="label">Per quante settimane</label>
+              <select class="input" id="ne-rec-weeks"><option value="4">4 settimane</option><option value="8">8 settimane</option><option value="12" selected>12 settimane</option><option value="24">24 settimane</option></select></div>
+          </div>
+        </div>
+
+        <!-- Anticipo per conferma prenotazione -->
+        <div>
+          <h3 class="font-semibold text-white mb-3" style="font-size:.9rem">🔒 Anticipo per conferma prenotazione</h3>
+          <label class="flex items-center gap-2 text-sm mb-3" style="cursor:pointer"><input type="checkbox" id="ne-deposit-required" onchange="document.getElementById('ne-deposit-opts').classList.toggle('hidden')"> Richiedi anticipo per confermare la prenotazione</label>
+          <div id="ne-deposit-opts" class="hidden">
+            <div class="grid grid-2 gap-3 mb-3">
+              <div><label class="label">Importo anticipo (€) *</label><input class="input" id="ne-deposit-amount" type="number" placeholder="es. 20"></div>
+              <div><label class="label">Causale da inserire nel versamento *</label><input class="input" id="ne-deposit-causal" placeholder="es. Anticipo Weekend Intensive - Nome Cognome"></div>
+            </div>
+            <p class="text-xs txt3" style="line-height:1.6">L'utente vedrà la richiesta di anticipo al momento della prenotazione. La prenotazione resterà in stato <span style="color:var(--yellow)">⏳ In attesa di anticipo</span> fino a che non confermerai la ricezione dalla pagina prenotazioni.</p>
+          </div>
+        </div>
+
+      </div>
     </div>
 
     <!-- Azioni -->
@@ -2406,13 +2416,34 @@ function renderAdminUniversesView(){
   }
 }
 
-// Populate universe dropdown for event creation form
+// Populate universe dropdown for event creation form (toggle buttons)
 function populateEventUniverseDropdown(){
   const c=document.getElementById('ne-universes-list');
   if(!c)return;
   const mgrUnivs=store.currentUser.universes||['univ_acro'];
   const activeUnivs=getActiveUniverses().filter(u=>mgrUnivs.includes(u.id));
-  c.innerHTML=activeUnivs.map(u=>'<label class="flex items-center gap-2 text-sm" style="cursor:pointer;padding:4px 10px;border-radius:8px;border:1px solid '+u.color+'30;background:'+u.color+'10"><input type="checkbox" class="ne-univ-check" value="'+u.id+'"'+(activeUnivs.length===1?' checked':'')+'><span style="color:'+u.color+'">'+u.emoji+' '+u.name+'</span></label>').join('');
+  const autoSelect=activeUnivs.length===1;
+  c.innerHTML=activeUnivs.map(u=>{
+    const sel=autoSelect;
+    return '<button type="button" class="ne-univ-btn'+(sel?' ne-univ-selected':'')+'" data-univ="'+u.id+'" onclick="toggleUnivBtn(this)" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:12px;border:2px solid '+(sel?u.color:u.color+'40')+';background:'+(sel?u.color+'25':'transparent')+';color:'+(sel?u.color:'var(--txt2)')+';font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s ease;outline:none"><span style="font-size:1.1rem">'+u.emoji+'</span>'+u.name+'</button>';
+  }).join('');
+}
+function toggleUnivBtn(btn){
+  const isSelected=btn.classList.contains('ne-univ-selected');
+  const univId=btn.dataset.univ;
+  const univ=store.universes.find(u=>u.id===univId);
+  const color=univ?.color||'#10b981';
+  if(isSelected){
+    btn.classList.remove('ne-univ-selected');
+    btn.style.border='2px solid '+color+'40';
+    btn.style.background='transparent';
+    btn.style.color='var(--txt2)';
+  }else{
+    btn.classList.add('ne-univ-selected');
+    btn.style.border='2px solid '+color;
+    btn.style.background=color+'25';
+    btn.style.color=color;
+  }
 }
 
 // Populate universe filter dropdowns
@@ -2585,7 +2616,8 @@ async function loadCurrentUser(uid){
     // Hide mode banner for regular users
     document.getElementById('modeBanner').style.display='none';
     document.getElementById('navbar-user').classList.remove('hidden');
-    go('events');
+    if(_pendingDeepLink){go('events');handleDeepLink();}
+    else{go('events');}
     checkPrivacyConsent();
     return;
   }
@@ -2599,7 +2631,8 @@ async function loadCurrentUser(uid){
     document.querySelectorAll('.profile-org').forEach(el=>el.textContent=store.currentUser.orgName||'');
     // Show mode banner only for managers/masters
     document.getElementById('modeBanner').style.display='';
-    switchMode('admin');
+    if(_pendingDeepLink){switchMode('user');handleDeepLink();}
+    else{switchMode('admin');}
     checkPrivacyConsent();
     return;
   }
@@ -3040,9 +3073,10 @@ function doBook(){
   const ev=store.events.find(e=>e.id===currentBookingEventId);
   if(!ev){showToast('Errore: evento non trovato','error');return;}
 
-  // Block booking after deadline
-  if(ev.bookingDeadline&&new Date().toISOString().split('T')[0]>ev.bookingDeadline){
-    showToast('Le prenotazioni per questo evento sono chiuse dal '+fmtDateShort(ev.bookingDeadline),'error');return;
+  // Block booking after deadline (explicit deadline or end of last event day)
+  const _effDeadline=ev.bookingDeadline||(ev.days&&ev.days.length?ev.days.reduce((mx,d)=>d.date>mx?d.date:mx,ev.days[0].date):null);
+  if(_effDeadline&&new Date().toISOString().split('T')[0]>_effDeadline){
+    showToast('Le prenotazioni per questo evento sono chiuse'+(ev.bookingDeadline?' dal '+fmtDateShort(ev.bookingDeadline):''),'error');return;
   }
 
   // Block duplicate booking — check if user already has an active booking for this event
@@ -3403,7 +3437,7 @@ function generateQRToken(ev){
   return 'acro_'+ev.id+'_'+dateStr+'_'+Math.random().toString(36).substr(2,6);
 }
 function getCheckinURL(ev,token){
-  return 'https://acroyoga.app/checkin?event='+ev.id+'&token='+token;
+  return window.location.origin+window.location.pathname+'?checkin='+ev.id+'&token='+token;
 }
 function updateQRPreview(){
   const v=document.getElementById('qr-event-select');if(!v)return;
@@ -3847,7 +3881,8 @@ function renderUserEvents(){
     const confirmStatus=getConfirmationStatus(ev);
     const _evDlExp=ev.minSubscribers&&ev.minSubscribers.deadline&&new Date().toISOString().split('T')[0]>ev.minSubscribers.deadline;
     const confirmBadge=confirmStatus==='attesa'&&_evDlExp?'<span class="badge" style="background:var(--red-bg);color:var(--red)">🚫 Deadline scaduta — min. non raggiunto</span>':confirmStatus==='attesa'?'<span class="badge badge-attesa">⏳ In attesa raggiungimento numero minimo</span>':confirmStatus==='confermato'?'<span class="badge badge-confermato">✅ Confermato</span>':'';
-    const _bookClosed=ev.bookingDeadline&&new Date().toISOString().split('T')[0]>ev.bookingDeadline;
+    const _effBkDl=ev.bookingDeadline||(ev.days&&ev.days.length?ev.days.reduce((mx,d)=>d.date>mx?d.date:mx,ev.days[0].date):null);
+    const _bookClosed=_effBkDl&&new Date().toISOString().split('T')[0]>_effBkDl;
     const bookClosedBadge=_bookClosed?'<span class="badge" style="background:var(--red-bg);color:var(--red)">🔒 Prenotazioni chiuse</span>':'';
     const _thumbData=(ev.imageThumb||ev.image)?{src:ev.imageThumb?.src||ev.image,zoom:ev.imageThumb?.zoom||100,posX:ev.imageThumb?.posX||0,posY:ev.imageThumb?.posY||0}:null;
     const _thumbPos=_thumbData?(()=>{const s=_thumbData.zoom/100;const denom=72*s-72;const px=denom>0?Math.round(Math.abs(_thumbData.posX)/denom*100):50;const py=denom>0?Math.round(Math.abs(_thumbData.posY)/denom*100):50;return `object-position:${isNaN(px)?50:px}% ${isNaN(py)?50:py}%`})():'';
@@ -4342,7 +4377,7 @@ function openCreateJamModal(){
   const juc=document.getElementById('jam-universes-list');
   if(juc){
     const active=getActiveUniverses();
-    juc.innerHTML=active.map(u=>'<label class="flex items-center gap-2 text-sm" style="cursor:pointer;padding:4px 8px;border-radius:8px;border:1px solid '+u.color+'30;background:'+u.color+'10"><input type="checkbox" class="jam-univ-check" value="'+u.id+'" checked><span style="color:'+u.color+'">'+u.emoji+' '+u.name+'</span></label>').join('');
+    juc.innerHTML=active.map(u=>'<button type="button" class="jam-univ-btn ne-univ-selected" data-univ="'+u.id+'" onclick="toggleUnivBtn(this)" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:12px;border:2px solid '+u.color+';background:'+u.color+'25;color:'+u.color+';font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s ease;outline:none"><span style="font-size:1.1rem">'+u.emoji+'</span>'+u.name+'</button>').join('');
   }
 }
 function updateJamMinSubsDeadline(){
@@ -4371,7 +4406,7 @@ function submitJam(){
   const contactPhone=(document.getElementById('jam-contact-phone')||{}).value||'';
   const contactEmail=(document.getElementById('jam-contact-email')||{}).value||'';
   const jamType=selectedJamType==='custom'?(document.getElementById('jam-custom-type')?.value||'Community Event'):selectedJamType;
-  const selectedUnivIds=Array.from(document.querySelectorAll('.jam-univ-check:checked')).map(cb=>cb.value);
+  const selectedUnivIds=Array.from(document.querySelectorAll('.jam-univ-btn.ne-univ-selected')).map(btn=>btn.dataset.univ);
 
   if(!title.trim()||!date||!start||!end||!location.trim()){
     showToast('Compila i campi obbligatori','error');
@@ -4682,7 +4717,7 @@ function editJamModal(jamId){
   if(jec){
     const active=getActiveUniverses();
     const jamUnivs=jam.universeIds||[];
-    jec.innerHTML=active.map(u=>'<label class="flex items-center gap-2 text-sm" style="cursor:pointer;padding:4px 8px;border-radius:8px;border:1px solid '+u.color+'30;background:'+u.color+'10"><input type="checkbox" class="je-univ-check" value="'+u.id+'"'+(jamUnivs.includes(u.id)?' checked':'')+'><span style="color:'+u.color+'">'+u.emoji+' '+u.name+'</span></label>').join('');
+    jec.innerHTML=active.map(u=>{const sel=jamUnivs.includes(u.id);return '<button type="button" class="je-univ-btn'+(sel?' ne-univ-selected':'')+'" data-univ="'+u.id+'" onclick="toggleUnivBtn(this)" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:12px;border:2px solid '+(sel?u.color:u.color+'40')+';background:'+(sel?u.color+'25':'transparent')+';color:'+(sel?u.color:'var(--txt2)')+';font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s ease;outline:none"><span style="font-size:1.1rem">'+u.emoji+'</span>'+u.name+'</button>';}).join('');
   }
 }
 
@@ -4694,7 +4729,7 @@ function saveJamEdit(jamId){
   const start=document.getElementById('je-start')?.value||'';
   const end=document.getElementById('je-end')?.value||'';
   const location=(document.getElementById('je-location')?.value||'').trim();
-  const editUnivIds=Array.from(document.querySelectorAll('.je-univ-check:checked')).map(cb=>cb.value);
+  const editUnivIds=Array.from(document.querySelectorAll('.je-univ-btn.ne-univ-selected')).map(btn=>btn.dataset.univ);
   if(!title||!date||!start||!end||!location){showToast('Compila i campi obbligatori','error');return;}
   if(!editUnivIds.length){showToast('Seleziona almeno un universo','error');return;}
 
@@ -4745,7 +4780,7 @@ function cancelJam(jamId){
 function openShareModal(eventId){
   const ev=store.events.find(e=>e.id===eventId);
   if(!ev)return;
-  const shareUrl='https://acroyoga.app/evento/'+eventId;
+  const shareUrl=window.location.origin+window.location.pathname+'?event='+eventId;
   const overlay=document.createElement('div');
   overlay.className='overlay';
   overlay.id='share-modal-overlay';
@@ -5335,14 +5370,15 @@ function showEventDetail(evId){
           +surveyHtml
           +'</div>';
       }
-      // === CHECK BOOKING DEADLINE ===
-      const _bookingClosed=ev.bookingDeadline&&new Date().toISOString().split('T')[0]>ev.bookingDeadline;
+      // === CHECK BOOKING DEADLINE (explicit or end of last event day) ===
+      const _detEffDl=ev.bookingDeadline||(ev.days&&ev.days.length?ev.days.reduce((mx,d)=>d.date>mx?d.date:mx,ev.days[0].date):null);
+      const _bookingClosed=_detEffDl&&new Date().toISOString().split('T')[0]>_detEffDl;
       if(_bookingClosed){
         return '<h2 class="font-semibold text-white mb-3">Programma</h2>'+daysHtml+eventPkgHtml+loyaltyHtml
           +'<div class="card text-center mt-4" style="border:2px solid var(--red);background:var(--red-bg);padding:20px">'
           +'<span style="font-size:2rem">🔒</span>'
           +'<p class="font-bold mt-2" style="color:var(--red)">Prenotazioni chiuse</p>'
-          +'<p class="text-sm txt3 mt-2">Le prenotazioni si sono chiuse il '+fmtDateShort(ev.bookingDeadline)+'</p>'
+          +'<p class="text-sm txt3 mt-2">'+(ev.bookingDeadline?'Le prenotazioni si sono chiuse il '+fmtDateShort(ev.bookingDeadline):'Le prenotazioni sono chiuse (evento terminato)')+'</p>'
           +'</div>';
       }
       // === NORMAL BOOKING VIEW ===
@@ -6559,7 +6595,7 @@ function collectFormData(){
     deadline:document.getElementById('ne-eb-deadline')?.value||null,
     maxCount:parseInt(document.getElementById('ne-eb-max-count')?.value)||null
   };
-  const universeIds=Array.from(document.querySelectorAll('.ne-univ-check:checked')).map(cb=>cb.value);
+  const universeIds=Array.from(document.querySelectorAll('.ne-univ-btn.ne-univ-selected')).map(btn=>btn.dataset.univ);
   if(!universeIds.length){showToast('Seleziona almeno un universo!','error');return null;}
   const universeId=universeIds[0]; // Primary universe for backward compat
   const eventType=document.getElementById('ne-type').value||'jam';
@@ -6715,7 +6751,7 @@ function editEvent(id){
   populateEventUniverseDropdown();
   // Pre-check universes for edit
   const editUnivIds=ev.universeIds||[ev.universeId||'univ_acro'];
-  document.querySelectorAll('.ne-univ-check').forEach(cb=>{cb.checked=editUnivIds.includes(cb.value);});
+  document.querySelectorAll('.ne-univ-btn').forEach(btn=>{if(editUnivIds.includes(btn.dataset.univ)){btn.classList.add('ne-univ-selected');const u=store.universes.find(x=>x.id===btn.dataset.univ);const c=u?.color||'#10b981';btn.style.border='2px solid '+c;btn.style.background=c+'25';btn.style.color=c;}});
   // Populate basic fields
   document.getElementById('ne-title').value=ev.title||'';
   document.getElementById('ne-desc').value=ev.description||'';
@@ -6822,6 +6858,13 @@ function editEvent(id){
   // Restore booking deadline
   const bdEl=document.getElementById('ne-booking-deadline');
   if(bdEl&&ev.bookingDeadline){bdEl.value=ev.bookingDeadline;bdEl._userEdited=true;}
+  // Auto-open advanced options panel if any advanced option is active
+  if(ev.bookingDeadline||ev.minSubscribers||ev.recurrence||(ev.deposit&&ev.deposit.required)){
+    const advPanel=document.getElementById('ne-advanced-opts');
+    const advToggle=document.getElementById('ne-adv-toggle');
+    if(advPanel)advPanel.classList.remove('hidden');
+    if(advToggle)advToggle.innerHTML='⚙️ Opzioni avanzate ▲';
+  }
   // Update page title and buttons for edit mode
   const titleEl=document.querySelector('#view-admin-new-event .page-title');
   const subEl=document.querySelector('#view-admin-new-event .page-sub');
@@ -6917,19 +6960,10 @@ function initEventDates(){
   if(ed&&!ed.value)ed.value=today;
   updateBookingDeadlineDefault();
 }
-// Auto-calculate booking deadline = 3 days before first event day
+// Booking deadline default: empty (= end of last event day at 23:59)
 function updateBookingDeadlineDefault(){
-  const dlEl=document.getElementById('ne-booking-deadline');
-  if(!dlEl||dlEl._userEdited)return; // Don't override if user manually changed it
-  // Find the earliest date from days list
-  const dayInputs=document.querySelectorAll('.day-date-input');
-  let earliest=null;
-  dayInputs.forEach(inp=>{if(inp.value&&(!earliest||inp.value<earliest))earliest=inp.value;});
-  if(!earliest){const sd=document.getElementById('ne-event-start-date');if(sd&&sd.value)earliest=sd.value;}
-  if(earliest){
-    const d=new Date(earliest);d.setDate(d.getDate()-3);
-    dlEl.value=d.toISOString().split('T')[0];
-  }
+  // No auto-fill — if user doesn't set it, deadline is end of last event day
+  // This function is kept as a no-op to avoid breaking existing onchange calls
 }
 function restoreFormTitle(){
   const titleEl=document.querySelector('#view-admin-new-event .page-title');
@@ -8452,6 +8486,51 @@ function checkPrivacyConsent(){
   }
   return false; // consent already given
 }
+
+// Deep link handler — process URL params (?event=..., ?checkin=...)
+let _pendingDeepLink=null;
+function checkDeepLink(){
+  const params=new URLSearchParams(window.location.search);
+  const eventId=params.get('event');
+  const checkinId=params.get('checkin');
+  const token=params.get('token');
+  if(eventId){
+    _pendingDeepLink={type:'event',id:eventId};
+  } else if(checkinId&&token){
+    _pendingDeepLink={type:'checkin',id:checkinId,token:token};
+  }
+  // Clean URL params (keep clean address bar) but preserve mode=signIn for magic links
+  if((eventId||checkinId)&&!params.get('mode')){
+    window.history.replaceState(null,'',window.location.pathname);
+  }
+}
+function handleDeepLink(){
+  if(!_pendingDeepLink)return;
+  const dl=_pendingDeepLink;
+  _pendingDeepLink=null;
+  if(dl.type==='event'){
+    // Open event detail view
+    const ev=store.events.find(e=>e.id===dl.id)||store.communityJams?.find(j=>j.id===dl.id);
+    if(ev){
+      go('events');
+      setTimeout(()=>showEventDetail(dl.id),300);
+    } else {
+      showToast('Evento non trovato','error');
+    }
+  } else if(dl.type==='checkin'){
+    // Handle check-in deep link
+    const ev=store.events.find(e=>e.id===dl.id);
+    if(ev){
+      go('events');
+      setTimeout(()=>showEventDetail(dl.id),300);
+      showToast('Check-in: '+ev.title);
+    } else {
+      showToast('Evento non trovato per il check-in','error');
+    }
+  }
+}
+// Parse deep link immediately (before auth resolves)
+checkDeepLink();
 
 // Firebase Auth State Listener
 fbAuth.onAuthStateChanged(async(user)=>{
