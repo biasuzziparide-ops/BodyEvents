@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.8.7</title>
+<title>BodyEvents — V2.8.8</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤸</text></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -294,7 +294,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.8.7</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.8.8</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -1401,28 +1401,28 @@ textarea.input{resize:none;font-family:inherit}
       <p class="text-xs txt3 mb-4">Prezzo per l'intero evento (tutte le giornate). Utile per offrire un pacchetto completo scontato rispetto alle singole giornate/sessioni.</p>
       <div class="mb-2">
         <div class="flex items-center gap-3">
-          <div style="flex:1"><label class="label">💰 Prezzo evento (Standard) €</label><input class="input" id="ne-tier-medio" type="number" value="" placeholder="Es: 10"></div>
+          <div style="flex:1"><label class="label">💰 Prezzo evento (Standard) €</label><input class="input" id="ne-tier-medio" type="number" value="" placeholder="Es: 10" oninput="updateEventEBTierVisibility()"></div>
           <div style="padding-top:18px"><button type="button" class="btn btn-sm" style="font-size:.7rem;background:var(--green-bg);color:var(--green);border:1px solid var(--green)" onclick="toggleTierExpand(this)">⚙️ Più tier</button></div>
         </div>
       </div>
       <div class="hidden mb-4">
         <div class="grid grid-2 gap-3">
-          <div><label class="label">✦ Sostenitore €</label><input class="input" id="ne-tier-alto" type="number" value="" placeholder="Es: 15"></div>
-          <div><label class="label">○ Ridotto €</label><input class="input" id="ne-tier-basso" type="number" value="" placeholder="Es: 5"></div>
+          <div><label class="label">✦ Sostenitore €</label><input class="input" id="ne-tier-alto" type="number" value="" placeholder="Es: 15" oninput="updateEventEBTierVisibility()"></div>
+          <div><label class="label">○ Ridotto €</label><input class="input" id="ne-tier-basso" type="number" value="" placeholder="Es: 5" oninput="updateEventEBTierVisibility()"></div>
         </div>
       </div>
       <!-- Early Bird -->
-      <div class="flex items-center gap-2 mb-2 mt-4" style="cursor:pointer" onclick="this.nextElementSibling.classList.toggle('hidden');this.querySelector('.toggle-arrow').textContent=this.nextElementSibling.classList.contains('hidden')?'▸':'▾'">
+      <div class="flex items-center gap-2 mb-2 mt-4" style="cursor:pointer" onclick="this.nextElementSibling.classList.toggle('hidden');this.querySelector('.toggle-arrow').textContent=this.nextElementSibling.classList.contains('hidden')?'▸':'▾';updateEventEBTierVisibility()">
         <span class="toggle-arrow text-sm" style="color:var(--yellow)">▸</span>
         <span class="text-sm font-medium" style="color:var(--yellow)">🐦 Prezzo Early Bird</span>
         <span class="text-xs txt3">(clicca per espandere)</span>
       </div>
       <div class="hidden" id="ne-earlybird-section">
-        <p class="text-xs txt3 mb-3">Prezzo scontato per chi prenota per primo. La scadenza può essere una data oppure un numero di iscritti.</p>
-        <div class="grid grid-3 gap-3 mb-3">
-          <div><label class="label">✦ Early Alto €</label><input class="input" id="ne-eb-alto" type="number" placeholder="—"></div>
-          <div><label class="label">● Early Medio €</label><input class="input" id="ne-eb-medio" type="number" placeholder="—"></div>
-          <div><label class="label">○ Early Basso €</label><input class="input" id="ne-eb-basso" type="number" placeholder="—"></div>
+        <p class="text-xs txt3 mb-3">Prezzo scontato per chi prenota per primo. I campi disponibili dipendono dai tier base inseriti.</p>
+        <div id="ne-eb-tiers-grid" class="grid gap-3 mb-3" style="grid-template-columns:repeat(1,1fr)">
+          <div id="ne-eb-alto-wrap" style="display:none"><label class="label">✦ Early Alto €</label><input class="input" id="ne-eb-alto" type="number" placeholder="—"></div>
+          <div id="ne-eb-medio-wrap"><label class="label">● Early Standard €</label><input class="input" id="ne-eb-medio" type="number" placeholder="—"></div>
+          <div id="ne-eb-basso-wrap" style="display:none"><label class="label">○ Early Ridotto €</label><input class="input" id="ne-eb-basso" type="number" placeholder="—"></div>
         </div>
         <div class="mb-3">
           <label class="label">Scadenza Early Bird</label>
@@ -1450,75 +1450,90 @@ textarea.input{resize:none;font-family:inherit}
       </div>
     </div>
 
-    <!-- Step 3b: Contatti & Gruppo -->
-    <div class="card mb-4">
-      <h3 class="font-semibold text-white mb-4">📱 Contatti & Gruppo</h3>
-      <p class="text-xs txt3 mb-4">Informazioni di contatto e link al gruppo per gli utenti iscritti.</p>
-      <div class="mb-3"><label class="label">📞 Telefono organizzatore</label><input class="input" id="ne-contact-phone" placeholder="es. +39 340 1234567"></div>
-      <div class="mb-3"><label class="label">📧 Email di contatto</label><input class="input" id="ne-contact-email" placeholder="es. info@acrotreviso.it"></div>
-      <div class="mb-3"><label class="label">💬 Link gruppo WhatsApp / Telegram</label><input class="input" id="ne-group-link" placeholder="https://chat.whatsapp.com/... oppure https://t.me/..."></div>
-      <p class="text-xs txt3" style="line-height:1.5">Il link al gruppo sarà visibile agli utenti nella scheda evento, così possono unirsi per ricevere aggiornamenti e info.</p>
+    <!-- Step 3b: Contatti & Gruppo (collapsible) -->
+    <div class="card mb-4" style="padding:0;overflow:hidden">
+      <div style="padding:12px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between" onclick="const b=document.getElementById('ne-contacts-collapsible');b.classList.toggle('hidden');this.querySelector('.coll-arrow').textContent=b.classList.contains('hidden')?'▸':'▾'">
+        <h3 class="font-semibold text-white" style="margin:0">📱 Contatti & Gruppo</h3>
+        <span class="coll-arrow text-xs txt3">▸</span>
+      </div>
+      <div id="ne-contacts-collapsible" class="hidden" style="padding:0 16px 16px">
+        <p class="text-xs txt3 mb-4" style="margin-top:8px">Informazioni di contatto e link al gruppo per gli utenti iscritti.</p>
+        <div class="mb-3"><label class="label">📞 Telefono organizzatore</label><input class="input" id="ne-contact-phone" placeholder="es. +39 340 1234567"></div>
+        <div class="mb-3"><label class="label">📧 Email di contatto</label><input class="input" id="ne-contact-email" placeholder="es. info@acrotreviso.it"></div>
+        <div class="mb-3"><label class="label">💬 Link gruppo WhatsApp / Telegram</label><input class="input" id="ne-group-link" placeholder="https://chat.whatsapp.com/... oppure https://t.me/..."></div>
+        <p class="text-xs txt3" style="line-height:1.5">Il link al gruppo sarà visibile agli utenti nella scheda evento, così possono unirsi per ricevere aggiornamenti e info.</p>
+      </div>
     </div>
 
     <!-- Section: Sondaggio (moved inside Opzioni avanzate below) -->
 
-    <!-- Step 4: Pagamenti -->
-    <div class="card mb-4">
-      <h3 class="font-semibold text-white mb-4">💳 Metodi di pagamento</h3>
-      <div class="mb-3"><label class="label">Link PayPal</label><input class="input" id="ne-paypal" placeholder="https://paypal.me/..."></div>
-      <div class="mb-3"><label class="label">Link Revolut</label><input class="input" id="ne-revolut" placeholder="https://revolut.me/..."></div>
-      <div class="flex items-center gap-3 mt-3">
-        <label class="flex items-center gap-2 text-sm" style="cursor:pointer"><input type="checkbox" id="ne-cash" checked> Accetta contanti</label>
+    <!-- Step 4: Pagamenti (collapsible) -->
+    <div class="card mb-4" style="padding:0;overflow:hidden">
+      <div style="padding:12px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between" onclick="const b=document.getElementById('ne-payment-collapsible');b.classList.toggle('hidden');this.querySelector('.coll-arrow').textContent=b.classList.contains('hidden')?'▸':'▾'">
+        <h3 class="font-semibold text-white" style="margin:0">💳 Metodi di pagamento</h3>
+        <span class="coll-arrow text-xs txt3">▸</span>
+      </div>
+      <div id="ne-payment-collapsible" class="hidden" style="padding:0 16px 16px">
+        <div class="mb-3" style="margin-top:8px"><label class="label">Link PayPal</label><input class="input" id="ne-paypal" placeholder="https://paypal.me/..."></div>
+        <div class="mb-3"><label class="label">Link Revolut</label><input class="input" id="ne-revolut" placeholder="https://revolut.me/..."></div>
+        <div class="flex items-center gap-3 mt-3">
+          <label class="flex items-center gap-2 text-sm" style="cursor:pointer"><input type="checkbox" id="ne-cash" checked> Accetta contanti</label>
+        </div>
       </div>
     </div>
 
-    <!-- Sconti, Abbonamenti e Opzioni costo -->
-    <div class="card mb-4">
-      <h3 class="font-semibold text-white mb-3">🎁 Sconti, Abbonamenti e Opzioni costo</h3>
-      <p class="text-xs txt3 mb-4" style="line-height:1.5">Configura modalità di costo speciali, collega abbonamenti, e gestisci sconti fedeltà.</p>
+    <!-- Sconti, Abbonamenti e Opzioni costo (collapsible) -->
+    <div class="card mb-4" style="padding:0;overflow:hidden">
+      <div style="padding:12px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between" onclick="const b=document.getElementById('ne-sconti-collapsible');b.classList.toggle('hidden');this.querySelector('.coll-arrow').textContent=b.classList.contains('hidden')?'▸':'▾'">
+        <h3 class="font-semibold text-white" style="margin:0">🎁 Sconti, Abbonamenti e Opzioni costo</h3>
+        <span class="coll-arrow text-xs txt3">▸</span>
+      </div>
+      <div id="ne-sconti-collapsible" class="hidden" style="padding:0 16px 16px">
+      <p class="text-xs txt3 mb-4" style="line-height:1.5;margin-top:8px">Configura modalità di costo speciali, collega abbonamenti, e gestisci sconti fedeltà.</p>
 
-      <!-- Modalità costo speciali -->
+      <!-- Modalità costo speciali — toggle buttons -->
       <div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--s300)" id="ne-pricing-mode-card">
         <h4 class="text-sm font-semibold mb-3" style="color:var(--txt2)">⚙️ Modalità costo</h4>
-        <div class="mb-3">
-          <label class="flex items-center gap-3 text-sm" style="cursor:pointer">
-            <input type="checkbox" id="ne-free-event" onchange="onPricingModeChange()">
-            <span class="text-white font-medium">🆓 Evento gratuito</span>
-          </label>
-          <p class="text-xs txt3 mt-1" style="margin-left:28px">Nessun costo. I campi prezzo scompariranno.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button type="button" id="ne-free-event-btn" class="btn btn-sm" style="background:var(--s200);color:var(--txt2);border:1px solid var(--s400);font-size:.8rem;padding:8px 16px;border-radius:10px;transition:all .2s" onclick="togglePricingBtn('ne-free-event',this)">
+            🆓 Evento gratuito
+          </button>
+          <button type="button" id="ne-costs-managed-btn" class="btn btn-sm" style="background:var(--s200);color:var(--txt2);border:1px solid var(--s400);font-size:.8rem;padding:8px 16px;border-radius:10px;transition:all .2s" onclick="togglePricingBtn('ne-costs-managed-by-org',this)">
+            🤝 Costi gestiti dall'organizzatore
+          </button>
         </div>
-        <div class="mb-2">
-          <label class="flex items-center gap-3 text-sm" style="cursor:pointer">
-            <input type="checkbox" id="ne-costs-managed-by-org" onchange="onPricingModeChange()">
-            <span class="text-white font-medium">🤝 Gestione costi con l'organizzatore</span>
-          </label>
-          <p class="text-xs txt3 mt-1" style="margin-left:28px">I costi non saranno mostrati. L'utente contatterà l'organizzatore.</p>
-        </div>
+        <input type="checkbox" id="ne-free-event" style="display:none" onchange="onPricingModeChange()">
+        <input type="checkbox" id="ne-costs-managed-by-org" style="display:none" onchange="onPricingModeChange()">
+        <p class="text-xs txt3 mt-2" style="line-height:1.4">Seleziona una modalità speciale oppure lascia vuoto per prezzi standard.</p>
       </div>
 
-      <!-- Abbonamenti -->
+      <!-- Abbonamenti — toggle buttons -->
       <div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--s300)">
         <h4 class="text-sm font-semibold mb-3" style="color:var(--txt2)">🎟️ Abbonamenti</h4>
-        <div class="mb-3">
-          <label class="flex items-center gap-2 text-sm mb-3" style="cursor:pointer"><input type="checkbox" id="ne-sub-bookable" onchange="document.getElementById('ne-sub-bookable-opts').classList.toggle('hidden')"> 🎟️ Prenotabile con ingressi abbonamento</label>
-          <div id="ne-sub-bookable-opts" class="hidden mb-3">
-            <label class="label">Tipologie abbonamento accettate</label>
-            <div id="ne-sub-bookable-types" class="flex flex-wrap gap-2 mb-2"></div>
-            <p class="text-xs txt3">L'utente potrà usare un ingresso del proprio abbonamento per prenotare questo evento, senza pagare.</p>
-          </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+          <button type="button" id="ne-sub-bookable-btn" class="btn btn-sm" style="background:var(--s200);color:var(--txt2);border:1px solid var(--s400);font-size:.8rem;padding:8px 16px;border-radius:10px;transition:all .2s" onclick="toggleOptionBtn('ne-sub-bookable',this,'ne-sub-bookable-opts')">
+            🎟️ Prenotabile con abbonamento
+          </button>
+          <button type="button" id="ne-sub-discount-btn" class="btn btn-sm" style="background:var(--s200);color:var(--txt2);border:1px solid var(--s400);font-size:.8rem;padding:8px 16px;border-radius:10px;transition:all .2s" onclick="toggleOptionBtn('ne-sub-discount',this,'ne-sub-discount-opts')">
+            💰 Sconto per abbonati
+          </button>
         </div>
-        <div>
-          <label class="flex items-center gap-2 text-sm mb-3" style="cursor:pointer"><input type="checkbox" id="ne-sub-discount" onchange="document.getElementById('ne-sub-discount-opts').classList.toggle('hidden')"> 💰 Prezzo scontato per abbonati</label>
-          <div id="ne-sub-discount-opts" class="hidden">
-            <label class="label">Tipologie abbonamento per sconto</label>
-            <div id="ne-sub-discount-types" class="flex flex-wrap gap-2 mb-2"></div>
-            <div class="grid grid-3 gap-3 mb-2">
-              <div><label class="label">✦ Sostenitore (€)</label><input class="input" id="ne-sub-disc-alto" type="number" placeholder="es. 20"></div>
-              <div><label class="label">● Standard (€)</label><input class="input" id="ne-sub-disc-medio" type="number" placeholder="es. 15"></div>
-              <div><label class="label">○ Ridotto (€)</label><input class="input" id="ne-sub-disc-basso" type="number" placeholder="es. 10"></div>
-            </div>
-            <p class="text-xs txt3">I possessori di un abbonamento compatibile vedranno i prezzi scontati <b>senza consumare ingressi</b>.</p>
+        <input type="checkbox" id="ne-sub-bookable" style="display:none">
+        <input type="checkbox" id="ne-sub-discount" style="display:none">
+        <div id="ne-sub-bookable-opts" class="hidden mb-3" style="background:var(--s100);border:1px solid var(--s300);border-radius:10px;padding:12px">
+          <label class="label">Tipologie abbonamento accettate</label>
+          <div id="ne-sub-bookable-types" class="flex flex-wrap gap-2 mb-2"></div>
+          <p class="text-xs txt3">L'utente potrà usare un ingresso del proprio abbonamento per prenotare questo evento, senza pagare.</p>
+        </div>
+        <div id="ne-sub-discount-opts" class="hidden" style="background:var(--s100);border:1px solid var(--s300);border-radius:10px;padding:12px">
+          <label class="label">Tipologie abbonamento per sconto</label>
+          <div id="ne-sub-discount-types" class="flex flex-wrap gap-2 mb-2"></div>
+          <div class="grid grid-3 gap-3 mb-2">
+            <div><label class="label">✦ Sostenitore (€)</label><input class="input" id="ne-sub-disc-alto" type="number" placeholder="es. 20"></div>
+            <div><label class="label">● Standard (€)</label><input class="input" id="ne-sub-disc-medio" type="number" placeholder="es. 15"></div>
+            <div><label class="label">○ Ridotto (€)</label><input class="input" id="ne-sub-disc-basso" type="number" placeholder="es. 10"></div>
           </div>
+          <p class="text-xs txt3">I possessori di un abbonamento compatibile vedranno i prezzi scontati <b>senza consumare ingressi</b>.</p>
         </div>
       </div>
 
@@ -1546,11 +1561,16 @@ textarea.input{resize:none;font-family:inherit}
         </div>
       </div>
 
-      <!-- Anticipo per conferma prenotazione -->
+      <!-- Anticipo per conferma prenotazione — toggle button -->
       <div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--s300)">
         <h4 class="text-sm font-semibold mb-3" style="color:var(--txt2)">🔒 Anticipo per conferma prenotazione</h4>
-        <label class="flex items-center gap-2 text-sm mb-3" style="cursor:pointer"><input type="checkbox" id="ne-deposit-required" onchange="document.getElementById('ne-deposit-opts').classList.toggle('hidden')"> Richiedi anticipo per confermare la prenotazione</label>
-        <div id="ne-deposit-opts" class="hidden">
+        <div style="margin-bottom:12px">
+          <button type="button" id="ne-deposit-required-btn" class="btn btn-sm" style="background:var(--s200);color:var(--txt2);border:1px solid var(--s400);font-size:.8rem;padding:8px 16px;border-radius:10px;transition:all .2s" onclick="toggleOptionBtn('ne-deposit-required',this,'ne-deposit-opts')">
+            🔒 Richiedi anticipo
+          </button>
+          <input type="checkbox" id="ne-deposit-required" style="display:none">
+        </div>
+        <div id="ne-deposit-opts" class="hidden" style="background:var(--s100);border:1px solid var(--s300);border-radius:10px;padding:12px">
           <div class="grid grid-2 gap-3 mb-3">
             <div><label class="label">Importo anticipo (€) *</label><input class="input" id="ne-deposit-amount" type="number" placeholder="es. 20"></div>
             <div><label class="label">Causale da inserire nel versamento *</label><input class="input" id="ne-deposit-causal" placeholder="es. Anticipo Weekend Intensive - Nome Cognome"></div>
@@ -1570,6 +1590,7 @@ textarea.input{resize:none;font-family:inherit}
           <label class="flex items-center gap-2 text-sm" style="cursor:pointer"><input type="radio" name="ne-partner-entry-policy" value="none"> ❌ Nessuno — partner visibili ma nessuna agevolazione</label>
         </div>
       </div>
+      </div><!-- /ne-sconti-collapsible -->
     </div>
 
     <!-- Opzioni avanzate (collapsible) -->
@@ -4350,7 +4371,7 @@ function go(view){
   if(view==='checkin-booked') renderCheckinA();
   if(view==='checkin-walkin') renderCheckinB();
   if(view==='checkin-new') renderCheckinC();
-  if(view==='admin-new-event'&&!editingEventId){_tsbShownThisSession=false;dismissTierBanner();restoreFormTitle();initEventDates();populateEventUniverseDropdown();populateSubTypeCheckboxes();setTimeout(()=>{obShowTour('tour_new_event');setTimeout(()=>obShowInfoCard('ic_admin_new_event','admin-new-event-form'),300);},400);}
+  if(view==='admin-new-event'&&!editingEventId){_tsbShownThisSession=false;dismissTierBanner();restoreFormTitle();initEventDates();populateEventUniverseDropdown();populateSubTypeCheckboxes();prefillEventContacts();setTimeout(()=>{obShowTour('tour_new_event');setTimeout(()=>obShowInfoCard('ic_admin_new_event','admin-new-event-form'),300);},400);}
   if(view==='admin-new-event'&&editingEventId){populateEventUniverseDropdown();populateSubTypeCheckboxes();}
   if(view==='admin-subscriptions'){renderAdminSubscriptions();}
   if(view==='admin-universes'){renderAdminUniversesView();setTimeout(()=>obShowTour('tour_admin_universes'),400);}
@@ -8600,6 +8621,40 @@ function syncEventDates(which){
 function isPricingHidden(){
   return !!(document.getElementById('ne-free-event')?.checked||document.getElementById('ne-costs-managed-by-org')?.checked);
 }
+/* Toggle buttons for pricing/option sections */
+function _setToggleBtnActive(btn,active){
+  if(active){btn.style.background='var(--brand-bg)';btn.style.color='var(--brand-l)';btn.style.borderColor='var(--brand)';}
+  else{btn.style.background='var(--s200)';btn.style.color='var(--txt2)';btn.style.borderColor='var(--s400)';}
+}
+function togglePricingBtn(checkboxId,btn){
+  const cb=document.getElementById(checkboxId);if(!cb)return;
+  cb.checked=!cb.checked;
+  cb.dispatchEvent(new Event('change'));
+  _setToggleBtnActive(btn,cb.checked);
+  // Mutual exclusion: deactivate the other button
+  if(checkboxId==='ne-free-event'){const otherBtn=document.getElementById('ne-costs-managed-btn');const otherCb=document.getElementById('ne-costs-managed-by-org');if(cb.checked&&otherCb?.checked){otherCb.checked=false;if(otherBtn)_setToggleBtnActive(otherBtn,false);}}
+  if(checkboxId==='ne-costs-managed-by-org'){const otherBtn=document.getElementById('ne-free-event-btn');const otherCb=document.getElementById('ne-free-event');if(cb.checked&&otherCb?.checked){otherCb.checked=false;if(otherBtn)_setToggleBtnActive(otherBtn,false);}}
+}
+function toggleOptionBtn(checkboxId,btn,optsId){
+  const cb=document.getElementById(checkboxId);if(!cb)return;
+  cb.checked=!cb.checked;
+  _setToggleBtnActive(btn,cb.checked);
+  if(optsId){const opts=document.getElementById(optsId);if(opts){opts.classList.toggle('hidden',!cb.checked);}}
+}
+function syncToggleBtns(){
+  // Sync button states with checkbox states (for when editing existing events)
+  const pairs=[
+    ['ne-free-event','ne-free-event-btn'],
+    ['ne-costs-managed-by-org','ne-costs-managed-btn'],
+    ['ne-sub-bookable','ne-sub-bookable-btn'],
+    ['ne-sub-discount','ne-sub-discount-btn'],
+    ['ne-deposit-required','ne-deposit-required-btn']
+  ];
+  pairs.forEach(([cbId,btnId])=>{
+    const cb=document.getElementById(cbId);const btn=document.getElementById(btnId);
+    if(cb&&btn)_setToggleBtnActive(btn,cb.checked);
+  });
+}
 function onPricingModeChange(){
   const isFree=document.getElementById('ne-free-event')?.checked;
   const isManagedByOrg=document.getElementById('ne-costs-managed-by-org')?.checked;
@@ -8641,7 +8696,7 @@ function renderFormDays(){
     const ebHasAlto=ebBaseTiers?.alto!=null&&ebBaseTiers.alto>0;
     const ebHasMedio=ebBaseTiers?.medio!=null&&ebBaseTiers.medio>0;
     const ebHasBasso=ebBaseTiers?.basso!=null&&ebBaseTiers.basso>0;
-    const ebDefaultDeadline=(()=>{const dd=dayDate||document.getElementById('ne-event-start-date')?.value;if(!dd)return day.earlyBird?.deadline||'';const d=new Date(dd+'T12:00:00');d.setDate(d.getDate()-15);return d.toISOString().split('T')[0];})();
+    const ebDefaultDeadline=(()=>{if(day.earlyBird?.deadline)return day.earlyBird.deadline;const dd=dayDate||document.getElementById('ne-event-start-date')?.value;if(!dd)return '';const d=new Date(dd+'T12:00:00');d.setDate(d.getDate()-10);return d.toISOString().split('T')[0];})();
     const ebColCount=(ebHasAlto?1:0)+(ebHasMedio?1:0)+(ebHasBasso?1:0)||1;
     return `
     <div class="card mb-3" style="background:var(--s100);border-color:var(--s400)">
@@ -8734,11 +8789,29 @@ function updateDayTimesDisplay(di){
     if(timeDisplay)timeDisplay.textContent=earliest+' — '+latest;
   }
 }
+function updateEventEBTierVisibility(){
+  const hasAlto=!!document.getElementById('ne-tier-alto')?.value;
+  const hasMedio=!!document.getElementById('ne-tier-medio')?.value;
+  const hasBasso=!!document.getElementById('ne-tier-basso')?.value;
+  const aWrap=document.getElementById('ne-eb-alto-wrap');
+  const mWrap=document.getElementById('ne-eb-medio-wrap');
+  const bWrap=document.getElementById('ne-eb-basso-wrap');
+  if(aWrap)aWrap.style.display=hasAlto?'':'none';
+  if(mWrap)mWrap.style.display=hasMedio?'':'none';
+  if(bWrap)bWrap.style.display=hasBasso?'':'none';
+  const grid=document.getElementById('ne-eb-tiers-grid');
+  if(grid){const cols=(hasAlto?1:0)+(hasMedio?1:0)+(hasBasso?1:0)||1;grid.style.gridTemplateColumns='repeat('+cols+',1fr)';}
+}
 function toggleTierExpand(btn){
   let target=btn.closest('.mb-2').nextElementSibling;
   if(!target||!target.classList)return;
   target.classList.toggle('hidden');
-  btn.textContent=target.classList.contains('hidden')?'⚙️ Più tier':'⚙️ Chiudi tier';
+  const isHidden=target.classList.contains('hidden');
+  btn.textContent=isHidden?'⚙️ Più tier':'⚙️ Chiudi tier';
+  // When collapsing, clear alto/basso fields so they won't be saved
+  if(isHidden){
+    target.querySelectorAll('input[type="number"]').forEach(inp=>inp.value='');
+  }
 }
 function renderFormSession(di,si,s,hidePricing){
   return `<div class="card mb-2" style="background:var(--s200);border-color:var(--s400);padding:12px">
@@ -8803,7 +8876,7 @@ function renderFormSession(di,si,s,hidePricing){
             </div>
           </div>
           <div class="grid grid-2 gap-3">
-            <div class="ne-seb-date-wrap" ${s.earlyBird?.type==='count'?'style="display:none"':''}><label class="label text-xs">📅 Scadenza</label><input class="input ne-s-ebd" type="date" data-di="${di}" data-si="${si}" value="${s.earlyBird?.deadline||''}"></div>
+            <div class="ne-seb-date-wrap" ${s.earlyBird?.type==='count'?'style="display:none"':''}><label class="label text-xs">📅 Scadenza</label><input class="input ne-s-ebd" type="date" data-di="${di}" data-si="${si}" value="${s.earlyBird?.deadline||(()=>{const dd=getDayDate(di)||document.getElementById('ne-event-start-date')?.value;if(!dd)return'';const d=new Date(dd+'T12:00:00');d.setDate(d.getDate()-10);return d.toISOString().split('T')[0];})()}"></div>
             <div class="ne-seb-count-wrap" ${s.earlyBird?.type!=='count'?'style="display:none"':''}><label class="label text-xs">👥 Primi N</label><input class="input ne-s-ebc" type="number" data-di="${di}" data-si="${si}" min="1" value="${s.earlyBird?.maxCount||''}" placeholder="es. 10"></div>
           </div>
         </div>
@@ -9113,17 +9186,18 @@ function collectFormData(){
         location:document.querySelector(`.ne-s-loc[data-di="${di}"][data-si="${si}"]`)?.value||'',
         locationUrl:document.querySelector(`.ne-s-locurl[data-di="${di}"][data-si="${si}"]`)?.value||'',
         maxSpots:parseInt(document.querySelector(`.ne-s-max[data-di="${di}"][data-si="${si}"]`)?.value)||0,
-        tiers:(()=>{const _ta=document.querySelector(`.ne-s-ta[data-di="${di}"][data-si="${si}"]`);const _tm=document.querySelector(`.ne-s-tm[data-di="${di}"][data-si="${si}"]`);const _tb=document.querySelector(`.ne-s-tb[data-di="${di}"][data-si="${si}"]`);return{alto:_ta?.value?parseFloat(_ta.value):null,medio:_tm?.value?parseFloat(_tm.value):null,basso:_tb?.value?parseFloat(_tb.value):null};})(),
+        tiers:(()=>{const _ta=document.querySelector(`.ne-s-ta[data-di="${di}"][data-si="${si}"]`);const _tm=document.querySelector(`.ne-s-tm[data-di="${di}"][data-si="${si}"]`);const _tb=document.querySelector(`.ne-s-tb[data-di="${di}"][data-si="${si}"]`);const _tierHidden=_ta?.closest('.hidden')||_ta?.closest('div')?.classList?.contains('hidden');return{alto:(!_tierHidden&&_ta?.value)?parseFloat(_ta.value):null,medio:_tm?.value?parseFloat(_tm.value):null,basso:(!_tierHidden&&_tb?.value)?parseFloat(_tb.value):null};})(),
         earlyBird:(()=>{const _seba=parseFloat(document.querySelector(`.ne-s-eba[data-di="${di}"][data-si="${si}"]`)?.value)||0;const _sebm=parseFloat(document.querySelector(`.ne-s-ebm[data-di="${di}"][data-si="${si}"]`)?.value)||0;const _sebb=parseFloat(document.querySelector(`.ne-s-ebb[data-di="${di}"][data-si="${si}"]`)?.value)||0;if(!_seba&&!_sebm&&!_sebb)return null;const o={};if(_seba>0)o.alto=_seba;if(_sebm>0)o.medio=_sebm;if(_sebb>0)o.basso=_sebb;if(!o.alto&&!o.medio&&!o.basso)return null;const typeEl=document.querySelector(`input[name="ne-seb-type-${di}-${si}"]:checked`);o.type=typeEl?.value||'date';o.deadline=document.querySelector(`.ne-s-ebd[data-di="${di}"][data-si="${si}"]`)?.value||null;o.maxCount=parseInt(document.querySelector(`.ne-s-ebc[data-di="${di}"][data-si="${si}"]`)?.value)||null;return o;})()
       };
     });
-    // Tier giornata (opzionali)
+    // Tier giornata (opzionali) - respect hidden state for alto/basso
     const _dtaEl=document.querySelector(`.ne-d-ta[data-di="${di}"]`);
     const _dtmEl=document.querySelector(`.ne-d-tm[data-di="${di}"]`);
     const _dtbEl=document.querySelector(`.ne-d-tb[data-di="${di}"]`);
-    const dta=_dtaEl?.value?parseFloat(_dtaEl.value):null;
+    const _dayTierHidden=_dtaEl?.closest('.hidden')||(_dtaEl&&_dtaEl.closest('div')?.parentNode?.classList?.contains('hidden'));
+    const dta=(!_dayTierHidden&&_dtaEl?.value)?parseFloat(_dtaEl.value):null;
     const dtm=_dtmEl?.value?parseFloat(_dtmEl.value):null;
-    const dtb=_dtbEl?.value?parseFloat(_dtbEl.value):null;
+    const dtb=(!_dayTierHidden&&_dtbEl?.value)?parseFloat(_dtbEl.value):null;
     const dayTiers=(dta!=null||dtm!=null||dtb!=null)?{alto:dta,medio:dtm,basso:dtb}:null;
     // Fidelizzazione giornata (opzionali)
     const dfta=parseFloat(document.querySelector(`.ne-d-fta[data-di="${di}"]`)?.value)||0;
@@ -9199,7 +9273,7 @@ function collectFormData(){
     imageThumb:evImages.thumb||null,
     imageHeader:evImages.header||null,
     days,
-    tiers:(()=>{const _a=document.getElementById('ne-tier-alto')?.value,_m=document.getElementById('ne-tier-medio')?.value,_b=document.getElementById('ne-tier-basso')?.value;return{alto:_a?parseFloat(_a):null,medio:_m?parseFloat(_m):null,basso:_b?parseFloat(_b):null};})(),
+    tiers:(()=>{const _aEl=document.getElementById('ne-tier-alto'),_mEl=document.getElementById('ne-tier-medio'),_bEl=document.getElementById('ne-tier-basso');const _evTierHidden=_aEl?.closest('.hidden');return{alto:(!_evTierHidden&&_aEl?.value)?parseFloat(_aEl.value):null,medio:_mEl?.value?parseFloat(_mEl.value):null,basso:(!_evTierHidden&&_bEl?.value)?parseFloat(_bEl.value):null};})(),
     loyaltyTiers:eventLoyalty,loyaltyRequiredEvents:eventLoyaltyReq.length?eventLoyaltyReq:null,
     earlyBird,
     contactPhone:document.getElementById('ne-contact-phone')?.value||'',
@@ -9501,6 +9575,7 @@ function editEvent(id){
       if(ebTypeVal==='count'){document.getElementById('ne-eb-date-wrap').style.display='none';document.getElementById('ne-eb-count-wrap').style.display='';}
     }
   }
+  updateEventEBTierVisibility();
   // Restore minSubscribers
   const minSubEl=document.getElementById('ne-min-subscribers');
   if(minSubEl&&ev.minSubscribers){
@@ -9551,7 +9626,13 @@ function editEvent(id){
   if(ev.imageHeader)restoreImgEdit('header',ev.imageHeader);
   else if(ev.image)restoreImgEdit('header',{src:ev.image,zoom:100,posX:0,posY:0});
   // Auto-expand images section if images exist
-  if(ev.imageThumb||ev.imageHeader||ev.image){const ic=document.getElementById('ne-images-collapsible');if(ic)ic.classList.remove('hidden');}
+  if(ev.imageThumb||ev.imageHeader||ev.image){const ic=document.getElementById('ne-images-collapsible');if(ic){ic.classList.remove('hidden');const arrow=ic.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
+  // Auto-expand collapsible sections that have content
+  if(ev.contactPhone||ev.contactEmail||ev.groupLink){const cc=document.getElementById('ne-contacts-collapsible');if(cc){cc.classList.remove('hidden');const arrow=cc.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
+  if(ev.paymentMethods&&(ev.paymentMethods.paypal||ev.paymentMethods.revolut||ev.paymentMethods.cash)){const pc=document.getElementById('ne-payment-collapsible');if(pc){pc.classList.remove('hidden');const arrow=pc.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
+  if(ev.pricingMode==='free'||ev.pricingMode==='managed'||ev.subscriptionBookable?.enabled||ev.subscriptionDiscount?.enabled||ev.deposit?.required){const sc=document.getElementById('ne-sconti-collapsible');if(sc){sc.classList.remove('hidden');const arrow=sc.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
+  // Sync toggle button states with restored checkbox states
+  syncToggleBtns();
   // Restore surveys
   surveyQuestionCounter=0;
   const sqContainer=document.getElementById('ne-survey-questions');
@@ -9625,6 +9706,13 @@ function publishNewEvent(){
       resetForm();go('admin-events');showToast('Evento pubblicato!');
     });
   }
+}
+function prefillEventContacts(){
+  const mgr=store.managers.find(m=>m.id===store.currentUser.id);if(!mgr)return;
+  const phoneEl=document.getElementById('ne-contact-phone');
+  const emailEl=document.getElementById('ne-contact-email');
+  if(phoneEl&&!phoneEl.value&&mgr.phone)phoneEl.value=mgr.phone;
+  if(emailEl&&!emailEl.value&&(mgr.contactEmail||mgr.email))emailEl.value=mgr.contactEmail||mgr.email;
 }
 function initEventDates(){
   const today=getDefaultDate();
