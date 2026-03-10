@@ -237,6 +237,9 @@ textarea.input{resize:none;font-family:inherit}
 .ob-infocard-text b{color:#fff;font-weight:600}
 .ob-infocard-close{position:absolute;top:8px;right:10px;background:none;border:none;color:var(--txt3);cursor:pointer;font-size:.85rem;padding:4px;line-height:1}
 .ob-infocard-close:hover{color:var(--txt)}
+.ob-infocard-highlight{background:linear-gradient(135deg,rgba(168,96,142,.18),rgba(168,96,142,.06));border:1.5px solid rgba(168,96,142,.5);padding:18px 20px}
+.ob-infocard-highlight .ob-infocard-icon{font-size:1.6rem}
+.ob-infocard-highlight .ob-infocard-text{font-size:.85rem;line-height:1.65;color:var(--txt)}
 .ob-help-btn{position:fixed;bottom:80px;right:16px;width:40px;height:40px;border-radius:50%;background:var(--s200);border:1px solid var(--s400);color:var(--txt2);font-size:1rem;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:100;box-shadow:0 4px 16px rgba(0,0,0,.3);transition:all .15s}
 .ob-help-btn:hover{background:var(--brand-d);color:#fff;border-color:var(--brand)}
 .view-toggle{display:inline-flex;border-radius:10px;overflow:hidden;border:1px solid var(--s400);background:var(--s200)}
@@ -270,7 +273,7 @@ textarea.input{resize:none;font-family:inherit}
       <span class="logo-text">BodyEvents</span>
     </div>
     <div class="nav-links" id="navLinks">
-      <div class="nav-link active" data-view="events" onclick="go('events')">📅 Eventi</div>
+      <div class="nav-link active" data-view="events" onclick="go('events')">📅 Bacheca</div>
       <div class="nav-link" data-view="jams" onclick="go('jams')">🤝 Community Events</div>
       <div class="nav-link" data-view="dashboard" onclick="go('dashboard')">🎫 Prenotazioni</div>
       <div class="nav-link" data-view="profile" onclick="go('profile')">👤 Profilo</div>
@@ -283,7 +286,7 @@ textarea.input{resize:none;font-family:inherit}
     <button class="hamburger" onclick="toggleMobile()">☰</button>
   </div>
   <div class="mobile-menu" id="mobileMenu">
-    <div class="nav-link" onclick="go('events');closeMobile()">📅 Eventi</div>
+    <div class="nav-link" onclick="go('events');closeMobile()">📅 Bacheca</div>
     <div class="nav-link" onclick="go('jams');closeMobile()">🤝 Community Events</div>
     <div class="nav-link" onclick="go('dashboard');closeMobile()">🎫 Le mie prenotazioni</div>
     <div class="nav-link" onclick="go('profile');closeMobile()">👤 Profilo</div>
@@ -331,7 +334,7 @@ textarea.input{resize:none;font-family:inherit}
 <!-- ============================================================ -->
 <div class="view" id="view-events">
 <div class="container" style="padding-top:32px;padding-bottom:48px">
-  <h1 class="page-title">Eventi</h1>
+  <h1 class="page-title">Bacheca Eventi</h1>
   <p class="page-sub mb-6">Scopri i prossimi eventi e prenota il tuo posto</p>
 
   <!-- Filtri avanzati -->
@@ -912,7 +915,19 @@ textarea.input{resize:none;font-family:inherit}
       </div>
       <div style="margin-bottom:12px">
         <label class="label">Colore</label>
-        <input type="color" id="propose-univ-color" value="#8b5cf6" style="width:50px;height:36px;border:none;background:none;cursor:pointer">
+        <input type="hidden" id="propose-univ-color" value="#D07840">
+        <div id="propose-univ-color-grid" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">
+          <div class="univ-color-opt" data-color="#4DB88A" onclick="selectUnivColor(this,'#4DB88A')" style="width:36px;height:36px;border-radius:8px;background:#4DB88A;cursor:pointer;border:3px solid transparent;position:relative" title="Giada"></div>
+          <div class="univ-color-opt" data-color="#D07840" onclick="selectUnivColor(this,'#D07840')" style="width:36px;height:36px;border-radius:8px;background:#D07840;cursor:pointer;border:3px solid #fff;position:relative" title="Ruggine"></div>
+          <div class="univ-color-opt" data-color="#A8608E" onclick="selectUnivColor(this,'#A8608E')" style="width:36px;height:36px;border-radius:8px;background:#A8608E;cursor:pointer;border:3px solid transparent;position:relative" title="Prugna"></div>
+          <div class="univ-color-opt" data-color="#C8A830" onclick="selectUnivColor(this,'#C8A830')" style="width:36px;height:36px;border-radius:8px;background:#C8A830;cursor:pointer;border:3px solid transparent;position:relative" title="Ambra"></div>
+          <div class="univ-color-opt" data-color="#B04848" onclick="selectUnivColor(this,'#B04848')" style="width:36px;height:36px;border-radius:8px;background:#B04848;cursor:pointer;border:3px solid transparent;position:relative" title="Mattone"></div>
+          <div class="univ-color-opt" data-color="#4890A8" onclick="selectUnivColor(this,'#4890A8')" style="width:36px;height:36px;border-radius:8px;background:#4890A8;cursor:pointer;border:3px solid transparent;position:relative" title="Tempesta"></div>
+          <div class="univ-color-opt" data-color="#6E9830" onclick="selectUnivColor(this,'#6E9830')" style="width:36px;height:36px;border-radius:8px;background:#6E9830;cursor:pointer;border:3px solid transparent;position:relative" title="Foresta"></div>
+          <div class="univ-color-opt" data-color="#C08050" onclick="selectUnivColor(this,'#C08050')" style="width:36px;height:36px;border-radius:8px;background:#C08050;cursor:pointer;border:3px solid transparent;position:relative" title="Argilla"></div>
+          <div class="univ-color-opt" data-color="#7858A0" onclick="selectUnivColor(this,'#7858A0')" style="width:36px;height:36px;border-radius:8px;background:#7858A0;cursor:pointer;border:3px solid transparent;position:relative" title="Cardo"></div>
+          <div class="univ-color-opt" data-color="#508868" onclick="selectUnivColor(this,'#508868')" style="width:36px;height:36px;border-radius:8px;background:#508868;cursor:pointer;border:3px solid transparent;position:relative" title="Sottobosco"></div>
+        </div>
       </div>
       <div style="margin-bottom:12px">
         <label class="label">Ruoli (separati da virgola)</label>
@@ -2131,7 +2146,7 @@ const OB_TOURS={
 // === INFO CARD DEFINITIONS ===
 const OB_INFOCARDS={
   ic_event_detail_pricing:{icon:'💡',text:'Questo evento ha <b>più giornate</b>. Puoi prenotare l\'<b>intero pacchetto</b> oppure le <b>singole giornate</b>, ognuna con le proprie sessioni e prezzi.'},
-  ic_event_detail_tiers:{icon:'💡',text:'Questo evento offre <b>3 livelli di prezzo</b>: ✦ Sostenitore, ● Standard, ○ Ridotto. L\'esperienza è <b>identica</b> per tutti — non si compra un servizio superiore. È una <b>scelta etica</b>: chi ha più possibilità contribuisce a rendere l\'evento accessibile anche a chi ne ha meno.'},
+  ic_event_detail_tiers:{icon:'💜',text:'Questo evento offre <b>3 livelli di prezzo</b>: ✦ Sostenitore, ● Standard, ○ Ridotto: l\'esperienza è <b>identica</b> per tutti. Se questa volta sceglierai il prezzo <b>Sostenitore</b>, contribuirai alla partecipazione di chi, in questo periodo, senza il prezzo Ridotto avrebbe deciso di rinunciare. Attraverso questa piattaforma l\'organizzatore e gli altri utenti <b>non visualizzeranno</b> quale livello di prezzo hai scelto: si tratta di una <b>scelta etica libera</b>, che puoi cambiare volta per volta.'},
   ic_event_detail_earlybird:{icon:'🐦',text:'<b>Prezzo Early Bird!</b> Sconto valido fino alla data indicata o fino a un certo numero di iscritti. Approfittane!'},
   ic_event_detail_waiting:{icon:'⏳',text:'Questo evento richiede un <b>numero minimo di partecipanti</b>. Se non viene raggiunto entro la deadline, potrebbe essere annullato.'},
   ic_jam_create:{icon:'💡',text:'Stai creando un <b>Community Event</b>. Scegli universo, luogo, data e orario. Puoi impostare un numero minimo: l\'evento sarà confermato solo al raggiungimento.'},
@@ -2183,14 +2198,14 @@ function _obCloseTour(){
 }
 
 // === INFO CARD RENDERING ===
-function obShowInfoCard(cardKey,containerId){
+function obShowInfoCard(cardKey,containerId,highlight){
   if(obSeen(cardKey))return;
   const card=OB_INFOCARDS[cardKey];if(!card)return;
   const container=document.getElementById(containerId);if(!container)return;
   // Don't duplicate
   if(container.querySelector('[data-ob-card="'+cardKey+'"]'))return;
   const el=document.createElement('div');
-  el.className='ob-infocard';el.setAttribute('data-ob-card',cardKey);
+  el.className='ob-infocard'+(highlight?' ob-infocard-highlight':'');el.setAttribute('data-ob-card',cardKey);
   el.innerHTML=`<div class="ob-infocard-icon">${card.icon}</div>
     <div class="ob-infocard-text">${card.text}</div>
     <button class="ob-infocard-close" onclick="obDismissCard('${cardKey}',this)" aria-label="Chiudi">✕</button>`;
@@ -2313,6 +2328,13 @@ function resetStoreData(){_dataLoaded=false;store.events=[];store.bookings=[];st
    UNIVERSI — HELPERS & FUNCTIONS
 ============================== */
 const UNIVERSE_PALETTE=['#D07840','#4DB88A','#A8608E','#C8A830','#B04848','#4890A8','#6E9830','#C08050','#7858A0','#508868'];
+const UNIVERSE_PALETTE_NAMES=['Ruggine','Giada','Prugna','Ambra','Mattone','Tempesta','Foresta','Argilla','Cardo','Sottobosco'];
+
+function selectUnivColor(el,color){
+  document.getElementById('propose-univ-color').value=color;
+  document.querySelectorAll('#propose-univ-color-grid .univ-color-opt').forEach(o=>{o.style.border='3px solid transparent';});
+  el.style.border='3px solid #fff';
+}
 
 function getUniverseColor(univId){const u=store.universes.find(x=>x.id===univId);return u?u.color:'#a3a3a3';}
 function getUniverseName(univId){const u=store.universes.find(x=>x.id===univId);return u?u.name:'—';}
@@ -2643,10 +2665,14 @@ function openEditUniverseModal(univId){
   let html='<h3 class="text-lg font-semibold text-white mb-4">✏️ Modifica Universo</h3>';
   html+='<div style="max-height:70vh;overflow-y:auto;padding-right:8px">';
   html+='<div class="mb-3"><label class="label">Nome *</label><input class="input" id="eu-name" value="'+u.name+'"></div>';
-  html+='<div class="grid grid-2 gap-3 mb-3">';
-  html+='<div><label class="label">Emoji</label><input class="input" id="eu-emoji" value="'+(u.emoji||'🌐')+'" style="font-size:1.3rem;text-align:center"></div>';
-  html+='<div><label class="label">Colore</label><input class="input" id="eu-color" type="color" value="'+(u.color||'#10b981')+'" style="height:42px;padding:4px"></div>';
-  html+='</div>';
+  html+='<div class="mb-3"><label class="label">Emoji</label><input class="input" id="eu-emoji" value="'+(u.emoji||'🌐')+'" style="font-size:1.3rem;text-align:center;max-width:80px"></div>';
+  html+='<div class="mb-3"><label class="label">Colore</label><input type="hidden" id="eu-color" value="'+(u.color||'#D07840')+'">';
+  html+='<div id="eu-color-grid" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">';
+  UNIVERSE_PALETTE.forEach((c,i)=>{
+    const sel=c.toLowerCase()===(u.color||'').toLowerCase();
+    html+='<div class="eu-color-opt" data-color="'+c+'" onclick="document.getElementById(\'eu-color\').value=\''+c+'\';document.querySelectorAll(\'#eu-color-grid .eu-color-opt\').forEach(o=>o.style.border=\'3px solid transparent\');this.style.border=\'3px solid #fff\';document.getElementById(\'eu-color\').dispatchEvent(new Event(\'input\'));" style="width:36px;height:36px;border-radius:8px;background:'+c+';cursor:pointer;border:3px solid '+(sel?'#fff':'transparent')+'" title="'+UNIVERSE_PALETTE_NAMES[i]+'"></div>';
+  });
+  html+='</div></div>';
   html+='<div class="mb-3"><label class="label">Ruoli (separati da virgola)</label><input class="input" id="eu-roles" value="'+rolesVal+'" placeholder="es. Base, Flyer, Entrambi"></div>';
   // Preview
   html+='<div class="mt-3 mb-2"><label class="label">Anteprima</label></div>';
@@ -6447,7 +6473,23 @@ function showEventDetail(evId){
   // Show onboarding info cards for event detail
   setTimeout(()=>{
     if(ev.days&&ev.days.length>1)obShowInfoCard('ic_event_detail_pricing','dynamic-event-detail');
-    if(!skipPricing)obShowInfoCard('ic_event_detail_tiers','dynamic-event-detail');
+    // Show tier ethics banner only if event actually has multiple price tiers (alto/basso)
+    if(!skipPricing){
+      const _hasMultiTiers=(()=>{
+        // Check event-level tiers
+        if(ev.tiers&&(ev.tiers.alto!=null||ev.tiers.basso!=null))return true;
+        // Check day-level tiers
+        if(ev.days)for(const d of ev.days){
+          if(d.tiers&&(d.tiers.alto!=null||d.tiers.basso!=null))return true;
+          // Check session-level tiers
+          if(d.sessions)for(const s of d.sessions){
+            if(s.tiers&&(s.tiers.alto!=null||s.tiers.basso!=null))return true;
+          }
+        }
+        return false;
+      })();
+      if(_hasMultiTiers)obShowInfoCard('ic_event_detail_tiers','dynamic-event-detail',true);
+    }
     if(ev.earlyBird&&(ev.earlyBird.alto||ev.earlyBird.medio||ev.earlyBird.basso))obShowInfoCard('ic_event_detail_earlybird','dynamic-event-detail');
     if(evConfirmStatus==='attesa')obShowInfoCard('ic_event_detail_waiting','dynamic-event-detail');
   },300);
