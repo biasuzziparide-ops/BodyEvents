@@ -214,6 +214,31 @@ textarea.input{resize:none;font-family:inherit}
 .map-popup-btn:hover{background:var(--brand)}
 .map-marker{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;color:#fff;border:2px solid rgba(255,255,255,.3);box-shadow:0 2px 8px rgba(0,0,0,.4);transform:translate(-50%,-50%)}
 .map-marker-outline{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;background:transparent !important;border:3px solid;box-shadow:0 2px 8px rgba(0,0,0,.4);transform:translate(-50%,-50%)}
+/* === ONBOARDING SYSTEM === */
+.ob-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.65);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;animation:obFadeIn .25s}
+@keyframes obFadeIn{from{opacity:0}to{opacity:1}}
+.ob-tour{background:var(--s100);border:1px solid var(--s400);border-radius:20px;max-width:420px;width:100%;padding:28px 24px 20px;box-shadow:0 16px 48px rgba(0,0,0,.5);position:relative;animation:obSlideUp .3s}
+@keyframes obSlideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+.ob-tour-icon{font-size:2.2rem;margin-bottom:12px;text-align:center}
+.ob-tour-title{font-size:1.1rem;font-weight:700;color:#fff;text-align:center;margin-bottom:6px}
+.ob-tour-text{font-size:.82rem;color:var(--txt2);line-height:1.6;text-align:center;margin-bottom:16px}
+.ob-tour-text b{color:#fff;font-weight:600}
+.ob-dots{display:flex;gap:6px;justify-content:center;margin-bottom:16px}
+.ob-dot{width:8px;height:8px;border-radius:50%;background:var(--s400);transition:all .2s}
+.ob-dot.active{background:var(--brand);width:20px;border-radius:4px}
+.ob-tour-btns{display:flex;gap:8px;justify-content:center}
+.ob-tour-btns button{padding:8px 20px;border-radius:10px;font-size:.8rem;font-weight:600;border:none;cursor:pointer;transition:all .15s}
+.ob-btn-skip{background:var(--s300);color:var(--txt3)}.ob-btn-skip:hover{background:var(--s400)}
+.ob-btn-next{background:var(--brand-d);color:#fff}.ob-btn-next:hover{background:var(--brand)}
+.ob-btn-prev{background:var(--s300);color:var(--txt2)}.ob-btn-prev:hover{background:var(--s400)}
+.ob-infocard{background:linear-gradient(135deg,var(--s200),var(--s100));border:1px solid var(--s400);border-radius:14px;padding:14px 16px;margin-bottom:16px;display:flex;gap:10px;align-items:flex-start;animation:obFadeIn .3s;position:relative}
+.ob-infocard-icon{font-size:1.3rem;flex-shrink:0;margin-top:1px}
+.ob-infocard-text{font-size:.78rem;color:var(--txt2);line-height:1.55;flex:1}
+.ob-infocard-text b{color:#fff;font-weight:600}
+.ob-infocard-close{position:absolute;top:8px;right:10px;background:none;border:none;color:var(--txt3);cursor:pointer;font-size:.85rem;padding:4px;line-height:1}
+.ob-infocard-close:hover{color:var(--txt)}
+.ob-help-btn{position:fixed;bottom:80px;right:16px;width:40px;height:40px;border-radius:50%;background:var(--s200);border:1px solid var(--s400);color:var(--txt2);font-size:1rem;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:100;box-shadow:0 4px 16px rgba(0,0,0,.3);transition:all .15s}
+.ob-help-btn:hover{background:var(--brand-d);color:#fff;border-color:var(--brand)}
 .view-toggle{display:inline-flex;border-radius:10px;overflow:hidden;border:1px solid var(--s400);background:var(--s200)}
 .view-toggle button{padding:7px 18px;font-size:.8rem;font-weight:600;border:none;cursor:pointer;transition:all .15s;background:transparent;color:var(--txt3)}
 .view-toggle button.active-toggle{background:var(--brand-d);color:#fff}
@@ -997,6 +1022,7 @@ textarea.input{resize:none;font-family:inherit}
   <main class="admin-content">
     <h1 class="page-title">Crea Nuovo Evento</h1>
     <p class="page-sub mb-6">Compila i dettagli e pubblica quando sei pronto</p>
+    <div id="admin-new-event-form"></div>
     <form id="ne-form" onsubmit="return false">
 
     <!-- Step 1: Info base -->
@@ -1238,11 +1264,10 @@ textarea.input{resize:none;font-family:inherit}
         <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--s300)">
           <h3 class="font-semibold text-white mb-3" style="font-size:.9rem">🔄 Ricorrenza</h3>
           <label class="flex items-center gap-2 text-sm mb-3" style="cursor:pointer"><input type="checkbox" id="ne-recurrence" onchange="document.getElementById('ne-rec-opts').classList.toggle('hidden')"> Evento ricorrente</label>
-          <div id="ne-rec-opts" class="hidden grid grid-2 gap-3">
-            <div><label class="label">Giorno della settimana</label>
+          <div id="ne-rec-opts" class="hidden">
+            <div style="max-width:260px"><label class="label">Giorno della settimana</label>
               <select class="input" id="ne-rec-day"><option value="lunedi">Lunedì</option><option value="martedi">Martedì</option><option value="mercoledi" selected>Mercoledì</option><option value="giovedi">Giovedì</option><option value="venerdi">Venerdì</option><option value="sabato">Sabato</option><option value="domenica">Domenica</option></select></div>
-            <div><label class="label">Per quante settimane</label>
-              <select class="input" id="ne-rec-weeks"><option value="4">4 settimane</option><option value="8">8 settimane</option><option value="12" selected>12 settimane</option><option value="24">24 settimane</option></select></div>
+            <p class="text-xs txt3 mt-2" style="line-height:1.5">L'evento si ripeterà <b style="color:var(--txt)">ogni settimana</b> nel giorno scelto, finché non lo metti in pausa o lo cancelli. Gli utenti vedranno le prossime 2 date disponibili.</p>
           </div>
         </div>
 
@@ -2026,6 +2051,174 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const fbAuth = firebase.auth();
 const fbDb = firebase.firestore();
+
+/* ==============================
+   ONBOARDING SYSTEM
+============================== */
+const OB_KEY='bodyevents_onboarding';
+function _obFlags(){try{return JSON.parse(localStorage.getItem(OB_KEY)||'{}');}catch(e){return {};}}
+function _obSet(k){const f=_obFlags();f[k]=true;localStorage.setItem(OB_KEY,JSON.stringify(f));}
+function obSeen(k){return !!_obFlags()[k];}
+function obReset(){localStorage.removeItem(OB_KEY);}
+
+// === TOUR DEFINITIONS ===
+const OB_TOURS={
+  // --- USER TOURS ---
+  tour_events:{
+    slides:[
+      {icon:'🔍',title:'Benvenuto nella Home Eventi!',text:'Qui trovi <b>tutti gli eventi</b> dei tuoi universi. Usa i filtri in alto per cercare per tipo, data, zona o insegnante. Puoi anche passare alla <b>vista Mappa 🗺️</b>.'},
+      {icon:'🎨',title:'Come leggere le schede',text:'Le schede con bordo <b>pieno (━━)</b> sono organizzate da professionisti (<b>🏷️ Organizzato</b>). Quelle con bordo <b>tratteggiato (╌╌╌)</b> sono proposte dalla community (<b>🤝 Community</b>). Il <b>colore del bordo</b> indica l\'universo (disciplina).'},
+      {icon:'🗺️',title:'La Mappa',text:'Nella vista mappa, i <b>cerchi pieni</b> = eventi organizzati, i <b>cerchi vuoti</b> = community. Ogni marker ha una lettera: <b>J</b>=Jam, <b>L</b>=Lezione, <b>W</b>=Workshop. Il colore corrisponde all\'universo.'}
+    ]
+  },
+  tour_profile:{
+    slides:[
+      {icon:'👤',title:'Il tuo Profilo',text:'Qui trovi le tue <b>impostazioni personali</b>: nome utente, email, metodo di autenticazione e consensi privacy/marketing.'},
+      {icon:'🌌',title:'Cosa sono gli Universi?',text:'Gli <b>universi</b> sono le discipline/categorie della piattaforma (es. AcroYoga, Danza, Yoga...). Ogni universo ha un <b>colore</b> e un <b>ruolo</b> specifico. Iscrivendoti a un universo, vedrai i suoi eventi nella home. Puoi gestire le tue iscrizioni qui sotto.'}
+    ]
+  },
+  tour_jams:{
+    slides:[
+      {icon:'🤝',title:'Community Jams',text:'Qui trovi le <b>Jam della community</b>: eventi informali proposti da altri utenti come te. Possono essere jam, pratiche libere o incontri social.'},
+      {icon:'➕',title:'Crea la tua Jam!',text:'Premi il pulsante <b>"+ Proponi"</b> per creare un incontro. Scegli universo, luogo, data e orario. Puoi impostare un <b>numero minimo</b> di partecipanti: l\'evento verrà confermato solo al raggiungimento.'}
+    ]
+  },
+  tour_dashboard:{
+    slides:[
+      {icon:'📊',title:'La tua Dashboard',text:'Qui trovi le tue <b>prenotazioni attive</b> e lo storico. Ogni scheda mostra data, orario, tipo di biglietto e stato del pagamento.'},
+      {icon:'⚠️',title:'Avvisi sulle prenotazioni',text:'Se un organizzatore modifica un evento, vedrai un <b>banner colorato</b> sulla scheda: <b>📝 arancione</b> = modificato, <b>⏰ giallo</b> = rimandato, <b>🚫 rosso</b> = annullato. Le differenze rispetto alla versione originale sono evidenziate.'}
+    ]
+  },
+  // --- ORGANIZER TOURS ---
+  tour_admin_intro:{
+    slides:[
+      {icon:'🛡️',title:'Pannello Organizzatore',text:'Benvenuto nel tuo pannello! Da qui gestisci <b>eventi, prenotazioni, check-in</b> e community. Le card in alto mostrano le statistiche chiave.'},
+      {icon:'📱',title:'Navigazione',text:'Usa il <b>menu in basso</b> per navigare tra le sezioni. Puoi tornare alla <b>vista utente</b> in qualsiasi momento dal toggle in alto. Le sezioni principali sono: Eventi, Check-in QR, Community e Universi.'}
+    ]
+  },
+  tour_admin_events:{
+    slides:[
+      {icon:'📅',title:'I tuoi Eventi',text:'Qui trovi tutti i tuoi eventi divisi in: <b>🟢 Pubblicati</b> (visibili a tutti), <b>📝 Bozze</b> (solo tu le vedi), <b>✅ Conclusi</b> (archiviati). Usa i filtri in alto.'},
+      {icon:'👁️',title:'Azioni rapide',text:'Su ogni scheda trovi: <b>👁️ Anteprima</b> = vedi l\'evento come lo vedono gli utenti. <b>⚠️ Modifica o Cancella</b> = comunica modifiche, rinvii o cancellazioni agli iscritti. <b>📊 Dettaglio</b> = apri le metriche e la gestione partecipanti.'},
+      {icon:'🔄',title:'Eventi Ricorrenti',text:'Gli eventi con badge <b>🔄</b> sono ricorrenti. Appaiono nella ricerca utenti per le <b>prossime 2 date</b>. Puoi modificare o saltare una singola data senza toccare le altre.'}
+    ]
+  },
+  tour_admin_event_detail:{
+    slides:[
+      {icon:'📊',title:'Scheda di Controllo Evento',text:'Qui trovi <b>tutte le metriche</b>: prenotati confermati/in attesa/cancellati, entrate totali, caparre e rimborsi. Puoi filtrare per <b>📊 Generale</b> o <b>📋 Per sessione</b>.'},
+      {icon:'📋',title:'Tabella Partecipanti',text:'La tabella è <b>ordinabile</b> cliccando sulle intestazioni. Per ogni partecipante puoi: <b>✅ confermare pagamento</b>, <b>💰 registrare caparra</b>, vedere le <b>risposte ai sondaggi</b>.'},
+      {icon:'📥',title:'Esportazione e Stampa',text:'Premi <b>📥 Scarica Excel</b> per esportare l\'elenco completo dei partecipanti con tutti i dettagli (ruolo, sessioni, pagamenti, risposte sondaggio). Funziona sia per il totale evento che per singola sessione.'}
+    ]
+  },
+  tour_new_event:{
+    slides:[
+      {icon:'✨',title:'Crea il tuo Evento',text:'La creazione ha diverse sezioni. I campi con <b>*</b> sono obbligatori. Puoi <b>salvare come bozza</b> in qualsiasi momento e tornare a completare dopo.'},
+      {icon:'📅',title:'Giornate e Sessioni',text:'Ogni evento può avere <b>più giornate</b>. Per ogni giornata puoi definire <b>sessioni separate</b> con orari, insegnanti e prezzi diversi. Le sessioni sono i blocchi di attività all\'interno di una giornata.'},
+      {icon:'💰',title:'Sistema Prezzi',text:'Il prezzo funziona su <b>3 livelli</b>: ✦ Alto (Sostenitore), ● Medio (Standard), ○ Basso (Ridotto). L\'utente sceglie quanto supportarti. Puoi attivare sconti <b>🐦 Early Bird</b> e <b>🎁 Fedeltà</b>.'},
+      {icon:'⚙️',title:'Opzioni Avanzate',text:'Nella sezione ⚙️ trovi: <b>🔄 Ricorrenza</b> (evento settimanale che si ripete finché non lo blocchi), <b>👥 Numero minimo</b> partecipanti, <b>🔒 Caparra</b>, <b>📝 Sondaggio</b> personalizzato per i partecipanti e <b>🗓️ Deadline</b> prenotazioni.'}
+    ]
+  },
+  tour_admin_universes:{
+    slides:[
+      {icon:'🌌',title:'Gestione Universi',text:'Gli universi sono le <b>discipline/categorie</b> della piattaforma. Ogni universo ha un <b>colore</b>, un <b>emoji</b> e dei <b>ruoli</b> personalizzabili (es. Base, Flyer per AcroYoga). Gli eventi vengono associati a uno o più universi.'}
+    ]
+  }
+};
+
+// === INFO CARD DEFINITIONS ===
+const OB_INFOCARDS={
+  ic_event_detail_pricing:{icon:'💡',text:'Questo evento ha <b>più giornate</b>. Puoi prenotare l\'<b>intero pacchetto</b> oppure le <b>singole giornate</b>, ognuna con le proprie sessioni e prezzi.'},
+  ic_event_detail_tiers:{icon:'💡',text:'I 3 livelli prezzo: <b>✦ Alto</b> (Sostenitore), <b>● Medio</b> (Standard), <b>○ Basso</b> (Ridotto). L\'esperienza è la stessa — scegli tu quanto supportare l\'organizzatore.'},
+  ic_event_detail_earlybird:{icon:'🐦',text:'<b>Prezzo Early Bird!</b> Sconto valido fino alla data indicata o fino a un certo numero di iscritti. Approfittane!'},
+  ic_event_detail_waiting:{icon:'⏳',text:'Questo evento richiede un <b>numero minimo di partecipanti</b>. Se non viene raggiunto entro la deadline, potrebbe essere annullato.'},
+  ic_jam_create:{icon:'💡',text:'Stai creando un <b>evento comunitario</b>. Scegli universo, luogo, data e orario. Puoi impostare un numero minimo: l\'evento sarà confermato solo al raggiungimento.'},
+  ic_admin_community:{icon:'💡',text:'Qui puoi <b>moderare le jam</b> proposte dalla community. Come organizzatore puoi visualizzare, modificare o annullare gli eventi comunitari legati ai tuoi universi.'},
+  ic_admin_new_event:{icon:'💡',text:'Ogni evento può avere più <b>giornate</b>, e ogni giornata più <b>sessioni</b>. Le sessioni hanno orari e prezzi propri. Apri ⚙️ <b>Opzioni Avanzate</b> per ricorrenza, caparra, sondaggi e altro.'}
+};
+
+// === TOUR RENDERING ===
+let _obCurrentTour=null;
+let _obCurrentSlide=0;
+
+function obShowTour(tourKey,force){
+  if(!force&&obSeen(tourKey))return;
+  const tour=OB_TOURS[tourKey];if(!tour)return;
+  _obCurrentTour=tourKey;_obCurrentSlide=0;
+  _obRenderTourSlide();
+}
+
+function _obRenderTourSlide(){
+  const tour=OB_TOURS[_obCurrentTour];if(!tour)return;
+  const slide=tour.slides[_obCurrentSlide];if(!slide)return;
+  const total=tour.slides.length;
+  const isFirst=_obCurrentSlide===0;
+  const isLast=_obCurrentSlide===total-1;
+  let existing=document.getElementById('ob-tour-overlay');
+  if(existing)existing.remove();
+  const el=document.createElement('div');
+  el.id='ob-tour-overlay';el.className='ob-overlay';
+  el.innerHTML=`<div class="ob-tour">
+    <div class="ob-tour-icon">${slide.icon}</div>
+    <div class="ob-tour-title">${slide.title}</div>
+    <div class="ob-tour-text">${slide.text}</div>
+    ${total>1?'<div class="ob-dots">'+tour.slides.map((_,i)=>'<div class="ob-dot'+(i===_obCurrentSlide?' active':'')+'"></div>').join('')+'</div>':''}
+    <div class="ob-tour-btns">
+      ${!isFirst?'<button class="ob-btn-prev" onclick="_obPrev()">← Indietro</button>':''}
+      ${isLast?'<button class="ob-btn-next" onclick="_obCloseTour()">Capito! ✓</button>':'<button class="ob-btn-next" onclick="_obNext()">Avanti →</button>'}
+      ${!isLast?'<button class="ob-btn-skip" onclick="_obCloseTour()">Salta</button>':''}
+    </div>
+  </div>`;
+  el.onclick=(e)=>{if(e.target===el)_obCloseTour();};
+  document.body.appendChild(el);
+}
+function _obNext(){_obCurrentSlide++;_obRenderTourSlide();}
+function _obPrev(){_obCurrentSlide--;_obRenderTourSlide();}
+function _obCloseTour(){
+  _obSet(_obCurrentTour);
+  const el=document.getElementById('ob-tour-overlay');if(el)el.remove();
+  _obCurrentTour=null;_obCurrentSlide=0;
+}
+
+// === INFO CARD RENDERING ===
+function obShowInfoCard(cardKey,containerId){
+  if(obSeen(cardKey))return;
+  const card=OB_INFOCARDS[cardKey];if(!card)return;
+  const container=document.getElementById(containerId);if(!container)return;
+  // Don't duplicate
+  if(container.querySelector('[data-ob-card="'+cardKey+'"]'))return;
+  const el=document.createElement('div');
+  el.className='ob-infocard';el.setAttribute('data-ob-card',cardKey);
+  el.innerHTML=`<div class="ob-infocard-icon">${card.icon}</div>
+    <div class="ob-infocard-text">${card.text}</div>
+    <button class="ob-infocard-close" onclick="obDismissCard('${cardKey}',this)" aria-label="Chiudi">✕</button>`;
+  container.prepend(el);
+}
+function obDismissCard(key,btn){
+  _obSet(key);
+  const card=btn.closest('.ob-infocard');
+  if(card){card.style.opacity='0';card.style.transform='translateY(-8px)';card.style.transition='all .2s';setTimeout(()=>card.remove(),200);}
+}
+
+// === HELP BUTTON (re-show tours) ===
+function obShowHelpBtn(){
+  if(document.getElementById('ob-help-btn'))return;
+  const btn=document.createElement('button');
+  btn.id='ob-help-btn';btn.className='ob-help-btn';btn.textContent='?';
+  btn.title='Mostra guida della pagina';
+  btn.onclick=()=>_obShowTourForCurrentView(true);
+  document.body.appendChild(btn);
+}
+function _obShowTourForCurrentView(force){
+  const v=currentView;
+  if(v==='events')obShowTour('tour_events',force);
+  else if(v==='profile')obShowTour('tour_profile',force);
+  else if(v==='jams')obShowTour('tour_jams',force);
+  else if(v==='dashboard')obShowTour('tour_dashboard',force);
+  else if(v==='admin')obShowTour('tour_admin_intro',force);
+  else if(v==='admin-events')obShowTour('tour_admin_events',force);
+  else if(v==='admin-new-event')obShowTour('tour_new_event',force);
+  else if(v==='admin-universes')obShowTour('tour_admin_universes',force);
+}
 
 /* ==============================
    DATA STORE
@@ -2842,25 +3035,27 @@ function go(view){
   }
   if(view==='bookings') go('dashboard');
   // Auto-render dynamic views
-  if(view==='events') renderUserEvents();
-  if(view==='jams') renderUserJams();
-  if(view==='dashboard') renderUserDashboard();
-  if(view==='profile'){populateProfileFields();renderProfileUniverseSettings();}
-  if(view==='admin-events') renderAdminEvents();
-  if(view==='admin') renderAdminDashboard();
+  if(view==='events'){renderUserEvents();setTimeout(()=>obShowTour('tour_events'),400);}
+  if(view==='jams'){renderUserJams();setTimeout(()=>obShowTour('tour_jams'),400);}
+  if(view==='dashboard'){renderUserDashboard();setTimeout(()=>obShowTour('tour_dashboard'),400);}
+  if(view==='profile'){populateProfileFields();renderProfileUniverseSettings();setTimeout(()=>obShowTour('tour_profile'),400);}
+  if(view==='admin-events'){renderAdminEvents();setTimeout(()=>obShowTour('tour_admin_events'),400);}
+  if(view==='admin'){renderAdminDashboard();setTimeout(()=>obShowTour('tour_admin_intro'),400);}
   if(view==='admin-bookings') renderAdminBookings();
   if(view==='admin-community-events') renderCommunityEvents();
-  if(view==='admin-community-jams') renderAdminCommunityJams();
+  if(view==='admin-community-jams'){renderAdminCommunityJams();setTimeout(()=>obShowInfoCard('ic_admin_community','view-admin-community-jams'),300);}
   if(view==='admin-users') renderUsersTab();
   if(view==='admin-checkin') populateQRSelect();
   if(view==='admin-attendance') populateAttendanceSelect();
   if(view==='checkin-booked') renderCheckinA();
   if(view==='checkin-walkin') renderCheckinB();
   if(view==='checkin-new') renderCheckinC();
-  if(view==='admin-new-event'&&!editingEventId){restoreFormTitle();initEventDates();populateEventUniverseDropdown();}
+  if(view==='admin-new-event'&&!editingEventId){restoreFormTitle();initEventDates();populateEventUniverseDropdown();setTimeout(()=>{obShowTour('tour_new_event');setTimeout(()=>obShowInfoCard('ic_admin_new_event','admin-new-event-form'),300);},400);}
   if(view==='admin-new-event'&&editingEventId){populateEventUniverseDropdown();}
-  if(view==='admin-universes'){renderAdminUniversesView();}
+  if(view==='admin-universes'){renderAdminUniversesView();setTimeout(()=>obShowTour('tour_admin_universes'),400);}
   if(view==='register-org'){populateRegoUniverses();}
+  // Show help button on all logged-in views
+  if(!['login','register','register-org','privacy-policy'].includes(view))obShowHelpBtn();
 }
 
 function populateProfileFields(){
@@ -4424,7 +4619,9 @@ function getFilteredEvents(){
   const dateTo=(document.getElementById('filter-date-to')||{}).value||'';
   const priceMaxVal=(document.getElementById('filter-price-max')||{}).value;
   const priceMax=priceMaxVal?parseFloat(priceMaxVal):null;
-  let evts=store.events.filter(e=>e.status==='pubblicato'&&!(e.alert&&e.alert.type==='cancellato'));
+  let baseEvts=store.events.filter(e=>e.status==='pubblicato'&&!(e.alert&&e.alert.type==='cancellato'));
+  // Expand recurring events into virtual instances (next 2 occurrences)
+  let evts=expandRecurringForList(baseEvts);
   // Universe filter: if no explicit filter, show only subscribed universes
   if(univFilter){evts=evts.filter(e=>(e.universeIds||[e.universeId]).includes(univFilter));}
   else{const subIds=getUserSubscribedUniverseIds();if(subIds.length)evts=evts.filter(e=>{const eIds=e.universeIds||[e.universeId].filter(Boolean);return eIds.some(id=>subIds.includes(id))||!eIds.length;});}
@@ -4461,6 +4658,7 @@ function openCreateJamModal(){
   overlay.innerHTML=`
     <div class="dialog" style="max-width:500px">
       <h2 class="text-xl font-bold text-white mb-4">🤝 Proponi un Community Event</h2>
+      <div id="jam-create-infocard-wrap"></div>
       <div class="mb-4">
         <label class="label">Tipo di evento</label>
         <div class="flex gap-2 flex-wrap" id="jam-type-btns">
@@ -4509,6 +4707,7 @@ function openCreateJamModal(){
   `;
   overlay.onclick=(e)=>{if(e.target===overlay)closeJamModal();};
   document.body.appendChild(overlay);
+  setTimeout(()=>obShowInfoCard('ic_jam_create','jam-create-infocard-wrap'),200);
   document.getElementById('jam-date').value=getTodayDate();
   document.getElementById('jam-start').value=getNowTime();
   updateJamMinSubsDeadline();
@@ -5530,6 +5729,13 @@ function showEventDetail(evId){
     })()}
   </div>`;
   go('event-detail-dynamic');
+  // Show onboarding info cards for event detail
+  setTimeout(()=>{
+    if(ev.days&&ev.days.length>1)obShowInfoCard('ic_event_detail_pricing','dynamic-event-detail');
+    if(!skipPricing)obShowInfoCard('ic_event_detail_tiers','dynamic-event-detail');
+    if(ev.earlyBird&&(ev.earlyBird.alto||ev.earlyBird.medio||ev.earlyBird.basso))obShowInfoCard('ic_event_detail_earlybird','dynamic-event-detail');
+    if(evConfirmStatus==='attesa')obShowInfoCard('ic_event_detail_waiting','dynamic-event-detail');
+  },300);
 }
 
 /* ==============================
@@ -5570,10 +5776,12 @@ function renderAdminEvents(){
       <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteEvent('${ev.id}')">🗑️ Elimina</button>`
     :ev.status==='pubblicato'?(()=>{
       const hasBookings=store.bookings.some(b=>b.eventId===ev.id&&b.status!=='cancellata');
+      const isPausedRec=ev.recurrence&&ev.recurrence.active===false;
+      const resumeBtn=isPausedRec?`<button class="btn btn-sm" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="event.stopPropagation();resumeRecurring('${ev.id}')">▶️ Riprendi</button>`:'';
       if(hasBookings){
-        return `${eyeBtn}<button class="btn btn-sm" style="background:rgba(249,115,22,.12);color:var(--orange);border:1px solid rgba(249,115,22,.3)" onclick="event.stopPropagation();openAlertModal('${ev.id}')">⚠️ Modifica o Cancella</button>`;
+        return `${eyeBtn}${resumeBtn}<button class="btn btn-sm" style="background:rgba(249,115,22,.12);color:var(--orange);border:1px solid rgba(249,115,22,.3)" onclick="event.stopPropagation();openAlertModal('${ev.id}')">⚠️ Modifica o Cancella</button>`;
       } else {
-        return `${eyeBtn}
+        return `${eyeBtn}${resumeBtn}
         <button class="btn btn-sm" style="background:rgba(234,179,8,.15);color:var(--yellow);border:1px solid rgba(234,179,8,.3)" onclick="event.stopPropagation();revertToDraft('${ev.id}')">📝 Torna in bozza</button>
         <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteEvent('${ev.id}')">🗑️ Elimina</button>`;
       }
@@ -5604,6 +5812,14 @@ function renderAdminEvents(){
 let adminStatusFilter='';
 function filterAdminEvts(s){adminStatusFilter=s;document.getElementById('admin-status-filter').value=s;renderAdminEvents();}
 
+function resumeRecurring(id){
+  const ev=store.events.find(e=>e.id===id);if(!ev||!ev.recurrence)return;
+  showConfirm('Riprendi evento','Riprendere questo evento ricorrente? Tornerà visibile agli utenti.',()=>{
+    ev.recurrence.active=true;ev.recurrence.pausedUntil=null;
+    fsSet('events',ev.id,ev).catch(console.error);
+    renderAdminEvents();showToast('Evento ripreso! Ora è di nuovo visibile.');
+  });
+}
 function publishEvent(id){showConfirm('Pubblica evento','Pubblicare ora? Sarà visibile a tutti gli utenti.',()=>{
   const ev=store.events.find(e=>e.id===id);if(ev){ev.status='pubblicato';fsUpdate('events',ev.id,{status:'pubblicato'}).catch(console.error);renderAdminEvents();showToast('Evento pubblicato!');}
 })}
@@ -5617,17 +5833,92 @@ function autoConcludeEvents(){
     if(!ev.days||!ev.days.length)return;
     const lastDay=ev.days[ev.days.length-1];
     if(!lastDay||!lastDay.date)return;
-    // For recurring events, check last recurrence date
+    // Recurring events never auto-conclude (they run until paused/cancelled)
+    if(ev.recurrence&&ev.recurrence.active!==false)return;
+    // Old-style recurring with weeks — support legacy
     if(ev.recurrence&&ev.recurrence.weeks){
       const startDate=new Date(lastDay.date+'T23:59:59');
       const endDate=new Date(startDate.getTime()+(ev.recurrence.weeks*7*24*60*60*1000));
-      if(endDate.toISOString().split('T')[0]<today){
-        ev.status='concluso';
-      }
-    } else if(lastDay.date<today){
-      ev.status='concluso';
+      if(endDate.toISOString().split('T')[0]<today)ev.status='concluso';
+      return;
     }
+    if(lastDay.date<today)ev.status='concluso';
   });
+}
+
+// === RECURRING EVENT VIRTUAL INSTANCES ===
+const DAY_MAP_NUM={lunedi:1,martedi:2,mercoledi:3,giovedi:4,venerdi:5,sabato:6,domenica:0};
+function getNextRecurringDates(ev,count){
+  if(!ev.recurrence||!ev.recurrence.day)return [];
+  // If paused indefinitely
+  if(ev.recurrence.active===false&&!ev.recurrence.pausedUntil)return [];
+  const targetDay=DAY_MAP_NUM[ev.recurrence.day];
+  if(targetDay===undefined)return [];
+  const today=new Date();today.setHours(0,0,0,0);
+  // If paused until a date, skip dates before that
+  const pausedUntil=ev.recurrence.pausedUntil?new Date(ev.recurrence.pausedUntil+'T00:00:00'):null;
+  const startFrom=pausedUntil&&pausedUntil>today?pausedUntil:today;
+  const dates=[];
+  const d=new Date(startFrom);
+  // Find next target day
+  while(d.getDay()!==targetDay)d.setDate(d.getDate()+1);
+  // If today IS the target day and the event hasn't ended yet today, include today
+  if(d.getTime()===today.getTime()){
+    // Check if event time hasn't passed
+    const lastSession=ev.days&&ev.days[0]?ev.days[0].endTime:'23:59';
+    const now=new Date();
+    const [h,m]=(lastSession||'23:59').split(':').map(Number);
+    if(now.getHours()<h||(now.getHours()===h&&now.getMinutes()<=m)){
+      dates.push(d.toISOString().split('T')[0]);
+    }
+    d.setDate(d.getDate()+7);
+  }
+  while(dates.length<count){
+    const dateStr=d.toISOString().split('T')[0];
+    // Check exceptions
+    const exc=(ev.recurrence.exceptions||{})[dateStr];
+    if(exc&&exc.type==='skip'){d.setDate(d.getDate()+7);continue;}
+    dates.push(dateStr);
+    d.setDate(d.getDate()+7);
+    if(d-today>90*24*60*60*1000)break;// Safety limit 90 days
+  }
+  return dates;
+}
+
+function expandRecurringForList(events){
+  const today=new Date().toISOString().split('T')[0];
+  const result=[];
+  events.forEach(ev=>{
+    if(!ev.recurrence||!ev.recurrence.day){
+      // Non-recurring: keep if not past
+      if(ev.days&&ev.days.length&&ev.days[ev.days.length-1].date>=today)result.push(ev);
+      else if(!ev.days||!ev.days.length)result.push(ev);
+      return;
+    }
+    // Recurring: generate next 2 virtual instances
+    const dates=getNextRecurringDates(ev,2);
+    dates.forEach(dateStr=>{
+      const exc=(ev.recurrence.exceptions||{})[dateStr];
+      const virtualEv={...ev,_recDate:dateStr,_isRecurringInstance:true};
+      // Apply per-date exceptions (modifications)
+      if(exc&&exc.type==='modificato'){
+        if(exc.changes){
+          if(exc.changes.location)virtualEv.location=exc.changes.location;
+          if(exc.changes.locationUrl)virtualEv.locationUrl=exc.changes.locationUrl;
+          if(exc.changes.startTime&&virtualEv.days&&virtualEv.days[0]){
+            virtualEv.days=virtualEv.days.map((d,i)=>i===0?{...d,startTime:exc.changes.startTime,endTime:exc.changes.endTime||d.endTime,date:dateStr,sessions:(d.sessions||[]).map(s=>({...s}))}:{...d});
+          }
+          if(exc.changes.alert)virtualEv._recAlert=exc.changes.alert;
+        }
+      }
+      // Update day dates to the virtual date
+      if(virtualEv.days&&virtualEv.days.length){
+        virtualEv.days=virtualEv.days.map((d,i)=>({...d,date:i===0?dateStr:dateStr}));
+      }
+      result.push(virtualEv);
+    });
+  });
+  return result;
 }
 function deleteEvent(id){
   const ev=store.events.find(e=>e.id===id);if(!ev)return;
@@ -5652,16 +5943,34 @@ function hardDeleteEvent(id){
 
 /* === MODIFICA O CANCELLA EVENTO (alert modal v2) === */
 let alertModalEvId='';
+let alertModalRecDate=''; // For recurring: which specific date
 function openAlertModal(evId){
   const ev=store.events.find(e=>e.id===evId);if(!ev)return;
   alertModalEvId=evId;
+  alertModalRecDate='';
+  const isRecurring=!!(ev.recurrence&&ev.recurrence.day);
+  // For recurring events, show date picker first
+  const recDatePicker=isRecurring?`<div class="card mb-4" style="background:rgba(234,179,8,.06);border-color:var(--yellow);padding:14px">
+    <p class="text-sm font-semibold mb-2" style="color:var(--yellow)">🔄 Evento ricorrente — a cosa si riferisce la modifica?</p>
+    <div class="flex gap-2 flex-wrap mb-2">
+      ${getNextRecurringDates(ev,4).map(d=>'<button class="btn btn-sm alert-rec-date-btn" data-date="'+d+'" onclick="selectAlertRecDate(this)" style="border:1px solid var(--s400)">📅 '+fmtDate(d)+'</button>').join('')}
+      <button class="btn btn-sm alert-rec-date-btn" data-date="all" onclick="selectAlertRecDate(this)" style="border:1px solid var(--s400)">🔄 Tutte le date</button>
+      <button class="btn btn-sm alert-rec-date-btn" data-date="pause" onclick="selectAlertRecDate(this)" style="border:1px solid var(--yellow)">⏸️ Metti in pausa</button>
+    </div>
+    <div id="alert-rec-pause-opts" class="hidden mt-2">
+      <label class="label" style="font-size:.75rem">Riprendi il:</label>
+      <input type="date" class="input" id="alert-rec-pause-until" style="max-width:200px">
+      <p class="text-xs txt3 mt-1">Lascia vuoto per pausa a tempo indeterminato</p>
+    </div>
+  </div>`:'';
   const overlay=document.createElement('div');
   overlay.className='overlay';
   overlay.id='alert-modal-overlay';
   overlay.innerHTML=`<div class="dialog" style="max-width:560px;width:95%">
     <h2 class="text-lg font-bold text-white mb-2">⚠️ Modifica o Cancella evento</h2>
     <p class="text-sm txt3 mb-4">Scegli cosa vuoi fare. Gli utenti iscritti riceveranno la comunicazione.</p>
-    <div class="flex gap-3 mb-4" id="alert-action-btns">
+    ${recDatePicker}
+    <div class="flex gap-3 mb-4" id="alert-action-btns" ${isRecurring?'style="display:none"':''}>
       <button class="btn btn-sm flex-1 alert-action-btn" data-action="modificato" onclick="selectAlertAction(this)" style="padding:14px 10px;border:2px solid var(--s400);border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:6px;background:transparent">
         <span style="font-size:1.5rem">✏️</span><span class="text-sm font-semibold" style="color:white">Modifica</span><span class="text-xs" style="color:var(--txt3)">Cambia dettagli</span>
       </button>
@@ -5670,6 +5979,9 @@ function openAlertModal(evId){
       </button>
       <button class="btn btn-sm flex-1 alert-action-btn" data-action="rimandato" onclick="selectAlertAction(this)" style="padding:14px 10px;border:2px solid var(--s400);border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:6px;background:transparent">
         <span style="font-size:1.5rem">⏰</span><span class="text-sm font-semibold" style="color:white">Rimanda</span><span class="text-xs" style="color:var(--txt3)">Posticipa date</span>
+      </button>
+      <button class="btn btn-sm flex-1 alert-action-btn" data-action="skip" onclick="selectAlertAction(this)" style="padding:14px 10px;border:2px solid var(--s400);border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:6px;background:transparent${isRecurring?'':';display:none'}">
+        <span style="font-size:1.5rem">⏭️</span><span class="text-sm font-semibold" style="color:white">Salta</span><span class="text-xs" style="color:var(--txt3)">Salta questa data</span>
       </button>
     </div>
     <div id="alert-action-form" style="display:none"></div>
@@ -5680,16 +5992,57 @@ function openAlertModal(evId){
   overlay.onclick=(e)=>{if(e.target===overlay)closeAlertModal();};
   document.body.appendChild(overlay);
 }
+function selectAlertRecDate(btn){
+  document.querySelectorAll('.alert-rec-date-btn').forEach(b=>{b.style.borderColor='var(--s400)';b.style.background='transparent';});
+  btn.style.borderColor='var(--yellow)';btn.style.background='rgba(234,179,8,.08)';
+  const date=btn.dataset.date;
+  alertModalRecDate=date;
+  const pauseOpts=document.getElementById('alert-rec-pause-opts');
+  if(pauseOpts)pauseOpts.classList.toggle('hidden',date!=='pause');
+  if(date==='pause'){
+    // Hide action buttons — pause is a direct action
+    document.getElementById('alert-action-btns').style.display='none';
+    const formArea=document.getElementById('alert-action-form');
+    if(formArea){
+      formArea.style.display='';
+      formArea.innerHTML=`<button class="btn btn-sm mt-2" style="background:var(--yellow);color:#000" onclick="executeRecPause()">⏸️ Conferma pausa</button>`;
+    }
+  } else {
+    // Show action buttons
+    document.getElementById('alert-action-btns').style.display='';
+    const skipBtn=document.querySelector('.alert-action-btn[data-action="skip"]');
+    if(skipBtn)skipBtn.style.display=date!=='all'?'':'none';
+    document.getElementById('alert-action-form').style.display='none';
+  }
+}
+function executeRecPause(){
+  const ev=store.events.find(e=>e.id===alertModalEvId);if(!ev||!ev.recurrence)return;
+  const pauseUntil=document.getElementById('alert-rec-pause-until')?.value||null;
+  ev.recurrence.active=false;
+  ev.recurrence.pausedUntil=pauseUntil;
+  fsSet('events',ev.id,ev).catch(console.error);
+  closeAlertModal();renderAdminEvents();
+  showToast(pauseUntil?'Evento in pausa fino al '+fmtDateShort(pauseUntil):'Evento in pausa a tempo indeterminato');
+}
 let selectedAlertAction='';
 function selectAlertAction(btn){
   document.querySelectorAll('.alert-action-btn').forEach(b=>{b.style.borderColor='var(--s400)';b.style.background='transparent';});
   const action=btn.dataset.action;
   selectedAlertAction=action;
-  const colors={modificato:['var(--orange)','rgba(249,115,22,.08)'],cancellato:['var(--red)','rgba(239,68,68,.06)'],rimandato:['var(--yellow)','rgba(234,179,8,.06)']};
+  const colors={modificato:['var(--orange)','rgba(249,115,22,.08)'],cancellato:['var(--red)','rgba(239,68,68,.06)'],rimandato:['var(--yellow)','rgba(234,179,8,.06)'],skip:['var(--blue)','rgba(59,130,246,.06)']};
   const c=colors[action]||['var(--s400)',''];
   btn.style.borderColor=c[0];btn.style.background=c[1];
   const formArea=document.getElementById('alert-action-form');if(!formArea)return;
   formArea.style.display='';
+  if(action==='skip'){
+    // Skip this date for recurring event
+    const dateLabel=alertModalRecDate?fmtDate(alertModalRecDate):'questa data';
+    formArea.innerHTML=`<div class="card" style="background:rgba(59,130,246,.06);border-color:var(--blue);padding:14px">
+      <p class="text-sm" style="color:var(--blue)">⏭️ La data <b>${dateLabel}</b> verrà saltata. L'evento riprenderà normalmente dalla settimana successiva.</p>
+      <button class="btn btn-sm mt-3" style="background:var(--blue);color:#fff" onclick="executeAlertAction()">⏭️ Conferma: salta ${dateLabel}</button>
+    </div>`;
+    return;
+  }
   if(action==='modificato'){
     // Modifica: go directly to edit form
     formArea.innerHTML=`<div class="card" style="background:rgba(249,115,22,.06);border-color:var(--orange);padding:14px">
@@ -5741,9 +6094,35 @@ function executeAlertAction(){
   const ev=store.events.find(e=>e.id===alertModalEvId);if(!ev)return;
   const msg=(document.getElementById('alert-message')?.value||'').trim();
   const action=selectedAlertAction;
+  const isRecurring=!!(ev.recurrence&&ev.recurrence.day);
+  const recDate=alertModalRecDate;
+
+  // Handle "skip" for recurring events (per-date)
+  if(action==='skip'&&isRecurring&&recDate&&recDate!=='all'&&recDate!=='pause'){
+    if(!ev.recurrence.exceptions)ev.recurrence.exceptions={};
+    ev.recurrence.exceptions[recDate]={type:'skip',date:new Date().toISOString().split('T')[0]};
+    fsSet('events',ev.id,ev).catch(console.error);
+    closeAlertModal();renderAdminEvents();
+    showToast('Data '+fmtDate(recDate)+' saltata');
+    return;
+  }
+
+  // For recurring per-date modification (not "all")
+  if(isRecurring&&recDate&&recDate!=='all'&&recDate!=='pause'&&(action==='cancellato'||action==='rimandato')){
+    if(!ev.recurrence.exceptions)ev.recurrence.exceptions={};
+    ev.recurrence.exceptions[recDate]={type:action==='cancellato'?'skip':'modificato',message:msg,date:new Date().toISOString().split('T')[0],changes:action==='rimandato'?{alert:{type:'rimandato',message:msg}}:null};
+    if(action==='cancellato')ev.recurrence.exceptions[recDate]={type:'skip',message:msg,date:new Date().toISOString().split('T')[0]};
+    fsSet('events',ev.id,ev).catch(console.error);
+    closeAlertModal();renderAdminEvents();
+    showToast('Modifica applicata al '+fmtDate(recDate));
+    return;
+  }
+
+  // Normal (non-recurring or "all" dates) execution
   ev.alert={type:action,message:msg,date:new Date().toISOString().split('T')[0]};
   if(action==='cancellato'){
     ev.status='cancellato';
+    if(isRecurring)ev.recurrence.active=false;
   }
   fsSet('events',ev.id,ev).catch(console.error);
   closeAlertModal();
@@ -6176,7 +6555,6 @@ function getRecurrenceBadge(ev){
   if(!ev.recurrence)return '';
   const dayMap={lunedi:'lunedì',martedi:'martedì',mercoledi:'mercoledì',giovedi:'giovedì',venerdi:'venerdì',sabato:'sabato',domenica:'domenica'};
   const dayLabel=dayMap[ev.recurrence.day]||ev.recurrence.day;
-  // Get time range from first day
   let timeStr='';
   if(ev.days&&ev.days.length>0){
     const d=ev.days[0];
@@ -6184,7 +6562,12 @@ function getRecurrenceBadge(ev){
     const end=d.endTime||(d.sessions&&d.sessions.length?d.sessions.reduce((m,s)=>s.endTime>m?s.endTime:m,'00:00'):'');
     if(start&&end)timeStr=` h${start} - ${end}`;
   }
-  return `<span class="badge badge-yellow">🔄 Tutti i ${dayLabel} alle${timeStr}</span>`;
+  const isPaused=ev.recurrence.active===false;
+  const pauseLabel=isPaused?(ev.recurrence.pausedUntil?' (in pausa fino al '+fmtDateShort(ev.recurrence.pausedUntil)+')':' (in pausa)'):'';
+  if(isPaused)return `<span class="badge" style="background:var(--red-bg);color:var(--red)">⏸️ ${dayLabel}${timeStr}${pauseLabel}</span>`;
+  // For virtual instances, show the specific date
+  if(ev._recDate)return `<span class="badge badge-yellow">🔄 ${fmtDate(ev._recDate)}${timeStr}</span>`;
+  return `<span class="badge badge-yellow">🔄 Ogni ${dayLabel}${timeStr}</span>`;
 }
 function calcDayTimes(day){
   if(!day.sessions||day.sessions.length===0)return{start:'--:--',end:'--:--'};
@@ -6717,7 +7100,6 @@ function collectFormData(){
   });
   const recChk=document.getElementById('ne-recurrence')?.checked;
   const recDay=document.getElementById('ne-rec-day')?.value||'';
-  const recWeeks=parseInt(document.getElementById('ne-rec-weeks')?.value)||4;
   // Fidelizzazione evento
   const fta=parseFloat(document.getElementById('ne-ftier-alto')?.value)||0;
   const ftm=parseFloat(document.getElementById('ne-ftier-medio')?.value)||0;
@@ -6774,7 +7156,7 @@ function collectFormData(){
     }:null,
     surveys:collectSurveysFromForm(),
     bookingDeadline:document.getElementById('ne-booking-deadline')?.value||null,
-    status:'bozza',recurrence:recChk?{day:recDay,weeks:recWeeks}:null,createdAt:new Date().toISOString().split('T')[0],
+    status:'bozza',recurrence:recChk?{day:recDay,active:true,exceptions:{},pausedUntil:null}:null,createdAt:new Date().toISOString().split('T')[0],
     allowDayPurchase:document.getElementById('ne-allow-day-purchase')?.checked!==false,
     alert:null
   };
@@ -6929,7 +7311,6 @@ function editEvent(id){
     const recEl=document.getElementById('ne-recurrence');
     if(recEl){recEl.checked=true;document.getElementById('ne-rec-opts')?.classList.remove('hidden');}
     const recDayEl=document.getElementById('ne-rec-day');if(recDayEl&&ev.recurrence.day)recDayEl.value=ev.recurrence.day;
-    const recWeeksEl=document.getElementById('ne-rec-weeks');if(recWeeksEl&&ev.recurrence.weeks)recWeeksEl.value=ev.recurrence.weeks;
   }
   // Set event dates from days
   if(ev.days&&ev.days.length>0){
@@ -8332,6 +8713,7 @@ function showAdminEventDetail(evId){
     window._adminDetailKeepScroll=false;
   } else {
     go('admin-event-detail');
+    setTimeout(()=>obShowTour('tour_admin_event_detail'),500);
   }
 }
 
