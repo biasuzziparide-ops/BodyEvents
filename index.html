@@ -1284,6 +1284,28 @@ textarea.input{resize:none;font-family:inherit}
           </div>
         </div>
 
+        <!-- Subscription integration -->
+        <div>
+          <h3 class="font-semibold text-white mb-3" style="font-size:.9rem">💳 Integrazione Abbonamenti</h3>
+          <label class="flex items-center gap-2 text-sm mb-3" style="cursor:pointer"><input type="checkbox" id="ne-sub-bookable" onchange="document.getElementById('ne-sub-bookable-opts').classList.toggle('hidden')"> Prenotabile con ingressi abbonamento</label>
+          <div id="ne-sub-bookable-opts" class="hidden mb-3">
+            <label class="label">Tipologie abbonamento accettate</label>
+            <div id="ne-sub-bookable-types" class="flex flex-wrap gap-2 mb-2"></div>
+            <p class="text-xs txt3">L'utente potrà usare un ingresso del proprio abbonamento per prenotare.</p>
+          </div>
+          <label class="flex items-center gap-2 text-sm mb-3" style="cursor:pointer"><input type="checkbox" id="ne-sub-discount" onchange="document.getElementById('ne-sub-discount-opts').classList.toggle('hidden')"> Prezzo scontato per abbonati</label>
+          <div id="ne-sub-discount-opts" class="hidden">
+            <label class="label">Tipologie abbonamento per sconto</label>
+            <div id="ne-sub-discount-types" class="flex flex-wrap gap-2 mb-2"></div>
+            <div class="grid grid-3 gap-3 mb-2">
+              <div><label class="label">Sostenitore (€)</label><input class="input" id="ne-sub-disc-alto" type="number" placeholder="es. 20"></div>
+              <div><label class="label">Standard (€)</label><input class="input" id="ne-sub-disc-medio" type="number" placeholder="es. 15"></div>
+              <div><label class="label">Ridotto (€)</label><input class="input" id="ne-sub-disc-basso" type="number" placeholder="es. 10"></div>
+            </div>
+            <p class="text-xs txt3">I possessori di un abbonamento compatibile vedranno i prezzi scontati senza consumare ingressi.</p>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -1499,59 +1521,18 @@ textarea.input{resize:none;font-family:inherit}
   </aside>
   <main class="admin-content">
     <div class="flex justify-between items-center mb-6">
-      <div><h1 class="page-title">Abbonamenti</h1><p class="page-sub">Gestisci piani e abbonamenti utenti</p></div>
-      <button class="btn btn-primary" disabled>➕ Nuovo piano</button>
+      <div><h1 class="page-title">Abbonamenti</h1><p class="page-sub">Gestisci tipologie e abbonamenti assegnati</p></div>
+      <button class="btn btn-primary" onclick="openSubTypeModal()">➕ Nuova tipologia</button>
     </div>
 
-    <div class="card mb-4" style="border:2px dashed var(--s400);text-align:center;padding:48px 20px">
-      <div style="font-size:2.5rem;margin-bottom:12px">💳</div>
-      <h3 class="font-semibold text-white mb-2">Funzionalità in arrivo</h3>
-      <p class="txt3 text-sm" style="max-width:440px;margin:0 auto">Il sistema abbonamenti ti permetterà di creare piani mensili/trimestrali con tariffe agevolate e accesso garantito per i tuoi iscritti. Potrai gestire rinnovi, sospensioni e storico pagamenti.</p>
+    <!-- Tab navigation -->
+    <div class="view-toggle mb-4">
+      <button class="active-toggle" onclick="switchSubTab('types',this)">📋 Tipologie</button>
+      <button onclick="switchSubTab('assigned',this)">👥 Assegnati</button>
+      <button onclick="switchSubTab('assign',this)">📱 Assegna via QR</button>
     </div>
 
-    <!-- Preview piani placeholder -->
-    <h2 class="font-semibold text-white mb-3">Piani disponibili (anteprima)</h2>
-    <div class="grid grid-3 gap-3 mb-6">
-      <div class="card" style="opacity:.6;text-align:center">
-        <div style="font-size:1.8rem;margin-bottom:8px">🥉</div>
-        <h4 class="font-semibold text-white">Base</h4>
-        <div class="text-xl font-bold" style="color:var(--brand-l);margin:8px 0">€25<span class="text-xs txt3">/mese</span></div>
-        <div class="text-xs txt3">4 lezioni/mese</div>
-        <div class="text-xs txt3">Sconto 10% workshop</div>
-        <button class="btn btn-secondary btn-sm mt-3 w-full" disabled>Prossimamente</button>
-      </div>
-      <div class="card" style="opacity:.6;text-align:center;border-color:var(--brand)">
-        <div style="font-size:1.8rem;margin-bottom:8px">🥈</div>
-        <h4 class="font-semibold text-white">Standard</h4>
-        <div class="text-xl font-bold" style="color:var(--brand-l);margin:8px 0">€40<span class="text-xs txt3">/mese</span></div>
-        <div class="text-xs txt3">8 lezioni/mese</div>
-        <div class="text-xs txt3">Sconto 20% workshop</div>
-        <div class="text-xs txt3">Accesso prioritario</div>
-        <button class="btn btn-secondary btn-sm mt-3 w-full" disabled>Prossimamente</button>
-      </div>
-      <div class="card" style="opacity:.6;text-align:center">
-        <div style="font-size:1.8rem;margin-bottom:8px">🥇</div>
-        <h4 class="font-semibold text-white">Premium</h4>
-        <div class="text-xl font-bold" style="color:var(--brand-l);margin:8px 0">€55<span class="text-xs txt3">/mese</span></div>
-        <div class="text-xs txt3">Lezioni illimitate</div>
-        <div class="text-xs txt3">Sconto 30% workshop</div>
-        <div class="text-xs txt3">Accesso garantito</div>
-        <button class="btn btn-secondary btn-sm mt-3 w-full" disabled>Prossimamente</button>
-      </div>
-    </div>
-
-    <!-- Abbonati placeholder -->
-    <h2 class="font-semibold text-white mb-3">Abbonati attivi</h2>
-    <div class="card" style="padding:0;overflow:hidden">
-      <table class="table">
-        <thead><tr><th>Utente</th><th>Piano</th><th>Inizio</th><th>Scadenza</th><th>Stato</th></tr></thead>
-        <tbody>
-          <tr style="opacity:.5">
-            <td class="txt3 text-sm" colspan="5" style="text-align:center;padding:24px">Nessun abbonato attivo — funzionalità in sviluppo</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <div id="admin-sub-content"></div>
   </main>
 </div>
 </div>
@@ -2230,6 +2211,7 @@ const store={
   events:[],
   bookings:[],
   subscriptions:[],
+  subscriptionTypes:[],
   attendances:{},
   communityJams:[],
   universes:[]
@@ -2259,14 +2241,16 @@ async function loadAllData(){
   try{
     const app=document.getElementById('app');
     if(app&&!_dataLoaded)app.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:60vh;flex-direction:column;gap:16px"><div class="spinner"></div><p class="txt2">Caricamento dati...</p></div>';
-    const [usersSnap,managersSnap,eventsSnap,bookingsSnap,jamsSnap,attendancesSnap,universesSnap]=await Promise.all([
+    const [usersSnap,managersSnap,eventsSnap,bookingsSnap,jamsSnap,attendancesSnap,universesSnap,subTypesSnap,subsSnap]=await Promise.all([
       fbDb.collection('users').get(),
       fbDb.collection('managers').get(),
       fbDb.collection('events').get(),
       fbDb.collection('bookings').get(),
       fbDb.collection('communityJams').get(),
       fbDb.collection('attendances').get(),
-      fbDb.collection('universes').get()
+      fbDb.collection('universes').get(),
+      fbDb.collection('subscriptionTypes').get(),
+      fbDb.collection('subscriptions').get()
     ]);
     store.users=[];usersSnap.forEach(doc=>{store.users.push(doc.data());});
     store.managers=[];managersSnap.forEach(doc=>{store.managers.push(doc.data());});
@@ -2275,6 +2259,8 @@ async function loadAllData(){
     store.communityJams=[];jamsSnap.forEach(doc=>{store.communityJams.push(doc.data());});
     store.attendances={};attendancesSnap.forEach(doc=>{store.attendances[doc.id]=doc.data().events||[];});
     store.universes=[];universesSnap.forEach(doc=>{store.universes.push(doc.data());});
+    store.subscriptionTypes=[];subTypesSnap.forEach(doc=>{store.subscriptionTypes.push(doc.data());});
+    store.subscriptions=[];subsSnap.forEach(doc=>{store.subscriptions.push(doc.data());});
     // Auto-create AcroYoga universe if missing
     if(!store.universes.find(u=>u.id==='univ_acro')){
       const acroUniv={id:'univ_acro',name:'AcroYoga',emoji:'🤸',color:'#D07840',roles:['Base','Flyer','Entrambi'],pendingRoles:[],status:'active',createdBy:'system',approvedBy:'system',createdAt:new Date().toISOString()};
@@ -2300,7 +2286,7 @@ async function refreshData(){
   showToast('Dati aggiornati!');
 }
 
-function resetStoreData(){_dataLoaded=false;store.events=[];store.bookings=[];store.users=[];store.managers=[];store.communityJams=[];store.attendances={};store.universes=[];}
+function resetStoreData(){_dataLoaded=false;store.events=[];store.bookings=[];store.users=[];store.managers=[];store.communityJams=[];store.attendances={};store.universes=[];store.subscriptionTypes=[];store.subscriptions=[];}
 
 /* ==============================
    UNIVERSI — HELPERS & FUNCTIONS
@@ -2701,6 +2687,479 @@ async function migrateToUniverses(){
   else showToast('Nessuna migrazione necessaria');
 }
 
+/* ==============================
+   SUBSCRIPTION SYSTEM V2.5.0
+============================== */
+let _subTab='types';
+
+function renderAdminSubscriptions(){
+  switchSubTab('types',document.querySelector('#view-admin-subscriptions .active-toggle'));
+  populateSubTypeCheckboxes();
+}
+
+function switchSubTab(tab,btn){
+  _subTab=tab;
+  if(btn){
+    btn.closest('.view-toggle').querySelectorAll('button').forEach(b=>{b.classList.remove('active-toggle');});
+    btn.classList.add('active-toggle');
+  }
+  const c=document.getElementById('admin-sub-content');if(!c)return;
+  if(tab==='types') renderSubTypes(c);
+  else if(tab==='assigned') renderSubAssigned(c);
+  else if(tab==='assign') renderSubAssignQR(c);
+}
+
+function renderSubTypes(c){
+  const mgr=store.currentUser;
+  const isMaster=mgr.masterKey===true;
+  const myTypes=store.subscriptionTypes.filter(t=>isMaster||t.managerId===mgr.id);
+  if(!myTypes.length){
+    c.innerHTML='<div class="card text-center txt3" style="padding:40px">Nessuna tipologia creata. Clicca <strong>➕ Nuova tipologia</strong> per iniziare.</div>';
+    return;
+  }
+  let html='';
+  myTypes.forEach(t=>{
+    const univ=store.universes.find(u=>u.id===t.universeId);
+    const univBadge=univ?'<span class="badge" style="background:'+univ.color+'22;color:'+univ.color+'">'+univ.emoji+' '+univ.name+'</span>':'';
+    const activeSubs=store.subscriptions.filter(s=>s.typeId===t.id&&s.status==='active');
+    const expiredSubs=store.subscriptions.filter(s=>s.typeId===t.id&&s.status==='expired');
+    const totalRevenue=store.subscriptions.filter(s=>s.typeId===t.id&&(s.paymentStatus==='pagato'||s.paymentStatus==='parziale')).reduce((sum,s)=>sum+(s.paymentAmount||0),0);
+    const compatTypes=(t.compatibleEventTypes||[]).map(et=>{
+      const labels={jam:'Jam',lezione:'Lezione',workshop:'Workshop',ritiro:'Ritiro'};
+      return '<span class="badge" style="background:var(--s300);color:var(--txt2);font-size:.7rem">'+(labels[et]||et)+'</span>';
+    }).join(' ');
+    html+='<div class="card mb-3" style="border-left:4px solid '+(univ?.color||'var(--brand)')+'">';
+    html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">';
+    html+='<div style="flex:1">';
+    html+='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="font-semibold text-white text-lg">'+t.name+'</span>'+univBadge;
+    if(t.status==='inactive') html+='<span class="badge" style="background:var(--red-bg);color:var(--red)">Disattivato</span>';
+    html+='</div>';
+    html+='<div class="text-sm txt2 mt-2" style="display:flex;gap:16px;flex-wrap:wrap">';
+    html+='<span>🎟️ '+t.entries+' ingressi</span>';
+    html+='<span>⏰ '+(t.validityDays?t.validityDays+' giorni':'Nessuna scadenza')+'</span>';
+    html+='<span>💰 €'+(t.price||0).toFixed(2)+'</span>';
+    html+='</div>';
+    if(compatTypes) html+='<div class="mt-2 flex gap-2 flex-wrap">'+compatTypes+'</div>';
+    if(t.notes) html+='<div class="text-xs txt3 mt-2">📝 '+t.notes+'</div>';
+    html+='<div class="text-xs mt-3" style="display:flex;gap:16px;flex-wrap:wrap">';
+    html+='<span style="color:var(--green)">✅ '+activeSubs.length+' attivi</span>';
+    html+='<span style="color:var(--red)">⏳ '+expiredSubs.length+' scaduti</span>';
+    html+='<span style="color:var(--yellow)">💰 €'+totalRevenue.toFixed(2)+' incassati</span>';
+    html+='</div></div>';
+    html+='<div style="display:flex;gap:6px;flex-shrink:0">';
+    html+='<button class="btn btn-sm btn-secondary" onclick="editSubType(\''+t.id+'\')">✏️</button>';
+    html+='<button class="btn btn-sm" style="background:var(--red-bg);color:var(--red)" onclick="toggleSubTypeStatus(\''+t.id+'\')">'+((t.status||'active')==='active'?'⏸️':'▶️')+'</button>';
+    html+='</div></div></div>';
+  });
+  c.innerHTML=html;
+}
+
+function renderSubAssigned(c){
+  const mgr=store.currentUser;
+  const isMaster=mgr.masterKey===true;
+  const mySubs=store.subscriptions.filter(s=>isMaster||s.managerId===mgr.id);
+
+  // Filters
+  let html='<div class="flex gap-3 mb-4 flex-wrap">';
+  html+='<select class="input" id="sub-filter-status" onchange="renderSubAssigned(document.getElementById(\'admin-sub-content\'))" style="max-width:180px;font-size:.85rem"><option value="">Tutti gli stati</option><option value="active">Attivi</option><option value="expired">Scaduti</option><option value="suspended">Sospesi</option></select>';
+  html+='<select class="input" id="sub-filter-payment" onchange="renderSubAssigned(document.getElementById(\'admin-sub-content\'))" style="max-width:180px;font-size:.85rem"><option value="">Tutti i pagamenti</option><option value="pagato">Pagato</option><option value="da_pagare">Da pagare</option><option value="parziale">Parziale</option><option value="omaggiato">Omaggio</option></select>';
+  html+='<button class="btn btn-sm btn-secondary" onclick="exportSubsExcel()">📊 Esporta Excel</button>';
+  html+='</div>';
+
+  const statusFilter=document.getElementById('sub-filter-status')?.value||'';
+  const payFilter=document.getElementById('sub-filter-payment')?.value||'';
+  let filtered=mySubs;
+  if(statusFilter) filtered=filtered.filter(s=>s.status===statusFilter);
+  if(payFilter) filtered=filtered.filter(s=>s.paymentStatus===payFilter);
+
+  if(!filtered.length){
+    html+='<div class="card text-center txt3" style="padding:40px">Nessun abbonamento assegnato'+(statusFilter||payFilter?' con i filtri selezionati':'')+'.</div>';
+    c.innerHTML=html;return;
+  }
+
+  html+='<div class="card" style="padding:0;overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:.85rem">';
+  html+='<thead><tr style="background:var(--s200);text-align:left"><th style="padding:10px 12px;color:var(--txt2);font-weight:600">Utente</th><th style="padding:10px 12px;color:var(--txt2);font-weight:600">Tipologia</th><th style="padding:10px 12px;color:var(--txt2);font-weight:600">Ingressi</th><th style="padding:10px 12px;color:var(--txt2);font-weight:600">Scadenza</th><th style="padding:10px 12px;color:var(--txt2);font-weight:600">Pagamento</th><th style="padding:10px 12px;color:var(--txt2);font-weight:600">Stato</th><th style="padding:10px 12px;color:var(--txt2);font-weight:600"></th></tr></thead>';
+  html+='<tbody>';
+  filtered.sort((a,b)=>(a.status==='active'?0:1)-(b.status==='active'?0:1)||(a.userName||'').localeCompare(b.userName||'')).forEach(s=>{
+    const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
+    const remaining=s.entriesTotal-s.entriesUsed;
+    const pctUsed=s.entriesTotal?Math.round(s.entriesUsed/s.entriesTotal*100):0;
+    const statusBadge=s.status==='active'?'<span class="badge badge-pubblicato">Attivo</span>':s.status==='expired'?'<span class="badge badge-red">Scaduto</span>':'<span class="badge badge-yellow">Sospeso</span>';
+    const payBadge=s.paymentStatus==='pagato'?'<span style="color:var(--green)">✅ Pagato</span>':s.paymentStatus==='parziale'?'<span style="color:var(--yellow)">⚠️ Parziale</span>':s.paymentStatus==='omaggiato'?'<span style="color:var(--purple)">🎁 Omaggio</span>':'<span style="color:var(--red)">❌ Da pagare</span>';
+    const expDate=s.expiresAt?fmtDateShort(s.expiresAt.split('T')[0]):'∞';
+    html+='<tr style="border-bottom:1px solid var(--s300)">';
+    html+='<td style="padding:10px 12px"><div class="font-medium text-white text-sm">'+(s.userName||'N/D')+'</div><div class="text-xs txt3">'+(s.userEmail||'')+'</div></td>';
+    html+='<td style="padding:10px 12px"><span class="text-sm text-white">'+(sType?.name||s.typeId)+'</span></td>';
+    html+='<td style="padding:10px 12px"><div class="text-sm text-white">'+remaining+'/'+s.entriesTotal+'</div><div style="background:var(--s400);border-radius:4px;height:4px;width:60px;margin-top:4px"><div style="background:'+((remaining<=2)?'var(--red)':'var(--green)')+';border-radius:4px;height:4px;width:'+pctUsed+'%"></div></div></td>';
+    html+='<td style="padding:10px 12px" class="text-sm">'+expDate+'</td>';
+    html+='<td style="padding:10px 12px">'+payBadge+'</td>';
+    html+='<td style="padding:10px 12px">'+statusBadge+'</td>';
+    html+='<td style="padding:10px 12px"><button class="btn btn-sm btn-ghost" onclick="showSubDetail(\''+s.id+'\')">👁️</button></td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+  c.innerHTML=html;
+}
+
+function renderSubAssignQR(c){
+  const mgr=store.currentUser;
+  const isMaster=mgr.masterKey===true;
+  const myTypes=store.subscriptionTypes.filter(t=>(isMaster||t.managerId===mgr.id)&&(t.status||'active')==='active');
+  let html='<div class="card mb-4"><h3 class="font-semibold text-white mb-3">📱 Assegna abbonamento via QR</h3>';
+  html+='<p class="text-sm txt2 mb-4">Seleziona una tipologia e genera un QR code. L\'utente lo scansionerà per ricevere l\'abbonamento.</p>';
+  if(!myTypes.length){
+    html+='<p class="text-sm txt3">Nessuna tipologia attiva. Crea prima una tipologia dalla tab "📋 Tipologie".</p></div>';
+    c.innerHTML=html;return;
+  }
+  html+='<div class="grid grid-2 gap-4">';
+  html+='<div><label class="label">Tipologia abbonamento *</label><select class="input" id="qr-sub-type">';
+  myTypes.forEach(t=>{html+='<option value="'+t.id+'">'+t.name+' ('+t.entries+' ingressi, €'+t.price+')</option>';});
+  html+='</select></div>';
+  html+='<div><label class="label">Pagamento</label><select class="input" id="qr-sub-payment"><option value="da_pagare">Da pagare</option><option value="pagato">Pagato</option><option value="parziale">Parziale</option><option value="omaggiato">Omaggio</option></select></div>';
+  html+='</div>';
+  html+='<div class="mt-3"><label class="label">Importo pagato (€)</label><input class="input" id="qr-sub-amount" type="number" placeholder="0" style="max-width:180px"></div>';
+  html+='<div class="mt-3"><label class="label">Note (opzionali)</label><input class="input" id="qr-sub-notes" placeholder="es. Pagamento cash"></div>';
+  html+='<button class="btn btn-primary mt-4" onclick="generateSubQR()">📱 Genera QR Code</button>';
+  html+='<div id="sub-qr-output" class="mt-4 text-center hidden"></div>';
+  html+='</div>';
+
+  // Manual assignment section
+  html+='<div class="card mt-4"><h3 class="font-semibold text-white mb-3">✍️ Assegnazione manuale</h3>';
+  html+='<p class="text-sm txt2 mb-4">Cerca un utente e assegna direttamente l\'abbonamento.</p>';
+  html+='<div class="grid grid-2 gap-4">';
+  html+='<div><label class="label">Cerca utente</label><input class="input" id="manual-sub-user-search" placeholder="Nome o email..." oninput="filterSubUsers()"></div>';
+  html+='<div><label class="label">Tipologia</label><select class="input" id="manual-sub-type">';
+  myTypes.forEach(t=>{html+='<option value="'+t.id+'">'+t.name+' ('+t.entries+' ingressi)</option>';});
+  html+='</select></div></div>';
+  html+='<div id="manual-sub-user-results" class="mt-3"></div>';
+  html+='</div>';
+  c.innerHTML=html;
+}
+
+function filterSubUsers(){
+  const q=(document.getElementById('manual-sub-user-search')?.value||'').toLowerCase();
+  const cont=document.getElementById('manual-sub-user-results');if(!cont)return;
+  if(!q||q.length<2){cont.innerHTML='';return;}
+  const matches=store.users.filter(u=>(u.username||'').toLowerCase().includes(q)||(u.email||'').toLowerCase().includes(q)).slice(0,8);
+  if(!matches.length){cont.innerHTML='<div class="text-xs txt3">Nessun utente trovato</div>';return;}
+  cont.innerHTML=matches.map(u=>'<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border:1px solid var(--s300);border-radius:10px;margin-bottom:6px;background:var(--s100)"><div><span class="text-sm font-medium text-white">'+(u.username||'N/D')+'</span><span class="text-xs txt3 ml-2">'+(u.email||'')+'</span></div><button class="btn btn-sm btn-primary" onclick="manualAssignSub(\''+u.id+'\',\''+u.username+'\',\''+u.email+'\')">Assegna</button></div>').join('');
+}
+
+function generateSubQR(){
+  const typeId=document.getElementById('qr-sub-type')?.value;
+  if(!typeId){showToast('Seleziona una tipologia','error');return;}
+  const payment=document.getElementById('qr-sub-payment')?.value||'da_pagare';
+  const amount=parseFloat(document.getElementById('qr-sub-amount')?.value)||0;
+  const notes=document.getElementById('qr-sub-notes')?.value||'';
+  const token=genId('sqr');
+  const payload=JSON.stringify({t:'sub',token,typeId,mgr:store.currentUser.id,pay:payment,amt:amount,notes});
+  // Store pending assignment
+  window._pendingSubAssign={token,typeId,managerId:store.currentUser.id,payment,amount,notes,createdAt:new Date().toISOString()};
+  const out=document.getElementById('sub-qr-output');
+  if(!out)return;
+  out.classList.remove('hidden');
+  out.innerHTML='<div id="sub-qr-canvas" style="display:inline-block;background:#fff;padding:16px;border-radius:12px"></div><p class="text-sm txt2 mt-3">L\'utente deve scansionare questo QR dalla propria app.</p><p class="text-xs txt3 mt-1">Oppure condividi il codice: <strong style="color:var(--brand-l)">'+token+'</strong></p><button class="btn btn-sm btn-secondary mt-3" onclick="redeemSubManually(\''+token+'\')">🔑 Riscatta manualmente</button>';
+  const qrEl=document.getElementById('sub-qr-canvas');
+  if(qrEl){
+    qrEl.innerHTML='';
+    new QRCode(qrEl,{text:payload,width:200,height:200,colorDark:'#1e1e27',colorLight:'#ffffff'});
+  }
+}
+
+async function manualAssignSub(userId,userName,userEmail){
+  const typeId=document.getElementById('manual-sub-type')?.value;
+  if(!typeId){showToast('Seleziona una tipologia','error');return;}
+  const sType=store.subscriptionTypes.find(t=>t.id===typeId);
+  if(!sType){showToast('Tipologia non trovata','error');return;}
+  await createSubscription(typeId,userId,userName,userEmail,store.currentUser.id,'da_pagare',0,'','Assegnazione manuale');
+  showToast('Abbonamento assegnato a '+userName+'!');
+  document.getElementById('manual-sub-user-search').value='';
+  document.getElementById('manual-sub-user-results').innerHTML='';
+}
+
+async function createSubscription(typeId,userId,userName,userEmail,managerId,paymentStatus,paymentAmount,paymentMethod,notes){
+  const sType=store.subscriptionTypes.find(t=>t.id===typeId);
+  if(!sType)return null;
+  const now=new Date();
+  const expiresAt=sType.validityDays?new Date(now.getTime()+sType.validityDays*86400000).toISOString():null;
+  const sub={
+    id:genId('sub'),typeId,userId,userName:userName||'',userEmail:userEmail||'',managerId,
+    assignedAt:now.toISOString(),expiresAt,
+    entriesTotal:sType.entries||0,entriesUsed:0,
+    usageHistory:[],
+    paymentStatus:paymentStatus||'da_pagare',paymentAmount:paymentAmount||0,paymentDate:paymentStatus==='pagato'?now.toISOString():null,paymentMethod:paymentMethod||'',
+    notes:notes||'',status:'active'
+  };
+  store.subscriptions.push(sub);
+  await fsSet('subscriptions',sub.id,sub).catch(console.error);
+  return sub;
+}
+
+function redeemSubManually(token){
+  if(!window._pendingSubAssign||window._pendingSubAssign.token!==token){showToast('Token non valido','error');return;}
+  const overlay=document.createElement('div');overlay.className='overlay';
+  overlay.innerHTML='<div class="dialog" style="max-width:420px;width:90%"><h3 class="text-lg font-semibold text-white mb-4">🔑 Riscatta abbonamento</h3><p class="text-sm txt2 mb-4">Inserisci l\'email dell\'utente a cui assegnare l\'abbonamento.</p><input class="input mb-3" id="redeem-email" placeholder="Email utente"><div class="flex gap-3" style="justify-content:flex-end"><button class="btn btn-ghost btn-sm" onclick="this.closest(\'.overlay\').remove()">Annulla</button><button class="btn btn-primary btn-sm" onclick="executeRedeem()">Assegna</button></div></div>';
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove()});
+}
+
+async function executeRedeem(){
+  const email=(document.getElementById('redeem-email')?.value||'').trim().toLowerCase();
+  if(!email){showToast('Inserisci un\'email','error');return;}
+  const user=store.users.find(u=>(u.email||'').toLowerCase()===email);
+  if(!user){showToast('Utente non trovato con questa email','error');return;}
+  const p=window._pendingSubAssign;
+  if(!p){showToast('Nessun abbonamento da riscattare','error');return;}
+  await createSubscription(p.typeId,user.id,user.username,user.email,p.managerId,p.payment,p.amount,'',p.notes);
+  document.querySelector('.overlay')?.remove();
+  showToast('Abbonamento assegnato a '+(user.username||email)+'!');
+  window._pendingSubAssign=null;
+}
+
+function openSubTypeModal(editId){
+  const existing=editId?store.subscriptionTypes.find(t=>t.id===editId):null;
+  const mgr=store.currentUser;
+  const mgrUnivs=mgr.universes||['univ_acro'];
+  const activeUnivs=getActiveUniverses().filter(u=>mgrUnivs.includes(u.id)||(mgr.masterKey===true));
+  const evTypes=[{v:'jam',l:'Jam'},{v:'lezione',l:'Lezione'},{v:'workshop',l:'Workshop'},{v:'ritiro',l:'Ritiro'}];
+
+  const o=document.createElement('div');o.className='overlay';
+  let formHtml='<h3 class="text-lg font-semibold text-white mb-4">'+(existing?'✏️ Modifica tipologia':'➕ Nuova tipologia abbonamento')+'</h3>';
+  formHtml+='<div style="max-height:70vh;overflow-y:auto;padding-right:8px">';
+  formHtml+='<div class="mb-3"><label class="label">Nome tipologia *</label><input class="input" id="st-name" value="'+(existing?.name||'')+'" placeholder="es. Pacchetto 10 lezioni"></div>';
+  formHtml+='<div class="grid grid-2 gap-3 mb-3"><div><label class="label">Numero ingressi *</label><input class="input" id="st-entries" type="number" value="'+(existing?.entries||10)+'" placeholder="10"></div>';
+  formHtml+='<div><label class="label">Validità (giorni)</label><input class="input" id="st-validity" type="number" value="'+(existing?.validityDays||'')+'" placeholder="es. 90 (vuoto=illimitata)"></div></div>';
+  formHtml+='<div class="mb-3"><label class="label">Prezzo (€) *</label><input class="input" id="st-price" type="number" value="'+(existing?.price||'')+'" placeholder="es. 80" style="max-width:180px"></div>';
+  formHtml+='<div class="mb-3"><label class="label">Universo *</label><select class="input" id="st-universe">';
+  activeUnivs.forEach(u=>{formHtml+='<option value="'+u.id+'"'+(existing&&existing.universeId===u.id?' selected':'')+'>'+u.emoji+' '+u.name+'</option>';});
+  formHtml+='</select></div>';
+  formHtml+='<div class="mb-3"><label class="label">Tipologie evento compatibili</label><div class="flex gap-2 flex-wrap" id="st-compat-types">';
+  evTypes.forEach(et=>{
+    const sel=existing?.compatibleEventTypes?.includes(et.v);
+    formHtml+='<button type="button" class="btn btn-sm st-compat-btn'+(sel?' selected':'')+'" data-type="'+et.v+'" onclick="this.classList.toggle(\'selected\');this.style.background=this.classList.contains(\'selected\')?\'var(--brand-bg)\':\'var(--s300)\';this.style.color=this.classList.contains(\'selected\')?\'var(--brand-l)\':\'var(--txt2)\';this.style.borderColor=this.classList.contains(\'selected\')?\'var(--brand)\':\'var(--s400)\'" style="border:1px solid '+(sel?'var(--brand)':'var(--s400)')+';background:'+(sel?'var(--brand-bg)':'var(--s300)')+';color:'+(sel?'var(--brand-l)':'var(--txt2)')+'">'+et.l+'</button>';
+  });
+  formHtml+='</div><p class="text-xs txt3 mt-1">Lascia vuoto per tutti i tipi.</p></div>';
+  formHtml+='<div class="mb-3"><label class="label">Note (opzionali)</label><textarea class="input" id="st-notes" rows="2" placeholder="Dettagli, condizioni...">'+(existing?.notes||'')+'</textarea></div>';
+  formHtml+='</div>';
+  formHtml+='<div class="flex gap-3 mt-4" style="justify-content:flex-end"><button class="btn btn-ghost btn-sm" id="st-cancel">Annulla</button><button class="btn btn-primary btn-sm" id="st-save">'+(existing?'Salva modifiche':'Crea tipologia')+'</button></div>';
+
+  o.innerHTML='<div class="dialog" style="max-width:520px;width:92%">'+formHtml+'</div>';
+  document.body.appendChild(o);
+  o.querySelector('#st-cancel').onclick=()=>o.remove();
+  o.querySelector('#st-save').onclick=()=>saveSubType(o,existing?.id||null);
+  o.addEventListener('click',e=>{if(e.target===o)o.remove()});
+}
+
+async function saveSubType(overlay,editId){
+  const name=(document.getElementById('st-name')?.value||'').trim();
+  if(!name){showToast('Inserisci un nome','error');return;}
+  const entries=parseInt(document.getElementById('st-entries')?.value)||0;
+  if(!entries){showToast('Inserisci il numero di ingressi','error');return;}
+  const price=parseFloat(document.getElementById('st-price')?.value)||0;
+  const validityDays=parseInt(document.getElementById('st-validity')?.value)||null;
+  const universeId=document.getElementById('st-universe')?.value||'univ_acro';
+  const compatibleEventTypes=Array.from(document.querySelectorAll('.st-compat-btn.selected')).map(b=>b.dataset.type);
+  const notes=(document.getElementById('st-notes')?.value||'').trim();
+
+  if(editId){
+    const existing=store.subscriptionTypes.find(t=>t.id===editId);
+    if(existing){
+      Object.assign(existing,{name,entries,validityDays,price,universeId,compatibleEventTypes,notes});
+      await fsUpdate('subscriptionTypes',editId,{name,entries,validityDays,price,universeId,compatibleEventTypes,notes}).catch(console.error);
+    }
+  }else{
+    const newType={
+      id:genId('stype'),managerId:store.currentUser.id,name,entries,validityDays,
+      universeId,compatibleEventTypes,price,notes,status:'active',createdAt:new Date().toISOString()
+    };
+    store.subscriptionTypes.push(newType);
+    await fsSet('subscriptionTypes',newType.id,newType).catch(console.error);
+  }
+  overlay.remove();
+  showToast(editId?'Tipologia aggiornata!':'Tipologia creata!');
+  renderSubTypes(document.getElementById('admin-sub-content'));
+}
+
+function editSubType(id){openSubTypeModal(id);}
+
+async function toggleSubTypeStatus(id){
+  const t=store.subscriptionTypes.find(x=>x.id===id);if(!t)return;
+  t.status=(t.status||'active')==='active'?'inactive':'active';
+  await fsUpdate('subscriptionTypes',id,{status:t.status}).catch(console.error);
+  showToast(t.status==='active'?'Tipologia riattivata':'Tipologia disattivata');
+  renderSubTypes(document.getElementById('admin-sub-content'));
+}
+
+function showSubDetail(subId){
+  const s=store.subscriptions.find(x=>x.id===subId);if(!s)return;
+  const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
+  const remaining=s.entriesTotal-s.entriesUsed;
+  const o=document.createElement('div');o.className='overlay';
+  let html='<h3 class="text-lg font-semibold text-white mb-4">💳 Dettaglio Abbonamento</h3>';
+  html+='<div class="card mb-3"><div class="text-sm"><strong>Utente:</strong> '+(s.userName||'N/D')+' ('+(s.userEmail||'')+')</div>';
+  html+='<div class="text-sm mt-1"><strong>Tipologia:</strong> '+(sType?.name||s.typeId)+'</div>';
+  html+='<div class="text-sm mt-1"><strong>Ingressi:</strong> '+remaining+'/'+s.entriesTotal+' rimanenti</div>';
+  html+='<div class="text-sm mt-1"><strong>Assegnato il:</strong> '+fmtDateShort(s.assignedAt?.split('T')[0]||'')+'</div>';
+  if(s.expiresAt) html+='<div class="text-sm mt-1"><strong>Scade il:</strong> '+fmtDateShort(s.expiresAt.split('T')[0])+'</div>';
+  html+='<div class="text-sm mt-1"><strong>Pagamento:</strong> '+({pagato:'✅ Pagato',da_pagare:'❌ Da pagare',parziale:'⚠️ Parziale',omaggiato:'🎁 Omaggio'}[s.paymentStatus]||s.paymentStatus)+(s.paymentAmount?' — €'+s.paymentAmount.toFixed(2):'')+'</div>';
+  if(s.notes) html+='<div class="text-sm mt-1"><strong>Note:</strong> '+s.notes+'</div>';
+  html+='</div>';
+
+  // Usage history
+  if(s.usageHistory&&s.usageHistory.length){
+    html+='<h4 class="font-semibold text-white mb-2 text-sm">📋 Storico utilizzi</h4>';
+    html+='<div class="card" style="padding:0;overflow:auto;max-height:200px"><table style="width:100%;border-collapse:collapse;font-size:.8rem"><thead><tr style="background:var(--s200)"><th style="padding:6px 10px;text-align:left;color:var(--txt2)">Data</th><th style="padding:6px 10px;text-align:left;color:var(--txt2)">Evento</th><th style="padding:6px 10px;text-align:left;color:var(--txt2)">Tipo</th></tr></thead><tbody>';
+    s.usageHistory.forEach(u=>{
+      html+='<tr style="border-bottom:1px solid var(--s300)"><td style="padding:6px 10px">'+fmtDateShort(u.date?.split('T')[0]||'')+'</td><td style="padding:6px 10px">'+(u.eventTitle||u.eventId)+'</td><td style="padding:6px 10px">'+(u.type||'ingresso')+'</td></tr>';
+    });
+    html+='</tbody></table></div>';
+  }else{
+    html+='<div class="text-xs txt3 mt-2">Nessun utilizzo registrato.</div>';
+  }
+
+  // Action buttons
+  html+='<div class="flex gap-3 mt-4 flex-wrap">';
+  if(s.paymentStatus!=='pagato') html+='<button class="btn btn-sm btn-primary" onclick="updateSubPayment(\''+s.id+'\',\'pagato\');this.closest(\'.overlay\').remove()">✅ Segna come pagato</button>';
+  if(s.status==='active') html+='<button class="btn btn-sm" style="background:var(--yellow-bg);color:var(--yellow)" onclick="updateSubStatus(\''+s.id+'\',\'suspended\');this.closest(\'.overlay\').remove()">⏸️ Sospendi</button>';
+  if(s.status==='suspended') html+='<button class="btn btn-sm btn-primary" onclick="updateSubStatus(\''+s.id+'\',\'active\');this.closest(\'.overlay\').remove()">▶️ Riattiva</button>';
+  html+='<button class="btn btn-sm btn-ghost" onclick="this.closest(\'.overlay\').remove()">Chiudi</button>';
+  html+='</div>';
+
+  o.innerHTML='<div class="dialog" style="max-width:520px;width:92%">'+html+'</div>';
+  document.body.appendChild(o);
+  o.addEventListener('click',e=>{if(e.target===o)o.remove()});
+}
+
+async function updateSubPayment(subId,status){
+  const s=store.subscriptions.find(x=>x.id===subId);if(!s)return;
+  s.paymentStatus=status;
+  if(status==='pagato') s.paymentDate=new Date().toISOString();
+  await fsUpdate('subscriptions',subId,{paymentStatus:s.paymentStatus,paymentDate:s.paymentDate}).catch(console.error);
+  showToast('Pagamento aggiornato');
+  if(_subTab==='assigned') renderSubAssigned(document.getElementById('admin-sub-content'));
+}
+
+async function updateSubStatus(subId,status){
+  const s=store.subscriptions.find(x=>x.id===subId);if(!s)return;
+  s.status=status;
+  await fsUpdate('subscriptions',subId,{status}).catch(console.error);
+  showToast('Stato abbonamento aggiornato');
+  if(_subTab==='assigned') renderSubAssigned(document.getElementById('admin-sub-content'));
+}
+
+async function exportSubsExcel(){
+  const mgr=store.currentUser;
+  const isMaster=mgr.masterKey===true;
+  const mySubs=store.subscriptions.filter(s=>isMaster||s.managerId===mgr.id);
+  if(!mySubs.length){showToast('Nessun dato da esportare','error');return;}
+  const wb=new ExcelJS.Workbook();
+  const ws=wb.addWorksheet('Abbonamenti');
+  ws.columns=[
+    {header:'Utente',key:'user',width:20},{header:'Email',key:'email',width:25},
+    {header:'Tipologia',key:'type',width:20},{header:'Ingressi Tot.',key:'total',width:12},
+    {header:'Ingressi Usati',key:'used',width:12},{header:'Rimanenti',key:'remaining',width:12},
+    {header:'Assegnato il',key:'assigned',width:15},{header:'Scadenza',key:'expires',width:15},
+    {header:'Pagamento',key:'payment',width:15},{header:'Importo €',key:'amount',width:12},
+    {header:'Stato',key:'status',width:12},{header:'Note',key:'notes',width:25}
+  ];
+  ws.getRow(1).font={bold:true};
+  mySubs.forEach(s=>{
+    const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
+    ws.addRow({
+      user:s.userName||'',email:s.userEmail||'',type:sType?.name||s.typeId,
+      total:s.entriesTotal,used:s.entriesUsed,remaining:s.entriesTotal-s.entriesUsed,
+      assigned:s.assignedAt?.split('T')[0]||'',expires:s.expiresAt?.split('T')[0]||'∞',
+      payment:{pagato:'Pagato',da_pagare:'Da pagare',parziale:'Parziale',omaggiato:'Omaggio'}[s.paymentStatus]||'',
+      amount:s.paymentAmount||0,status:{active:'Attivo',expired:'Scaduto',suspended:'Sospeso'}[s.status]||'',
+      notes:s.notes||''
+    });
+  });
+  const buf=await wb.xlsx.writeBuffer();
+  const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='abbonamenti_'+new Date().toISOString().split('T')[0]+'.xlsx';a.click();
+  showToast('Excel scaricato!');
+}
+
+// Populate subscription type checkboxes in event creation form
+function populateSubTypeCheckboxes(){
+  const mgr=store.currentUser;
+  const isMaster=mgr.masterKey===true;
+  const myTypes=store.subscriptionTypes.filter(t=>(isMaster||t.managerId===mgr.id)&&(t.status||'active')==='active');
+  ['ne-sub-bookable-types','ne-sub-discount-types'].forEach(containerId=>{
+    const c=document.getElementById(containerId);if(!c)return;
+    if(!myTypes.length){c.innerHTML='<span class="text-xs txt3">Nessuna tipologia attiva</span>';return;}
+    c.innerHTML=myTypes.map(t=>{
+      const univ=store.universes.find(u=>u.id===t.universeId);
+      return '<button type="button" class="ne-subtype-sel btn btn-sm" data-id="'+t.id+'" onclick="this.classList.toggle(\'selected\');this.style.background=this.classList.contains(\'selected\')?\'var(--brand-bg)\':\'var(--s300)\';this.style.color=this.classList.contains(\'selected\')?\'var(--brand-l)\':\'var(--txt2)\';this.style.borderColor=this.classList.contains(\'selected\')?\'var(--brand)\':\'var(--s400)\'" style="border:1px solid var(--s400);background:var(--s300);color:var(--txt2)">'+((univ?.emoji||'')+' '+t.name+' ('+t.entries+' ing.)')+'</button>';
+    }).join('');
+  });
+}
+
+// Get active subscriptions for a user
+function getUserActiveSubscriptions(userId){
+  const now=new Date().toISOString();
+  return store.subscriptions.filter(s=>s.userId===userId&&s.status==='active'&&(s.entriesTotal-s.entriesUsed)>0&&(!s.expiresAt||s.expiresAt>now));
+}
+
+// Check if a subscription is compatible with an event
+function isSubCompatibleWithEvent(sub,ev){
+  const sType=store.subscriptionTypes.find(t=>t.id===sub.typeId);
+  if(!sType)return false;
+  // Check universe match
+  const evUnivs=ev.universeIds||[ev.universeId].filter(Boolean);
+  if(!evUnivs.includes(sType.universeId))return false;
+  // Check event type match (empty = all types)
+  if(sType.compatibleEventTypes&&sType.compatibleEventTypes.length){
+    if(!sType.compatibleEventTypes.includes(ev.type))return false;
+  }
+  return true;
+}
+
+// Use a subscription entry for booking
+async function useSubscriptionEntry(subId,eventId,eventTitle){
+  const s=store.subscriptions.find(x=>x.id===subId);if(!s)return false;
+  if(s.entriesUsed>=s.entriesTotal){showToast('Ingressi esauriti','error');return false;}
+  s.entriesUsed++;
+  const usage={date:new Date().toISOString(),eventId,eventTitle:eventTitle||'',type:'ingresso'};
+  s.usageHistory=s.usageHistory||[];
+  s.usageHistory.push(usage);
+  // Auto-expire if all entries used
+  if(s.entriesUsed>=s.entriesTotal) s.status='expired';
+  await fsUpdate('subscriptions',s.id,{entriesUsed:s.entriesUsed,usageHistory:s.usageHistory,status:s.status}).catch(console.error);
+  return true;
+}
+
+// Render user subscriptions in dashboard
+function renderUserSubscriptions(){
+  const uid=store.currentUser.id;
+  const mySubs=store.subscriptions.filter(s=>s.userId===uid);
+  if(!mySubs.length) return '';
+  let html='<div class="mt-6 mb-4"><h2 class="font-semibold text-white mb-3" style="font-size:1.1rem">💳 I miei abbonamenti</h2>';
+  mySubs.forEach(s=>{
+    const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
+    const univ=sType?store.universes.find(u=>u.id===sType.universeId):null;
+    const remaining=s.entriesTotal-s.entriesUsed;
+    const pctUsed=s.entriesTotal?Math.round(s.entriesUsed/s.entriesTotal*100):0;
+    const borderColor=s.status==='active'?(remaining<=2?'var(--yellow)':'var(--green)'):s.status==='expired'?'var(--red)':'var(--txt3)';
+    const expiryStr=s.expiresAt?fmtDateShort(s.expiresAt.split('T')[0]):'∞';
+    const isExpiring=s.expiresAt&&s.status==='active'&&new Date(s.expiresAt)<new Date(Date.now()+7*86400000);
+    html+='<div class="card mb-3" style="border-left:4px solid '+borderColor+'">';
+    html+='<div style="display:flex;justify-content:space-between;align-items:center;gap:12px">';
+    html+='<div style="flex:1"><div class="font-semibold text-white">'+(sType?.name||'Abbonamento')+'</div>';
+    if(univ) html+='<div class="text-xs mt-1"><span style="color:'+univ.color+'">'+univ.emoji+' '+univ.name+'</span></div>';
+    html+='<div class="text-sm txt2 mt-2">🎟️ <strong style="color:'+(remaining<=2?'var(--yellow)':'var(--green)')+'">'+remaining+'</strong>/'+s.entriesTotal+' ingressi</div>';
+    html+='<div style="background:var(--s400);border-radius:4px;height:5px;width:120px;margin-top:4px"><div style="background:'+(remaining<=2?'var(--yellow)':'var(--green)')+';border-radius:4px;height:5px;width:'+pctUsed+'%"></div></div>';
+    html+='<div class="text-xs txt3 mt-2">Scadenza: '+expiryStr+(isExpiring?' <span style="color:var(--yellow)">⚠️ In scadenza!</span>':'')+'</div>';
+    html+='</div>';
+    const statusBadge=s.status==='active'?'<span class="badge badge-pubblicato">Attivo</span>':s.status==='expired'?'<span class="badge badge-red">Scaduto</span>':'<span class="badge badge-yellow">Sospeso</span>';
+    html+='<div class="text-center">'+statusBadge;
+    if(s.paymentStatus==='da_pagare') html+='<div class="text-xs mt-1" style="color:var(--red)">❌ Da pagare</div>';
+    html+='</div></div></div>';
+  });
+  html+='</div>';
+  return html;
+}
+
 /* Helper functions for date/time */
 function getNowTime(){
   const n=new Date();
@@ -3050,8 +3509,9 @@ function go(view){
   if(view==='checkin-booked') renderCheckinA();
   if(view==='checkin-walkin') renderCheckinB();
   if(view==='checkin-new') renderCheckinC();
-  if(view==='admin-new-event'&&!editingEventId){restoreFormTitle();initEventDates();populateEventUniverseDropdown();setTimeout(()=>{obShowTour('tour_new_event');setTimeout(()=>obShowInfoCard('ic_admin_new_event','admin-new-event-form'),300);},400);}
-  if(view==='admin-new-event'&&editingEventId){populateEventUniverseDropdown();}
+  if(view==='admin-new-event'&&!editingEventId){restoreFormTitle();initEventDates();populateEventUniverseDropdown();populateSubTypeCheckboxes();setTimeout(()=>{obShowTour('tour_new_event');setTimeout(()=>obShowInfoCard('ic_admin_new_event','admin-new-event-form'),300);},400);}
+  if(view==='admin-new-event'&&editingEventId){populateEventUniverseDropdown();populateSubTypeCheckboxes();}
+  if(view==='admin-subscriptions'){renderAdminSubscriptions();}
   if(view==='admin-universes'){renderAdminUniversesView();setTimeout(()=>obShowTour('tour_admin_universes'),400);}
   if(view==='register-org'){populateRegoUniverses();}
   // Show help button on all logged-in views
@@ -3292,6 +3752,69 @@ function doBook(){
   // Block duplicate booking — check if user already has an active booking for this event
   const existingBooking=store.bookings.find(b=>b.eventId===ev.id&&b.userId===store.currentUser.id&&b.status!=='cancellata');
   if(existingBooking){showToast('Sei già iscritto a questo evento!','error');return;}
+
+  // Check for subscription-based booking
+  const userSubs=getUserActiveSubscriptions(store.currentUser.id);
+  const canBookWithSub=ev.subscriptionBookable?.enabled&&ev.subscriptionBookable.typeIds?.length;
+  const hasSubDiscount=ev.subscriptionDiscount?.enabled&&ev.subscriptionDiscount.typeIds?.length;
+  let compatBookSubs=[],compatDiscSubs=[];
+  if(canBookWithSub){
+    compatBookSubs=userSubs.filter(s=>ev.subscriptionBookable.typeIds.includes(s.typeId)&&isSubCompatibleWithEvent(s,ev));
+  }
+  if(hasSubDiscount){
+    compatDiscSubs=userSubs.filter(s=>ev.subscriptionDiscount.typeIds.includes(s.typeId)&&isSubCompatibleWithEvent(s,ev));
+  }
+
+  // If user can book with subscription, offer the choice
+  if(compatBookSubs.length){
+    const overlay=document.createElement('div');overlay.className='overlay';
+    let subOptsHtml=compatBookSubs.map(s=>{
+      const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
+      const remaining=s.entriesTotal-s.entriesUsed;
+      return '<button class="btn btn-sm mb-2 w-full" style="border:1px solid var(--green);color:var(--green);background:var(--green-bg);text-align:left;padding:12px 16px" onclick="bookWithSubscription(\''+s.id+'\',\''+ev.id+'\');this.closest(\'.overlay\').remove()"><div class="font-medium">🎟️ '+(sType?.name||'Abbonamento')+' — '+remaining+' ingressi rimasti</div><div class="text-xs" style="color:var(--txt2);margin-top:2px">Usa 1 ingresso per prenotare gratis</div></button>';
+    }).join('');
+    overlay.innerHTML='<div class="dialog" style="max-width:480px;width:90%"><h3 class="text-lg font-semibold text-white mb-4">💳 Hai un abbonamento!</h3><p class="text-sm txt2 mb-4">Puoi usare un ingresso del tuo abbonamento oppure prenotare normalmente.</p>'+subOptsHtml+'<div style="border-top:1px solid var(--s400);margin:16px 0;padding-top:16px"><button class="btn btn-secondary btn-sm w-full" onclick="this.closest(\'.overlay\').remove();_doBookNormal()">Prenota normalmente '+(hasSubDiscount?'(prezzo scontato disponibile)':'')+'</button></div><button class="btn btn-ghost btn-sm w-full mt-2" onclick="this.closest(\'.overlay\').remove()">Annulla</button></div>';
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove()});
+    return;
+  }
+
+  _doBookNormal();
+}
+
+async function bookWithSubscription(subId,eventId){
+  const ev=store.events.find(e=>e.id===eventId);if(!ev)return;
+  const success=await useSubscriptionEntry(subId,eventId,ev.title);
+  if(!success)return;
+  const nameParts=store.currentUser.username.split(' ');
+  const initials=nameParts.map(p=>p[0]).join('').toUpperCase().substring(0,2);
+  const avatarColors=['avatar-blue','avatar-green','avatar-purple','avatar-pink','avatar-yellow'];
+  const newBooking={
+    id:genId('bk'),eventId:ev.id,userId:store.currentUser.id,
+    userName:store.currentUser.username,email:store.currentUser.email,
+    initials,color:avatarColors[Math.floor(Math.random()*avatarColors.length)],
+    items:[{type:'abbonamento',name:ev.title,date:fmtDateShort(ev.days[0]?.date),time:'',tier:'Abbonamento',price:0}],
+    sessions:[],scope:'evento',tier:'medio',amount:0,totalAmount:0,
+    role:store.currentUser.preferredRole||'non_so',status:'confermata',
+    depositStatus:null,paymentStatus:'abbonamento',gift:false,subscriptionId:subId,
+    bookedAt:new Date().toISOString().split('T')[0],createdAt:new Date().toISOString()
+  };
+  store.bookings.push(newBooking);
+  await fsSet('bookings',newBooking.id,newBooking).catch(console.error);
+  showToast('Prenotazione confermata con abbonamento! 🎟️');
+  go('booking-done');
+}
+
+function _doBookNormal(){
+  const ev=store.events.find(e=>e.id===currentBookingEventId);
+  if(!ev)return;
+
+  // Re-check subscription discounts
+  const userSubs=getUserActiveSubscriptions(store.currentUser.id);
+  const hasSubDiscount=ev.subscriptionDiscount?.enabled&&ev.subscriptionDiscount.typeIds?.length;
+  const compatDiscSubs=hasSubDiscount?userSubs.filter(s=>ev.subscriptionDiscount.typeIds.includes(s.typeId)&&isSubCompatibleWithEvent(s,ev)):[];
+  window._bookingHasSubDiscount=compatDiscSubs.length>0;
+  window._bookingSubDiscountTiers=compatDiscSubs.length?ev.subscriptionDiscount.tiers:null;
 
   const evIsFree=ev.pricingMode==='free';
   const evIsManaged=ev.pricingMode==='managed';
@@ -4200,12 +4723,13 @@ function renderUserDashboard(){
   // Get community events user has joined
   const joinedJams=store.communityJams.filter(j=>j.status!=='cancellato'&&!(j.alert&&j.alert.type==='cancellato')&&(j.participants||[]).some(p=>p.userId===uid));
 
+  const userSubsHtml=renderUserSubscriptions();
   if(!active.length&&!cancelled.length&&!joinedJams.length){
-    c.innerHTML='<div class="card text-center txt3" style="padding:40px">Non hai ancora prenotazioni. <a href="#" onclick="go(\'events\');return false" style="color:var(--brand-l)">Esplora gli eventi →</a></div>';
+    c.innerHTML=userSubsHtml+'<div class="card text-center txt3" style="padding:40px">Non hai ancora prenotazioni. <a href="#" onclick="go(\'events\');return false" style="color:var(--brand-l)">Esplora gli eventi →</a></div>';
     return;
   }
 
-  let html='';
+  let html=userSubsHtml;
   active.forEach((b,i)=>{
     const ev=store.events.find(e=>e.id===b.eventId);
     if(!ev)return;
@@ -7158,6 +7682,8 @@ function collectFormData(){
     bookingDeadline:document.getElementById('ne-booking-deadline')?.value||null,
     status:'bozza',recurrence:recChk?{day:recDay,active:true,exceptions:{},pausedUntil:null}:null,createdAt:new Date().toISOString().split('T')[0],
     allowDayPurchase:document.getElementById('ne-allow-day-purchase')?.checked!==false,
+    subscriptionBookable:document.getElementById('ne-sub-bookable')?.checked?{enabled:true,typeIds:Array.from(document.querySelectorAll('#ne-sub-bookable-types .ne-subtype-sel.selected')).map(b=>b.dataset.id)}:null,
+    subscriptionDiscount:document.getElementById('ne-sub-discount')?.checked?{enabled:true,typeIds:Array.from(document.querySelectorAll('#ne-sub-discount-types .ne-subtype-sel.selected')).map(b=>b.dataset.id),tiers:{alto:parseFloat(document.getElementById('ne-sub-disc-alto')?.value)||0,medio:parseFloat(document.getElementById('ne-sub-disc-medio')?.value)||0,basso:parseFloat(document.getElementById('ne-sub-disc-basso')?.value)||0}}:null,
     alert:null
   };
 }
@@ -7305,6 +7831,21 @@ function editEvent(id){
     document.getElementById('ne-deposit-opts').classList.remove('hidden');
     document.getElementById('ne-deposit-amount').value=ev.deposit.amount||'';
     document.getElementById('ne-deposit-causal').value=ev.deposit.causal||'';
+  }
+  // Subscription settings
+  if(ev.subscriptionBookable?.enabled){
+    const sbEl=document.getElementById('ne-sub-bookable');
+    if(sbEl){sbEl.checked=true;document.getElementById('ne-sub-bookable-opts')?.classList.remove('hidden');}
+    setTimeout(()=>{(ev.subscriptionBookable.typeIds||[]).forEach(tid=>{const btn=document.querySelector('#ne-sub-bookable-types .ne-subtype-sel[data-id="'+tid+'"]');if(btn){btn.classList.add('selected');btn.style.background='var(--brand-bg)';btn.style.color='var(--brand-l)';btn.style.borderColor='var(--brand)';}});},100);
+  }
+  if(ev.subscriptionDiscount?.enabled){
+    const sdEl=document.getElementById('ne-sub-discount');
+    if(sdEl){sdEl.checked=true;document.getElementById('ne-sub-discount-opts')?.classList.remove('hidden');}
+    setTimeout(()=>{(ev.subscriptionDiscount.typeIds||[]).forEach(tid=>{const btn=document.querySelector('#ne-sub-discount-types .ne-subtype-sel[data-id="'+tid+'"]');if(btn){btn.classList.add('selected');btn.style.background='var(--brand-bg)';btn.style.color='var(--brand-l)';btn.style.borderColor='var(--brand)';}});},100);
+    const dTiers=ev.subscriptionDiscount.tiers||{};
+    const dA=document.getElementById('ne-sub-disc-alto');if(dA&&dTiers.alto)dA.value=dTiers.alto;
+    const dM=document.getElementById('ne-sub-disc-medio');if(dM&&dTiers.medio)dM.value=dTiers.medio;
+    const dB=document.getElementById('ne-sub-disc-basso');if(dB&&dTiers.basso)dB.value=dTiers.basso;
   }
   // Recurrence
   if(ev.recurrence){
