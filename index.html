@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.7.0</title>
+<title>BodyEvents — V2.7.1</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤸</text></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -436,7 +436,7 @@ textarea.input{resize:none;font-family:inherit}
       <div>
         <label class="label" style="font-size:.65rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:3px">Zona</label>
         <select class="input" id="filter-zona" onchange="renderUserEvents()" style="padding:7px 28px 7px 10px;font-size:.8rem">
-          <option value="">Tutte</option><option value="AcroTreviso">Treviso</option><option value="AcroPadova">Padova</option><option value="AcroVicenza">Vicenza</option>
+          <option value="">Tutte</option>
         </select>
       </div>
       <div>
@@ -2563,6 +2563,25 @@ function ensureUniverseHasEventTypes(univ){
   }
 }
 /* === PARTNER ORGANIZATIONS SYSTEM (V2.7.0) === */
+/* --- V2.7.1: Capofila & Partner Visibility Helpers --- */
+function isEventVisibleToManager(ev,managerId){return ev.managerId===managerId||(ev.partnerIds&&ev.partnerIds.includes(managerId));}
+function isEventCapofila(ev,managerId){return ev.managerId===managerId;}
+function getManagerEventsAll(managerId){return store.events.filter(e=>isEventVisibleToManager(e,managerId));}
+function getPartnerBadgesHtml(ev){
+  if(!ev.partnerIds||!ev.partnerIds.length)return'';
+  return ev.partnerIds.map(pid=>{
+    const mgr=store.managers.find(m=>m.id===pid);
+    return mgr?'<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:8px;font-size:.72rem;background:rgba(168,85,247,.1);color:#a855f7;border:1px solid rgba(168,85,247,.2)">🤝 '+mgr.orgName+'</span>':'';
+  }).filter(Boolean).join(' ');
+}
+function getCapofilaLabel(ev,currentId){
+  if(ev.managerId===currentId)return'';
+  return'<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:8px;font-size:.72rem;background:rgba(168,85,247,.1);color:#a855f7;border:1px solid rgba(168,85,247,.2)">🤝 Partner</span>';
+}
+function getPartnerReadOnlyActions(ev){
+  return '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();showEventDetail(\''+ev.id+'\')" title="Anteprima vista utente">👁️</button>'
+    +'<button class="btn btn-sm" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3);font-size:.75rem" onclick="event.stopPropagation();showAdminEventDetail(\''+ev.id+'\')">📊 Metriche</button>';
+}
 function getApprovedManagers(){
   return store.managers.filter(m=>m.status!=='pending_approval'&&m.id!==store.currentUser.id);
 }
@@ -3598,14 +3617,26 @@ function getUserActiveSubscriptions(userId){
 function isSubCompatibleWithEvent(sub,ev){
   const sType=store.subscriptionTypes.find(t=>t.id===sub.typeId);
   if(!sType)return false;
-  // Check universe match
+  // Check universe match — for own subs, require universe match
   const evUnivs=ev.universeIds||[ev.universeId].filter(Boolean);
-  if(!evUnivs.includes(sType.universeId))return false;
+  const isPartnerSub=ev.partnerIds&&ev.partnerIds.includes(sType.managerId);
+  // If it's a partner subscription, skip universe match (cross-universe allowed)
+  if(!isPartnerSub&&!evUnivs.includes(sType.universeId))return false;
   // Check event type match (empty = all types)
   if(sType.compatibleEventTypes&&sType.compatibleEventTypes.length){
     if(!sType.compatibleEventTypes.includes(ev.type))return false;
   }
   return true;
+}
+// Check if partner subscription entries can be used (not just discount)
+function canUsePartnerEntries(ev){
+  const policy=ev.partnerEntryPolicy||'discount_only';
+  return policy==='entries_too'||policy==='both';
+}
+// Check if partner subscription discount is allowed
+function canUsePartnerDiscount(ev){
+  const policy=ev.partnerEntryPolicy||'discount_only';
+  return policy==='discount_only'||policy==='both';
 }
 
 // Use a subscription entry for booking
@@ -4261,10 +4292,28 @@ function doBook(){
   const hasSubDiscount=ev.subscriptionDiscount?.enabled&&ev.subscriptionDiscount.typeIds?.length;
   let compatBookSubs=[],compatDiscSubs=[];
   if(canBookWithSub){
-    compatBookSubs=userSubs.filter(s=>ev.subscriptionBookable.typeIds.includes(s.typeId)&&isSubCompatibleWithEvent(s,ev));
+    compatBookSubs=userSubs.filter(s=>{
+      if(!ev.subscriptionBookable.typeIds.includes(s.typeId))return false;
+      if(!isSubCompatibleWithEvent(s,ev))return false;
+      // If it's a partner subscription, check if entry usage is allowed
+      const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
+      if(sType&&ev.partnerIds&&ev.partnerIds.includes(sType.managerId)){
+        if(!canUsePartnerEntries(ev))return false;
+      }
+      return true;
+    });
   }
   if(hasSubDiscount){
-    compatDiscSubs=userSubs.filter(s=>ev.subscriptionDiscount.typeIds.includes(s.typeId)&&isSubCompatibleWithEvent(s,ev));
+    compatDiscSubs=userSubs.filter(s=>{
+      if(!ev.subscriptionDiscount.typeIds.includes(s.typeId))return false;
+      if(!isSubCompatibleWithEvent(s,ev))return false;
+      // If it's a partner subscription, check if discount is allowed
+      const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
+      if(sType&&ev.partnerIds&&ev.partnerIds.includes(sType.managerId)){
+        if(!canUsePartnerDiscount(ev))return false;
+      }
+      return true;
+    });
   }
 
   // If user can book with subscription, offer the choice
@@ -4314,7 +4363,15 @@ function _doBookNormal(){
   // Re-check subscription discounts
   const userSubs=getUserActiveSubscriptions(store.currentUser.id);
   const hasSubDiscount=ev.subscriptionDiscount?.enabled&&ev.subscriptionDiscount.typeIds?.length;
-  const compatDiscSubs=hasSubDiscount?userSubs.filter(s=>ev.subscriptionDiscount.typeIds.includes(s.typeId)&&isSubCompatibleWithEvent(s,ev)):[];
+  const compatDiscSubs=hasSubDiscount?userSubs.filter(s=>{
+    if(!ev.subscriptionDiscount.typeIds.includes(s.typeId))return false;
+    if(!isSubCompatibleWithEvent(s,ev))return false;
+    const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
+    if(sType&&ev.partnerIds&&ev.partnerIds.includes(sType.managerId)){
+      if(!canUsePartnerDiscount(ev))return false;
+    }
+    return true;
+  }):[];
   window._bookingHasSubDiscount=compatDiscSubs.length>0;
   window._bookingSubDiscountTiers=compatDiscSubs.length?ev.subscriptionDiscount.tiers:null;
 
@@ -4828,12 +4885,13 @@ function copyQRLink(){
 }
 function populateQRSelect(){
   const sel=document.getElementById('qr-event-select');if(!sel)return;
-  const myEvts=store.events.filter(e=>e.managerId===store.currentUser.id&&(e.status==='pubblicato'));
+  const myEvts=store.events.filter(e=>isEventVisibleToManager(e,store.currentUser.id)&&(e.status==='pubblicato'));
   sel.innerHTML='<option value="">Scegli un evento...</option>';
   myEvts.forEach(ev=>{
     const d0=ev.days[0];const dateStr=d0?fmtDate(d0.date):'';
     const endDate=ev.days.length>1?' — '+fmtDate(ev.days[ev.days.length-1].date):'';
-    sel.innerHTML+='<option value="'+ev.id+'">'+ev.title+' — '+dateStr+endDate+'</option>';
+    const pTag=!isEventCapofila(ev,store.currentUser.id)?' 🤝':'';
+    sel.innerHTML+='<option value="'+ev.id+'">'+ev.title+pTag+' — '+dateStr+endDate+'</option>';
   });
   // Clear previous QR
   const wrap=document.getElementById('qr-canvas-wrap');
@@ -4853,7 +4911,7 @@ function getCheckinEvent(){
   const sel=document.getElementById('qr-event-select');
   if(sel&&sel.value){checkinEventId=sel.value;}
   if(!checkinEventId){
-    const first=store.events.find(e=>e.managerId===store.currentUser.id&&e.status==='pubblicato');
+    const first=store.events.find(e=>isEventVisibleToManager(e,store.currentUser.id)&&e.status==='pubblicato');
     if(first)checkinEventId=first.id;
   }
   return store.events.find(e=>e.id===checkinEventId);
@@ -4861,11 +4919,12 @@ function getCheckinEvent(){
 
 function populateAttendanceSelect(){
   const sel=document.getElementById('attendance-event-select');if(!sel)return;
-  const myEvts=store.events.filter(e=>e.managerId===store.currentUser.id&&e.status==='pubblicato');
+  const myEvts=store.events.filter(e=>isEventVisibleToManager(e,store.currentUser.id)&&e.status==='pubblicato');
   sel.innerHTML='';
   myEvts.forEach(ev=>{
     const d0=ev.days[0];
-    sel.innerHTML+='<option value="'+ev.id+'">'+ev.title+' — '+(d0?fmtDateShort(d0.date):'')+'</option>';
+    const pTag=!isEventCapofila(ev,store.currentUser.id)?' 🤝':'';
+    sel.innerHTML+='<option value="'+ev.id+'">'+ev.title+pTag+' — '+(d0?fmtDateShort(d0.date):'')+'</option>';
   });
   renderAttendance();
 }
@@ -5202,6 +5261,7 @@ function confirmNewCheckin(evId){
 function renderUserEvents(){
   const c=document.getElementById('user-events-container');if(!c)return;
   populateUniverseFilters();
+  populateZonaFilter();
   const evts=getFilteredEvents();
 
   const eventCards=evts.map(ev=>{
@@ -5239,7 +5299,7 @@ function renderUserEvents(){
             <span>📅 ${dateRange}</span><span>🕐 ${d0?.startTime||''} — ${d0?.endTime||''}</span>
           </div>
           <div class="flex gap-2 mt-1 text-xs txt3"><span>📍 ${ev.location}</span></div>
-          <div class="text-xs txt3 mt-1">con ${ev.teacher} · <span style="color:var(--brand-l)">${ev.orgName}</span></div>
+          <div class="text-xs txt3 mt-1">con ${ev.teacher} · <span style="color:var(--brand-l)">${ev.orgName}</span>${ev.partnerIds&&ev.partnerIds.length?' <span style="color:#a855f7">+ '+ev.partnerIds.length+' partner</span>':''}</div>
         </div>
       </div>
     </div>`;
@@ -5751,9 +5811,22 @@ function getFilteredEvents(){
   // Universe filter: if no explicit filter, show only subscribed universes
   if(univFilter){evts=evts.filter(e=>(e.universeIds||[e.universeId]).includes(univFilter));}
   else{const subIds=getUserSubscribedUniverseIds();if(subIds.length)evts=evts.filter(e=>{const eIds=e.universeIds||[e.universeId].filter(Boolean);return eIds.some(id=>subIds.includes(id))||!eIds.length;});}
-  if(q){const ql=q.toLowerCase();evts=evts.filter(e=>(e.title+e.description+e.teacher+e.location).toLowerCase().includes(ql));}
+  if(q){const ql=q.toLowerCase();evts=evts.filter(e=>{
+    const base=(e.title+e.description+e.teacher+e.location+e.orgName).toLowerCase();
+    if(base.includes(ql))return true;
+    if(e.partnerIds&&e.partnerIds.length){
+      return e.partnerIds.some(pid=>{const mgr=store.managers.find(m=>m.id===pid);return mgr&&mgr.orgName.toLowerCase().includes(ql);});
+    }
+    return false;
+  });}
   if(tipo)evts=evts.filter(e=>e.type===tipo);
-  if(zona)evts=evts.filter(e=>e.orgName===zona);
+  if(zona)evts=evts.filter(e=>{
+    if(e.orgName===zona)return true;
+    if(e.partnerIds&&e.partnerIds.length){
+      return e.partnerIds.some(pid=>{const mgr=store.managers.find(m=>m.id===pid);return mgr&&mgr.orgName===zona;});
+    }
+    return false;
+  });
   if(maestro)evts=evts.filter(e=>e.teacher.toLowerCase().includes(maestro.toLowerCase()));
   if(dateFrom)evts=evts.filter(e=>e.days.some(d=>d.date>=dateFrom));
   if(dateTo)evts=evts.filter(e=>e.days.some(d=>d.date<=dateTo));
@@ -5775,6 +5848,15 @@ function selectJamType(btn){
 }
 function getJamTypeDisplay(type){
   return getEventTypeIcon(type)+' '+getEventTypeLabel(type);
+}
+function populateZonaFilter(){
+  const sel=document.getElementById('filter-zona');if(!sel)return;
+  const curVal=sel.value;
+  const orgNames=new Set();
+  store.managers.filter(m=>m.status!=='pending_approval').forEach(m=>{if(m.orgName)orgNames.add(m.orgName);});
+  let html='<option value="">Tutte</option>';
+  Array.from(orgNames).sort().forEach(o=>{html+='<option value="'+o+'"'+(curVal===o?' selected':'')+'>'+o+'</option>';});
+  sel.innerHTML=html;
 }
 function populateJamTypeFilters(){
   ['jam-user-filter-type','jam-admin-filter-type'].forEach(selId=>{
@@ -6815,6 +6897,7 @@ function showEventDetail(evId){
       <div class="flex items-center gap-2 mt-3 text-sm txt3">👤 con ${ev.teacher}</div>
       <div class="flex items-center gap-2 mt-2 text-sm">${locLink}</div>
       <div class="text-xs mt-2" style="color:var(--brand-l)">${ev.orgName}</div>
+      ${(()=>{if(!ev.partnerIds||!ev.partnerIds.length)return '';const pBadges=ev.partnerIds.map(pid=>{const m=store.managers.find(x=>x.id===pid);return m?'<span class="badge" style="background:rgba(168,85,247,.1);color:#a855f7;font-size:.65rem;padding:3px 8px">🤝 '+m.orgName+'</span>':'';}).filter(Boolean).join('');return '<div class="flex gap-2 flex-wrap mt-2">'+pBadges+'</div>';})()}
       ${payLinks.length?'<div class="flex gap-3 mt-4 flex-wrap" style="padding-top:16px;border-top:1px solid var(--s300)">'+payLinks.join('')+'</div>':''}
       ${contactHtml}
     </div>
@@ -6922,7 +7005,7 @@ function showEventDetail(evId){
 function renderAdminEvents(){
   const c=document.getElementById('admin-events-container');if(!c)return;
   const u=store.currentUser;
-  let evts=store.events.filter(e=>e.managerId===u.id);
+  let evts=store.events.filter(e=>isEventVisibleToManager(e,u.id));
   evts.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
   const pub=evts.filter(e=>e.status==='pubblicato').length;
   const boz=evts.filter(e=>e.status==='bozza').length;
@@ -6943,11 +7026,15 @@ function renderAdminEvents(){
   if(statusFilter)evts=evts.filter(e=>e.status===statusFilter);
 
   c.innerHTML=evts.map(ev=>{
-    const isOwn=ev.managerId===u.id;
+    const isCapofila=isEventCapofila(ev,u.id);
+    const isPartner=!isCapofila;
     const dateStr=ev.days.length>1?fmtDateShort(ev.days[0]?.date)+' — '+fmtDateShort(ev.days[ev.days.length-1]?.date):fmtDate(ev.days[0]?.date);
-    const orgLabel=u.role==='master'&&ev.managerId!==u.id?' · <span style="color:var(--brand-l)">'+ev.orgName+'</span>':'';
+    const orgLabel=isPartner?' · <span style="color:var(--brand-l)">'+ev.orgName+'</span>':'';
+    const partnerBadge=isPartner?getCapofilaLabel(ev,u.id):'';
     const eyeBtn=`<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();showEventDetail('${ev.id}')" title="Anteprima vista utente">👁️</button>`;
-    const actions=ev.status==='bozza'?`
+    // Partner events: read-only actions only (view, metrics)
+    const actions=isPartner?getPartnerReadOnlyActions(ev):
+    ev.status==='bozza'?`
       ${eyeBtn}
       <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();editEvent('${ev.id}')">✏️ Modifica</button>
       <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();publishEvent('${ev.id}')">🚀 Pubblica</button>
@@ -6969,12 +7056,14 @@ function renderAdminEvents(){
       <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();hardDeleteEvent('${ev.id}')">🗑️ Elimina</button>`:
       '<span class="text-xs txt3">Concluso</span>';
     const opacity=ev.status==='bozza'?'opacity:.7':ev.status==='cancellato'?'opacity:.6':'';
-    return `<div class="card mb-3" style="${opacity};cursor:pointer" onclick="showAdminEventDetail('${ev.id}')">
+    const partnerBorder=isPartner?'border-left:4px solid #a855f7;':'';
+    return `<div class="card mb-3" style="${opacity};${partnerBorder}cursor:pointer" onclick="showAdminEventDetail('${ev.id}')">
       <div class="flex justify-between items-center flex-wrap gap-3">
         <div class="flex-1" style="min-width:200px">
           <div class="flex gap-2 items-center mb-1">
             <span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>
             <span class="badge ${badgeStatus(ev.status)}">${capitalize(ev.status)}</span>
+            ${partnerBadge}
             ${getRecurrenceBadge(ev)}
             ${ev.alert?'<span class="badge" style="background:'+(ev.alert.type==='modificato'?'var(--orange-bg)':'var(--red-bg)')+';color:'+(ev.alert.type==='modificato'?'var(--orange)':'var(--red)')+'">⚠️ '+(ev.alert.type==='cancellato'?'Annullato':ev.alert.type==='rimandato'?'Rimandato':'Modificato')+'</span>':''}
           </div>
@@ -7635,20 +7724,25 @@ function showRestoreBackup(){
 function renderAdminDashboard(){
   const c=document.getElementById('admin-dash-stats');if(!c)return;
   const u=store.currentUser;
-  const evts=store.events.filter(e=>e.managerId===u.id);
-  const pub=evts.filter(e=>e.status==='pubblicato');
-  const bozze=evts.filter(e=>e.status==='bozza').length;
+  const ownEvts=store.events.filter(e=>e.managerId===u.id);
+  const partnerEvts=store.events.filter(e=>!isEventCapofila(e,u.id)&&isEventVisibleToManager(e,u.id));
+  const allEvts=store.events.filter(e=>isEventVisibleToManager(e,u.id));
+  const pub=allEvts.filter(e=>e.status==='pubblicato');
+  const bozze=ownEvts.filter(e=>e.status==='bozza').length;
+  const myEvtIds=new Set(allEvts.map(e=>e.id));
+  const myBookings=store.bookings.filter(b=>myEvtIds.has(b.eventId));
   c.innerHTML=`<div class="stat-card"><div class="value" style="color:var(--brand-l)">${pub.length}</div><div class="label">Eventi attivi</div></div>
     <div class="stat-card"><div class="value" style="color:var(--yellow)">${bozze}</div><div class="label">Bozze</div></div>
-    <div class="stat-card"><div class="value" style="color:var(--green)">${store.bookings.length}</div><div class="label">Prenotazioni</div></div>
-    <div class="stat-card"><div class="value" style="color:var(--blue)">${evts.length}</div><div class="label">Totale eventi</div></div>`;
+    <div class="stat-card"><div class="value" style="color:var(--green)">${myBookings.length}</div><div class="label">Prenotazioni</div></div>
+    <div class="stat-card"><div class="value" style="color:var(--blue)">${allEvts.length}</div><div class="label">Totale eventi</div></div>
+    ${partnerEvts.length?'<div class="stat-card"><div class="value" style="color:#a855f7">'+partnerEvts.length+'</div><div class="label">🤝 Partner</div></div>':''}`;
   // Prossimi eventi table
   const dt=document.getElementById('dash-next-title');
   const dc=document.getElementById('admin-dash-events');
   if(!dc)return;
   if(pub.length){
     if(dt)dt.style.display='';
-    dc.innerHTML=`<div class="card" style="padding:0;overflow:hidden"><table class="table"><thead><tr><th>Evento</th><th>Data</th><th>Tipo</th><th>Org</th><th>Stato</th></tr></thead><tbody>${pub.slice(0,5).map(ev=>`<tr style="cursor:pointer" onclick="showAdminEventDetail('${ev.id}')"><td class="font-medium text-white">${ev.title}</td><td>${ev.days[0]?fmtDateShort(ev.days[0].date):''}</td><td><span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span></td><td class="text-xs txt3">${ev.orgName}</td><td><span class="badge badge-pubblicato">Pubblicato</span></td></tr>`).join('')}</tbody></table></div>`;
+    dc.innerHTML=`<div class="card" style="padding:0;overflow:hidden"><table class="table"><thead><tr><th>Evento</th><th>Data</th><th>Tipo</th><th>Org</th><th>Stato</th></tr></thead><tbody>${pub.slice(0,5).map(ev=>{const isP=!isEventCapofila(ev,u.id);return`<tr style="cursor:pointer${isP?';border-left:3px solid #a855f7':''}" onclick="showAdminEventDetail('${ev.id}')"><td class="font-medium text-white">${ev.title}${isP?' <span style="color:#a855f7;font-size:.7rem">🤝</span>':''}</td><td>${ev.days[0]?fmtDateShort(ev.days[0].date):''}</td><td><span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span></td><td class="text-xs txt3">${ev.orgName}</td><td><span class="badge badge-pubblicato">Pubblicato</span></td></tr>`;}).join('')}</tbody></table></div>`;
   } else {if(dt)dt.style.display='none';dc.innerHTML='';}
 }
 
@@ -7675,6 +7769,12 @@ function resetForm(){
   const bdEl=document.getElementById('ne-booking-deadline');
   if(bdEl){bdEl.value='';bdEl._userEdited=false;}
   updateBookingDeadlineDefault();
+  // Reset partners
+  const pw=document.getElementById('ne-partners-selected');
+  if(pw)pw.innerHTML='<span class="text-xs txt3">Nessun partner selezionato</span>';
+  togglePartnerEntryConfig(false);
+  const defRadio=document.querySelector('input[name="ne-partner-entry-policy"][value="discount_only"]');
+  if(defRadio)defRadio.checked=true;
   renderFormDays();
 }
 function saveFormState(){
@@ -8009,20 +8109,31 @@ function toggleEventPicker(wrapEl,scope,di){
   // Populate with current user's events (published + draft)
   const u=store.currentUser;
   const myEvts=store.events.filter(e=>e.managerId===u.id);
+  // Get partner events
+  const partnerIds=getPartnerIdsFromForm();
+  const partnerEvts=partnerIds.length?store.events.filter(e=>partnerIds.includes(e.managerId)):[];
   // Get already-checked IDs
   const checkedIds=new Set();
   wrapEl.querySelectorAll('input[type="checkbox"]:checked').forEach(cb=>checkedIds.add(cb.value));
-  picker.innerHTML=myEvts.length?myEvts.map(ev=>{
+  const renderEvt=(ev,isPartner)=>{
     const statusBadge=ev.status==='bozza'?'<span class="text-xs" style="color:var(--yellow)"> (bozza)</span>':'';
     const checked=checkedIds.has(ev.title)?'checked':'';
     const evDate=ev.days&&ev.days[0]?fmtDateShort(ev.days[0].date):'';
     const dateRange=ev.days&&ev.days.length>1?evDate+' → '+fmtDateShort(ev.days[ev.days.length-1].date):evDate;
+    const partnerLabel=isPartner?'<span class="text-xs" style="color:var(--brand-l)"> · 🤝 '+(ev.orgName||'')+'</span>':'';
     return `<label class="flex items-center gap-2 text-sm" style="cursor:pointer;padding:6px 0;border-bottom:1px solid var(--s300)">
       <input type="checkbox" value="${ev.title}" class="ep-check" ${checked} onchange="updatePickerLabel(this)">
       <span class="badge ${badgeType(ev.type)}" style="font-size:.6rem;padding:2px 6px;${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>
-      <span style="flex:1"><span class="text-white">${ev.title}</span><br><span class="text-xs txt3">📅 ${dateRange}</span></span>${statusBadge}
+      <span style="flex:1"><span class="text-white">${ev.title}</span>${partnerLabel}<br><span class="text-xs txt3">📅 ${dateRange}</span></span>${statusBadge}
     </label>`;
-  }).join(''):'<div class="text-xs txt3">Nessun evento trovato</div>';
+  };
+  let html='';
+  if(myEvts.length)html+=myEvts.map(ev=>renderEvt(ev,false)).join('');
+  if(partnerEvts.length){
+    html+='<div style="padding:8px 0 4px;border-bottom:1px solid var(--s300)"><span class="text-xs" style="color:var(--brand-l)">🤝 Eventi partner:</span></div>';
+    html+=partnerEvts.map(ev=>renderEvt(ev,true)).join('');
+  }
+  picker.innerHTML=html||'<div class="text-xs txt3">Nessun evento trovato</div>';
   picker.classList.remove('hidden');
 }
 function updatePickerLabel(checkbox){
@@ -8373,6 +8484,8 @@ function collectFormData(){
     bookingDeadline:document.getElementById('ne-booking-deadline')?.value||null,
     status:'bozza',recurrence:recChk?{day:recDay,active:true,exceptions:{},pausedUntil:null}:null,createdAt:new Date().toISOString().split('T')[0],
     allowDayPurchase:document.getElementById('ne-allow-day-purchase')?.checked!==false,
+    partnerIds:getPartnerIdsFromForm(),
+    partnerEntryPolicy:getPartnerIdsFromForm().length?(document.querySelector('input[name="ne-partner-entry-policy"]:checked')?.value||'discount_only'):null,
     subscriptionBookable:document.getElementById('ne-sub-bookable')?.checked?{enabled:true,typeIds:Array.from(document.querySelectorAll('#ne-sub-bookable-types .ne-subtype-sel.selected')).map(b=>b.dataset.id)}:null,
     subscriptionDiscount:document.getElementById('ne-sub-discount')?.checked?{enabled:true,typeIds:Array.from(document.querySelectorAll('#ne-sub-discount-types .ne-subtype-sel.selected')).map(b=>b.dataset.id),tiers:{alto:parseFloat(document.getElementById('ne-sub-disc-alto')?.value)||0,medio:parseFloat(document.getElementById('ne-sub-disc-medio')?.value)||0,basso:parseFloat(document.getElementById('ne-sub-disc-basso')?.value)||0}}:null,
     alert:null
@@ -8522,7 +8635,25 @@ function editEvent(id){
     document.getElementById('ne-deposit-amount').value=ev.deposit.amount||'';
     document.getElementById('ne-deposit-causal').value=ev.deposit.causal||'';
   }
-  // Subscription settings — populate buttons first, then restore selections
+  // Restore partner organizations
+  if(ev.partnerIds&&ev.partnerIds.length){
+    const wrap=document.getElementById('ne-partners-selected');
+    if(wrap){
+      wrap.innerHTML='';
+      ev.partnerIds.forEach(mid=>{
+        const mgr=store.managers.find(m=>m.id===mid);if(!mgr)return;
+        const univs=(mgr.universes||[]).map(uid=>{const u=store.universes.find(x=>x.id===uid);return u?(u.emoji+' '+u.name):'';}).filter(Boolean).join(', ');
+        wrap.insertAdjacentHTML('beforeend','<div class="ne-partner-chip" data-mid="'+mid+'" style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;border:1px solid var(--brand);background:var(--brand-bg);color:var(--brand-l);font-size:.82rem;font-weight:500"><div><div>'+mgr.orgName+'</div><div class="text-xs" style="color:var(--txt3);margin-top:1px">'+univs+'</div></div><button type="button" onclick="removePartner(\''+mid+'\')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:1rem;padding:0 0 0 4px;line-height:1" title="Rimuovi partner">&times;</button></div>');
+      });
+      togglePartnerEntryConfig(true);
+    }
+    // Restore partner entry policy
+    if(ev.partnerEntryPolicy){
+      const radio=document.querySelector('input[name="ne-partner-entry-policy"][value="'+ev.partnerEntryPolicy+'"]');
+      if(radio)radio.checked=true;
+    }
+  }
+  // Subscription settings — populate buttons first (now partner-aware), then restore selections
   populateSubTypeCheckboxes();
   if(ev.subscriptionBookable?.enabled){
     const sbEl=document.getElementById('ne-sub-bookable');
@@ -8793,8 +8924,8 @@ function restoreFormTitle(){
 ============================== */
 function renderAdminBookings(){
   const u=store.currentUser;
-  // Get events visible to this user (only own events)
-  const myEvts=store.events.filter(e=>e.managerId===u.id);
+  // Get events visible to this user (own + partner events)
+  const myEvts=store.events.filter(e=>isEventVisibleToManager(e,u.id));
   const myEvtIds=new Set(myEvts.map(e=>e.id));
   // All bookings for visible events
   let bks=store.bookings.filter(b=>myEvtIds.has(b.eventId));
@@ -9856,7 +9987,8 @@ function showAdminEventDetail(evId){
         <span>👤 ${ev.teacher}</span>
       </div>
       <div class="text-sm mt-2">${locLink}</div>
-      <div class="text-xs mt-2" style="color:var(--brand-l)">${ev.orgName}</div>
+      <div class="text-xs mt-2" style="color:var(--brand-l)">${ev.orgName} ${getPartnerBadgesHtml(ev)}</div>
+      ${!isEventCapofila(ev,store.currentUser.id)?'<div style="margin-top:6px"><span style="display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:8px;font-size:.75rem;background:rgba(168,85,247,.12);color:#a855f7;border:1px solid rgba(168,85,247,.25)">🤝 Sei partner di questo evento — visualizzazione in sola lettura</span></div>':''}
     </div>
 
     ${viewToggleHtml}
