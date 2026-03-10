@@ -2256,16 +2256,14 @@ async function loadAllData(){
   try{
     const app=document.getElementById('app');
     if(app&&!_dataLoaded)app.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:60vh;flex-direction:column;gap:16px"><div class="spinner"></div><p class="txt2">Caricamento dati...</p></div>';
-    const [usersSnap,managersSnap,eventsSnap,bookingsSnap,jamsSnap,attendancesSnap,universesSnap,subTypesSnap,subsSnap]=await Promise.all([
+    const [usersSnap,managersSnap,eventsSnap,bookingsSnap,jamsSnap,attendancesSnap,universesSnap]=await Promise.all([
       fbDb.collection('users').get(),
       fbDb.collection('managers').get(),
       fbDb.collection('events').get(),
       fbDb.collection('bookings').get(),
       fbDb.collection('communityJams').get(),
       fbDb.collection('attendances').get(),
-      fbDb.collection('universes').get(),
-      fbDb.collection('subscriptionTypes').get(),
-      fbDb.collection('subscriptions').get()
+      fbDb.collection('universes').get()
     ]);
     store.users=[];usersSnap.forEach(doc=>{store.users.push(doc.data());});
     store.managers=[];managersSnap.forEach(doc=>{store.managers.push(doc.data());});
@@ -2274,8 +2272,9 @@ async function loadAllData(){
     store.communityJams=[];jamsSnap.forEach(doc=>{store.communityJams.push(doc.data());});
     store.attendances={};attendancesSnap.forEach(doc=>{store.attendances[doc.id]=doc.data().events||[];});
     store.universes=[];universesSnap.forEach(doc=>{store.universes.push(doc.data());});
-    store.subscriptionTypes=[];subTypesSnap.forEach(doc=>{store.subscriptionTypes.push(doc.data());});
-    store.subscriptions=[];subsSnap.forEach(doc=>{store.subscriptions.push(doc.data());});
+    // Load subscription collections separately (fault-tolerant: won't block if Firestore rules don't include them yet)
+    try{const subTypesSnap=await fbDb.collection('subscriptionTypes').get();store.subscriptionTypes=[];subTypesSnap.forEach(doc=>{store.subscriptionTypes.push(doc.data());});}catch(e){console.warn('subscriptionTypes load skipped:',e.message);store.subscriptionTypes=[];}
+    try{const subsSnap=await fbDb.collection('subscriptions').get();store.subscriptions=[];subsSnap.forEach(doc=>{store.subscriptions.push(doc.data());});}catch(e){console.warn('subscriptions load skipped:',e.message);store.subscriptions=[];}
     // Auto-create AcroYoga universe if missing
     if(!store.universes.find(u=>u.id==='univ_acro')){
       const acroUniv={id:'univ_acro',name:'AcroYoga',emoji:'🤸',color:'#D07840',roles:['Base','Flyer','Entrambi'],pendingRoles:[],status:'active',createdBy:'system',approvedBy:'system',createdAt:new Date().toISOString()};
