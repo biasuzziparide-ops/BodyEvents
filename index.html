@@ -213,6 +213,7 @@ textarea.input{resize:none;font-family:inherit}
 .map-popup-btn{display:inline-block;margin-top:8px;padding:5px 14px;border-radius:8px;background:var(--brand-d);color:#fff;font-size:.75rem;font-weight:600;cursor:pointer;border:none;transition:background .15s}
 .map-popup-btn:hover{background:var(--brand)}
 .map-marker{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;color:#fff;border:2px solid rgba(255,255,255,.3);box-shadow:0 2px 8px rgba(0,0,0,.4);transform:translate(-50%,-50%)}
+.map-marker-outline{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;background:transparent !important;border:3px solid;box-shadow:0 2px 8px rgba(0,0,0,.4);transform:translate(-50%,-50%)}
 .view-toggle{display:inline-flex;border-radius:10px;overflow:hidden;border:1px solid var(--s400);background:var(--s200)}
 .view-toggle button{padding:7px 18px;font-size:.8rem;font-weight:600;border:none;cursor:pointer;transition:all .15s;background:transparent;color:var(--txt3)}
 .view-toggle button.active-toggle{background:var(--brand-d);color:#fff}
@@ -2083,7 +2084,7 @@ async function loadAllData(){
     store.universes=[];universesSnap.forEach(doc=>{store.universes.push(doc.data());});
     // Auto-create AcroYoga universe if missing
     if(!store.universes.find(u=>u.id==='univ_acro')){
-      const acroUniv={id:'univ_acro',name:'AcroYoga',emoji:'🤸',color:'#10b981',roles:['Base','Flyer','Entrambi'],pendingRoles:[],status:'active',createdBy:'system',approvedBy:'system',createdAt:new Date().toISOString()};
+      const acroUniv={id:'univ_acro',name:'AcroYoga',emoji:'🤸',color:'#D07840',roles:['Base','Flyer','Entrambi'],pendingRoles:[],status:'active',createdBy:'system',approvedBy:'system',createdAt:new Date().toISOString()};
       store.universes.push(acroUniv);
       fsSet('universes','univ_acro',acroUniv).catch(console.error);
     }
@@ -2111,7 +2112,7 @@ function resetStoreData(){_dataLoaded=false;store.events=[];store.bookings=[];st
 /* ==============================
    UNIVERSI — HELPERS & FUNCTIONS
 ============================== */
-const UNIVERSE_PALETTE=['#10b981','#3b82f6','#a855f7','#f59e0b','#ef4444','#ec4899','#06b6d4','#84cc16','#f97316','#6366f1'];
+const UNIVERSE_PALETTE=['#D07840','#4DB88A','#A8608E','#C8A830','#B04848','#4890A8','#6E9830','#C08050','#7858A0','#508868'];
 
 function getUniverseColor(univId){const u=store.universes.find(x=>x.id===univId);return u?u.color:'#a3a3a3';}
 function getUniverseName(univId){const u=store.universes.find(x=>x.id===univId);return u?u.name:'—';}
@@ -2125,12 +2126,26 @@ function getMultiUniverseBadgesHtml(ev){
   const ids=ev.universeIds||[ev.universeId].filter(Boolean);
   return ids.map(id=>getUniverseBadgeHtml(id)).join('');
 }
-function getMultiUniverseBorderStyle(ev){
+function getMultiUniverseBorderStyle(ev,isCommunity){
   const ids=ev.universeIds||[ev.universeId].filter(Boolean);
-  if(ids.length<=1)return 'border-left:4px solid '+getUniverseColor(ids[0]||'univ_acro');
-  // Multi-universe gradient border
+  const bType=isCommunity?'dashed':'solid';
+  if(ids.length<=1){
+    const c=getUniverseColor(ids[0]||'univ_acro');
+    return 'border-left:8px '+bType+' '+c+';background:linear-gradient(90deg,'+c+'0C 0%,transparent 40%)';
+  }
+  // Multi-universe segmented border with soft edges
   const colors=ids.map(id=>getUniverseColor(id));
-  return 'border-left:4px solid '+colors[0]+';border-image:linear-gradient(to bottom,'+colors.join(',')+') 1';
+  const n=colors.length;
+  const stops=[];
+  colors.forEach((c,i)=>{
+    const segStart=Math.round(i/n*100);
+    const segEnd=Math.round((i+1)/n*100);
+    if(i>0)stops.push(c+' '+segStart+'%');
+    else stops.push(c+' 0%');
+    stops.push(c+' '+segEnd+'%');
+  });
+  const bgStops=colors.map((c,i)=>{const s=Math.round(i/n*100);const e=Math.round((i+1)/n*100);return c+'08 '+s+'%,'+c+'08 '+e+'%';}).join(',');
+  return 'border-left:8px '+bType+';border-image:linear-gradient(to bottom,'+stops.join(',')+') 1;border-radius:0;background:linear-gradient(90deg,'+bgStops+',transparent 40%)';
 }
 function getActiveUniverses(){return store.universes.filter(u=>u.status==='active');}
 function getPendingUniverses(){return store.universes.filter(u=>u.status==='pending');}
@@ -2451,7 +2466,7 @@ function populateUniverseFilters(){
   let active=getActiveUniverses();
   // Fallback: if store.universes is empty, ensure at least AcroYoga is present
   if(!active.length&&!store.universes.length){
-    const acroUniv={id:'univ_acro',name:'AcroYoga',emoji:'🤸',color:'#10b981',roles:['Base','Flyer','Entrambi'],pendingRoles:[],status:'active',createdBy:'system',approvedBy:'system',createdAt:new Date().toISOString()};
+    const acroUniv={id:'univ_acro',name:'AcroYoga',emoji:'🤸',color:'#D07840',roles:['Base','Flyer','Entrambi'],pendingRoles:[],status:'active',createdBy:'system',approvedBy:'system',createdAt:new Date().toISOString()};
     store.universes.push(acroUniv);
     active=[acroUniv];
   }
@@ -3892,14 +3907,14 @@ function renderUserEvents(){
           <span style="font-size:1.4rem;font-weight:700;color:var(--brand-l)">${dayNum}</span>
           <span style="font-size:.65rem;color:rgba(240,171,252,.5);text-transform:uppercase">${monthStr}</span>
         </div>`;
-    return `<div class="card-hover mb-4" style="${getMultiUniverseBorderStyle(ev)}" onclick="showEventDetail('${ev.id}')">
+    return `<div class="card-hover mb-4" style="${getMultiUniverseBorderStyle(ev,false)}" onclick="showEventDetail('${ev.id}')">
       <div class="flex gap-4" style="align-items:flex-start">
         ${cardThumb}
         <div class="flex-1">
           <h3 class="text-lg font-semibold text-white" style="margin-bottom:4px">${ev.title}</h3>
           <p class="text-sm txt3">${ev.description.substring(0,80)}${ev.description.length>80?'...':''}</p>
           <div class="flex gap-2 mt-2 flex-wrap">
-            ${getMultiUniverseBadgesHtml(ev)}<span class="badge ${badgeType(ev.type)}">${capitalize(ev.type)}</span>${daysBadge}${levelBadges}${recBadge}${pricingBadge}${confirmBadge}${bookClosedBadge}
+            ${getMultiUniverseBadgesHtml(ev)}<span class="badge ${badgeType(ev.type)}">${capitalize(ev.type)}</span><span class="badge" style="background:rgba(255,255,255,.04);color:var(--txt2);border:1px solid rgba(255,255,255,.08);font-size:.6rem">🏷️ Organizzato</span>${daysBadge}${levelBadges}${recBadge}${pricingBadge}${confirmBadge}${bookClosedBadge}
           </div>
           <div class="flex gap-4 mt-2 text-xs txt3">
             <span>📅 ${dateRange}</span><span>🕐 ${d0?.startTime||''} — ${d0?.endTime||''}</span>
@@ -3933,7 +3948,7 @@ function renderUserEvents(){
     const isJoined=(jam.participants||[]).some(p=>p.userId===uid);
     const joinedBadge=isJoined?'<span class="badge" style="background:rgba(16,185,129,.15);color:var(--green)">✅ Iscritto</span>':'';
     const univBadges=(jam.universeIds||[]).map(id=>getUniverseBadgeHtml(id)).join('');
-    const borderStyle=(jam.universeIds||[]).length?getMultiUniverseBorderStyle({universeIds:jam.universeIds}):'border-left:4px solid var(--green)';
+    const borderStyle=(jam.universeIds||[]).length?getMultiUniverseBorderStyle({universeIds:jam.universeIds},true):'border-left:8px dashed var(--green);background:linear-gradient(90deg,rgba(16,185,129,.05) 0%,transparent 40%)';
     return `<div class="card-hover mb-4" style="${borderStyle}" onclick="showJamDetail('${jam.id}')">
       <div class="flex gap-4" style="align-items:flex-start">
         <div style="flex-shrink:0;width:56px;height:56px;border-radius:12px;background:rgba(16,185,129,.1);display:flex;flex-direction:column;align-items:center;justify-content:center">
@@ -3941,7 +3956,7 @@ function renderUserEvents(){
           <span style="font-size:.6rem;color:rgba(16,185,129,.5)">${monthStr}</span>
         </div>
         <div class="flex-1">
-          <div class="flex gap-2 flex-wrap mb-1">${univBadges}<span class="badge badge-jam">${getJamTypeDisplay(jam.type||'jam')}</span><span class="badge" style="background:rgba(16,185,129,.1);color:var(--green)">Community</span>${joinedBadge}</div>
+          <div class="flex gap-2 flex-wrap mb-1">${univBadges}<span class="badge badge-jam">${getJamTypeDisplay(jam.type||'jam')}</span><span class="badge" style="background:rgba(255,255,255,.04);color:var(--txt2);border:1px dashed rgba(255,255,255,.12);font-size:.6rem">🤝 Community</span>${joinedBadge}</div>
           <h3 class="font-semibold text-white">${jam.title}</h3>
           <div class="flex gap-3 mt-1 text-xs txt3">
             <span>📅 ${fmtDate(jam.date)}</span><span>🕐 ${jam.startTime} — ${jam.endTime}</span>
@@ -4286,27 +4301,47 @@ async function geocodeAndRenderMap(){
     const univIds=ev.universeIds||[ev.universeId].filter(Boolean);
     const univ=univIds.length?store.universes.find(u=>u.id===univIds[0]):null;
     const color=univ?univ.color:(MARKER_COLORS[ev.type]||'#d946ef');
+    const isCommunity=!!ev._isCommunity;
+    const letter=ev.type==='jam'?'J':ev.type==='lezione'?'L':ev.type==='workshop'?'W':ev.type==='pratica'?'P':ev.type==='social'?'S':'E';
+    let markerHtml='';
+    if(univIds.length>1){
+      // Multi-universe: conic-gradient marker
+      const colors=univIds.map(id=>getUniverseColor(id));
+      const n=colors.length;const conicStops=colors.map((c,i)=>c+' '+Math.round(i/n*360)+'deg '+Math.round((i+1)/n*360)+'deg').join(',');
+      if(isCommunity){
+        markerHtml='<div class="map-marker-outline" style="border-color:'+colors[0]+';background:conic-gradient('+conicStops+') !important;-webkit-background-clip:padding-box;color:'+colors[0]+'">'+letter+'</div>';
+      }else{
+        markerHtml='<div class="map-marker" style="background:conic-gradient('+conicStops+')">'+letter+'</div>';
+      }
+    }else if(isCommunity){
+      markerHtml='<div class="map-marker-outline" style="border-color:'+color+';color:'+color+'">'+letter+'</div>';
+    }else{
+      markerHtml='<div class="map-marker" style="background:'+color+'">'+letter+'</div>';
+    }
     const icon=L.divIcon({
       className:'',
-      html:'<div class="map-marker" style="background:'+color+'">'+(ev.type==='jam'?'J':ev.type==='lezione'?'L':'W')+'</div>',
+      html:markerHtml,
       iconSize:[32,32],iconAnchor:[16,16],popupAnchor:[0,-20]
     });
     const d0=ev.days&&ev.days[0];
     const dateStr=d0?fmtDate(d0.date):'';
     const timeStr=d0?(d0.startTime+' — '+d0.endTime):'';
-    const priceStr='da €'+minPrice(ev);
+    const priceStr=isCommunity?'Gratuito':'da €'+minPrice(ev);
+    const sourceBadge=isCommunity?'<span style="font-size:.6rem;padding:2px 6px;border-radius:6px;background:rgba(255,255,255,.04);color:#b0b0c0;border:1px dashed rgba(255,255,255,.12)">🤝 Community</span>':'<span style="font-size:.6rem;padding:2px 6px;border-radius:6px;background:rgba(255,255,255,.04);color:#b0b0c0;border:1px solid rgba(255,255,255,.08)">🏷️ Organizzato</span>';
+    const detailFn=isCommunity?'showJamDetail':'showEventDetail';
     const popup=L.popup({maxWidth:260,closeButton:true}).setContent(
       '<div>'+
-        '<div style="display:flex;gap:6px;margin-bottom:6px">'+
+        '<div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap">'+
           '<span class="badge '+badgeType(ev.type)+'" style="font-size:.65rem">'+capitalize(ev.type)+'</span>'+
           (univ?'<span style="font-size:.65rem;padding:2px 8px;border-radius:8px;background:'+univ.color+'25;color:'+univ.color+'">'+univ.emoji+' '+univ.name+'</span>':'')+
+          sourceBadge+
         '</div>'+
         '<div class="map-popup-title">'+ev.title+'</div>'+
         '<div class="map-popup-meta">📅 '+dateStr+'</div>'+
         '<div class="map-popup-meta">🕐 '+timeStr+'</div>'+
         '<div class="map-popup-meta">📍 '+ev.location+'</div>'+
         '<div class="map-popup-meta">👤 '+ev.teacher+' · '+priceStr+'</div>'+
-        '<button class="map-popup-btn" onclick="showEventDetail(\''+ev.id+'\')">Vedi dettaglio →</button>'+
+        '<button class="map-popup-btn" onclick="'+detailFn+'(\''+ev.id+'\')">Vedi dettaglio →</button>'+
       '</div>'
     );
     const marker=L.marker([lat,lng],{icon}).addTo(eventsMap).bindPopup(popup);
@@ -8519,7 +8554,7 @@ async function submitMasterSetup(){
 
     // Ensure at least AcroYoga universe exists
     if(!store.universes.length){
-      const acroUniv={id:'univ_acro',name:'AcroYoga',emoji:'🤸',color:'#10b981',roles:['Base','Flyer','Entrambi'],pendingRoles:[],status:'active',createdBy:'system',approvedBy:'system',createdAt:now};
+      const acroUniv={id:'univ_acro',name:'AcroYoga',emoji:'🤸',color:'#D07840',roles:['Base','Flyer','Entrambi'],pendingRoles:[],status:'active',createdBy:'system',approvedBy:'system',createdAt:now};
       await fbDb.collection('universes').doc('univ_acro').set(acroUniv);
       store.universes.push(acroUniv);
       if(!selectedUnivs.includes('univ_acro'))selectedUnivs.push('univ_acro');
