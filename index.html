@@ -1630,6 +1630,13 @@ textarea.input{resize:none;font-family:inherit}
     </div>
   </div>
 
+  <!-- Guida e tutorial -->
+  <div class="card mb-4">
+    <h3 class="font-semibold text-white mb-3">📖 Guide e tutorial</h3>
+    <p class="text-xs txt3 mb-3">Rivedi tutti i badge informativi e i tour guidati al prossimo accesso alla piattaforma.</p>
+    <button class="btn btn-sm btn-secondary" onclick="obReset();showToast('Badge e tutorial resettati! Verranno mostrati di nuovo al prossimo accesso.')">🔄 Rivedi tutti i badge e tutorial</button>
+  </div>
+
   <!-- Stats personali -->
   <div class="card mb-4">
     <h3 class="font-semibold text-white mb-3">Le mie statistiche</h3>
@@ -2401,7 +2408,7 @@ async function handleProposeOrCreateUniverse(){
   const roles=rolesRaw?rolesRaw.split(',').map(r=>r.trim()).filter(Boolean):[];
   // Check duplicate name
   if(store.universes.find(u=>u.name.toLowerCase()===name.toLowerCase())){showToast('Esiste già un universo con questo nome','error');return;}
-  const isMaster=store.currentUser.masterKey===true;
+  const isMaster=store.currentUser.role==='master';
   if(isMaster){
     // Master creates directly as active
     await createUniverseDirect(name,emoji,color,roles);
@@ -2558,7 +2565,7 @@ function renderProfileUniverseSettings(){
 
 // Render admin universes management view
 function renderAdminUniversesView(){
-  const isMaster=store.currentUser.masterKey===true;
+  const isMaster=store.currentUser.role==='master';
   const pending=getPendingUniverses();
   const active=getActiveUniverses();
   const cntA=document.getElementById('active-univs-count');if(cntA)cntA.textContent=active.length;
@@ -2792,7 +2799,7 @@ function switchSubTab(tab,btn){
 
 function renderSubTypes(c){
   const mgr=store.currentUser;
-  const isMaster=mgr.masterKey===true;
+  const isMaster=mgr.role==='master';
   const myTypes=store.subscriptionTypes.filter(t=>isMaster||t.managerId===mgr.id);
   if(!myTypes.length){
     c.innerHTML='<div class="card text-center txt3" style="padding:40px">Nessuna tipologia creata. Clicca <strong>➕ Nuova tipologia</strong> per iniziare.</div>';
@@ -2837,7 +2844,7 @@ function renderSubTypes(c){
 
 function renderSubAssigned(c){
   const mgr=store.currentUser;
-  const isMaster=mgr.masterKey===true;
+  const isMaster=mgr.role==='master';
   const mySubs=store.subscriptions.filter(s=>isMaster||s.managerId===mgr.id);
 
   // Filters
@@ -2884,7 +2891,7 @@ function renderSubAssigned(c){
 
 function renderSubAssignQR(c){
   const mgr=store.currentUser;
-  const isMaster=mgr.masterKey===true;
+  const isMaster=mgr.role==='master';
   const myTypes=store.subscriptionTypes.filter(t=>(isMaster||t.managerId===mgr.id)&&(t.status||'active')==='active');
   let html='<div class="card mb-4"><h3 class="font-semibold text-white mb-3">📱 Assegna abbonamento via QR</h3>';
   html+='<p class="text-sm txt2 mb-4">Seleziona una tipologia e genera un QR code. L\'utente lo scansionerà per ricevere l\'abbonamento.</p>';
@@ -3001,7 +3008,7 @@ function openSubTypeModal(editId){
   const existing=editId?store.subscriptionTypes.find(t=>t.id===editId):null;
   const mgr=store.currentUser;
   const mgrUnivs=mgr.universes||['univ_acro'];
-  const activeUnivs=getActiveUniverses().filter(u=>mgrUnivs.includes(u.id)||(mgr.masterKey===true));
+  const activeUnivs=getActiveUniverses().filter(u=>mgrUnivs.includes(u.id)||(mgr.role==='master'));
   const evTypes=[{v:'jam',l:'Jam'},{v:'lezione',l:'Lezione'},{v:'workshop',l:'Workshop'},{v:'ritiro',l:'Ritiro'}];
 
   const o=document.createElement('div');o.className='overlay';
@@ -3130,7 +3137,7 @@ async function updateSubStatus(subId,status){
 
 async function exportSubsExcel(){
   const mgr=store.currentUser;
-  const isMaster=mgr.masterKey===true;
+  const isMaster=mgr.role==='master';
   const mySubs=store.subscriptions.filter(s=>isMaster||s.managerId===mgr.id);
   if(!mySubs.length){showToast('Nessun dato da esportare','error');return;}
   const wb=new ExcelJS.Workbook();
@@ -3164,7 +3171,7 @@ async function exportSubsExcel(){
 // Populate subscription type checkboxes in event creation form
 function populateSubTypeCheckboxes(){
   const mgr=store.currentUser;
-  const isMaster=mgr.masterKey===true;
+  const isMaster=mgr.role==='master';
   const myTypes=store.subscriptionTypes.filter(t=>(isMaster||t.managerId===mgr.id)&&(t.status||'active')==='active');
   ['ne-sub-bookable-types','ne-sub-discount-types'].forEach(containerId=>{
     const c=document.getElementById(containerId);if(!c)return;
@@ -4012,6 +4019,87 @@ function _doBookNormal(){
     }
   });
   if(conflicts)return;
+
+  // === CROSS-EVENT OVERLAP DETECTION ===
+  // Build time slots for the current selection
+  const _newSlots=[];
+  ev.days.forEach((day,di)=>{
+    const dayDate=day.date;
+    // Event-level selection → all days
+    if(selectedTiers['tier-evfull-'+ev.id]||selectedTiers['tier-ebev-'+ev.id]||selectedTiers['tier-lev-'+ev.id]){
+      if(day.sessions&&day.sessions.length){
+        day.sessions.forEach(s=>{if(s.startTime&&s.endTime)_newSlots.push({date:dayDate,start:s.startTime,end:s.endTime,label:s.name});});
+      }else if(day.startTime&&day.endTime){
+        _newSlots.push({date:dayDate,start:day.startTime,end:day.endTime,label:'Giornata '+fmtDateShort(dayDate)});
+      }
+    }
+    // Day-level selection
+    else if(selectedTiers['tier-day-'+ev.id+'-'+di]||selectedTiers['tier-ebday-'+ev.id+'-'+di]||selectedTiers['tier-lday-'+ev.id+'-'+di]){
+      if(day.sessions&&day.sessions.length){
+        day.sessions.forEach(s=>{if(s.startTime&&s.endTime)_newSlots.push({date:dayDate,start:s.startTime,end:s.endTime,label:s.name});});
+      }else if(day.startTime&&day.endTime){
+        _newSlots.push({date:dayDate,start:day.startTime,end:day.endTime,label:'Giornata '+fmtDateShort(dayDate)});
+      }
+    }
+    // Session-level selection
+    else if(day.sessions){
+      day.sessions.forEach(s=>{
+        if(selectedTiers['tiers-'+s.id]&&s.startTime&&s.endTime){
+          _newSlots.push({date:dayDate,start:s.startTime,end:s.endTime,label:s.name});
+        }
+      });
+    }
+  });
+  // Check against user's existing active bookings
+  if(_newSlots.length){
+    const myBookings=store.bookings.filter(b=>b.userId===store.currentUser.id&&b.status!=='cancellata'&&b.eventId!==ev.id);
+    for(const bk of myBookings){
+      const bkEv=store.events.find(e=>e.id===bk.eventId);
+      if(!bkEv||!bkEv.days)continue;
+      // Build time slots for existing booking
+      const _existSlots=[];
+      const bkScope=bk.scope||'evento';
+      const bkSessIds=bk.sessions||[];
+      bkEv.days.forEach(d=>{
+        if(bkScope==='evento'){
+          // Booked whole event → all sessions/days
+          if(d.sessions&&d.sessions.length){
+            d.sessions.forEach(s=>{if(s.startTime&&s.endTime)_existSlots.push({date:d.date,start:s.startTime,end:s.endTime,evTitle:bkEv.title,label:s.name});});
+          }else if(d.startTime&&d.endTime){
+            _existSlots.push({date:d.date,start:d.startTime,end:d.endTime,evTitle:bkEv.title,label:bkEv.title});
+          }
+        }else if(bkScope==='giornata'){
+          // Check if this day was booked (look in items for matching date)
+          const dayBooked=bk.items&&bk.items.some(it=>(it.type||'').includes('giornata')&&it.date===fmtDateShort(d.date));
+          if(dayBooked){
+            if(d.sessions&&d.sessions.length){
+              d.sessions.forEach(s=>{if(s.startTime&&s.endTime)_existSlots.push({date:d.date,start:s.startTime,end:s.endTime,evTitle:bkEv.title,label:s.name});});
+            }else if(d.startTime&&d.endTime){
+              _existSlots.push({date:d.date,start:d.startTime,end:d.endTime,evTitle:bkEv.title,label:bkEv.title});
+            }
+          }
+        }else{
+          // Session-level → use booked session IDs
+          if(d.sessions){
+            d.sessions.forEach(s=>{
+              if(bkSessIds.includes(s.id)&&s.startTime&&s.endTime){
+                _existSlots.push({date:d.date,start:s.startTime,end:s.endTime,evTitle:bkEv.title,label:s.name});
+              }
+            });
+          }
+        }
+      });
+      // Compare slots
+      for(const ns of _newSlots){
+        for(const es of _existSlots){
+          if(ns.date===es.date&&ns.start<es.end&&es.start<ns.end){
+            showToast('Sovrapposizione! "'+ns.label+'" si sovrappone con "'+es.label+'" dell\'evento "'+es.evTitle+'" a cui sei già iscritto.','error');
+            return;
+          }
+        }
+      }
+    }
+  }
 
   // Collect what the user selected
   const tierLabel=t=>t==='alto'?'Sostenitore':t==='medio'?'Standard':'Ridotto';
