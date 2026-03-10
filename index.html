@@ -1101,9 +1101,19 @@ textarea.input{resize:none;font-family:inherit}
       </div>
     </div>
 
-    <!-- Step 1b: Modalità costi -->
+    <!-- Step 2: Giornate (dinamiche) -->
+    <div class="card mb-4">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-semibold text-white">📅 Giornate & Sessioni</h3>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="addFormDay()">+ Aggiungi giornata</button>
+      </div>
+      <div id="ne-days-container"><!-- renderFormDays() --></div>
+    </div>
+
+    <!-- Specifiche costi non standard -->
     <div class="card mb-4" id="ne-pricing-mode-card">
-      <h3 class="font-semibold text-white mb-4">💰 Modalità costi</h3>
+      <h3 class="font-semibold text-white mb-4">⚙️ Specifiche costi non standard</h3>
+      <p class="text-xs txt3 mb-4" style="line-height:1.5">Queste opzioni <strong>non definiscono</strong> il prezzo dell'evento. Servono a indicare configurazioni particolari relative ai costi (es. evento gratuito o gestione diretta con l'organizzatore).</p>
       <div class="mb-3">
         <label class="flex items-center gap-3 text-sm" style="cursor:pointer">
           <input type="checkbox" id="ne-free-event" onchange="onPricingModeChange()">
@@ -1118,15 +1128,6 @@ textarea.input{resize:none;font-family:inherit}
         </label>
         <p class="text-xs txt3 mt-1" style="margin-left:28px">I costi non saranno mostrati nella scheda. L'utente vedrà un avviso che lo invita a contattare l'organizzatore per informazioni.</p>
       </div>
-    </div>
-
-    <!-- Step 2: Giornate (dinamiche) -->
-    <div class="card mb-4">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="font-semibold text-white">📅 Giornate & Sessioni</h3>
-        <button type="button" class="btn btn-secondary btn-sm" onclick="addFormDay()">+ Aggiungi giornata</button>
-      </div>
-      <div id="ne-days-container"><!-- renderFormDays() --></div>
     </div>
 
     <!-- Step 3: Donazioni (livello evento intero) — visibile solo con più giornate -->
@@ -2044,6 +2045,20 @@ function obReset(){localStorage.removeItem(OB_KEY);}
 
 // === TOUR DEFINITIONS ===
 const OB_TOURS={
+  // --- WELCOME TOUR (post-registration) ---
+  tour_welcome:{
+    slides:[
+      {icon:'👋',title:'Benvenuto su BodyEvents!',text:'Questa piattaforma è una <b>bacheca comunitaria</b> dove puoi scoprire eventi, proporne di nuovi e organizzare attività. L\'obiettivo è offrire un <b>palinsesto il più ampio possibile</b>, rappresentando diverse comunità e i loro eventi.'},
+      {icon:'🌌',title:'Gli Universi',text:'Gli eventi sono organizzati in <b>universi tematici</b>: ogni universo raccoglie un\'area di pratica o interesse (es. AcroYoga, Danza, Yoga...). All\'interno di ogni universo trovi diverse tipologie: <b>lezioni, workshop, jam, ritiri</b> e altro. Iscrivendoti agli universi che ti interessano, vedrai i relativi eventi nella home.'}
+    ]
+  },
+  tour_welcome_org:{
+    slides:[
+      {icon:'👋',title:'Benvenuto su BodyEvents!',text:'Questa piattaforma è una <b>bacheca comunitaria</b> per scoprire, proporre e organizzare eventi. Qui puoi gestire il tuo palinsesto, condividere informazioni logistiche e raggiungere le diverse comunità.'},
+      {icon:'🌌',title:'Gli Universi',text:'Gli eventi sono organizzati in <b>universi tematici</b>: ogni universo raccoglie un\'area di pratica (es. AcroYoga, Danza, Yoga...). Al suo interno trovi <b>lezioni, workshop, jam, ritiri</b> e altro. I tuoi eventi saranno collegati agli universi che scegli.'},
+      {icon:'🚀',title:'Inizia subito',text:'Dalla <b>barra laterale sinistra</b> accedi a tutte le sezioni: <b>📅 Eventi</b>, <b>📱 Check-in QR</b>, <b>💳 Abbonamenti</b>, <b>🤝 Community Events</b> e <b>🌌 Universi</b>. Puoi passare alla vista utente in qualsiasi momento dal toggle in alto.'}
+    ]
+  },
   // --- USER TOURS ---
   tour_events:{
     slides:[
@@ -2060,8 +2075,8 @@ const OB_TOURS={
   },
   tour_jams:{
     slides:[
-      {icon:'🤝',title:'Community Jams',text:'Qui trovi le <b>Jam della community</b>: eventi informali proposti da altri utenti come te. Possono essere jam, pratiche libere o incontri social.'},
-      {icon:'➕',title:'Crea la tua Jam!',text:'Premi il pulsante <b>"+ Proponi"</b> per creare un incontro. Scegli universo, luogo, data e orario. Puoi impostare un <b>numero minimo</b> di partecipanti: l\'evento verrà confermato solo al raggiungimento.'}
+      {icon:'🤝',title:'Community Events',text:'Qui trovi i <b>Community Events</b>: eventi informali proposti dagli utenti della piattaforma. Possono avere <b>qualsiasi tematica</b> e servono a sviluppare connessioni, conoscenze, senso di comunità e amicizia tra i partecipanti.'},
+      {icon:'➕',title:'Crea il tuo Community Event!',text:'Premi il pulsante <b>"+ Proponi"</b> per creare il tuo evento. Scegli universo, luogo, data e orario. Puoi impostare un <b>numero minimo</b> di partecipanti: l\'evento verrà confermato solo al raggiungimento.'}
     ]
   },
   tour_dashboard:{
@@ -2074,7 +2089,7 @@ const OB_TOURS={
   tour_admin_intro:{
     slides:[
       {icon:'🛡️',title:'Pannello Organizzatore',text:'Benvenuto nel tuo pannello! Da qui gestisci <b>eventi, prenotazioni, check-in</b> e community. Le card in alto mostrano le statistiche chiave.'},
-      {icon:'📱',title:'Navigazione',text:'Usa il <b>menu in basso</b> per navigare tra le sezioni. Puoi tornare alla <b>vista utente</b> in qualsiasi momento dal toggle in alto. Le sezioni principali sono: Eventi, Check-in QR, Community e Universi.'}
+      {icon:'📱',title:'Navigazione',text:'Usa la <b>barra laterale sinistra</b> per navigare tra le sezioni. Puoi tornare alla <b>vista utente</b> in qualsiasi momento dal toggle in alto. Le sezioni principali sono: Eventi, Check-in QR, Abbonamenti, Community Events e Universi.'}
     ]
   },
   tour_admin_events:{
@@ -2086,8 +2101,8 @@ const OB_TOURS={
   },
   tour_admin_event_detail:{
     slides:[
-      {icon:'📊',title:'Scheda di Controllo Evento',text:'Qui trovi <b>tutte le metriche</b>: prenotati confermati/in attesa/cancellati, entrate totali, caparre e rimborsi. Puoi filtrare per <b>📊 Generale</b> o <b>📋 Per sessione</b>.'},
-      {icon:'📋',title:'Tabella Partecipanti',text:'La tabella è <b>ordinabile</b> cliccando sulle intestazioni. Per ogni partecipante puoi: <b>✅ confermare pagamento</b>, <b>💰 registrare caparra</b>, vedere le <b>risposte ai sondaggi</b>.'},
+      {icon:'📊',title:'Scheda di Controllo Evento',text:'Qui trovi <b>tutte le metriche</b>: prenotati confermati/in attesa/cancellati, entrate totali, anticipi e rimborsi. Puoi filtrare per <b>📊 Generale</b> o <b>📋 Per sessione</b>.'},
+      {icon:'📋',title:'Tabella Partecipanti',text:'La tabella è <b>ordinabile</b> cliccando sulle intestazioni. Per ogni partecipante puoi: <b>✅ confermare pagamento</b>, <b>💰 registrare anticipo</b>, vedere le <b>risposte ai sondaggi</b>.'},
       {icon:'📥',title:'Esportazione e Stampa',text:'Premi <b>📥 Scarica Excel</b> per esportare l\'elenco completo dei partecipanti con tutti i dettagli (ruolo, sessioni, pagamenti, risposte sondaggio). Funziona sia per il totale evento che per singola sessione.'}
     ]
   },
@@ -2095,8 +2110,8 @@ const OB_TOURS={
     slides:[
       {icon:'✨',title:'Crea il tuo Evento',text:'La creazione ha diverse sezioni. I campi con <b>*</b> sono obbligatori. Puoi <b>salvare come bozza</b> in qualsiasi momento e tornare a completare dopo.'},
       {icon:'📅',title:'Giornate e Sessioni',text:'Ogni evento può avere <b>più giornate</b>. Per ogni giornata puoi definire <b>sessioni separate</b> con orari, insegnanti e prezzi diversi. Le sessioni sono i blocchi di attività all\'interno di una giornata.'},
-      {icon:'💰',title:'Sistema Prezzi',text:'Il prezzo funziona su <b>3 livelli</b>: ✦ Alto (Sostenitore), ● Medio (Standard), ○ Basso (Ridotto). L\'utente sceglie quanto supportarti. Puoi attivare sconti <b>🐦 Early Bird</b> e <b>🎁 Fedeltà</b>.'},
-      {icon:'⚙️',title:'Opzioni Avanzate',text:'Nella sezione ⚙️ trovi: <b>🔄 Ricorrenza</b> (evento settimanale che si ripete finché non lo blocchi), <b>👥 Numero minimo</b> partecipanti, <b>🔒 Caparra</b>, <b>📝 Sondaggio</b> personalizzato per i partecipanti e <b>🗓️ Deadline</b> prenotazioni.'}
+      {icon:'💰',title:'Sistema Prezzi',text:'Di default, ogni evento ha un <b>prezzo standard unico</b>. L\'organizzatore può però attivare un sistema a <b>3 livelli</b>: ✦ Sostenitore, ● Standard, ○ Ridotto. Il contenuto dell\'esperienza <b>non cambia</b> tra i livelli: non si compra un servizio superiore. È una <b>scelta etica e solidale</b>: chi ha più possibilità economica contribuisce a rendere l\'evento accessibile anche a chi ne ha meno. Puoi anche attivare sconti <b>🐦 Early Bird</b> e <b>🎁 Fedeltà</b>.'},
+      {icon:'⚙️',title:'Opzioni Avanzate',text:'Nella sezione ⚙️ trovi: <b>🔄 Ricorrenza</b> (evento settimanale che si ripete finché non lo blocchi), <b>👥 Numero minimo</b> partecipanti, <b>🔒 Anticipo</b> per conferma prenotazione, <b>📝 Sondaggio</b> personalizzato per i partecipanti e <b>🗓️ Deadline</b> prenotazioni.'}
     ]
   },
   tour_admin_universes:{
@@ -2109,12 +2124,12 @@ const OB_TOURS={
 // === INFO CARD DEFINITIONS ===
 const OB_INFOCARDS={
   ic_event_detail_pricing:{icon:'💡',text:'Questo evento ha <b>più giornate</b>. Puoi prenotare l\'<b>intero pacchetto</b> oppure le <b>singole giornate</b>, ognuna con le proprie sessioni e prezzi.'},
-  ic_event_detail_tiers:{icon:'💡',text:'I 3 livelli prezzo: <b>✦ Alto</b> (Sostenitore), <b>● Medio</b> (Standard), <b>○ Basso</b> (Ridotto). L\'esperienza è la stessa — scegli tu quanto supportare l\'organizzatore.'},
+  ic_event_detail_tiers:{icon:'💡',text:'Questo evento offre <b>3 livelli di prezzo</b>: ✦ Sostenitore, ● Standard, ○ Ridotto. L\'esperienza è <b>identica</b> per tutti — non si compra un servizio superiore. È una <b>scelta etica</b>: chi ha più possibilità contribuisce a rendere l\'evento accessibile anche a chi ne ha meno.'},
   ic_event_detail_earlybird:{icon:'🐦',text:'<b>Prezzo Early Bird!</b> Sconto valido fino alla data indicata o fino a un certo numero di iscritti. Approfittane!'},
   ic_event_detail_waiting:{icon:'⏳',text:'Questo evento richiede un <b>numero minimo di partecipanti</b>. Se non viene raggiunto entro la deadline, potrebbe essere annullato.'},
-  ic_jam_create:{icon:'💡',text:'Stai creando un <b>evento comunitario</b>. Scegli universo, luogo, data e orario. Puoi impostare un numero minimo: l\'evento sarà confermato solo al raggiungimento.'},
-  ic_admin_community:{icon:'💡',text:'Qui puoi <b>moderare le jam</b> proposte dalla community. Come organizzatore puoi visualizzare, modificare o annullare gli eventi comunitari legati ai tuoi universi.'},
-  ic_admin_new_event:{icon:'💡',text:'Ogni evento può avere più <b>giornate</b>, e ogni giornata più <b>sessioni</b>. Le sessioni hanno orari e prezzi propri. Apri ⚙️ <b>Opzioni Avanzate</b> per ricorrenza, caparra, sondaggi e altro.'}
+  ic_jam_create:{icon:'💡',text:'Stai creando un <b>Community Event</b>. Scegli universo, luogo, data e orario. Puoi impostare un numero minimo: l\'evento sarà confermato solo al raggiungimento.'},
+  ic_admin_community:{icon:'💡',text:'Qui puoi <b>moderare i Community Events</b> proposti dagli utenti. Come organizzatore puoi visualizzare, modificare o annullare gli eventi comunitari legati ai tuoi universi.'},
+  ic_admin_new_event:{icon:'💡',text:'Ogni evento può avere più <b>giornate</b>, e ogni giornata più <b>sessioni</b>. Le sessioni hanno orari e prezzi propri. Apri ⚙️ <b>Opzioni Avanzate</b> per ricorrenza, anticipo, sondaggi e altro.'}
 };
 
 // === TOUR RENDERING ===
@@ -3285,6 +3300,8 @@ async function loadCurrentUser(uid){
     document.getElementById('navbar-user').classList.remove('hidden');
     if(_pendingDeepLink){go('events');handleDeepLink();}
     else{go('events');}
+    // Show welcome tour for new users (first login)
+    setTimeout(()=>obShowTour('tour_welcome'),600);
     checkPrivacyConsent();
     return;
   }
@@ -3300,6 +3317,8 @@ async function loadCurrentUser(uid){
     document.getElementById('modeBanner').style.display='';
     if(_pendingDeepLink){switchMode('user');handleDeepLink();}
     else{switchMode('admin');}
+    // Show welcome tour for new organizers (first login)
+    setTimeout(()=>obShowTour('tour_welcome_org'),600);
     checkPrivacyConsent();
     return;
   }
@@ -3906,6 +3925,24 @@ function _doBookNormal(){
     if(daySelected&&sessionsSelected){
       showToast('Non puoi selezionare sia la giornata intera che singole sessioni dello stesso giorno','error');
       conflicts=true;
+    }
+  });
+  if(conflicts)return;
+
+  // Check for overlapping session selections
+  ev.days.forEach((day,di)=>{
+    const selectedSessions=(day.sessions||[]).filter(s=>!!selectedTiers['tiers-'+s.id]);
+    for(let i=0;i<selectedSessions.length;i++){
+      for(let j=i+1;j<selectedSessions.length;j++){
+        const a=selectedSessions[i],b=selectedSessions[j];
+        if(a.startTime&&a.endTime&&b.startTime&&b.endTime){
+          // Sessions overlap if one starts before the other ends
+          if(a.startTime<b.endTime&&b.startTime<a.endTime){
+            showToast('Le sessioni "'+a.name+'" e "'+b.name+'" si sovrappongono! Non puoi prenotarle entrambe.','error');
+            conflicts=true;
+          }
+        }
+      }
     }
   });
   if(conflicts)return;
