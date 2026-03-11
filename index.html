@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.9.0</title>
+<title>BodyEvents — V2.9.2</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤸</text></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -211,6 +211,9 @@ textarea.input{resize:none;font-family:inherit}
   .stat-card{padding:12px}
   .stat-card .value{font-size:1.2rem}
   .tier-suggest-banner-inner{padding:14px 40px 14px 14px}
+  #mobile-search-btn{display:block!important}
+  #filter-panel.mf-collapsed{max-height:0!important;overflow:hidden!important;border:none!important;margin:0!important;opacity:0;transition:max-height .4s ease,opacity .3s ease,margin .3s ease}
+  #filter-panel.mf-expanded{max-height:900px!important;opacity:1;transition:max-height .45s ease,opacity .3s ease,margin .3s ease;margin-bottom:24px!important}
 }
 @media(max-width:480px){
   .grid-4{grid-template-columns:1fr}
@@ -300,7 +303,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.9.0</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.9.2</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -440,6 +443,9 @@ textarea.input{resize:none;font-family:inherit}
 <div class="container" style="padding-top:32px;padding-bottom:48px">
   <h1 class="page-title">Bacheca Eventi</h1>
   <p class="page-sub mb-6">Scopri i prossimi eventi e prenota il tuo posto</p>
+
+  <!-- Mobile: bottone Ricerca collassato -->
+  <button id="mobile-search-btn" onclick="toggleMobileFilters()" style="display:none;width:100%;padding:14px 0;font-size:1rem;font-weight:600;border-radius:12px;margin-bottom:16px;cursor:pointer;background:var(--brand);color:#fff;border:none;letter-spacing:.5px;transition:all .2s">🔍 Ricerca</button>
 
   <!-- Filtri avanzati -->
   <div class="card mb-6" id="filter-panel" style="padding:0;overflow:hidden">
@@ -2415,8 +2421,8 @@ function checkTierSuggestionBanner(){
   // Eligible — show banner
   _tsbShownThisSession=true;
   const isReduced=shownCount>=3;
-  const textFull='Se vuoi, puoi aggiungere altri 2 livelli di prezzo: <b>Sostenitore</b> e <b>Ridotto</b>. È un modo per rendere l\'evento più accessibile ad alcuni e, allo stesso tempo, permettere a chi può di contribuire un po\' di più. Gli utenti potranno scegliere liberamente, e verrà spiegato loro con chiarezza che l\'esperienza è la stessa per tutti. Richiede fiducia, lo sappiamo, ma le comunità si rafforzano anche così: una delle opzioni è partire da qui.';
-  const textShort='Ricordati che puoi aggiungere il livello di prezzo <b>Sostenitore</b> e <b>Ridotto</b> per stimolare una scelta etica nella comunità.';
+  const textFull='Se vuoi, puoi aggiungere altri 2 livelli (tier) di prezzo: <b>Sostenitore</b> e <b>Ridotto</b>. È un modo per rendere l\'evento più accessibile ad alcuni e, allo stesso tempo, permettere a chi può di contribuire un po\' di più. Gli utenti potranno scegliere liberamente, e verrà spiegato loro con chiarezza che l\'esperienza è la stessa per tutti. Richiede fiducia, lo sappiamo, ma le comunità si rafforzano anche così: una delle opzioni è partire da qui.';
+  const textShort='Ricordati che puoi aggiungere il livello (tier) di prezzo <b>Sostenitore</b> e <b>Ridotto</b> per stimolare una scelta etica nella comunità.';
   const textEl=document.getElementById('tsb-text');
   const banner=document.getElementById('tier-suggest-banner');
   if(!textEl||!banner)return;
@@ -2428,7 +2434,7 @@ function checkTierSuggestionBanner(){
     banner.classList.add('visible');
     // Progress bar countdown
     const progressEl=document.getElementById('tsb-progress');
-    const duration=10000;
+    const duration=23000;
     const startTime=Date.now();
     if(progressEl){
       progressEl.style.width='100%';
@@ -2577,9 +2583,39 @@ function _obRenderTourSlide(){
 function _obNext(){_obCurrentSlide++;_obRenderTourSlide();}
 function _obPrev(){_obCurrentSlide--;_obRenderTourSlide();}
 function _obCloseTour(){
+  const closedTour=_obCurrentTour;
   _obSet(_obCurrentTour);
   const el=document.getElementById('ob-tour-overlay');if(el)el.remove();
   _obCurrentTour=null;_obCurrentSlide=0;
+  // Chain: after welcome tour on mobile, show "Add to Home" popup
+  if((closedTour==='tour_welcome'||closedTour==='tour_welcome_org')&&window.innerWidth<=768){
+    setTimeout(()=>_showAddToHomePopup(),500);
+  }
+}
+
+// === ADD-TO-HOME POPUP (mobile only) ===
+function _showAddToHomePopup(){
+  if(window.innerWidth>768)return;
+  if(obSeen('popup_add_home'))return;
+  // Don't show if already in standalone mode (user already added to home)
+  if(window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone)return;
+  const el=document.createElement('div');
+  el.id='popup-add-home';el.className='ob-overlay';
+  el.innerHTML=`<div class="ob-tour">
+    <div class="ob-tour-icon">📱</div>
+    <div class="ob-tour-title">Usa BodyEvents come fosse un'app!</div>
+    <div class="ob-tour-text" style="text-align:left;line-height:1.8">
+      <b>1.</b> Apri il menu del browser o clicca il tasto condividi<br>
+      <b>2.</b> Tocca "Aggiungi alla schermata Home"<br><br>
+      Apparirà un'icona nella tua Home, e potrai accedere come fosse un'app!
+    </div>
+    <div class="ob-tour-btns">
+      <button class="ob-btn-next" onclick="_obSet('popup_add_home');document.getElementById('popup-add-home').remove()">Ho capito!</button>
+      <button class="ob-btn-skip" onclick="document.getElementById('popup-add-home').remove()">Mostra più tardi</button>
+    </div>
+  </div>`;
+  el.onclick=(e)=>{if(e.target===el)el.remove();};
+  document.body.appendChild(el);
 }
 
 // === INFO CARD RENDERING ===
@@ -4357,7 +4393,7 @@ function go(view){
   }
   if(view==='bookings') go('dashboard');
   // Auto-render dynamic views
-  if(view==='events'){renderUserEvents();setTimeout(()=>obShowTour('tour_events'),400);}
+  if(view==='events'){renderUserEvents();initMobileFilters();setTimeout(()=>obShowTour('tour_events'),400);}
   if(view==='jams'){renderUserJams();setTimeout(()=>obShowTour('tour_jams'),400);}
   if(view==='dashboard'){renderUserDashboard();setTimeout(()=>obShowTour('tour_dashboard'),400);}
   if(view==='profile'){populateProfileFields();renderProfileUniverseSettings();renderAssistenzaBox();setTimeout(()=>obShowTour('tour_profile'),400);}
@@ -4774,8 +4810,10 @@ function showConfirm(title,msg,onOk,variant='warn'){
 ============================== */
 const DAYS_IT=['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
 const MONTHS_IT=['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+const MONTHS_IT_FULL=['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
 function fmtDate(ds){if(!ds)return'';const d=new Date(ds+'T00:00:00');return DAYS_IT[d.getDay()].substring(0,3)+' '+d.getDate()+' '+MONTHS_IT[d.getMonth()]+' '+d.getFullYear();}
 function fmtDateShort(ds){if(!ds)return'';const d=new Date(ds+'T00:00:00');return d.getDate()+' '+MONTHS_IT[d.getMonth()];}
+function fmtDateFull(ds){if(!ds)return'';const d=new Date(ds+'T00:00:00');return d.getDate()+' '+MONTHS_IT_FULL[d.getMonth()]+' '+d.getFullYear();}
 function badgeType(t){const known={jam:'badge-jam',lezione:'badge-lezione',workshop:'badge-workshop'};return known[t]||'badge-type-dynamic';}
 function badgeTypeStyle(t){const colors={jam:'var(--green-bg);color:var(--green)',lezione:'var(--blue-bg);color:var(--blue)',workshop:'var(--brand-bg);color:var(--brand)'};return colors[t]?'':'background:rgba(168,85,247,.15);color:#a855f7';}
 function badgeLevel(l){const m={open:'badge-open',base:'badge-base',intermedio:'badge-intermedio',avanzato:'badge-avanzato',multi:'badge-purple'};return m[l]||'badge-open';}
@@ -6096,6 +6134,39 @@ function resetFilters(){
   showToast('Filtri resettati');
 }
 
+// === MOBILE COLLAPSIBLE FILTERS ===
+function initMobileFilters(){
+  if(window.innerWidth>768)return;
+  const fp=document.getElementById('filter-panel');
+  const btn=document.getElementById('mobile-search-btn');
+  if(!fp||!btn)return;
+  // Collapse filters on mobile by default
+  fp.classList.add('mf-collapsed');
+  fp.classList.remove('mf-expanded');
+  btn.innerHTML='🔍 Ricerca';
+  btn.style.background='';btn.style.color='';
+}
+function toggleMobileFilters(){
+  const fp=document.getElementById('filter-panel');
+  const btn=document.getElementById('mobile-search-btn');
+  if(!fp||!btn)return;
+  if(fp.classList.contains('mf-collapsed')){
+    // Expand
+    fp.classList.remove('mf-collapsed');
+    // Force reflow then animate
+    fp.offsetHeight;
+    fp.classList.add('mf-expanded');
+    btn.innerHTML='✕ Chiudi ricerca';
+    btn.style.background='var(--s300)';btn.style.color='var(--txt)';
+  }else{
+    // Collapse
+    fp.classList.remove('mf-expanded');
+    fp.classList.add('mf-collapsed');
+    btn.innerHTML='🔍 Ricerca';
+    btn.style.background='';btn.style.color='';
+  }
+}
+
 /* ==============================
    RENDER: USER DASHBOARD (Le mie prenotazioni)
 ============================== */
@@ -6139,56 +6210,190 @@ function renderUserDashboard(){
       alertStamp=`<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-18deg);font-size:2.5rem;font-weight:900;color:${stampColor};opacity:.15;white-space:nowrap;pointer-events:none;letter-spacing:6px;z-index:1">${stampText}</div>`;
     }
 
-    // Build change diff HTML if alert is "modificato" and has previousValues
-    let changeDiffHtml='';
+    // === OPZIONE C: Modification tracking with inline highlights + compact banner ===
+    // Determine session-specific display for single-session bookings
+    const _bkSessNames=(b.scope==='sessioni'||b.scope==='sessione')&&b.items?b.items.filter(it=>it.type==='sessione').map(it=>it.name):[];
+    let _cardTimeStart=d0?.startTime||'',_cardTimeEnd=d0?.endTime||'',_cardSessionLabel='';
+    if(_bkSessNames.length===1){
+      const _sn=_bkSessNames[0];
+      ev.days.forEach(d=>(d.sessions||[]).forEach(s=>{if(s.name===_sn){_cardTimeStart=s.startTime||'';_cardTimeEnd=s.endTime||'';_cardSessionLabel=_sn;}}));
+    }
+
+    // Build change diffs if alert is "modificato" and has previousValues
+    let changeDiffs=[];
+    let hlPrice=false,hlPriceOld=null;
+    let hlTime=false,hlTimeOld='';
+    let hlDate=false,hlDateOld='';
     if(hasAlert&&alertType==='modificato'&&ev.alert.previousValues){
       const prev=ev.alert.previousValues;
       const diffs=[];
-      if(prev.location&&prev.location!==ev.location)diffs.push({label:'📍 Location',old:prev.location,now:ev.location});
-      if(prev.teacher&&prev.teacher!==ev.teacher)diffs.push({label:'👤 Insegnante',old:prev.teacher,now:ev.teacher});
+      if(prev.title&&prev.title!==ev.title)diffs.push({label:'📝 Titolo',old:prev.title,now:ev.title,field:'title'});
+      if(prev.description!=null&&prev.description!==ev.description)diffs.push({label:'📄 Descrizione evento',old:'modificata',now:'aggiornata',field:'description',isDesc:true});
+      if(prev.location&&prev.location!==ev.location)diffs.push({label:'📍 Luogo',old:prev.location,now:ev.location,field:'location'});
+      if(prev.teacher&&prev.teacher!==ev.teacher)diffs.push({label:'👤 Insegnante',old:prev.teacher,now:ev.teacher,field:'teacher'});
+      if(prev.maxSpots&&prev.maxSpots!==ev.maxSpots)diffs.push({label:'👥 Capienza',old:prev.maxSpots,now:ev.maxSpots,field:'maxSpots'});
+      // Event-level tier prices
+      if(prev.tiers&&ev.tiers){
+        ['alto','medio','basso'].forEach(tk=>{
+          if(prev.tiers[tk]!=null&&ev.tiers[tk]!=null&&prev.tiers[tk]!==ev.tiers[tk]){
+            const tl=tk==='alto'?'Sostenitore':tk==='medio'?'Standard':'Ridotto';
+            diffs.push({label:'💰 Pacchetto evento ('+tl+')',old:'€'+prev.tiers[tk],now:'€'+ev.tiers[tk],field:'price'});
+          }
+        });
+      }
       // Compare days
       if(prev.days&&ev.days){
         prev.days.forEach((pd,di)=>{
           const nd=ev.days[di];if(!nd)return;
-          if(pd.date!==nd.date)diffs.push({label:'📅 Data giornata '+(di+1),old:pd.date,now:nd.date});
-          if(pd.startTime!==nd.startTime)diffs.push({label:'🕐 Inizio giornata '+(di+1),old:pd.startTime,now:nd.startTime});
-          if(pd.endTime!==nd.endTime)diffs.push({label:'🕐 Fine giornata '+(di+1),old:pd.endTime,now:nd.endTime});
-          // Compare session times and prices
+          const dayDateFull=nd.date?(()=>{const dt=new Date(nd.date+'T00:00:00');return dt.getDate()+' '+MONTHS_IT_FULL[dt.getMonth()];})():'';
+          const dayLabel=ev.days.length>1?(dayDateFull?' ('+dayDateFull+' — giornata '+(di+1)+')':' (giornata '+(di+1)+')'):'';
+          if(pd.date!==nd.date)diffs.push({label:'📅 Data'+dayLabel,old:fmtDate(pd.date),now:fmtDate(nd.date),field:'date',dayIndex:di,isSession:false});
+          if(pd.startTime!==nd.startTime)diffs.push({label:'🕐 Inizio'+dayLabel,old:pd.startTime,now:nd.startTime,field:'time',dayIndex:di,isSession:false,isStart:true});
+          if(pd.endTime!==nd.endTime)diffs.push({label:'🕐 Fine'+dayLabel,old:pd.endTime,now:nd.endTime,field:'time',dayIndex:di,isSession:false,isStart:false});
+          // Day-level price changes
+          if(pd.tiers&&nd.tiers){
+            ['alto','medio','basso'].forEach(tk=>{
+              if(pd.tiers[tk]!=null&&nd.tiers[tk]!=null&&pd.tiers[tk]!==nd.tiers[tk]){
+                const tl=tk==='alto'?'Sostenitore':tk==='medio'?'Standard':'Ridotto';
+                diffs.push({label:'💰 Prezzo'+dayLabel+' ('+tl+')',old:'€'+pd.tiers[tk],now:'€'+nd.tiers[tk],field:'price'});
+              }
+            });
+          }
+          // Compare sessions
           if(pd.sessions&&nd.sessions){
             pd.sessions.forEach((ps,si)=>{
               const ns=nd.sessions[si];if(!ns)return;
-              if(ps.startTime!==ns.startTime)diffs.push({label:'🕐 Inizio "'+ns.name+'"',old:ps.startTime,now:ns.startTime});
-              if(ps.endTime!==ns.endTime)diffs.push({label:'🕐 Fine "'+ns.name+'"',old:ps.endTime,now:ns.endTime});
-              if(ps.tiers?.medio!==ns.tiers?.medio)diffs.push({label:'💰 Prezzo "'+ns.name+'"',old:'€'+ps.tiers?.medio,now:'€'+ns.tiers?.medio});
-              if(ps.tiers?.alto!==ns.tiers?.alto)diffs.push({label:'💰 Sostenitore "'+ns.name+'"',old:'€'+ps.tiers?.alto,now:'€'+ns.tiers?.alto});
-              if(ps.tiers?.basso!==ns.tiers?.basso)diffs.push({label:'💰 Ridotto "'+ns.name+'"',old:'€'+ps.tiers?.basso,now:'€'+ns.tiers?.basso});
+              const sLabel='"'+ns.name+'"'+(ev.days.length>1?dayLabel:'');
+              if(ps.name!==ns.name)diffs.push({label:'📝 Nome sessione'+(ev.days.length>1?dayLabel:''),old:ps.name,now:ns.name,field:'title',isSession:true});
+              if(ps.startTime!==ns.startTime)diffs.push({label:'🕐 Inizio '+sLabel,old:ps.startTime,now:ns.startTime,field:'time',dayIndex:di,isSession:true,sessionName:ns.name,isStart:true});
+              if(ps.endTime!==ns.endTime)diffs.push({label:'🕐 Fine '+sLabel,old:ps.endTime,now:ns.endTime,field:'time',dayIndex:di,isSession:true,sessionName:ns.name,isStart:false});
+              if(ps.location&&ns.location&&ps.location!==ns.location)diffs.push({label:'📍 Luogo '+sLabel,old:ps.location,now:ns.location,field:'location',isSession:true});
+              if(ps.teacher&&ns.teacher&&ps.teacher!==ns.teacher)diffs.push({label:'👤 Insegnante '+sLabel,old:ps.teacher,now:ns.teacher,field:'teacher',isSession:true});
+              if(ps.maxSpots&&ns.maxSpots&&ps.maxSpots!==ns.maxSpots)diffs.push({label:'👥 Capienza '+sLabel,old:ps.maxSpots,now:ns.maxSpots,field:'maxSpots',isSession:true});
+              if(ps.description!=null&&ns.description!=null&&ps.description!==ns.description)diffs.push({label:'📄 Descrizione '+sLabel,old:'modificata',now:'aggiornata',field:'description',isSession:true,isDesc:true});
+              // Session prices
+              ['alto','medio','basso'].forEach(tk=>{
+                if(ps.tiers?.[tk]!=null&&ns.tiers?.[tk]!=null&&ps.tiers[tk]!==ns.tiers[tk]){
+                  const tl=tk==='alto'?'Sostenitore':tk==='medio'?'Standard':'Ridotto';
+                  diffs.push({label:'💰 '+tl+' '+sLabel,old:'€'+ps.tiers[tk],now:'€'+ns.tiers[tk],field:'price',isSession:true});
+                }
+              });
             });
-          }
-          // Day-level price changes
-          if(pd.tiers&&nd.tiers){
-            if(pd.tiers.medio!==nd.tiers.medio)diffs.push({label:'💰 Prezzo giornata '+(di+1),old:'€'+pd.tiers.medio,now:'€'+nd.tiers.medio});
           }
         });
       }
-      if(diffs.length){
-        changeDiffHtml='<div class="mt-2" style="background:rgba(249,115,22,.06);border:1px solid var(--orange);border-radius:8px;padding:10px 12px"><div class="text-xs font-semibold mb-2" style="color:var(--orange)">📋 Cosa è cambiato:</div>'+diffs.map(d=>'<div class="text-xs mb-1" style="line-height:1.5"><span class="txt3">'+d.label+':</span> <span style="text-decoration:line-through;color:var(--txt3)">'+d.old+'</span> <span style="color:var(--orange);font-weight:600">→ '+d.now+'</span></div>').join('')+'</div>';
+
+      // === Detect inline-highlightable changes (Option C) ===
+      // Price: if booking amount was updated by syncBookingPrices
+      if(diffs.some(d=>d.field==='price')&&b.previousAmount!=null&&b.previousAmount!==b.amount){
+        hlPrice=true;hlPriceOld=b.previousAmount;
       }
+      // Time: session-specific for single-session bookings, day-level otherwise
+      if(_bkSessNames.length===1){
+        const _sn=_bkSessNames[0];
+        const sDiffs=diffs.filter(d=>d.field==='time'&&d.isSession&&d.sessionName===_sn);
+        if(sDiffs.length){
+          hlTime=true;
+          const sd=sDiffs.find(d=>d.isStart),ed=sDiffs.find(d=>!d.isStart);
+          hlTimeOld=(sd?sd.old:_cardTimeStart)+' — '+(ed?ed.old:_cardTimeEnd);
+        }
+      }else{
+        const dayDiffs=diffs.filter(d=>d.field==='time'&&!d.isSession&&(d.dayIndex===0||ev.days.length===1));
+        if(dayDiffs.length){
+          hlTime=true;
+          const sd=dayDiffs.find(d=>d.isStart),ed=dayDiffs.find(d=>!d.isStart);
+          hlTimeOld=(sd?sd.old:_cardTimeStart)+' — '+(ed?ed.old:_cardTimeEnd);
+        }
+      }
+      // Date
+      const dateDiffs=diffs.filter(d=>d.field==='date'&&!d.isSession&&(d.dayIndex===0||ev.days.length===1));
+      if(dateDiffs.length){hlDate=true;hlDateOld=dateDiffs[0].old;}
+
+      // Mark each diff as inline or not (for banner logic)
+      diffs.forEach(d=>{
+        d.isInline=false;
+        if(hlPrice&&d.field==='price')d.isInline=true;
+        if(hlTime&&d.field==='time'){
+          if(_bkSessNames.length===1&&d.isSession&&d.sessionName===_bkSessNames[0])d.isInline=true;
+          else if(_bkSessNames.length!==1&&!d.isSession&&(d.dayIndex===0||ev.days.length===1))d.isInline=true;
+        }
+        if(hlDate&&d.field==='date'&&!d.isSession&&(d.dayIndex===0||ev.days.length===1))d.isInline=true;
+      });
+
+      changeDiffs=diffs;
+      ev._modDiffs=diffs;
     }
 
-    // Alert detail banner
+    // === Build alert banner (Option C for modificato, standard for other types) ===
     let alertBanner='';
     if(hasAlert){
       const alertColor=alertType==='cancellato'?'var(--red)':alertType==='rimandato'?'var(--yellow)':'var(--orange)';
       const alertBgColor=alertType==='cancellato'?'var(--red-bg)':alertType==='rimandato'?'var(--yellow-bg)':'var(--orange-bg)';
       const alertIcon=alertType==='cancellato'?'🚫':alertType==='rimandato'?'⏰':'📝';
-      const alertLabel=alertType==='cancellato'?'ANNULLATO':alertType==='rimandato'?'RIMANDATO':'MODIFICATO';
-      alertBanner=`<div class="mt-3" style="background:${alertBgColor};border:2px solid ${alertColor};border-radius:12px;padding:12px 16px">
-        <div class="flex items-center gap-2 mb-1"><span>${alertIcon}</span><span class="font-bold text-sm" style="color:${alertColor};letter-spacing:1px">${alertLabel}</span></div>
-        <p class="text-sm" style="color:var(--txt)">${ev.alert.message}</p>
-        ${changeDiffHtml}
-        <p class="text-xs txt3 mt-2">Aggiornato il ${ev.alert.date||''}</p>
-      </div>`;
+      const alertLabelText=alertType==='cancellato'?'ANNULLATO':alertType==='rimandato'?'RIMANDATO':'MODIFICATO';
+
+      if(alertType==='modificato'&&changeDiffs.length){
+        // Option C: compact banner with diff list
+        const hasNonInline=changeDiffs.some(d=>!d.isInline);
+        const alertDateFmt=ev.alert.date?fmtDateFull(ev.alert.date):(ev.alert.date||'');
+        let bc=`<div class="flex items-center gap-2"><span>${alertIcon}</span><span class="font-bold text-sm" style="color:var(--orange);letter-spacing:1px">${alertLabelText}</span><span class="text-xs" style="color:var(--txt2)">· ${changeDiffs.length} modific${changeDiffs.length===1?'a':'he'}</span></div>`;
+        bc+=`<p class="text-xs mt-1" style="color:var(--txt3)">Evento aggiornato il ${alertDateFmt}</p>`;
+        if(hasNonInline){
+          bc+='<div class="mt-2" style="line-height:1.8">';
+          changeDiffs.forEach(d=>{
+            if(d.isDesc){
+              bc+=`<div class="text-xs"><span style="color:var(--txt3)">${d.label}:</span> <span style="color:var(--orange);font-weight:600">${d.now}</span>${d.label.includes('Descrizione evento')?' <span style="color:var(--txt3)">— tocca l\'evento per leggerla</span>':''}</div>`;
+            }else{
+              bc+=`<div class="text-xs"><span style="color:var(--txt3)">${d.label}:</span> <span style="text-decoration:line-through;color:var(--txt3)">${d.old}</span> <span style="color:var(--orange);font-weight:600">→ ${d.now}</span></div>`;
+            }
+          });
+          bc+='</div>';
+        }else{
+          bc+=`<p class="text-xs mt-1" style="color:var(--txt3)">Modifiche evidenziate sopra nella scheda</p>`;
+        }
+        alertBanner=`<div class="mt-3" style="background:${alertBgColor};border:2px solid var(--orange);border-radius:12px;padding:10px 14px">${bc}</div>`;
+      }else if(alertType==='modificato'){
+        // Modificato without previousValues (fallback)
+        alertBanner=`<div class="mt-3" style="background:${alertBgColor};border:2px solid ${alertColor};border-radius:12px;padding:12px 16px">
+          <div class="flex items-center gap-2 mb-1"><span>${alertIcon}</span><span class="font-bold text-sm" style="color:${alertColor};letter-spacing:1px">${alertLabelText}</span></div>
+          <p class="text-sm" style="color:var(--txt)">${ev.alert.message}</p>
+          <p class="text-xs txt3 mt-2">Aggiornato il ${ev.alert.date||''}</p>
+        </div>`;
+      }else{
+        // cancellato / rimandato: standard banner
+        alertBanner=`<div class="mt-3" style="background:${alertBgColor};border:2px solid ${alertColor};border-radius:12px;padding:12px 16px">
+          <div class="flex items-center gap-2 mb-1"><span>${alertIcon}</span><span class="font-bold text-sm" style="color:${alertColor};letter-spacing:1px">${alertLabelText}</span></div>
+          <p class="text-sm" style="color:var(--txt)">${ev.alert.message}</p>
+          <p class="text-xs txt3 mt-2">Aggiornato il ${ev.alert.date||''}</p>
+        </div>`;
+      }
     }
+
+    // === Build card lines with conditional inline highlights (Option C) ===
+    const _hlS='background:rgba(239,68,68,.12);color:var(--red);font-weight:700;padding:1px 6px;border-radius:4px';
+    const _wasS='color:var(--txt3);font-style:italic;margin-left:20px;font-size:.7rem;line-height:1.4';
+    const _dispDate=fmtDate(_dashDate||d0?.date);
+    const _dispTime=_cardTimeStart+' — '+_cardTimeEnd;
+    // Date+time line
+    let cardDateTimeLine;
+    if(hlDate&&hlTime){
+      cardDateTimeLine=`<div class="text-xs txt3 mt-1">📅 <span style="${_hlS}">${_dispDate}</span> · <span style="${_hlS}">${_dispTime}</span></div><div style="${_wasS}">era: ${hlDateOld} · ${hlTimeOld}</div>`;
+    }else if(hlDate){
+      cardDateTimeLine=`<div class="text-xs txt3 mt-1">📅 <span style="${_hlS}">${_dispDate}</span> · ${_dispTime}</div><div style="${_wasS}">era: ${hlDateOld}</div>`;
+    }else if(hlTime){
+      cardDateTimeLine=`<div class="text-xs txt3 mt-1">📅 ${_dispDate} · <span style="${_hlS}">${_dispTime}</span></div><div style="${_wasS}">era: ${hlTimeOld}</div>`;
+    }else{
+      cardDateTimeLine=`<div class="text-xs txt3 mt-1">📅 ${_dispDate} · ${_dispTime}</div>`;
+    }
+    // Price line
+    let cardPriceLine;
+    if(hlPrice){
+      cardPriceLine=`<div class="text-xs txt3 mt-1">💰 ${tierLabel} — <span style="${_hlS}">€${b.amount}</span></div><div style="${_wasS}">era: €${hlPriceOld}</div>`;
+    }else{
+      cardPriceLine=`<div class="text-xs txt3 mt-1">💰 ${tierLabel} — €${b.amount}</div>`;
+    }
+    // Session info line
+    const _sessInfoLine=_cardSessionLabel?`<div class="text-xs txt3 mt-1">📋 Sessione: "${_cardSessionLabel}"</div>`:((b.scope==='sessioni'||b.scope==='sessione')&&b.items?'<div class="text-xs txt3 mt-1">📋 '+(b.items.filter(it=>it.type==='sessione').length||1)+' sessione/i</div>':'');
 
     html+=`<div class="card mb-4 card-hover" style="border-color:${borderColor};background:${bgColor};position:relative;overflow:hidden;cursor:pointer" onclick="showEventDetail('${ev.id}'${ev._recDate?`,'${ev._recDate}'`:''})">
       ${alertStamp}
@@ -6200,10 +6405,10 @@ function renderUserDashboard(){
         </div>
         <div class="flex-1">
           <h3 class="font-semibold text-white">${ev.title}</h3>
-          <div class="text-xs txt3 mt-1">📅 ${fmtDate(_dashDate||d0?.date)} · ${d0?.startTime||''} — ${d0?.endTime||''}</div>
-          <div class="text-xs txt3 mt-1">💰 ${tierLabel} — €${b.amount}</div>
+          ${cardDateTimeLine}
+          ${cardPriceLine}
           ${b.recurringDate?'<div class="text-xs mt-1" style="color:var(--yellow)">🔄 Evento ricorrente</div>':''}
-          ${b.scope==='sessioni'||b.scope==='sessione'?'<div class="text-xs txt3 mt-1">📋 '+b.sessions.length+' sessione/i</div>':''}
+          ${_sessInfoLine}
           <div class="flex gap-2 mt-2">
             <span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>
             ${b.depositStatus==='pending'?'<span class="badge badge-yellow">⏳ In attesa di anticipo</span>':'<span class="badge badge-pubblicato">Confermata</span>'}
@@ -8137,8 +8342,10 @@ function startAlertEdit(){
   // Save snapshot of current values BEFORE editing for change tracking
   const snapshot={
     title:ev.title,description:ev.description,location:ev.location,teacher:ev.teacher,
+    maxSpots:ev.maxSpots,
     days:ev.days.map(d=>({date:d.date,startTime:d.startTime,endTime:d.endTime,
       sessions:(d.sessions||[]).map(s=>({name:s.name,startTime:s.startTime,endTime:s.endTime,
+        location:s.location,teacher:s.teacher,maxSpots:s.maxSpots,description:s.description,
         tiers:{alto:s.tiers?.alto,medio:s.tiers?.medio,basso:s.tiers?.basso},earlyBird:s.earlyBird?{...s.earlyBird}:null})),
       tiers:d.tiers?{alto:d.tiers.alto,medio:d.tiers.medio,basso:d.tiers.basso}:null,
       earlyBird:d.earlyBird?{...d.earlyBird}:null,
@@ -8226,6 +8433,8 @@ function confirmAlertEdit(){
   fsSet('events',formEv.id,formEv).catch(console.error);
   const rl=handlePricingModeChange(editingEventId,oldPM,formEv.pricingMode);
   if(rl&&rl.length)showToast('⚠️ '+rl.length+' iscritti da rimborsare — controlla dettaglio evento','error');
+  // Sync booking prices if prices changed (only for paid events)
+  if(snapshot&&formEv.pricingMode==='standard'){syncBookingPrices(editingEventId,snapshot);}
   // Cleanup
   editingEventId=null;resetForm();restoreFormTitle();
   // Restore normal buttons
@@ -9933,6 +10142,49 @@ function markRefund(evId,bookingId){
   showAdminEventDetail(evId);
 }
 
+/* Handle price sync: when event prices change, update all active bookings */
+function syncBookingPrices(evId,snapshot){
+  const ev=store.events.find(e=>e.id===evId);if(!ev)return;
+  if(ev.pricingMode==='free')return; // handled by handlePricingModeChange
+  const activeBks=store.bookings.filter(b=>b.eventId===evId&&b.status!=='cancellata'&&b.paymentStatus!=='abbonamento'&&b.paymentStatus!=='gratuito'&&!b.gift);
+  if(!activeBks.length)return;
+  activeBks.forEach(b=>{
+    let newTotal=0;
+    const newItems=(b.items||[]).map(it=>{
+      const tierKey=it.tier==='Sostenitore'?'alto':it.tier==='Ridotto'?'basso':'medio';
+      let newPrice=it.price;
+      if(it.type==='sessione'){
+        // Find session by name in updated event
+        ev.days.forEach(d=>(d.sessions||[]).forEach(s=>{
+          if(s.name===it.name&&s.tiers)newPrice=s.tiers[tierKey]||0;
+        }));
+      }else if(it.type==='giornata'||it.type.includes('giornata')){
+        // Find day-level price
+        ev.days.forEach((d,di)=>{
+          if(it.name&&it.name.includes&&(it.name.includes('Giornata '+(di+1))||it.name.includes(d.date))){
+            const useTiers=d.tiers||ev.tiers;
+            if(useTiers)newPrice=useTiers[tierKey]||0;
+          }
+        });
+        // If single day event or no name match, use first day or event tiers
+        if(ev.days.length===1){
+          const useTiers=ev.days[0].tiers||ev.tiers;
+          if(useTiers)newPrice=useTiers[tierKey]||0;
+        }
+      }else if(it.type==='pacchetto evento'){
+        if(ev.tiers)newPrice=ev.tiers[tierKey]||0;
+      }
+      newTotal+=newPrice;
+      return{...it,price:newPrice};
+    });
+    if(newTotal!==b.amount){
+      const prevAmt=b.amount;
+      b.previousAmount=prevAmt;
+      b.items=newItems;b.amount=newTotal;b.totalAmount=newTotal;
+      fsUpdate('bookings',b.id,{items:newItems,amount:newTotal,totalAmount:newTotal,previousAmount:prevAmt}).catch(console.error);
+    }
+  });
+}
 /* ==============================
    GESTIONE UTENTI & ORGANIZZATORI
 ============================== */
