@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.11.1</title>
+<title>BodyEvents — V2.12.0</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤸</text></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -303,7 +303,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.11.1</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.12.0</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -1298,8 +1298,8 @@ textarea.input{resize:none;font-family:inherit}
           <input class="input mt-2 hidden" id="ne-custom-type" placeholder="Scrivi la nuova tipologia...">
           <button type="button" class="btn btn-sm mt-1 hidden" id="ne-custom-type-save" onclick="saveCustomEventTypeFromForm()" style="font-size:.7rem;padding:4px 10px;background:var(--green-bg);color:var(--green);border:1px solid var(--green)">+ Aggiungi tipologia</button>
         </div>
-        <div><label class="label">Livello</label>
-          <select class="input" id="ne-level"><option value="open">Open Level</option><option value="base">Base</option><option value="intermedio">Intermedio</option><option value="avanzato">Avanzato</option><option value="multi">Multi-livello</option></select></div>
+        <!-- Livello evento: calcolato automaticamente dalle sessioni (V2.12.0) -->
+        <div></div>
       </div>
       <div class="mb-4">
         <div><label class="label">Insegnante / Referente</label><input class="input" id="ne-teacher" placeholder="es. Nome Insegnante"></div>
@@ -4815,6 +4815,30 @@ function fmtDateFull(ds){if(!ds)return'';const d=new Date(ds+'T00:00:00');return
 function badgeType(t){const known={jam:'badge-jam',lezione:'badge-lezione',workshop:'badge-workshop'};return known[t]||'badge-type-dynamic';}
 function badgeTypeStyle(t){const colors={jam:'var(--green-bg);color:var(--green)',lezione:'var(--blue-bg);color:var(--blue)',workshop:'var(--brand-bg);color:var(--brand)'};return colors[t]?'':'background:rgba(168,85,247,.15);color:#a855f7';}
 function badgeLevel(l){const m={open:'badge-open',base:'badge-base',intermedio:'badge-intermedio',avanzato:'badge-avanzato',multi:'badge-purple'};return m[l]||'badge-open';}
+/* V2.12.0 — Compute event level automatically from sessions */
+function getComputedEventLevel(ev){
+  const allSessions=[];
+  if(ev.days)ev.days.forEach(d=>{if(d.sessions)d.sessions.forEach(s=>{if(s.level)allSessions.push(s.level);});});
+  if(!allSessions.length)return ev.level||'open';
+  const hasOpen=allSessions.includes('open');
+  const uniqueNonOpen=[...new Set(allSessions.filter(l=>l!=='open'))];
+  // All openlevel
+  if(uniqueNonOpen.length===0&&hasOpen)return 'open';
+  // All same non-open level, no openlevel
+  if(uniqueNonOpen.length===1&&!hasOpen)return uniqueNonOpen[0];
+  // All same non-open level + openlevel present
+  if(uniqueNonOpen.length<=1&&hasOpen)return 'multi-open';
+  // Multiple different levels, no openlevel
+  if(uniqueNonOpen.length>1&&!hasOpen)return 'multi';
+  // Multiple different levels + openlevel
+  return 'multi-open';
+}
+function getEventLevelBadges(ev){
+  const lvl=getComputedEventLevel(ev);
+  if(lvl==='multi-open')return '<span class="badge badge-purple">Multi-livello</span><span class="badge badge-open" style="margin-left:4px">& Open Level</span>';
+  if(lvl==='multi')return '<span class="badge badge-purple">Multi-livello</span>';
+  return '<span class="badge '+badgeLevel(lvl)+'">'+capitalize(lvl)+'</span>';
+}
 function badgeStatus(s){return s==='pubblicato'?'badge-pubblicato':s==='bozza'?'badge-bozza':s==='cancellato'?'badge-cancellato':'badge-concluso';}
 function getConfirmationStatus(ev){
   if(!ev.minSubscribers||!ev.minSubscribers.count)return null;
@@ -5272,7 +5296,7 @@ function _doBookNormal(){
     items.push({type:'early bird evento',name:'🐦 Early Bird evento — '+ev.title,date:'',time:'',tier:tierLabel(tier)+' (early bird)',price});
     totalAmount+=price;
   }
-  // Apply effective discount (subscription or loyalty, non-cumulative) — V2.11.1
+  // Apply effective discount (subscription or loyalty, non-cumulative) — V2.12.0
   const _doBookDiscPct=getEffectiveDiscountPct(ev);
   if(_doBookDiscPct>0){
     totalAmount=0;
@@ -5988,7 +6012,7 @@ function renderUserEvents(){
     const d0=ev.days[0];const dd=d0?new Date(d0.date+'T00:00:00'):null;
     const dayNum=dd?dd.getDate():'';const monthStr=dd?MONTHS_IT[dd.getMonth()]:'';
     const dateRange=ev.days.length>1?fmtDateShort(ev.days[0]?.date)+' — '+fmtDateShort(ev.days[ev.days.length-1]?.date):fmtDate(d0?.date);
-    const levelBadges=ev.level==='multi'?'<span class="badge badge-purple">Multi-livello</span>':'<span class="badge '+badgeLevel(ev.level)+'">'+capitalize(ev.level)+'</span>';
+    const levelBadges=getEventLevelBadges(ev);
     const daysBadge=ev.days.length>1?'<span class="badge badge-purple">'+ev.days.length+' giorni</span>':'';
     const recBadge=getRecurrenceBadge(ev);
     const _minP=ev.pricingMode==='standard'?minPrice(ev):0;
@@ -7535,7 +7559,7 @@ function buildFullPricingHtml(ev,prefix){
     if(day.sessions.length>1){
       html+='<div style="margin-left:16px;padding-left:12px;border-left:2px solid rgba(217,70,239,.2);margin-top:8px;margin-bottom:8px">';
       html+='<p class="text-xs txt3 mb-2">Seleziona le sessioni:</p>';
-      html+='<div style="max-width:75%;margin:0 auto">';
+      html+='<div style="max-width:90%;margin:0 auto">';
       day.sessions.forEach(s=>{
         const sBtns=buildTierBtns(s.tiers,prefix+'tiers-'+s.id,s.earlyBird,ev.id,subDiscPct);
         html+=`<div class="check-item mb-2" onclick="toggleCheck(this,'${s.id}')" style="padding:6px 8px">
@@ -7647,7 +7671,7 @@ function showEventDetail(evId,recDate){
   if(ev.paymentMethods.paypal)payLinks.push(`<a class="badge" style="background:rgba(59,130,246,.08);color:var(--blue);padding:6px 12px" href="${ev.paymentMethods.paypal}" target="_blank">💳 PayPal ↗</a>`);
   if(ev.paymentMethods.revolut)payLinks.push(`<a class="badge" style="background:rgba(6,182,212,.08);color:#22d3ee;padding:6px 12px" href="${ev.paymentMethods.revolut}" target="_blank">💳 Revolut ↗</a>`);
   if(ev.paymentMethods.cash)payLinks.push('<span class="badge" style="background:var(--green-bg);color:var(--green);padding:6px 12px">💵 Cash</span>');
-  const levelBadges=ev.level==='multi'?'<span class="badge badge-purple">Multi-livello</span>':'<span class="badge '+badgeLevel(ev.level)+'">'+capitalize(ev.level)+'</span>';
+  const levelBadges=getEventLevelBadges(ev);
   const locLink=ev.locationUrl?`<a href="${ev.locationUrl}" target="_blank" style="color:var(--brand-l)">📍 ${ev.location} ↗</a>`:`📍 ${ev.location}`;
 
   const isFreeEvent=ev.pricingMode==='free';
@@ -7721,7 +7745,7 @@ function showEventDetail(evId,recDate){
     if(day.sessions.length>1){
       daysHtml+=`<div style="margin-left:16px;padding-left:16px;border-left:2px solid rgba(217,70,239,.2);margin-top:12px">`;
       if(!skipPricing) daysHtml+=`<p class="text-sm txt3 mb-3">Seleziona le sessioni:</p>`;
-      daysHtml+=`<div style="max-width:75%;margin:0 auto">`;
+      daysHtml+=`<div style="max-width:90%;margin:0 auto">`;
       day.sessions.forEach(s=>{
         const sLoc=s.location?`<div class="text-xs txt3 mt-1">${s.locationUrl?'<a href="'+s.locationUrl+'" target="_blank" style="color:var(--brand-l)">📍 '+s.location+' ↗</a>':'📍 '+s.location}</div>`:'';
         if(!skipPricing){
@@ -8778,7 +8802,7 @@ function saveFormState(){
         maxCount:debc?.value||''
       };
     }
-    // Day-level loyalty tiers removed in V2.11.1 — loyalty discount is event-level percentage
+    // Day-level loyalty tiers removed in V2.12.0 — loyalty discount is event-level percentage
     // Sessions
     day.sessions.forEach((s,si)=>{
       const gv=(cls)=>{const el=document.querySelector(`.${cls}[data-di="${di}"][data-si="${si}"]`);return el?el.value:'';};
@@ -8992,7 +9016,7 @@ function renderFormDays(){
             <div class="ne-deb-count-wrap" ${day.earlyBird?.type!=='count'?'style="display:none"':''}><label class="label text-xs">👥 Primi N</label><input class="input ne-d-ebc" type="number" data-di="${di}" min="1" value="${day.earlyBird?.maxCount||''}" placeholder="es. 10"></div>
           </div>
         </div>
-        <!-- Loyalty tiers removed in V2.11.1 — now percentage-based event-level discount -->
+        <!-- Loyalty tiers removed in V2.12.0 — now percentage-based event-level discount -->
       </div>`}
     </div>`;
   }).join('');
@@ -9477,7 +9501,7 @@ function collectFormData(){
     const dtm=_dtmEl?.value?parseFloat(_dtmEl.value):null;
     const dtb=(!_dayTierHidden&&_dtbEl?.value)?parseFloat(_dtbEl.value):null;
     const dayTiers=(dta!=null||dtm!=null||dtb!=null)?{alto:dta,medio:dtm,basso:dtb}:null;
-    // Day-level loyalty removed in V2.11.1 — loyalty discount is now event-level only (percentage)
+    // Day-level loyalty removed in V2.12.0 — loyalty discount is now event-level only (percentage)
     // Auto-calculate day times from sessions
     let dayStartTime='10:00',dayEndTime='17:00';
     if(sessions.length>0){
@@ -9507,7 +9531,7 @@ function collectFormData(){
   });
   const recChk=document.getElementById('ne-recurrence')?.checked;
   const recDay=document.getElementById('ne-rec-day')?.value||'';
-  // Loyalty discount (Sconto Combinato Eventi) — new percentage model V2.11.1
+  // Loyalty discount (Sconto Combinato Eventi) — new percentage model V2.12.0
   const loyaltyDiscountEnabled=document.getElementById('ne-loyalty-discount')?.checked;
   const loyaltyEventIds=Array.from(document.querySelectorAll('#ne-loyalty-eventi-wrap .ep-check:checked')).map(cb=>cb.value);
   const loyaltyDiscPct=parseFloat(document.getElementById('ne-loyalty-disc-pct')?.value)||15;
@@ -9533,7 +9557,7 @@ function collectFormData(){
     universeId,universeIds,
     title,description:document.getElementById('ne-desc').value||'',
     type:finalType,
-    level:document.getElementById('ne-level').value||'open',
+    level:'auto', // V2.12.0: computed from sessions via getComputedEventLevel()
     location:document.getElementById('ne-location').value||'',
     locationUrl:document.getElementById('ne-location-url').value||'',
     coords:extractCoordsFromUrl(document.getElementById('ne-location-url').value||''),
@@ -9693,7 +9717,7 @@ function editEvent(id){
   const editUnivIdsForType=ev.universeIds||[ev.universeId||'univ_acro'];
   populateEventTypeDropdown(editUnivIdsForType,ev.type||'jam');
   onEventTypeChange();
-  document.getElementById('ne-level').value=ev.level||'open';
+  // ne-level removed V2.12.0 — level is auto-computed from sessions
   document.getElementById('ne-teacher').value=ev.teacher||'';
   document.getElementById('ne-location').value=ev.location||'';
   document.getElementById('ne-location-url').value=ev.locationUrl||'';
@@ -9794,7 +9818,7 @@ function editEvent(id){
   // Restore allowDayPurchase
   const adpEl=document.getElementById('ne-allow-day-purchase');
   if(adpEl)adpEl.checked=ev.allowDayPurchase!==false;
-  // Restore loyalty discount (Sconto Combinato Eventi) — V2.11.1
+  // Restore loyalty discount (Sconto Combinato Eventi) — V2.12.0
   if(ev.loyaltyDiscount?.enabled){
     const ldEl=document.getElementById('ne-loyalty-discount');
     if(ldEl){ldEl.checked=true;document.getElementById('ne-loyalty-discount-opts')?.classList.remove('hidden');}
@@ -10249,7 +10273,7 @@ function syncBookingPrices(evId,snapshot){
     }
     return true;
   }
-  // loyaltyChanged removed in V2.11.1 — loyalty is now percentage-based discount
+  // loyaltyChanged removed in V2.12.0 — loyalty is now percentage-based discount
   activeBks.forEach(b=>{
     let newTotal=0;
     const newItems=(b.items||[]).map(it=>{
