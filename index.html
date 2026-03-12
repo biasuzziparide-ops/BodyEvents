@@ -4183,8 +4183,8 @@ function renderListToolbar(listId,reg){
   const hidden=new Set(cfg.hiddenCols||[]);
   let h='<div class="flex gap-2 items-center" style="flex-wrap:wrap;padding:6px 16px;border-top:1px solid var(--s300)">';
   h+='<button class="btn btn-sm" style="font-size:.7rem;padding:3px 8px;background:var(--s200);color:var(--txt2);border:1px solid var(--s400)" onclick="openRegistryColumnModal(\''+listId+'\')">➕ Colonna</button>';
-  if(allCols.length){
-    h+='<button class="btn btn-sm" style="font-size:.7rem;padding:3px 8px;background:var(--s200);color:var(--txt2);border:1px solid var(--s400)" onclick="openColVisibilityMenu(\''+listId+'\',this)">👁️ Colonne</button>';
+  if(hidden.size>0){
+    h+='<button class="btn btn-sm" style="font-size:.7rem;padding:3px 8px;background:rgba(245,158,11,.1);color:var(--warn);border:1px solid rgba(245,158,11,.25)" onclick="openColVisibilityMenu(\''+listId+'\',this)">'+hidden.size+' colonne nascoste</button>';
   }
   if(listId==='main'){
     h+='<button class="btn btn-sm" style="font-size:.7rem;padding:3px 8px;background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="exportRegistryExcel()">📥 Excel</button>';
@@ -4220,9 +4220,12 @@ function renderRegistryTable(reg,entries,theadId,tbodyId,listId){
   hh+='<th style="'+thStyle+'" onclick="registrySort={col:\'name\',asc:registrySort.col===\'name\'?!registrySort.asc:true};renderAdminRegistry()">Nome'+arrow('name')+'</th>';
   hh+='<th style="'+thStyle+'" onclick="registrySort={col:\'email\',asc:registrySort.col===\'email\'?!registrySort.asc:true};renderAdminRegistry()">Email'+arrow('email')+'</th>';
   cols.forEach(c=>{
-    hh+='<th style="'+thStyle+'" draggable="true" data-colid="'+c.id+'" data-listid="'+listId+'" ondragstart="regColDragStart(event)" ondragover="event.preventDefault();this.style.borderLeft=\'2px solid var(--brand)\'" ondragleave="this.style.borderLeft=\'\'" ondrop="regColDrop(event,this)">';
+    hh+='<th style="'+thStyle+';position:relative" draggable="true" data-colid="'+c.id+'" data-listid="'+listId+'" ondragstart="regColDragStart(event)" ondragover="event.preventDefault();this.style.borderLeft=\'2px solid var(--brand)\'" ondragleave="this.style.borderLeft=\'\'" ondrop="regColDrop(event,this)">';
     hh+='<span onclick="event.stopPropagation();registrySort={col:\''+c.id+'\',asc:registrySort.col===\''+c.id+'\'?!registrySort.asc:true};renderAdminRegistry()" style="cursor:pointer">'+escHtml(c.name)+arrow(c.id)+'</span>';
-    hh+=' <button style="background:none;border:none;color:var(--txt3);font-size:.55rem;cursor:pointer" onclick="event.stopPropagation();deleteRegistryColumn(\''+c.id+'\')" title="Elimina colonna">✕</button>';
+    hh+='<span style="float:right;display:inline-flex;gap:2px;margin-left:6px">';
+    hh+='<button style="background:none;border:none;color:var(--txt3);font-size:.5rem;cursor:pointer;opacity:.5;transition:opacity .15s;padding:0 1px;line-height:1" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.5" onclick="event.stopPropagation();toggleColVisibility(\''+listId+'\',\''+c.id+'\')" title="Nascondi colonna">&#9660;</button>';
+    hh+='<button style="background:none;border:none;color:var(--txt3);font-size:.5rem;cursor:pointer;opacity:.5;transition:opacity .15s;padding:0 1px;line-height:1" onmouseover="this.style.opacity=1;this.style.color=\'var(--red)\'" onmouseout="this.style.opacity=.5;this.style.color=\'var(--txt3)\'" onclick="event.stopPropagation();deleteRegistryColumn(\''+c.id+'\')" title="Elimina colonna">&#10005;</button>';
+    hh+='</span>';
     hh+='</th>';
   });
   hh+='</tr>';
@@ -4243,7 +4246,7 @@ function renderRegistryTable(reg,entries,theadId,tbodyId,listId){
         const color=val||'';
         bh+='<td style="padding:6px 10px;text-align:center"><button style="width:26px;height:26px;border-radius:7px;border:2px solid '+(color||'var(--s400)')+';background:'+(color||'var(--s100)')+';cursor:pointer;transition:all .15s" onclick="openRegistryColorPicker(\''+entry.uid+'\',\''+c.id+'\',this)"></button></td>';
       } else if(c.type==='number'){
-        bh+='<td style="padding:6px 10px"><input type="number" value="'+(val||0)+'" style="width:55px;background:var(--s100);border:1px solid var(--s300);border-radius:6px;padding:3px 5px;color:var(--txt1);font-size:.78rem;text-align:center" onchange="updateRegistryCell(\''+entry.uid+'\',\''+c.id+'\',parseFloat(this.value)||0)"></td>';
+        bh+='<td style="padding:6px 10px;text-align:center"><input type="number" value="'+(val||0)+'" style="width:70px;background:var(--s100);border:1px solid var(--s300);border-radius:8px;padding:6px 8px;color:var(--txt1);font-size:.82rem;text-align:center;-moz-appearance:textfield;appearance:textfield;outline:none;transition:border-color .15s" onfocus="this.style.borderColor=\'var(--brand)\'" onblur="this.style.borderColor=\'var(--s300)\'" onchange="updateRegistryCell(\''+entry.uid+'\',\''+c.id+'\',parseFloat(this.value)||0)"></td>';
       } else {
         bh+='<td style="padding:6px 10px"><input type="text" value="'+escHtml(val||'')+'" placeholder="—" style="width:100%;min-width:70px;background:var(--s100);border:1px solid var(--s300);border-radius:6px;padding:3px 5px;color:var(--txt1);font-size:.78rem" onchange="updateRegistryCell(\''+entry.uid+'\',\''+c.id+'\',this.value)"></td>';
       }
@@ -4256,24 +4259,26 @@ function renderRegistryTable(reg,entries,theadId,tbodyId,listId){
     const table=thead.closest('table');
     let tfoot=table.querySelector('tfoot');
     if(!tfoot){tfoot=document.createElement('tfoot');table.appendChild(tfoot);}
-    let fh='<tr style="border-top:2px solid var(--s400);background:var(--s200)">';
-    fh+='<td colspan="2" style="padding:8px 10px;font-size:.72rem;font-weight:600;color:var(--txt2)">Riepilogo</td>';
+    const footBg='rgba(99,102,241,.08)';
+    const footBorder='border-top:2px solid rgba(99,102,241,.25)';
+    let fh='<tr style="'+footBorder+';background:'+footBg+'">';
+    fh+='<td colspan="2" style="padding:10px 10px;font-size:.75rem;font-weight:700;color:var(--brand-l);letter-spacing:.3px">TOTALI</td>';
     cols.forEach(c=>{
       if(c.type==='number'){
         let total=0;sorted.forEach(e=>{total+=parseFloat(e.customData?.[c.id])||0;});
-        fh+='<td style="padding:8px 10px;font-size:.78rem;font-weight:600;color:var(--txt1);text-align:center">'+total+'</td>';
+        fh+='<td style="padding:10px 10px;text-align:center"><span style="display:inline-block;min-width:70px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.25);border-radius:8px;padding:5px 8px;font-size:.85rem;font-weight:700;color:var(--brand-l)">'+total+'</span></td>';
       } else if(c.type==='boolean'){
         let yes=0,no=0;sorted.forEach(e=>{e.customData?.[c.id]?yes++:no++;});
-        fh+='<td style="padding:6px 10px;font-size:.7rem;color:var(--txt2);text-align:center;white-space:nowrap">✓ '+yes+' · ✕ '+no+'</td>';
+        fh+='<td style="padding:8px 10px;text-align:center;white-space:nowrap"><span style="color:var(--green);font-weight:600;font-size:.75rem">'+yes+' si</span><span style="color:var(--txt3);margin:0 4px;font-size:.65rem">/</span><span style="color:var(--txt3);font-weight:500;font-size:.75rem">'+no+' no</span></td>';
       } else if(c.type==='color'){
         const counts={};sorted.forEach(e=>{const v=e.customData?.[c.id]||'';if(v){counts[v]=(counts[v]||0)+1;}});
-        let cf='<td style="padding:4px 6px;text-align:center"><div style="display:flex;gap:2px;flex-wrap:wrap;justify-content:center">';
+        let cf='<td style="padding:6px 6px;text-align:center"><div style="display:inline-flex;gap:3px;flex-wrap:wrap;justify-content:center">';
         Object.keys(counts).forEach(color=>{
-          cf+='<span style="display:inline-flex;align-items:center;gap:1px;font-size:.6rem;color:var(--txt2);background:var(--s100);border-radius:4px;padding:1px 4px"><span style="width:8px;height:8px;border-radius:2px;background:'+color+';display:inline-block"></span>'+counts[color]+'</span>';
+          cf+='<span style="display:inline-flex;align-items:center;gap:2px;font-size:.65rem;font-weight:600;color:var(--txt1);background:var(--s100);border:1px solid var(--s300);border-radius:6px;padding:2px 5px"><span style="width:10px;height:10px;border-radius:3px;background:'+color+';display:inline-block;flex-shrink:0"></span>'+counts[color]+'</span>';
         });
         cf+='</div></td>';fh+=cf;
       } else {
-        fh+='<td style="padding:8px 10px"></td>';
+        fh+='<td style="padding:10px 10px"></td>';
       }
     });
     fh+='</tr>';
@@ -4473,11 +4478,8 @@ function openRegistrySublistModal(){
   if((reg.sublists||[]).length>=5){showToast('Massimo 5 sottoliste','error');return;}
   const cols=reg.columns||[];
   if(!cols.length){showToast('Crea prima almeno una colonna personalizzata','error');return;}
-  const html=`<div style="padding:20px"><h3 class="font-semibold text-white mb-4">📂 Nuova sottolista</h3>
+  const html=`<div style="padding:20px"><h3 class="font-semibold text-white mb-4">Nuova sottolista</h3>
     <div class="mb-3"><label class="label">Nome sottolista</label><input class="input" id="reg-sl-name" placeholder="es. Staff, Livello avanzato..."></div>
-    <div class="mb-3"><label class="label">Logica combinazione condizioni</label>
-      <select class="input" id="reg-sl-logic"><option value="AND">AND — tutte le condizioni devono essere vere</option><option value="OR">OR — almeno una condizione deve essere vera</option></select>
-    </div>
     <div class="mb-3"><label class="label">Condizioni</label>
       <div id="reg-sl-conditions"></div>
       <button class="btn btn-sm mt-2" style="background:var(--s200);color:var(--txt2);border:1px solid var(--s400)" onclick="addSublistCondition()">+ Aggiungi condizione</button>
@@ -4492,13 +4494,23 @@ function addSublistCondition(){
   _slCondIdx++;
   const reg=getRegistryData();const cols=reg.columns||[];
   const wrap=document.getElementById('reg-sl-conditions');if(!wrap)return;
+  const isFirst=wrap.children.length===0;
+  const container=document.createElement('div');container.id='reg-sl-cond-wrap-'+_slCondIdx;
+  // Logic connector (AND/OR) before every condition except the first
+  if(!isFirst){
+    const logicRow=document.createElement('div');
+    logicRow.style.cssText='display:flex;align-items:center;justify-content:center;margin:6px 0';
+    logicRow.innerHTML='<select class="input" style="width:100px;font-size:.75rem;text-align:center;padding:4px 8px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);color:var(--brand-l);border-radius:8px;font-weight:600" data-cond="'+_slCondIdx+'" data-role="logic"><option value="AND">AND</option><option value="OR">OR</option></select>';
+    container.appendChild(logicRow);
+  }
   const div=document.createElement('div');
-  div.className='flex gap-2 items-center mb-2';div.style.cssText='flex-wrap:wrap';div.id='reg-sl-cond-'+_slCondIdx;
+  div.className='flex gap-2 items-center';div.style.cssText='flex-wrap:wrap;background:var(--s100);border:1px solid var(--s300);border-radius:10px;padding:8px 10px';div.id='reg-sl-cond-'+_slCondIdx;
   let colSel='<select class="input" style="flex:1;min-width:100px;font-size:.8rem" onchange="updateConditionOp(this,'+_slCondIdx+')" data-cond="'+_slCondIdx+'" data-role="col">';
   cols.forEach(c=>{colSel+='<option value="'+c.id+'" data-type="'+c.type+'">'+escHtml(c.name)+'</option>';});
   colSel+='</select>';
-  div.innerHTML=colSel+'<select class="input" style="width:80px;font-size:.8rem" data-cond="'+_slCondIdx+'" data-role="op" id="reg-sl-op-'+_slCondIdx+'"></select><div id="reg-sl-val-'+_slCondIdx+'" style="flex:1;min-width:80px"></div><button style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:.8rem" onclick="this.parentElement.remove()">✕</button>';
-  wrap.appendChild(div);
+  div.innerHTML=colSel+'<select class="input" style="width:80px;font-size:.8rem" data-cond="'+_slCondIdx+'" data-role="op" id="reg-sl-op-'+_slCondIdx+'"></select><div id="reg-sl-val-'+_slCondIdx+'" style="flex:1;min-width:80px"></div><button style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:.8rem" onclick="this.closest(\'[id^=reg-sl-cond-wrap]\').remove()">✕</button>';
+  container.appendChild(div);
+  wrap.appendChild(container);
   updateConditionOp(div.querySelector('select[data-role=col]'),_slCondIdx);
 }
 function updateConditionOp(colSelect,condIdx){
@@ -4506,7 +4518,7 @@ function updateConditionOp(colSelect,condIdx){
   const opSel=document.getElementById('reg-sl-op-'+condIdx);
   const valDiv=document.getElementById('reg-sl-val-'+condIdx);
   if(!opSel||!valDiv)return;
-  if(type==='boolean'){opSel.innerHTML='<option value="eq">è</option>';valDiv.innerHTML='<select class="input" style="font-size:.8rem" data-cond="'+condIdx+'" data-role="val"><option value="true">✅ Completato</option><option value="false">❌ Non completato</option></select>';}
+  if(type==='boolean'){opSel.innerHTML='<option value="eq">è</option>';valDiv.innerHTML='<select class="input" style="font-size:.8rem" data-cond="'+condIdx+'" data-role="val"><option value="true">Completato</option><option value="false">Non completato</option></select>';}
   else if(type==='color'){opSel.innerHTML='<option value="eq">è</option><option value="neq">non è</option>';valDiv.innerHTML='<select class="input" style="font-size:.8rem" data-cond="'+condIdx+'" data-role="val">'+REGISTRY_COLORS.map((c,i)=>'<option value="'+c+'">'+REGISTRY_COLOR_NAMES[i]+'</option>').join('')+'</select>';}
   else if(type==='number'){opSel.innerHTML='<option value="eq">=</option><option value="gt">&gt;</option><option value="lt">&lt;</option><option value="gte">≥</option><option value="lte">≤</option>';valDiv.innerHTML='<input type="number" class="input" style="font-size:.8rem" data-cond="'+condIdx+'" data-role="val" placeholder="0">';}
   else{opSel.innerHTML='<option value="contains">contiene</option><option value="eq">uguale a</option><option value="neq">diverso da</option>';valDiv.innerHTML='<input type="text" class="input" style="font-size:.8rem" data-cond="'+condIdx+'" data-role="val" placeholder="testo...">';}
@@ -4514,18 +4526,23 @@ function updateConditionOp(colSelect,condIdx){
 function confirmRegistrySublist(){
   const name=document.getElementById('reg-sl-name')?.value?.trim();
   if(!name){showToast('Inserisci un nome','error');return;}
-  const logic=document.getElementById('reg-sl-logic')?.value||'AND';
-  const condDivs=document.querySelectorAll('#reg-sl-conditions > div');
+  const condWraps=document.querySelectorAll('#reg-sl-conditions > [id^=reg-sl-cond-wrap]');
   const conditions=[];
-  condDivs.forEach(div=>{
-    const colSel=div.querySelector('[data-role=col]');const opSel=div.querySelector('[data-role=op]');const valEl=div.querySelector('[data-role=val]');
+  condWraps.forEach((wrap,idx)=>{
+    const condDiv=wrap.querySelector('[id^=reg-sl-cond-]');
+    const colSel=condDiv?.querySelector('[data-role=col]');const opSel=condDiv?.querySelector('[data-role=op]');const valEl=condDiv?.querySelector('[data-role=val]');
     if(!colSel||!opSel||!valEl)return;
-    conditions.push({colId:colSel.value,op:opSel.value,value:valEl.value});
+    const logicSel=wrap.querySelector('[data-role=logic]');
+    const logic=logicSel?logicSel.value:'AND';// first condition defaults to AND
+    conditions.push({colId:colSel.value,op:opSel.value,value:valEl.value,logic:logic});
   });
   if(!conditions.length){showToast('Aggiungi almeno una condizione','error');return;}
   const reg=getRegistryData();if(!reg.sublists)reg.sublists=[];
   const id='sl_'+Date.now().toString(36);
-  reg.sublists.push({id,name,logic,conditions,visible:true});
+  // Derive a display logic string (for backward compat display)
+  const logics=[...new Set(conditions.slice(1).map(c=>c.logic||'AND'))];
+  const displayLogic=logics.length===1?logics[0]:'MIXED';
+  reg.sublists.push({id,name,logic:displayLogic,conditions,visible:true});
   saveRegistry();closeModal();renderAdminRegistry();
   showToast('Sottolista "'+name+'" creata');
 }
@@ -4533,7 +4550,10 @@ function confirmRegistrySublist(){
 function filterRegistrySublist(entries,sublist,columns){
   const cols=columns||[];
   return entries.filter(entry=>{
-    const results=sublist.conditions.map(cond=>{
+    const conds=sublist.conditions;
+    if(!conds||!conds.length)return true;
+    // Evaluate each condition
+    const evalCond=(cond)=>{
       const col=cols.find(c=>c.id===cond.colId);if(!col)return false;
       const val=entry.customData?.[cond.colId];
       if(col.type==='boolean'){const target=cond.value==='true';return cond.op==='eq'?!!val===target:!!val!==target;}
@@ -4541,7 +4561,21 @@ function filterRegistrySublist(entries,sublist,columns){
       if(col.type==='number'){const n=parseFloat(val)||0;const t=parseFloat(cond.value)||0;if(cond.op==='eq')return n===t;if(cond.op==='gt')return n>t;if(cond.op==='lt')return n<t;if(cond.op==='gte')return n>=t;if(cond.op==='lte')return n<=t;return false;}
       const s=(val||'').toLowerCase();const t=(cond.value||'').toLowerCase();
       if(cond.op==='contains')return s.includes(t);if(cond.op==='eq')return s===t;if(cond.op==='neq')return s!==t;return false;
-    });
+    };
+    // Per-condition logic: chain with each condition's logic connector
+    // If conditions have per-condition logic, use it; otherwise fallback to sublist.logic
+    if(conds[0].logic!==undefined||conds.length===1){
+      let result=evalCond(conds[0]);
+      for(let i=1;i<conds.length;i++){
+        const logic=conds[i].logic||'AND';
+        const val=evalCond(conds[i]);
+        if(logic==='OR')result=result||val;
+        else result=result&&val;
+      }
+      return result;
+    }
+    // Legacy fallback: single logic for all
+    const results=conds.map(c=>evalCond(c));
     return sublist.logic==='AND'?results.every(r=>r):results.some(r=>r);
   });
 }
