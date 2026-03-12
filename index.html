@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.9.2</title>
+<title>BodyEvents — V2.9.4</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤸</text></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -303,7 +303,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.9.2</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.9.4</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -6032,7 +6032,8 @@ function renderUserEvents(){
     const levelBadges=ev.level==='multi'?'<span class="badge badge-purple">Multi-livello</span>':'<span class="badge '+badgeLevel(ev.level)+'">'+capitalize(ev.level)+'</span>';
     const daysBadge=ev.days.length>1?'<span class="badge badge-purple">'+ev.days.length+' giorni</span>':'';
     const recBadge=getRecurrenceBadge(ev);
-    const pricingBadge=ev.pricingMode==='free'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🆓 Gratuito</span>':ev.pricingMode==='managed'?'<span class="badge badge-yellow">🤝 Costi con org.</span>':'';
+    const _minP=ev.pricingMode==='standard'?minPrice(ev):0;
+    const pricingBadge=ev.pricingMode==='free'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🆓 Gratuito</span>':ev.pricingMode==='managed'?'<span class="badge badge-yellow">🤝 Costi con org.</span>':(_minP>0?'<span class="badge" style="background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)">💰 da €'+_minP+'</span>':'');
     const confirmStatus=getConfirmationStatus(ev);
     const _evDlExp=ev.minSubscribers&&ev.minSubscribers.deadline&&new Date().toISOString().split('T')[0]>ev.minSubscribers.deadline;
     const confirmBadge=confirmStatus==='attesa'&&_evDlExp?'<span class="badge" style="background:var(--red-bg);color:var(--red)">🚫 Deadline scaduta — min. non raggiunto</span>':confirmStatus==='attesa'?'<span class="badge badge-attesa">⏳ In attesa raggiungimento numero minimo</span>':confirmStatus==='confermato'?'<span class="badge badge-confermato">✅ Confermato</span>':'';
@@ -8102,26 +8103,37 @@ function expandRecurringForList(events){
       else if(!ev.days||!ev.days.length)result.push(ev);
       return;
     }
-    // Recurring: generate next 2 virtual instances
-    const dates=getNextRecurringDates(ev,2);
+    // Recurring: generate next 3 virtual instances (ensures at least 2 future)
+    const dates=getNextRecurringDates(ev,3);
     dates.forEach(dateStr=>{
       const exc=(ev.recurrence.exceptions||{})[dateStr];
-      const virtualEv={...ev,_recDate:dateStr,_isRecurringInstance:true};
+      // Deep-clone days/sessions/tiers to avoid cross-instance mutation
+      const clonedDays=(ev.days||[]).map(d=>({...d,
+        tiers:d.tiers?{...d.tiers}:null,
+        sessions:(d.sessions||[]).map(s=>({...s,tiers:s.tiers?{...s.tiers}:null}))
+      }));
+      const virtualEv={...ev,_recDate:dateStr,_isRecurringInstance:true,
+        days:clonedDays,
+        tiers:ev.tiers?{...ev.tiers}:null};
       // Apply per-date exceptions (modifications)
-      if(exc&&exc.type==='modificato'){
-        if(exc.changes){
-          if(exc.changes.location)virtualEv.location=exc.changes.location;
-          if(exc.changes.locationUrl)virtualEv.locationUrl=exc.changes.locationUrl;
-          if(exc.changes.startTime&&virtualEv.days&&virtualEv.days[0]){
-            virtualEv.days=virtualEv.days.map((d,i)=>i===0?{...d,startTime:exc.changes.startTime,endTime:exc.changes.endTime||d.endTime,date:dateStr,sessions:(d.sessions||[]).map(s=>({...s}))}:{...d});
-          }
-          if(exc.changes.alert)virtualEv._recAlert=exc.changes.alert;
+      if(exc&&exc.type==='modificato'&&exc.changes){
+        if(exc.changes.location)virtualEv.location=exc.changes.location;
+        if(exc.changes.locationUrl)virtualEv.locationUrl=exc.changes.locationUrl;
+        if(exc.changes.startTime&&virtualEv.days&&virtualEv.days[0]){
+          virtualEv.days[0].startTime=exc.changes.startTime;
+          if(exc.changes.endTime)virtualEv.days[0].endTime=exc.changes.endTime;
         }
+        // Apply per-date tier overrides
+        if(exc.changes.tiers&&virtualEv.tiers){
+          Object.assign(virtualEv.tiers,exc.changes.tiers);
+        }
+        if(exc.changes.dayTiers&&virtualEv.days[0]&&virtualEv.days[0].tiers){
+          Object.assign(virtualEv.days[0].tiers,exc.changes.dayTiers);
+        }
+        if(exc.changes.alert)virtualEv._recAlert=exc.changes.alert;
       }
       // Update day dates to the virtual date
-      if(virtualEv.days&&virtualEv.days.length){
-        virtualEv.days=virtualEv.days.map((d,i)=>({...d,date:i===0?dateStr:dateStr}));
-      }
+      virtualEv.days.forEach(d=>{d.date=dateStr;});
       result.push(virtualEv);
     });
   });
@@ -8339,6 +8351,8 @@ function executeAlertAction(){
 }
 function startAlertEdit(){
   const ev=store.events.find(e=>e.id===alertModalEvId);if(!ev)return;
+  // Permission check: only capofila can start alert edit
+  if(ev.managerId!==store.currentUser.id){showToast('Solo l\'organizzatore capofila può modificare questo evento','error');closeAlertModal();return;}
   // Save snapshot of current values BEFORE editing for change tracking
   const snapshot={
     title:ev.title,description:ev.description,location:ev.location,teacher:ev.teacher,
@@ -8422,6 +8436,19 @@ function confirmAlertEdit(){
   formEv.createdAt=oldEv.createdAt;
   formEv.status='pubblicato';
   formEv.refunds=oldRefunds||null;
+  // Preserve recurrence metadata (exceptions, active state, pause) from old event
+  if(oldEv.recurrence){
+    if(formEv.recurrence){
+      formEv.recurrence.exceptions=oldEv.recurrence.exceptions||{};
+      formEv.recurrence.active=oldEv.recurrence.active;
+      formEv.recurrence.pausedUntil=oldEv.recurrence.pausedUntil||null;
+    } else {
+      // Recurrence was removed during edit — keep it if old event was recurring
+      formEv.recurrence=oldEv.recurrence;
+    }
+  }
+  // Preserve bookings array reference if it existed on old event
+  if(oldEv.bookings)formEv.bookings=oldEv.bookings;
   // Set alert with type modificato and snapshot
   formEv.alert={
     type:'modificato',
@@ -9622,6 +9649,8 @@ function imgStyle(data,w,h){
 
 function editEvent(id){
   const ev=store.events.find(e=>e.id===id);if(!ev)return;
+  // Permission check: only the lead organizer (capofila) can edit
+  if(ev.managerId!==store.currentUser.id){showToast('Solo l\'organizzatore capofila può modificare questo evento','error');return;}
   editingEventId=id;
   resetForm();
   // Populate universe
@@ -9875,12 +9904,18 @@ function saveAsDraft(){
   const ev=collectFormData();if(!ev)return;
   ensureEventCoords(ev);
   if(editingEventId){
+    // Permission check: only capofila can save edits
+    const existingEv=store.events.find(e=>e.id===editingEventId);
+    if(existingEv&&existingEv.managerId!==store.currentUser.id){showToast('Solo l\'organizzatore capofila può modificare questo evento','error');return;}
     // Update existing event
     showConfirm('Salva modifiche','Salvare le modifiche come bozza?',()=>{
       const idx=store.events.findIndex(e=>e.id===editingEventId);
       if(idx>=0){
-        const oldPM=store.events[idx].pricingMode;const oldRefunds=store.events[idx].refunds;
-        ev.id=editingEventId;ev.managerId=store.events[idx].managerId;ev.orgName=store.events[idx].orgName;ev.createdAt=store.events[idx].createdAt;ev.alert=store.events[idx].alert;ev.refunds=oldRefunds||null;
+        const oldEv=store.events[idx];const oldPM=oldEv.pricingMode;const oldRefunds=oldEv.refunds;
+        ev.id=editingEventId;ev.managerId=oldEv.managerId;ev.orgName=oldEv.orgName;ev.createdAt=oldEv.createdAt;ev.alert=oldEv.alert;ev.refunds=oldRefunds||null;
+        // Preserve recurrence metadata
+        if(oldEv.recurrence){if(ev.recurrence){ev.recurrence.exceptions=oldEv.recurrence.exceptions||{};ev.recurrence.active=oldEv.recurrence.active;ev.recurrence.pausedUntil=oldEv.recurrence.pausedUntil||null;}else{ev.recurrence=oldEv.recurrence;}}
+        if(oldEv.bookings)ev.bookings=oldEv.bookings;
         store.events[idx]=ev;
         fsSet('events',ev.id,ev).catch(console.error);
         handlePricingModeChange(editingEventId,oldPM,ev.pricingMode);
@@ -9900,11 +9935,17 @@ function publishNewEvent(){
   const ev=collectFormData();if(!ev)return;
   ensureEventCoords(ev);
   if(editingEventId){
+    // Permission check: only capofila can publish edits
+    const existingEv=store.events.find(e=>e.id===editingEventId);
+    if(existingEv&&existingEv.managerId!==store.currentUser.id){showToast('Solo l\'organizzatore capofila può modificare questo evento','error');return;}
     showConfirm('Pubblica modifiche','Pubblicare le modifiche?',()=>{
       const idx=store.events.findIndex(e=>e.id===editingEventId);
       if(idx>=0){
-        const oldPM=store.events[idx].pricingMode;const oldRefunds=store.events[idx].refunds;
-        ev.id=editingEventId;ev.managerId=store.events[idx].managerId;ev.orgName=store.events[idx].orgName;ev.createdAt=store.events[idx].createdAt;ev.alert=store.events[idx].alert;ev.status='pubblicato';ev.refunds=oldRefunds||null;
+        const oldEv2=store.events[idx];const oldPM=oldEv2.pricingMode;const oldRefunds=oldEv2.refunds;
+        ev.id=editingEventId;ev.managerId=oldEv2.managerId;ev.orgName=oldEv2.orgName;ev.createdAt=oldEv2.createdAt;ev.alert=oldEv2.alert;ev.status='pubblicato';ev.refunds=oldRefunds||null;
+        // Preserve recurrence metadata
+        if(oldEv2.recurrence){if(ev.recurrence){ev.recurrence.exceptions=oldEv2.recurrence.exceptions||{};ev.recurrence.active=oldEv2.recurrence.active;ev.recurrence.pausedUntil=oldEv2.recurrence.pausedUntil||null;}else{ev.recurrence=oldEv2.recurrence;}}
+        if(oldEv2.bookings)ev.bookings=oldEv2.bookings;
         store.events[idx]=ev;
         fsSet('events',ev.id,ev).catch(console.error);
         const rl=handlePricingModeChange(editingEventId,oldPM,ev.pricingMode);
@@ -9994,11 +10035,16 @@ function renderAdminBookings(){
   const pending=allBks.filter(b=>b.depositStatus==='pending').length;
   const cancellate=allBks.filter(b=>b.status==='cancellata').length;
   const statsC=document.getElementById('booking-stats');
+  const _bkActive=allBks.filter(b=>b.status!=='cancellata'&&!b.gift);
+  const _bkTotalRev=_bkActive.reduce((s,b)=>s+b.amount,0);
+  const _bkPaidRev=_bkActive.filter(b=>b.paymentStatus==='pagato').reduce((s,b)=>s+b.amount,0);
   if(statsC) statsC.innerHTML=`
     <div class="stat-card"><div class="value" style="color:var(--green)">${totale}</div><div class="label">Totale</div></div>
     <div class="stat-card"><div class="value" style="color:var(--blue)">${confermate}</div><div class="label">Confermate</div></div>
     <div class="stat-card"><div class="value" style="color:var(--yellow)">${pending}</div><div class="label">Anticipo pending</div></div>
-    <div class="stat-card"><div class="value" style="color:var(--red)">${cancellate}</div><div class="label">Cancellate</div></div>`;
+    <div class="stat-card"><div class="value" style="color:var(--red)">${cancellate}</div><div class="label">Cancellate</div></div>
+    <div class="stat-card"><div class="value" style="color:var(--green)">€${_bkTotalRev}</div><div class="label">Incasso totale</div></div>
+    <div class="stat-card"><div class="value" style="color:var(--blue)">€${_bkPaidRev}</div><div class="label">Incassato</div></div>`;
   // Table
   const tw=document.getElementById('booking-table-wrap');if(!tw)return;
   if(!bks.length){tw.innerHTML='<div class="text-center txt3" style="padding:24px">Nessuna prenotazione trovata.</div>';return;}
@@ -10142,36 +10188,115 @@ function markRefund(evId,bookingId){
   showAdminEventDetail(evId);
 }
 
-/* Handle price sync: when event prices change, update all active bookings */
+/* Handle price sync: when event prices change, update all active bookings.
+   Early bird & loyalty items are only recalculated if the organizer actually changed their EB/loyalty prices.
+   Otherwise they keep the original discounted price. */
 function syncBookingPrices(evId,snapshot){
   const ev=store.events.find(e=>e.id===evId);if(!ev)return;
   if(ev.pricingMode==='free')return; // handled by handlePricingModeChange
   const activeBks=store.bookings.filter(b=>b.eventId===evId&&b.status!=='cancellata'&&b.paymentStatus!=='abbonamento'&&b.paymentStatus!=='gratuito'&&!b.gift);
   if(!activeBks.length)return;
+  // Build session lookup by ID and name for robust matching
+  const sessionLookup={};
+  ev.days.forEach(d=>(d.sessions||[]).forEach(s=>{
+    if(s.id)sessionLookup[s.id]=s;
+    if(s.name)sessionLookup['name:'+s.name]=s;
+  }));
+  // Build snapshot session lookup for EB change detection
+  const snapSessionLookup={};
+  if(snapshot&&snapshot.days)snapshot.days.forEach(d=>(d.sessions||[]).forEach(s=>{
+    if(s.name)snapSessionLookup['name:'+s.name]=s;
+  }));
+  // Helper: did EB change for a given scope?
+  function ebChanged(scope,idx){
+    if(!snapshot)return true; // no snapshot = assume changed
+    if(scope==='sessione'){
+      const sName=arguments[2];
+      const oldS=snapSessionLookup['name:'+sName];
+      const newS=sessionLookup['name:'+sName]||sessionLookup[arguments[3]];
+      if(!oldS||!newS)return true;
+      const oe=oldS.earlyBird||{},ne=newS.earlyBird||{};
+      return oe.alto!==ne.alto||oe.medio!==ne.medio||oe.basso!==ne.basso;
+    }
+    if(scope==='giornata'){
+      const oldD=snapshot.days&&snapshot.days[idx];
+      const newD=ev.days&&ev.days[idx];
+      if(!oldD||!newD)return true;
+      const oe=oldD.earlyBird||{},ne=newD.earlyBird||{};
+      return oe.alto!==ne.alto||oe.medio!==ne.medio||oe.basso!==ne.basso;
+    }
+    if(scope==='evento'){
+      const oe=snapshot.earlyBird||{},ne=ev.earlyBird||{};
+      return oe.alto!==ne.alto||oe.medio!==ne.medio||oe.basso!==ne.basso;
+    }
+    return true;
+  }
+  function loyaltyChanged(scope,idx){
+    if(!snapshot)return true;
+    if(scope==='giornata'){
+      const oldD=snapshot.days&&snapshot.days[idx];
+      const newD=ev.days&&ev.days[idx];
+      if(!oldD||!newD)return true;
+      const oe=oldD.loyaltyTiers||{},ne=newD.loyaltyTiers||{};
+      return oe.alto!==ne.alto||oe.medio!==ne.medio||oe.basso!==ne.basso;
+    }
+    if(scope==='evento'){
+      const oe=snapshot.loyaltyTiers||{},ne=ev.loyaltyTiers||{};
+      return oe.alto!==ne.alto||oe.medio!==ne.medio||oe.basso!==ne.basso;
+    }
+    return true;
+  }
   activeBks.forEach(b=>{
     let newTotal=0;
     const newItems=(b.items||[]).map(it=>{
-      const tierKey=it.tier==='Sostenitore'?'alto':it.tier==='Ridotto'?'basso':'medio';
+      const tierKey=it.tierKey||( it.tier==='Sostenitore'?'alto':it.tier==='Ridotto'?'basso':'medio');
       let newPrice=it.price;
-      if(it.type==='sessione'){
-        // Find session by name in updated event
-        ev.days.forEach(d=>(d.sessions||[]).forEach(s=>{
+      // --- Early bird items: only recalc if EB prices were actually modified ---
+      if(it.type==='early bird sessione'){
+        if(ebChanged('sessione',0,it.name.replace('🐦 EB — ',''),it.sessionId)){
+          const sess=sessionLookup[it.sessionId]||sessionLookup['name:'+it.name.replace('🐦 EB — ','')];
+          if(sess&&sess.earlyBird)newPrice=sess.earlyBird[tierKey]||0;
+        }
+        // else keep original EB price
+      }else if(it.type==='early bird giornata'){
+        const di=_findDayIndex(ev,it);
+        if(di>=0&&ebChanged('giornata',di)){
+          if(ev.days[di].earlyBird)newPrice=ev.days[di].earlyBird[tierKey]||0;
+        }
+      }else if(it.type==='early bird evento'){
+        if(ebChanged('evento')){
+          if(ev.earlyBird)newPrice=ev.earlyBird[tierKey]||0;
+        }
+      // --- Loyalty items: only recalc if loyalty prices were actually modified ---
+      }else if(it.type==='fedeltà giornata'){
+        const di=_findDayIndex(ev,it);
+        if(di>=0&&loyaltyChanged('giornata',di)){
+          if(ev.days[di].loyaltyTiers)newPrice=ev.days[di].loyaltyTiers[tierKey]||0;
+        }
+      }else if(it.type==='fedeltà evento'){
+        if(loyaltyChanged('evento')){
+          if(ev.loyaltyTiers)newPrice=ev.loyaltyTiers[tierKey]||0;
+        }
+      // --- Normal items: always recalc ---
+      }else if(it.type==='sessione'){
+        const sess=sessionLookup[it.sessionId]||sessionLookup['name:'+it.name];
+        if(sess&&sess.tiers)newPrice=sess.tiers[tierKey]||0;
+        if(!sess){ev.days.forEach(d=>(d.sessions||[]).forEach(s=>{
           if(s.name===it.name&&s.tiers)newPrice=s.tiers[tierKey]||0;
-        }));
-      }else if(it.type==='giornata'||it.type.includes('giornata')){
-        // Find day-level price
+        }));}
+      }else if(it.type==='giornata'){
+        let matched=false;
         ev.days.forEach((d,di)=>{
           if(it.name&&it.name.includes&&(it.name.includes('Giornata '+(di+1))||it.name.includes(d.date))){
             const useTiers=d.tiers||ev.tiers;
-            if(useTiers)newPrice=useTiers[tierKey]||0;
+            if(useTiers){newPrice=useTiers[tierKey]||0;matched=true;}
           }
         });
-        // If single day event or no name match, use first day or event tiers
-        if(ev.days.length===1){
+        if(!matched&&ev.days.length===1){
           const useTiers=ev.days[0].tiers||ev.tiers;
           if(useTiers)newPrice=useTiers[tierKey]||0;
         }
-      }else if(it.type==='pacchetto evento'){
+      }else if(it.type==='pacchetto evento'||it.type==='evento'){
         if(ev.tiers)newPrice=ev.tiers[tierKey]||0;
       }
       newTotal+=newPrice;
@@ -10184,6 +10309,14 @@ function syncBookingPrices(evId,snapshot){
       fsUpdate('bookings',b.id,{items:newItems,amount:newTotal,totalAmount:newTotal,previousAmount:prevAmt}).catch(console.error);
     }
   });
+}
+// Helper: find day index from booking item name
+function _findDayIndex(ev,it){
+  if(!it.name||!ev.days)return ev.days&&ev.days.length===1?0:-1;
+  for(let di=0;di<ev.days.length;di++){
+    if(it.name.includes('Giornata '+(di+1))||it.name.includes(ev.days[di].date)||it.name.includes(fmtDateShort(ev.days[di].date)))return di;
+  }
+  return ev.days.length===1?0:-1;
 }
 /* ==============================
    GESTIONE UTENTI & ORGANIZZATORI
