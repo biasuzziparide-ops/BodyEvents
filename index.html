@@ -1891,6 +1891,7 @@ textarea.input{resize:none;font-family:inherit}
   <main class="admin-content">
     <div class="flex justify-between items-center mb-4">
       <div><h1 class="page-title">📋 Anagrafica</h1><p class="page-sub">Archivio permanente dei partecipanti ai tuoi eventi</p></div>
+      <button class="btn btn-sm" style="background:var(--s200);color:var(--txt2);border:1px solid var(--s400)" onclick="openRegistrySublistModal()">📂 Aggiungi Sottolista</button>
     </div>
     <!-- Sublists area -->
     <div id="registry-sublists-area"></div>
@@ -4144,12 +4145,14 @@ function buildRegistryFromBookings(){
   myBookings.forEach(b=>{
     const uid=b.userId||b.email;
     if(!uid)return;
+    const fullName=b.userName||b.name||'';
     const exists=reg.entries.find(e=>e.uid===uid||e.email===b.email);
     if(!exists){
-      reg.entries.push({uid:uid,name:b.name||b.initials||'?',email:b.email||'',addedAt:new Date().toISOString().split('T')[0],customData:{}});
+      reg.entries.push({uid:uid,name:fullName||b.initials||'?',email:b.email||'',addedAt:new Date().toISOString().split('T')[0],customData:{}});
       changed=true;
     } else {
-      if(b.name&&b.name.length>1&&(!exists.name||exists.name==='?'||exists.name.length<=2)){exists.name=b.name;changed=true;}
+      // Always update to longer/better name (covers user renaming)
+      if(fullName&&fullName.length>1&&(!exists.name||exists.name==='?'||exists.name.length<fullName.length)){exists.name=fullName;changed=true;}
     }
   });
   if(changed)saveRegistry();
@@ -4184,7 +4187,6 @@ function renderListToolbar(listId,reg){
     h+='<button class="btn btn-sm" style="font-size:.7rem;padding:3px 8px;background:var(--s200);color:var(--txt2);border:1px solid var(--s400)" onclick="openColVisibilityMenu(\''+listId+'\',this)">👁️ Colonne</button>';
   }
   if(listId==='main'){
-    h+='<button class="btn btn-sm" style="font-size:.7rem;padding:3px 8px;background:var(--s200);color:var(--txt2);border:1px solid var(--s400)" onclick="openRegistrySublistModal()">📂 Sottolista</button>';
     h+='<button class="btn btn-sm" style="font-size:.7rem;padding:3px 8px;background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="exportRegistryExcel()">📥 Excel</button>';
   }
   h+='</div>';
@@ -4951,6 +4953,18 @@ function go(view){
   // Update mobile top-nav active states
   document.querySelectorAll('.mtn-item').forEach(i=>i.classList.remove('active'));
   document.querySelectorAll(`.mtn-item[data-view="${view}"]`).forEach(i=>i.classList.add('active'));
+  // Update sidebar active state for the target view
+  if(el){
+    const sidebarNav=el.querySelector('.sidebar-nav');
+    if(sidebarNav){
+      sidebarNav.querySelectorAll('.sidebar-link').forEach(l=>l.classList.remove('active'));
+      const match=[...sidebarNav.querySelectorAll('.sidebar-link')].find(l=>{
+        const oc=l.getAttribute('onclick')||'';
+        return oc.includes("go('"+view+"')")||oc.includes('go("'+view+'")');
+      });
+      if(match)match.classList.add('active');
+    }
+  }
   window.scrollTo(0,0);
   const noNav=['login','register','register-org','privacy-policy','checkin-booked','checkin-walkin','checkin-new'];
   const hideAll=noNav.includes(view);
@@ -5116,6 +5130,15 @@ async function saveProfileChanges(){
   const displayEl=document.getElementById('profile-display-name');
   if(displayEl)displayEl.textContent=newUsername;
   document.querySelectorAll('.profile-name-user').forEach(el=>el.textContent=newUsername);
+  // Update bookings in store so registry picks up new name
+  store.bookings.filter(b=>b.userId===u.id).forEach(b=>{b.userName=newUsername;b.initials=u.initials;});
+  // Update registry entries directly
+  store.managers.forEach(m=>{
+    if(m.registry&&m.registry.entries){
+      const entry=m.registry.entries.find(e=>e.uid===u.id);
+      if(entry&&entry.name!==newUsername){entry.name=newUsername;if(m.id===store.currentUser?.id)saveRegistry();}
+    }
+  });
   disableProfileSave();
   showToast('Profilo aggiornato!');
 }
