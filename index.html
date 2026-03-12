@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.13.0</title>
+<title>BodyEvents — V2.13.2</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤸</text></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -303,7 +303,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.13.0</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.13.2</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -1891,20 +1891,16 @@ textarea.input{resize:none;font-family:inherit}
   <main class="admin-content">
     <div class="flex justify-between items-center mb-4">
       <div><h1 class="page-title">📋 Anagrafica</h1><p class="page-sub">Archivio permanente dei partecipanti ai tuoi eventi</p></div>
-      <div class="flex gap-2" style="flex-wrap:wrap">
-        <button class="btn btn-sm" style="background:var(--s200);color:var(--txt2);border:1px solid var(--s400)" onclick="openRegistryColumnModal()">➕ Colonna</button>
-        <button class="btn btn-sm" style="background:var(--s200);color:var(--txt2);border:1px solid var(--s400)" onclick="openRegistrySublistModal()">📂 Nuova sottolista</button>
-        <button class="btn btn-sm" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="exportRegistryExcel()">📥 Excel</button>
-      </div>
     </div>
     <!-- Sublists area -->
     <div id="registry-sublists-area"></div>
     <!-- Main registry table -->
     <div class="card" style="overflow:hidden">
-      <div style="padding:12px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between" onclick="const b=document.getElementById('registry-main-body');b.classList.toggle('hidden');this.querySelector('.coll-arrow').textContent=b.classList.contains('hidden')?'▸':'▾'">
+      <div style="padding:12px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between" onclick="toggleRegistryCollapse('main')">
         <h3 class="font-semibold text-white" style="margin:0">📋 Anagrafica Generale <span id="registry-count" class="text-xs txt3"></span></h3>
-        <span class="coll-arrow text-xs txt3">▾</span>
+        <span class="coll-arrow text-xs txt3" id="registry-main-arrow">▾</span>
       </div>
+      <div id="registry-main-toolbar"></div>
       <div id="registry-main-body" style="overflow-x:auto">
         <table id="registry-table" style="width:100%;border-collapse:collapse;font-size:.82rem">
           <thead id="registry-thead"></thead>
@@ -4094,28 +4090,52 @@ function getTodayDate(){
 }
 
 /* ==============================
-   ANAGRAFICA (REGISTRY) V2.13.0
+   ANAGRAFICA (REGISTRY) V2.13.1
 ============================== */
 let registrySort={col:'name',asc:true};
 const REGISTRY_COLORS=['#ef4444','#f97316','#eab308','#22c55e','#14b8a6','#3b82f6','#6366f1','#a855f7','#ec4899','#78716c'];
 const REGISTRY_COLOR_NAMES=['Rosso','Arancione','Giallo','Verde','Teal','Blu','Indaco','Viola','Rosa','Grigio'];
+let _regDragListId=null,_regDragColId=null;
 
 function getRegistryData(){
   const mgr=store.managers.find(m=>m.id===store.currentUser?.id);
-  if(!mgr)return{entries:[],columns:[],sublists:[]};
-  if(!mgr.registry)mgr.registry={entries:[],columns:[],sublists:[]};
+  if(!mgr)return{entries:[],columns:[],sublists:[],listConfigs:{}};
+  if(!mgr.registry)mgr.registry={entries:[],columns:[],sublists:[],listConfigs:{},collapsedLists:[]};
+  if(!mgr.registry.listConfigs)mgr.registry.listConfigs={};
+  if(!mgr.registry.collapsedLists)mgr.registry.collapsedLists=[];
   return mgr.registry;
 }
 function saveRegistry(){
   const mgr=store.managers.find(m=>m.id===store.currentUser?.id);
   if(!mgr)return;
-  fsUpdate('managers',mgr.id,{registry:mgr.registry||{entries:[],columns:[],sublists:[]}});
+  fsUpdate('managers',mgr.id,{registry:mgr.registry||{entries:[],columns:[],sublists:[],listConfigs:{}}});
+}
+// Get per-list config (colOrder + hiddenCols). listId='main' or sublist id
+function getListConfig(reg,listId){
+  if(!reg.listConfigs)reg.listConfigs={};
+  if(!reg.listConfigs[listId])reg.listConfigs[listId]={colOrder:[],hiddenCols:[]};
+  const cfg=reg.listConfigs[listId];
+  // Ensure all global columns exist in colOrder (append missing ones)
+  const allColIds=(reg.columns||[]).map(c=>c.id);
+  const inOrder=new Set(cfg.colOrder.filter(id=>allColIds.includes(id)));
+  allColIds.forEach(id=>{if(!inOrder.has(id))cfg.colOrder.push(id);});
+  // Remove stale ids
+  cfg.colOrder=cfg.colOrder.filter(id=>allColIds.includes(id));
+  cfg.hiddenCols=(cfg.hiddenCols||[]).filter(id=>allColIds.includes(id));
+  return cfg;
+}
+function getVisibleCols(reg,listId){
+  const cfg=getListConfig(reg,listId);
+  const hidden=new Set(cfg.hiddenCols||[]);
+  const allCols=reg.columns||[];
+  // Return in colOrder, visible only
+  return cfg.colOrder.filter(id=>!hidden.has(id)).map(id=>allCols.find(c=>c.id===id)).filter(Boolean);
 }
 
 function buildRegistryFromBookings(){
   const mgr=store.managers.find(m=>m.id===store.currentUser?.id);
   if(!mgr)return;
-  if(!mgr.registry)mgr.registry={entries:[],columns:[],sublists:[]};
+  if(!mgr.registry)mgr.registry={entries:[],columns:[],sublists:[],listConfigs:{}};
   const reg=mgr.registry;
   const myEvents=store.events.filter(e=>e.managerId===mgr.id);
   const myEventIds=new Set(myEvents.map(e=>e.id));
@@ -4139,66 +4159,213 @@ function renderAdminRegistry(){
   buildRegistryFromBookings();
   const reg=getRegistryData();
   renderRegistrySublists(reg);
-  renderRegistryTable(reg,reg.entries,'registry-thead','registry-tbody',true);
+  renderRegistryTable(reg,reg.entries,'registry-thead','registry-tbody','main');
   document.getElementById('registry-count').textContent='('+reg.entries.length+' utenti)';
+  // Toolbar: add col + col visibility + sublist + excel buttons for main
+  const toolbar=document.getElementById('registry-main-toolbar');
+  if(toolbar)toolbar.innerHTML=renderListToolbar('main',reg);
+  // Apply saved collapse state for main list
+  const mainCollapsed=isRegistryCollapsed('main');
+  const mainBody=document.getElementById('registry-main-body');
+  const mainToolbar=document.getElementById('registry-main-toolbar');
+  const mainArrow=document.getElementById('registry-main-arrow');
+  if(mainBody){mainCollapsed?mainBody.classList.add('hidden'):mainBody.classList.remove('hidden');}
+  if(mainToolbar){mainCollapsed?mainToolbar.classList.add('hidden'):mainToolbar.classList.remove('hidden');}
+  if(mainArrow)mainArrow.textContent=mainCollapsed?'▸':'▾';
 }
 
-function renderRegistryTable(reg,entries,theadId,tbodyId,isMain){
+function renderListToolbar(listId,reg){
+  const cfg=getListConfig(reg,listId);
+  const allCols=reg.columns||[];
+  const hidden=new Set(cfg.hiddenCols||[]);
+  let h='<div class="flex gap-2 items-center" style="flex-wrap:wrap;padding:6px 16px;border-top:1px solid var(--s300)">';
+  h+='<button class="btn btn-sm" style="font-size:.7rem;padding:3px 8px;background:var(--s200);color:var(--txt2);border:1px solid var(--s400)" onclick="openRegistryColumnModal(\''+listId+'\')">➕ Colonna</button>';
+  if(allCols.length){
+    h+='<button class="btn btn-sm" style="font-size:.7rem;padding:3px 8px;background:var(--s200);color:var(--txt2);border:1px solid var(--s400)" onclick="openColVisibilityMenu(\''+listId+'\',this)">👁️ Colonne</button>';
+  }
+  if(listId==='main'){
+    h+='<button class="btn btn-sm" style="font-size:.7rem;padding:3px 8px;background:var(--s200);color:var(--txt2);border:1px solid var(--s400)" onclick="openRegistrySublistModal()">📂 Sottolista</button>';
+    h+='<button class="btn btn-sm" style="font-size:.7rem;padding:3px 8px;background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="exportRegistryExcel()">📥 Excel</button>';
+  }
+  h+='</div>';
+  return h;
+}
+
+function renderRegistryTable(reg,entries,theadId,tbodyId,listId){
   const thead=document.getElementById(theadId);
   const tbody=document.getElementById(tbodyId);
   if(!thead||!tbody)return;
-  const cols=reg.columns||[];
+  const cols=getVisibleCols(reg,listId);
   // Sort
   let sorted=[...entries];
-  const sc=registrySort.col;
-  const asc=registrySort.asc;
+  const sc=registrySort.col;const asc=registrySort.asc;
   sorted.sort((a,b)=>{
     let va,vb;
     if(sc==='name'){va=(a.name||'').toLowerCase();vb=(b.name||'').toLowerCase();}
     else if(sc==='email'){va=(a.email||'').toLowerCase();vb=(b.email||'').toLowerCase();}
     else{
-      const col=cols.find(c=>c.id===sc);
+      const col=(reg.columns||[]).find(c=>c.id===sc);
       va=a.customData?.[sc]??'';vb=b.customData?.[sc]??'';
       if(col&&col.type==='number'){va=parseFloat(va)||0;vb=parseFloat(vb)||0;}
       if(col&&col.type==='boolean'){va=va?1:0;vb=vb?1:0;}
     }
     if(va<vb)return asc?-1:1;if(va>vb)return asc?1:-1;return 0;
   });
-  // Header
+  const thStyle='padding:8px 10px;text-align:left;cursor:pointer;white-space:nowrap;font-size:.72rem;color:var(--txt2);user-select:none';
   const arrow=s=>registrySort.col===s?(registrySort.asc?' ▲':' ▼'):'';
-  let hh='<tr style="background:var(--s200)"><th style="padding:8px 12px;text-align:left;cursor:pointer;white-space:nowrap;font-size:.75rem;color:var(--txt2)" onclick="registrySort={col:\'name\',asc:registrySort.col===\'name\'?!registrySort.asc:true};renderAdminRegistry()">Nome'+arrow('name')+'</th>';
-  hh+='<th style="padding:8px 12px;text-align:left;cursor:pointer;white-space:nowrap;font-size:.75rem;color:var(--txt2)" onclick="registrySort={col:\'email\',asc:registrySort.col===\'email\'?!registrySort.asc:true};renderAdminRegistry()">Email'+arrow('email')+'</th>';
+  // Header
+  let hh='<tr style="background:var(--s200)">';
+  hh+='<th style="'+thStyle+'" onclick="registrySort={col:\'name\',asc:registrySort.col===\'name\'?!registrySort.asc:true};renderAdminRegistry()">Nome'+arrow('name')+'</th>';
+  hh+='<th style="'+thStyle+'" onclick="registrySort={col:\'email\',asc:registrySort.col===\'email\'?!registrySort.asc:true};renderAdminRegistry()">Email'+arrow('email')+'</th>';
   cols.forEach(c=>{
-    hh+='<th style="padding:8px 12px;text-align:left;cursor:pointer;white-space:nowrap;font-size:.75rem;color:var(--txt2)" onclick="registrySort={col:\''+c.id+'\',asc:registrySort.col===\''+c.id+'\'?!registrySort.asc:true};renderAdminRegistry()">'+c.name+arrow(c.id)+'<button style="background:none;border:none;color:var(--txt3);font-size:.6rem;cursor:pointer;margin-left:4px" onclick="event.stopPropagation();deleteRegistryColumn(\''+c.id+'\')">✕</button></th>';
+    hh+='<th style="'+thStyle+'" draggable="true" data-colid="'+c.id+'" data-listid="'+listId+'" ondragstart="regColDragStart(event)" ondragover="event.preventDefault();this.style.borderLeft=\'2px solid var(--brand)\'" ondragleave="this.style.borderLeft=\'\'" ondrop="regColDrop(event,this)">';
+    hh+='<span onclick="event.stopPropagation();registrySort={col:\''+c.id+'\',asc:registrySort.col===\''+c.id+'\'?!registrySort.asc:true};renderAdminRegistry()" style="cursor:pointer">'+escHtml(c.name)+arrow(c.id)+'</span>';
+    hh+=' <button style="background:none;border:none;color:var(--txt3);font-size:.55rem;cursor:pointer" onclick="event.stopPropagation();deleteRegistryColumn(\''+c.id+'\')" title="Elimina colonna">✕</button>';
+    hh+='</th>';
   });
   hh+='</tr>';
   thead.innerHTML=hh;
   // Body
-  if(!sorted.length){tbody.innerHTML='<tr><td colspan="'+(2+cols.length)+'" style="padding:24px;text-align:center;color:var(--txt3)">Nessun partecipante registrato. I partecipanti appariranno qui dopo le prenotazioni.</td></tr>';return;}
+  if(!sorted.length){tbody.innerHTML='<tr><td colspan="'+(2+cols.length)+'" style="padding:24px;text-align:center;color:var(--txt3)">Nessun partecipante.</td></tr>';return;}
   let bh='';
-  sorted.forEach((entry,idx)=>{
+  sorted.forEach(entry=>{
     bh+='<tr style="border-top:1px solid var(--s300)">';
-    bh+='<td style="padding:8px 12px;white-space:nowrap;color:var(--txt1);font-weight:500">'+escHtml(entry.name)+'</td>';
-    bh+='<td style="padding:8px 12px;white-space:nowrap;color:var(--txt2);font-size:.78rem">'+escHtml(entry.email)+'</td>';
+    bh+='<td style="padding:8px 10px;white-space:nowrap;color:var(--txt1);font-weight:500;font-size:.82rem">'+escHtml(entry.name)+'</td>';
+    bh+='<td style="padding:8px 10px;white-space:nowrap;color:var(--txt2);font-size:.78rem">'+escHtml(entry.email)+'</td>';
     cols.forEach(c=>{
       const val=entry.customData?.[c.id];
       if(c.type==='boolean'){
         const done=!!val;
-        bh+='<td style="padding:8px 12px;text-align:center"><button style="width:28px;height:28px;border-radius:8px;border:2px solid '+(done?'var(--green)':'var(--s400)')+';background:'+(done?'rgba(16,185,129,.15)':'var(--s100)')+';cursor:pointer;font-size:.8rem;transition:all .15s" onclick="toggleRegistryBool(\''+entry.uid+'\',\''+c.id+'\')">'+(done?'✓':'')+'</button></td>';
+        bh+='<td style="padding:6px 10px;text-align:center"><button style="width:26px;height:26px;border-radius:7px;border:2px solid '+(done?'var(--green)':'var(--s400)')+';background:'+(done?'rgba(16,185,129,.15)':'var(--s100)')+';cursor:pointer;font-size:.75rem;transition:all .15s" onclick="toggleRegistryBool(\''+entry.uid+'\',\''+c.id+'\')">'+(done?'✓':'')+'</button></td>';
       } else if(c.type==='color'){
         const color=val||'';
-        const colorIdx=REGISTRY_COLORS.indexOf(color);
-        const colorName=colorIdx>=0?REGISTRY_COLOR_NAMES[colorIdx]:'';
-        bh+='<td style="padding:8px 12px;text-align:center"><button style="width:28px;height:28px;border-radius:8px;border:2px solid '+(color||'var(--s400)')+';background:'+(color||'var(--s100)')+';cursor:pointer;transition:all .15s" onclick="openRegistryColorPicker(\''+entry.uid+'\',\''+c.id+'\',this)" title="'+colorName+'"></button></td>';
+        bh+='<td style="padding:6px 10px;text-align:center"><button style="width:26px;height:26px;border-radius:7px;border:2px solid '+(color||'var(--s400)')+';background:'+(color||'var(--s100)')+';cursor:pointer;transition:all .15s" onclick="openRegistryColorPicker(\''+entry.uid+'\',\''+c.id+'\',this)"></button></td>';
       } else if(c.type==='number'){
-        bh+='<td style="padding:8px 12px"><input type="number" value="'+(val||0)+'" style="width:60px;background:var(--s100);border:1px solid var(--s300);border-radius:6px;padding:4px 6px;color:var(--txt1);font-size:.8rem;text-align:center" onchange="updateRegistryCell(\''+entry.uid+'\',\''+c.id+'\',parseFloat(this.value)||0)"></td>';
+        bh+='<td style="padding:6px 10px"><input type="number" value="'+(val||0)+'" style="width:55px;background:var(--s100);border:1px solid var(--s300);border-radius:6px;padding:3px 5px;color:var(--txt1);font-size:.78rem;text-align:center" onchange="updateRegistryCell(\''+entry.uid+'\',\''+c.id+'\',parseFloat(this.value)||0)"></td>';
       } else {
-        bh+='<td style="padding:8px 12px"><input type="text" value="'+escHtml(val||'')+'" placeholder="—" style="width:100%;min-width:80px;background:var(--s100);border:1px solid var(--s300);border-radius:6px;padding:4px 6px;color:var(--txt1);font-size:.8rem" onchange="updateRegistryCell(\''+entry.uid+'\',\''+c.id+'\',this.value)"></td>';
+        bh+='<td style="padding:6px 10px"><input type="text" value="'+escHtml(val||'')+'" placeholder="—" style="width:100%;min-width:70px;background:var(--s100);border:1px solid var(--s300);border-radius:6px;padding:3px 5px;color:var(--txt1);font-size:.78rem" onchange="updateRegistryCell(\''+entry.uid+'\',\''+c.id+'\',this.value)"></td>';
       }
     });
     bh+='</tr>';
   });
   tbody.innerHTML=bh;
+  // Summary/totals footer row
+  if(sorted.length&&cols.length){
+    const table=thead.closest('table');
+    let tfoot=table.querySelector('tfoot');
+    if(!tfoot){tfoot=document.createElement('tfoot');table.appendChild(tfoot);}
+    let fh='<tr style="border-top:2px solid var(--s400);background:var(--s200)">';
+    fh+='<td colspan="2" style="padding:8px 10px;font-size:.72rem;font-weight:600;color:var(--txt2)">Riepilogo</td>';
+    cols.forEach(c=>{
+      if(c.type==='number'){
+        let total=0;sorted.forEach(e=>{total+=parseFloat(e.customData?.[c.id])||0;});
+        fh+='<td style="padding:8px 10px;font-size:.78rem;font-weight:600;color:var(--txt1);text-align:center">'+total+'</td>';
+      } else if(c.type==='boolean'){
+        let yes=0,no=0;sorted.forEach(e=>{e.customData?.[c.id]?yes++:no++;});
+        fh+='<td style="padding:6px 10px;font-size:.7rem;color:var(--txt2);text-align:center;white-space:nowrap">✓ '+yes+' · ✕ '+no+'</td>';
+      } else if(c.type==='color'){
+        const counts={};sorted.forEach(e=>{const v=e.customData?.[c.id]||'';if(v){counts[v]=(counts[v]||0)+1;}});
+        let cf='<td style="padding:4px 6px;text-align:center"><div style="display:flex;gap:2px;flex-wrap:wrap;justify-content:center">';
+        Object.keys(counts).forEach(color=>{
+          cf+='<span style="display:inline-flex;align-items:center;gap:1px;font-size:.6rem;color:var(--txt2);background:var(--s100);border-radius:4px;padding:1px 4px"><span style="width:8px;height:8px;border-radius:2px;background:'+color+';display:inline-block"></span>'+counts[color]+'</span>';
+        });
+        cf+='</div></td>';fh+=cf;
+      } else {
+        fh+='<td style="padding:8px 10px"></td>';
+      }
+    });
+    fh+='</tr>';
+    tfoot.innerHTML=fh;
+  }
+}
+
+// Drag & drop column reordering
+function regColDragStart(e){
+  _regDragListId=e.target.dataset.listid||e.target.closest('[data-listid]')?.dataset.listid;
+  _regDragColId=e.target.dataset.colid||e.target.closest('[data-colid]')?.dataset.colid;
+  e.dataTransfer.effectAllowed='move';
+}
+function regColDrop(e,th){
+  e.preventDefault();th.style.borderLeft='';
+  const targetColId=th.dataset.colid||th.closest('[data-colid]')?.dataset.colid;
+  const targetListId=th.dataset.listid||th.closest('[data-listid]')?.dataset.listid;
+  if(!_regDragColId||!targetColId||_regDragColId===targetColId)return;
+  const listId=targetListId||_regDragListId||'main';
+  const reg=getRegistryData();
+  const cfg=getListConfig(reg,listId);
+  const arr=cfg.colOrder;
+  const fromIdx=arr.indexOf(_regDragColId);
+  const toIdx=arr.indexOf(targetColId);
+  if(fromIdx<0||toIdx<0)return;
+  arr.splice(fromIdx,1);
+  arr.splice(toIdx,0,_regDragColId);
+  saveRegistry();renderAdminRegistry();
+}
+
+// Column visibility menu
+function openColVisibilityMenu(listId,btnEl){
+  document.querySelectorAll('.reg-col-vis-menu').forEach(p=>p.remove());
+  const reg=getRegistryData();
+  const cfg=getListConfig(reg,listId);
+  const allCols=reg.columns||[];
+  const hidden=new Set(cfg.hiddenCols||[]);
+  const menu=document.createElement('div');
+  menu.className='reg-col-vis-menu';
+  menu.style.cssText='position:absolute;z-index:9999;background:var(--card);border:1px solid var(--s400);border-radius:10px;padding:8px;box-shadow:0 4px 16px rgba(0,0,0,.4);min-width:180px';
+  menu.innerHTML='<div style="font-size:.7rem;color:var(--txt3);margin-bottom:6px;padding:0 4px">Visibilità colonne</div>';
+  allCols.forEach(c=>{
+    const isHidden=hidden.has(c.id);
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:6px;padding:4px;border-radius:6px;cursor:pointer;font-size:.8rem;color:var(--txt1)';
+    row.onmouseover=()=>row.style.background='var(--s200)';
+    row.onmouseout=()=>row.style.background='';
+    row.innerHTML='<span style="width:18px;height:18px;border-radius:4px;border:2px solid '+(isHidden?'var(--s400)':'var(--green)')+';background:'+(isHidden?'var(--s100)':'rgba(16,185,129,.15)')+';display:flex;align-items:center;justify-content:center;font-size:.6rem">'+(isHidden?'':'✓')+'</span>'+escHtml(c.name);
+    row.onclick=()=>{toggleColVisibility(listId,c.id);menu.remove();};
+    menu.appendChild(row);
+  });
+  document.body.appendChild(menu);
+  const r=btnEl.getBoundingClientRect();
+  menu.style.top=(r.bottom+4+window.scrollY)+'px';
+  menu.style.left=Math.max(8,r.left)+'px';
+  const closeMenu=e=>{if(!menu.contains(e.target)&&e.target!==btnEl){menu.remove();document.removeEventListener('click',closeMenu);}};
+  setTimeout(()=>document.addEventListener('click',closeMenu),10);
+}
+
+function toggleColVisibility(listId,colId){
+  const reg=getRegistryData();
+  const cfg=getListConfig(reg,listId);
+  const idx=(cfg.hiddenCols||[]).indexOf(colId);
+  if(idx>=0){
+    // Show: remove from hidden
+    cfg.hiddenCols.splice(idx,1);
+  } else {
+    // Hide: add to hidden + move to end of colOrder
+    if(!cfg.hiddenCols)cfg.hiddenCols=[];
+    cfg.hiddenCols.push(colId);
+    const orderIdx=cfg.colOrder.indexOf(colId);
+    if(orderIdx>=0){cfg.colOrder.splice(orderIdx,1);cfg.colOrder.push(colId);}
+  }
+  saveRegistry();renderAdminRegistry();
+}
+
+// Persistent collapse state for registry lists
+function toggleRegistryCollapse(listId){
+  const reg=getRegistryData();
+  const idx=reg.collapsedLists.indexOf(listId);
+  if(idx>=0){reg.collapsedLists.splice(idx,1);}else{reg.collapsedLists.push(listId);}
+  saveRegistry();
+  // Toggle DOM
+  const bodyEl=listId==='main'?document.getElementById('registry-main-body'):document.getElementById('sl-body-'+listId);
+  const toolbarEl=listId==='main'?document.getElementById('registry-main-toolbar'):document.getElementById('sl-toolbar-'+listId);
+  if(bodyEl)bodyEl.classList.toggle('hidden');
+  if(toolbarEl)toolbarEl.classList.toggle('hidden');
+  // Update arrow
+  const parentCard=bodyEl?.closest('.card');
+  if(parentCard){const arrow=parentCard.querySelector('.coll-arrow');if(arrow)arrow.textContent=bodyEl.classList.contains('hidden')?'▸':'▾';}
+}
+function isRegistryCollapsed(listId){
+  const reg=getRegistryData();
+  return (reg.collapsedLists||[]).includes(listId);
 }
 
 function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -4211,19 +4378,16 @@ function updateRegistryCell(uid,colId,value){
   entry.customData[colId]=value;
   saveRegistry();
 }
-
 function toggleRegistryBool(uid,colId){
   const reg=getRegistryData();
   const entry=reg.entries.find(e=>e.uid===uid);
   if(!entry)return;
   if(!entry.customData)entry.customData={};
   entry.customData[colId]=!entry.customData[colId];
-  saveRegistry();
-  renderAdminRegistry();
+  saveRegistry();renderAdminRegistry();
 }
 
 function openRegistryColorPicker(uid,colId,btnEl){
-  // Remove existing picker
   document.querySelectorAll('.reg-color-picker').forEach(p=>p.remove());
   const picker=document.createElement('div');
   picker.className='reg-color-picker';
@@ -4235,7 +4399,6 @@ function openRegistryColorPicker(uid,colId,btnEl){
     c.onclick=()=>{updateRegistryCell(uid,colId,color);picker.remove();renderAdminRegistry();};
     picker.appendChild(c);
   });
-  // Clear button
   const clr=document.createElement('button');
   clr.style.cssText='width:28px;height:28px;border-radius:6px;border:2px dashed var(--s400);background:var(--s100);cursor:pointer;font-size:.6rem;color:var(--txt3)';
   clr.textContent='✕';clr.title='Rimuovi colore';
@@ -4249,8 +4412,10 @@ function openRegistryColorPicker(uid,colId,btnEl){
   setTimeout(()=>document.addEventListener('click',closePicker),10);
 }
 
-// Column management
-function openRegistryColumnModal(){
+// Column management — listId indicates where the column was created
+let _regColCreateListId='main';
+function openRegistryColumnModal(listId){
+  _regColCreateListId=listId||'main';
   const html=`<div style="padding:20px"><h3 class="font-semibold text-white mb-4">➕ Nuova colonna</h3>
     <div class="mb-3"><label class="label">Nome colonna</label><input class="input" id="reg-col-name" placeholder="es. Certificato medico"></div>
     <div class="mb-3"><label class="label">Tipo dato</label>
@@ -4275,6 +4440,12 @@ function confirmRegistryColumn(){
   if(reg.columns.length>=10){showToast('Massimo 10 colonne personalizzate','error');return;}
   const id='col_'+Date.now().toString(36);
   reg.columns.push({id,name,type});
+  // Insert at position 0 (after Nome) in the originating list
+  const originCfg=getListConfig(reg,_regColCreateListId);
+  originCfg.colOrder.unshift(id);
+  // For all OTHER lists, append at end (getListConfig auto-appends missing)
+  const allListIds=['main',...(reg.sublists||[]).map(s=>s.id)];
+  allListIds.forEach(lid=>{if(lid!==_regColCreateListId)getListConfig(reg,lid);});
   saveRegistry();closeModal();renderAdminRegistry();
   showToast('Colonna "'+name+'" creata');
 }
@@ -4284,8 +4455,12 @@ function deleteRegistryColumn(colId){
     const reg=getRegistryData();
     reg.columns=(reg.columns||[]).filter(c=>c.id!==colId);
     reg.entries.forEach(e=>{if(e.customData)delete e.customData[colId];});
-    // Also clean sublists using this column
     (reg.sublists||[]).forEach(sl=>{sl.conditions=(sl.conditions||[]).filter(c=>c.colId!==colId);});
+    // Clean from all listConfigs
+    Object.values(reg.listConfigs||{}).forEach(cfg=>{
+      cfg.colOrder=(cfg.colOrder||[]).filter(id=>id!==colId);
+      cfg.hiddenCols=(cfg.hiddenCols||[]).filter(id=>id!==colId);
+    });
     saveRegistry();renderAdminRegistry();showToast('Colonna eliminata');
   });
 }
@@ -4296,7 +4471,6 @@ function openRegistrySublistModal(){
   if((reg.sublists||[]).length>=5){showToast('Massimo 5 sottoliste','error');return;}
   const cols=reg.columns||[];
   if(!cols.length){showToast('Crea prima almeno una colonna personalizzata','error');return;}
-  let colOpts=cols.map(c=>'<option value="'+c.id+'" data-type="'+c.type+'">'+escHtml(c.name)+' ('+c.type+')</option>').join('');
   const html=`<div style="padding:20px"><h3 class="font-semibold text-white mb-4">📂 Nuova sottolista</h3>
     <div class="mb-3"><label class="label">Nome sottolista</label><input class="input" id="reg-sl-name" placeholder="es. Staff, Livello avanzato..."></div>
     <div class="mb-3"><label class="label">Logica combinazione condizioni</label>
@@ -4309,21 +4483,15 @@ function openRegistrySublistModal(){
     <div class="flex gap-2 mt-4"><button class="btn btn-primary flex-1" onclick="confirmRegistrySublist()">Crea sottolista</button><button class="btn btn-secondary flex-1" onclick="closeModal()">Annulla</button></div>
   </div>`;
   openGenericModal(html);
-  // Add first condition
   setTimeout(()=>addSublistCondition(),50);
 }
-
 let _slCondIdx=0;
 function addSublistCondition(){
   _slCondIdx++;
-  const reg=getRegistryData();
-  const cols=reg.columns||[];
-  const wrap=document.getElementById('reg-sl-conditions');
-  if(!wrap)return;
+  const reg=getRegistryData();const cols=reg.columns||[];
+  const wrap=document.getElementById('reg-sl-conditions');if(!wrap)return;
   const div=document.createElement('div');
-  div.className='flex gap-2 items-center mb-2';
-  div.style.cssText='flex-wrap:wrap';
-  div.id='reg-sl-cond-'+_slCondIdx;
+  div.className='flex gap-2 items-center mb-2';div.style.cssText='flex-wrap:wrap';div.id='reg-sl-cond-'+_slCondIdx;
   let colSel='<select class="input" style="flex:1;min-width:100px;font-size:.8rem" onchange="updateConditionOp(this,'+_slCondIdx+')" data-cond="'+_slCondIdx+'" data-role="col">';
   cols.forEach(c=>{colSel+='<option value="'+c.id+'" data-type="'+c.type+'">'+escHtml(c.name)+'</option>';});
   colSel+='</select>';
@@ -4331,28 +4499,16 @@ function addSublistCondition(){
   wrap.appendChild(div);
   updateConditionOp(div.querySelector('select[data-role=col]'),_slCondIdx);
 }
-
 function updateConditionOp(colSelect,condIdx){
   const type=colSelect.selectedOptions[0]?.dataset?.type||'text';
   const opSel=document.getElementById('reg-sl-op-'+condIdx);
   const valDiv=document.getElementById('reg-sl-val-'+condIdx);
   if(!opSel||!valDiv)return;
-  if(type==='boolean'){
-    opSel.innerHTML='<option value="eq">è</option>';
-    valDiv.innerHTML='<select class="input" style="font-size:.8rem" data-cond="'+condIdx+'" data-role="val"><option value="true">✅ Completato</option><option value="false">❌ Non completato</option></select>';
-  } else if(type==='color'){
-    opSel.innerHTML='<option value="eq">è</option><option value="neq">non è</option>';
-    let opts=REGISTRY_COLORS.map((c,i)=>'<option value="'+c+'" style="background:'+c+'">'+REGISTRY_COLOR_NAMES[i]+'</option>').join('');
-    valDiv.innerHTML='<select class="input" style="font-size:.8rem" data-cond="'+condIdx+'" data-role="val">'+opts+'</select>';
-  } else if(type==='number'){
-    opSel.innerHTML='<option value="eq">=</option><option value="gt">&gt;</option><option value="lt">&lt;</option><option value="gte">≥</option><option value="lte">≤</option>';
-    valDiv.innerHTML='<input type="number" class="input" style="font-size:.8rem" data-cond="'+condIdx+'" data-role="val" placeholder="0">';
-  } else {
-    opSel.innerHTML='<option value="contains">contiene</option><option value="eq">uguale a</option><option value="neq">diverso da</option>';
-    valDiv.innerHTML='<input type="text" class="input" style="font-size:.8rem" data-cond="'+condIdx+'" data-role="val" placeholder="testo...">';
-  }
+  if(type==='boolean'){opSel.innerHTML='<option value="eq">è</option>';valDiv.innerHTML='<select class="input" style="font-size:.8rem" data-cond="'+condIdx+'" data-role="val"><option value="true">✅ Completato</option><option value="false">❌ Non completato</option></select>';}
+  else if(type==='color'){opSel.innerHTML='<option value="eq">è</option><option value="neq">non è</option>';valDiv.innerHTML='<select class="input" style="font-size:.8rem" data-cond="'+condIdx+'" data-role="val">'+REGISTRY_COLORS.map((c,i)=>'<option value="'+c+'">'+REGISTRY_COLOR_NAMES[i]+'</option>').join('')+'</select>';}
+  else if(type==='number'){opSel.innerHTML='<option value="eq">=</option><option value="gt">&gt;</option><option value="lt">&lt;</option><option value="gte">≥</option><option value="lte">≤</option>';valDiv.innerHTML='<input type="number" class="input" style="font-size:.8rem" data-cond="'+condIdx+'" data-role="val" placeholder="0">';}
+  else{opSel.innerHTML='<option value="contains">contiene</option><option value="eq">uguale a</option><option value="neq">diverso da</option>';valDiv.innerHTML='<input type="text" class="input" style="font-size:.8rem" data-cond="'+condIdx+'" data-role="val" placeholder="testo...">';}
 }
-
 function confirmRegistrySublist(){
   const name=document.getElementById('reg-sl-name')?.value?.trim();
   if(!name){showToast('Inserisci un nome','error');return;}
@@ -4360,15 +4516,12 @@ function confirmRegistrySublist(){
   const condDivs=document.querySelectorAll('#reg-sl-conditions > div');
   const conditions=[];
   condDivs.forEach(div=>{
-    const colSel=div.querySelector('[data-role=col]');
-    const opSel=div.querySelector('[data-role=op]');
-    const valEl=div.querySelector('[data-role=val]');
+    const colSel=div.querySelector('[data-role=col]');const opSel=div.querySelector('[data-role=op]');const valEl=div.querySelector('[data-role=val]');
     if(!colSel||!opSel||!valEl)return;
     conditions.push({colId:colSel.value,op:opSel.value,value:valEl.value});
   });
   if(!conditions.length){showToast('Aggiungi almeno una condizione','error');return;}
-  const reg=getRegistryData();
-  if(!reg.sublists)reg.sublists=[];
+  const reg=getRegistryData();if(!reg.sublists)reg.sublists=[];
   const id='sl_'+Date.now().toString(36);
   reg.sublists.push({id,name,logic,conditions,visible:true});
   saveRegistry();closeModal();renderAdminRegistry();
@@ -4379,144 +4532,106 @@ function filterRegistrySublist(entries,sublist,columns){
   const cols=columns||[];
   return entries.filter(entry=>{
     const results=sublist.conditions.map(cond=>{
-      const col=cols.find(c=>c.id===cond.colId);
-      if(!col)return false;
+      const col=cols.find(c=>c.id===cond.colId);if(!col)return false;
       const val=entry.customData?.[cond.colId];
-      if(col.type==='boolean'){
-        const target=cond.value==='true';
-        return cond.op==='eq'?!!val===target:!!val!==target;
-      }
-      if(col.type==='color'){
-        return cond.op==='eq'?val===cond.value:val!==cond.value;
-      }
-      if(col.type==='number'){
-        const n=parseFloat(val)||0;const t=parseFloat(cond.value)||0;
-        if(cond.op==='eq')return n===t;if(cond.op==='gt')return n>t;if(cond.op==='lt')return n<t;if(cond.op==='gte')return n>=t;if(cond.op==='lte')return n<=t;
-        return false;
-      }
-      // text
+      if(col.type==='boolean'){const target=cond.value==='true';return cond.op==='eq'?!!val===target:!!val!==target;}
+      if(col.type==='color'){return cond.op==='eq'?val===cond.value:val!==cond.value;}
+      if(col.type==='number'){const n=parseFloat(val)||0;const t=parseFloat(cond.value)||0;if(cond.op==='eq')return n===t;if(cond.op==='gt')return n>t;if(cond.op==='lt')return n<t;if(cond.op==='gte')return n>=t;if(cond.op==='lte')return n<=t;return false;}
       const s=(val||'').toLowerCase();const t=(cond.value||'').toLowerCase();
-      if(cond.op==='contains')return s.includes(t);if(cond.op==='eq')return s===t;if(cond.op==='neq')return s!==t;
-      return false;
+      if(cond.op==='contains')return s.includes(t);if(cond.op==='eq')return s===t;if(cond.op==='neq')return s!==t;return false;
     });
     return sublist.logic==='AND'?results.every(r=>r):results.some(r=>r);
   });
 }
 
 function renderRegistrySublists(reg){
-  const area=document.getElementById('registry-sublists-area');
-  if(!area)return;
+  const area=document.getElementById('registry-sublists-area');if(!area)return;
   const sublists=reg.sublists||[];
   if(!sublists.length){area.innerHTML='';return;}
   let html='';
-  // Sublist toggle bar
+  // Toggle bar
   html+='<div class="card mb-3" style="padding:10px 16px"><div class="flex gap-2 items-center" style="flex-wrap:wrap"><span class="text-xs font-semibold" style="color:var(--txt2)">Sottoliste:</span>';
   sublists.forEach(sl=>{
     html+='<button class="btn btn-sm" style="font-size:.75rem;padding:4px 10px;border-radius:8px;'+(sl.visible?'background:rgba(99,102,241,.15);color:var(--brand-l);border:1px solid rgba(99,102,241,.3)':'background:var(--s200);color:var(--txt3);border:1px solid var(--s400)')+'" onclick="toggleSublistVisibility(\''+sl.id+'\')">'+escHtml(sl.name)+(sl.visible?' ✓':'')+'</button>';
-    html+='<button style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:.6rem;margin-left:-6px" onclick="deleteSublist(\''+sl.id+'\')" title="Elimina sottolista">✕</button>';
+    html+='<button style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:.6rem;margin-left:-6px" onclick="deleteSublist(\''+sl.id+'\')" title="Elimina">✕</button>';
   });
   html+='</div></div>';
   // Visible sublists
   sublists.filter(sl=>sl.visible).forEach(sl=>{
     const filtered=filterRegistrySublist(reg.entries,sl,reg.columns);
-    const theadId='sl-thead-'+sl.id;
-    const tbodyId='sl-tbody-'+sl.id;
-    const bodyId='sl-body-'+sl.id;
+    const theadId='sl-thead-'+sl.id;const tbodyId='sl-tbody-'+sl.id;const bodyId='sl-body-'+sl.id;
+    const slCollapsed=isRegistryCollapsed(sl.id);
     html+='<div class="card mb-3" style="overflow:hidden">';
-    html+='<div style="padding:10px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;background:rgba(99,102,241,.06)" onclick="const b=document.getElementById(\''+bodyId+'\');b.classList.toggle(\'hidden\');this.querySelector(\'.coll-arrow\').textContent=b.classList.contains(\'hidden\')?\'▸\':\'▾\'">';
+    html+='<div style="padding:10px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;background:rgba(99,102,241,.06)" onclick="toggleRegistryCollapse(\''+sl.id+'\')">';
     html+='<h4 class="font-semibold" style="margin:0;color:var(--brand-l);font-size:.9rem">📂 '+escHtml(sl.name)+' <span class="text-xs txt3" style="font-weight:400">('+filtered.length+' utenti · '+sl.logic+')</span></h4>';
-    html+='<div class="flex items-center gap-2"><button class="btn btn-sm" style="font-size:.65rem;padding:2px 8px;background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.2)" onclick="event.stopPropagation();exportSublistExcel(\''+sl.id+'\')">📥</button><span class="coll-arrow text-xs txt3">▾</span></div>';
+    html+='<div class="flex items-center gap-2"><button class="btn btn-sm" style="font-size:.65rem;padding:2px 8px;background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.2)" onclick="event.stopPropagation();exportSublistExcel(\''+sl.id+'\')">📥</button><span class="coll-arrow text-xs txt3">'+(slCollapsed?'▸':'▾')+'</span></div>';
     html+='</div>';
-    html+='<div id="'+bodyId+'" style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.82rem"><thead id="'+theadId+'"></thead><tbody id="'+tbodyId+'"></tbody></table></div>';
-    html+='</div>';
+    html+='<div id="'+bodyId+'"'+(slCollapsed?' class="hidden"':'')+' ><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.82rem"><thead id="'+theadId+'"></thead><tbody id="'+tbodyId+'"></tbody></table></div>';
+    // Toolbar per sublist
+    html+='<div id="sl-toolbar-'+sl.id+'"'+(slCollapsed?' class="hidden"':'')+'></div>';
+    html+='</div></div>';
   });
   area.innerHTML=html;
-  // Render sublist tables
+  // Render tables + toolbars
   sublists.filter(sl=>sl.visible).forEach(sl=>{
     const filtered=filterRegistrySublist(reg.entries,sl,reg.columns);
-    renderRegistryTable(reg,filtered,'sl-thead-'+sl.id,'sl-tbody-'+sl.id,false);
+    renderRegistryTable(reg,filtered,'sl-thead-'+sl.id,'sl-tbody-'+sl.id,sl.id);
+    const tb=document.getElementById('sl-toolbar-'+sl.id);
+    if(tb)tb.innerHTML=renderListToolbar(sl.id,reg);
   });
 }
 
 function toggleSublistVisibility(slId){
-  const reg=getRegistryData();
-  const sl=(reg.sublists||[]).find(s=>s.id===slId);
-  if(sl)sl.visible=!sl.visible;
-  saveRegistry();renderAdminRegistry();
+  const reg=getRegistryData();const sl=(reg.sublists||[]).find(s=>s.id===slId);
+  if(sl)sl.visible=!sl.visible;saveRegistry();renderAdminRegistry();
 }
 function deleteSublist(slId){
   showConfirm('Elimina sottolista','Vuoi eliminare questa sottolista?',()=>{
     const reg=getRegistryData();
     reg.sublists=(reg.sublists||[]).filter(s=>s.id!==slId);
+    if(reg.listConfigs)delete reg.listConfigs[slId];
     saveRegistry();renderAdminRegistry();showToast('Sottolista eliminata');
   });
 }
 
 // Excel export
 function exportRegistryExcel(sublistId){
-  const reg=getRegistryData();
-  let entries=reg.entries;
-  let title='Anagrafica Generale';
-  if(sublistId){
-    const sl=(reg.sublists||[]).find(s=>s.id===sublistId);
-    if(sl){entries=filterRegistrySublist(reg.entries,sl,reg.columns);title='Sottolista: '+sl.name;}
-  }
-  const cols=reg.columns||[];
-  // Build CSV-like data for XLSX
+  const reg=getRegistryData();let entries=reg.entries;let title='Anagrafica Generale';const listId=sublistId||'main';
+  if(sublistId){const sl=(reg.sublists||[]).find(s=>s.id===sublistId);if(sl){entries=filterRegistrySublist(reg.entries,sl,reg.columns);title='Sottolista: '+sl.name;}}
+  const cols=getVisibleCols(reg,listId);
   _exportRegistryXLSX(title,entries,cols);
 }
 function exportSublistExcel(slId){exportRegistryExcel(slId);}
 
 async function _exportRegistryXLSX(title,entries,cols){
-  // Use SheetJS (xlsx) library
   if(typeof XLSX==='undefined'){
-    const s=document.createElement('script');
-    s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
-    document.head.appendChild(s);
+    const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';document.head.appendChild(s);
     await new Promise(r=>{s.onload=r;setTimeout(r,5000);});
   }
   if(typeof XLSX==='undefined'){showToast('Errore caricamento libreria Excel','error');return;}
   const header=['Nome','Email',...cols.map(c=>c.name)];
   const rows=entries.map(e=>{
     const row=[e.name||'',e.email||''];
-    cols.forEach(c=>{
-      const v=e.customData?.[c.id];
-      if(c.type==='boolean')row.push(v?'✅ Sì':'❌ No');
-      else if(c.type==='color'){const idx=REGISTRY_COLORS.indexOf(v);row.push(idx>=0?REGISTRY_COLOR_NAMES[idx]:'—');}
-      else if(c.type==='number')row.push(parseFloat(v)||0);
-      else row.push(v||'');
-    });
+    cols.forEach(c=>{const v=e.customData?.[c.id];if(c.type==='boolean')row.push(v?'✅ Sì':'❌ No');else if(c.type==='color'){const idx=REGISTRY_COLORS.indexOf(v);row.push(idx>=0?REGISTRY_COLOR_NAMES[idx]:'—');}else if(c.type==='number')row.push(parseFloat(v)||0);else row.push(v||'');});
     return row;
   });
   const data=[[title],['Esportato il: '+new Date().toLocaleDateString('it-IT')],[],header,...rows];
   const ws=XLSX.utils.aoa_to_sheet(data);
-  // Column widths
   ws['!cols']=[{wch:25},{wch:30},...cols.map(()=>({wch:18}))];
-  // Merge title
   ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:1+cols.length}},{s:{r:1,c:0},e:{r:1,c:1+cols.length}}];
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,'Anagrafica');
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Anagrafica');
   XLSX.writeFile(wb,title.replace(/[^a-zA-Z0-9àèéìòùÀÈÉÌÒÙ ]/g,'_')+'.xlsx');
   showToast('File Excel scaricato');
 }
 
-// Helper: open generic modal (reuse existing modal if available)
+// Helper: open generic modal
 function openGenericModal(html){
   let modal=document.getElementById('generic-modal');
-  if(!modal){
-    modal=document.createElement('div');
-    modal.id='generic-modal';
-    modal.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:10000;display:flex;align-items:center;justify-content:center';
-    document.body.appendChild(modal);
-  }
+  if(!modal){modal=document.createElement('div');modal.id='generic-modal';modal.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:10000;display:flex;align-items:center;justify-content:center';document.body.appendChild(modal);}
   modal.innerHTML='<div style="background:var(--card);border:1px solid var(--s400);border-radius:16px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto">'+html+'</div>';
-  modal.style.display='flex';
-  modal.onclick=e=>{if(e.target===modal)closeModal();};
+  modal.style.display='flex';modal.onclick=e=>{if(e.target===modal)closeModal();};
 }
-function closeModal(){
-  const m=document.getElementById('generic-modal');
-  if(m)m.style.display='none';
-}
+function closeModal(){const m=document.getElementById('generic-modal');if(m)m.style.display='none';}
 
 /* ==============================
    NAVIGATION + UI CORE
