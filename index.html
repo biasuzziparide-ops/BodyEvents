@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.15.5</title>
+<title>BodyEvents — V2.15.6</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -142,12 +142,14 @@ textarea.input{resize:none;font-family:inherit}
 .tier-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
 .tier-btn{display:flex;align-items:center;gap:3px;padding:3px 6px;border-radius:8px;border:1px solid var(--s300);background:var(--s100);cursor:pointer;text-align:left;transition:all .15s;white-space:nowrap}
 .tier-btn:hover{border-color:var(--s400)}
-.tier-btn.selected{border-color:var(--brand);background:var(--brand-bg)}
+.tier-btn.selected{border-color:var(--brand);border-width:2px;background:rgba(217,70,239,.18);box-shadow:0 0 12px rgba(217,70,239,.25),inset 0 0 8px rgba(217,70,239,.08)}
 .tier-icon{font-size:.65rem}
 .tier-label{font-size:.6rem;font-weight:500;color:var(--txt2)}
-.tier-btn.selected .tier-label{color:var(--brand-l)}
+.tier-btn.selected .tier-label{color:var(--brand-l);font-weight:700}
 .tier-price{font-size:.75rem;font-weight:700;color:#fff;margin-left:auto}
-.tier-btn.selected .tier-price{color:var(--brand-l)}
+.tier-btn.selected .tier-price{color:#fff;text-shadow:0 0 8px rgba(217,70,239,.5)}
+.tier-btn.selected::after{content:'✓';position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:var(--brand);color:#fff;font-size:.55rem;display:flex;align-items:center;justify-content:center;font-weight:700;box-shadow:0 2px 6px rgba(217,70,239,.4)}
+.tier-btn{position:relative}
 
 /* === CHECK ITEM === */
 .check-item{display:flex;align-items:center;gap:8px;padding:12px;border-radius:12px;border:1px solid var(--s300);background:var(--s100);cursor:pointer;transition:all .15s}
@@ -305,7 +307,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.15.5</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.15.6</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -3279,7 +3281,18 @@ function getRoleLabelHtml(roleKey){
 
 async function updateUniversePreferredRole(univId,role){
   const isManager=store.managers.some(m=>m.id===store.currentUser.id);
-  if(isManager)return;
+  if(isManager){
+    // For managers, store preferredRole in a dedicated field
+    if(!store.currentUser.universeRoles)store.currentUser.universeRoles={};
+    store.currentUser.universeRoles[univId]=role;
+    const effectiveRole=getUserEffectiveRole(store.currentUser);
+    store.currentUser.role=effectiveRole;
+    const userRec=store.users.find(x=>x.id===store.currentUser.id);
+    if(userRec){userRec.role=effectiveRole;userRec.universeRoles=store.currentUser.universeRoles;}
+    await fsUpdate('users',store.currentUser.id,{universeRoles:store.currentUser.universeRoles,role:effectiveRole});
+    showToast('Ruolo preferito aggiornato');
+    return;
+  }
   if(!store.currentUser.subscribedUniverses)return;
   const sub=store.currentUser.subscribedUniverses.find(s=>s.universeId===univId);
   if(sub){sub.preferredRole=role;}
@@ -3315,11 +3328,13 @@ function renderProfileUniverseSettings(){
     html+='<div class="text-xs txt3 mt-1">Ruoli: '+(u.roles.length?u.roles.join(', '):'nessuno')+'</div></div>';
     html+='<button class="btn btn-sm '+(isSub?'btn-primary':'btn-secondary')+'" onclick="toggleUniverseSubscription(\''+u.id+'\','+(!isSub)+')">'+(isSub?'✓ Iscritto':'+ Iscriviti')+'</button>';
     html+='</div>';
-    if(isSub&&u.roles.length&&!isManager){
+    if(isSub&&u.roles.length){
+      const currentRole=isManager?(store.currentUser.universeRoles||{})[u.id]||'':(sub?sub.preferredRole:'');
       html+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid '+u.color+'33">';
       html+='<label class="text-xs font-medium txt2">Ruolo preferito:</label>';
       html+='<select class="input mt-1" style="font-size:.8rem" onchange="updateUniversePreferredRole(\''+u.id+'\',this.value)">';
-      u.roles.forEach(r=>{html+='<option value="'+r+'"'+(sub&&sub.preferredRole===r?' selected':'')+'>'+r+'</option>';});
+      html+='<option value=""'+(currentRole?'':' selected')+'>— Seleziona —</option>';
+      u.roles.forEach(r=>{html+='<option value="'+r+'"'+(currentRole===r?' selected':'')+'>'+r+'</option>';});
       html+='</select></div>';
     }
     html+='</div>';
@@ -5241,7 +5256,7 @@ async function saveProfileChanges(){
 }
 
 /* ============================================================
-   IMAGE PROCESSING PIPELINE + CROP/ZOOM MODAL (V2.15.5)
+   IMAGE PROCESSING PIPELINE + CROP/ZOOM MODAL (V2.15.6)
    - Accepts any common image format (JPEG, PNG, WebP, BMP, GIF, HEIC*)
    - Auto-resizes to max 256x256 (avatars) or 300x300 (logos)
    - Converts to JPEG at quality 0.82 (~15-40KB output)
@@ -5968,6 +5983,62 @@ function doBook(){
 
 async function bookWithSubscription(subId,eventId){
   const ev=store.events.find(e=>e.id===eventId);if(!ev)return;
+  // Collect survey responses if the event has surveys
+  const hasSurveys=ev.surveys&&ev.surveys.length>0;
+  if(hasSurveys){
+    // Show survey + role dialog before completing subscription booking
+    const o=document.createElement('div');o.className='overlay';
+    const roleSelector=`<div class="card mb-3">
+      <label class="text-sm font-medium text-white mb-2" style="display:block">🎭 Qual è il tuo ruolo preferito?</label>
+      <div class="flex gap-2 flex-wrap" id="bookRoleSelector">
+        <button class="btn btn-sm book-role-btn" data-role="base" onclick="selectBookRole(this)" style="border:1px solid var(--s400)">💪 Base</button>
+        <button class="btn btn-sm book-role-btn" data-role="flyer" onclick="selectBookRole(this)" style="border:1px solid var(--s400)">🦅 Flyer</button>
+        <button class="btn btn-sm book-role-btn" data-role="non_so" onclick="selectBookRole(this)" style="border:1px solid var(--s400)">🤷 Non lo so ancora</button>
+        <button class="btn btn-sm book-role-btn" data-role="entrambi" onclick="selectBookRole(this)" style="border:1px solid var(--s400)">🔄 Faccio spesso entrambi</button>
+      </div>
+    </div>`;
+    o.innerHTML=`<div class="dialog" style="max-width:500px;width:90%">
+      <h3 class="text-lg font-semibold text-white mb-4">🎟️ Prenotazione con abbonamento</h3>
+      ${roleSelector}${renderSurveyQuestions(ev,'bksub_')}
+      <div class="flex gap-3 mt-6" style="justify-content:flex-end">
+        <button class="btn btn-ghost btn-sm" id="bksubCancel">Annulla</button>
+        <button class="btn btn-primary btn-sm" id="bksubConfirm">Conferma</button>
+      </div></div>`;
+    document.body.appendChild(o);
+    const prefRole=getUserEffectiveRole(store.currentUser);
+    if(prefRole){const prefBtn=o.querySelector(`.book-role-btn[data-role="${prefRole}"]`);if(prefBtn)selectBookRole(prefBtn);}
+    o.querySelector('#bksubCancel').onclick=()=>o.remove();
+    o.querySelector('#bksubConfirm').onclick=async()=>{
+      if(!selectedBookRole){showToast('Seleziona il tuo ruolo preferito!','error');return;}
+      const surveyResponses=collectSurveyResponses(ev,'bksub_');
+      if(surveyResponses===null)return;
+      const success=await useSubscriptionEntry(subId,eventId,ev.title);
+      if(!success)return;
+      const nameParts=store.currentUser.username.split(' ');
+      const initials=nameParts.map(p=>p[0]).join('').toUpperCase().substring(0,2);
+      const avatarColors=['avatar-blue','avatar-green','avatar-purple','avatar-pink','avatar-yellow'];
+      const newBooking={
+        id:genId('bk'),eventId:ev.id,userId:store.currentUser.id,
+        userName:store.currentUser.username,email:store.currentUser.email,
+        initials,color:avatarColors[Math.floor(Math.random()*avatarColors.length)],
+        items:[{type:'abbonamento',name:ev.title,date:fmtDateShort(ev.days[0]?.date),time:'',tier:'Abbonamento',price:0}],
+        sessions:[],scope:'evento',tier:'medio',amount:0,totalAmount:0,
+        role:selectedBookRole,recurringDate:currentBookingRecDate||null,
+        status:'confermata',
+        depositStatus:null,paymentStatus:'abbonamento',gift:false,subscriptionId:subId,
+        surveyResponses:surveyResponses,
+        bookedAt:new Date().toISOString().split('T')[0],createdAt:new Date().toISOString()
+      };
+      store.bookings.push(newBooking);
+      await fsSet('bookings',newBooking.id,newBooking).catch(console.error);
+      o.remove();
+      showToast('Prenotazione confermata con abbonamento! 🎟️');
+      go('booking-done');
+    };
+    o.addEventListener('click',e=>{if(e.target===o)o.remove()});
+    return;
+  }
+  // No surveys — proceed directly
   const success=await useSubscriptionEntry(subId,eventId,ev.title);
   if(!success)return;
   const nameParts=store.currentUser.username.split(' ');
@@ -5982,6 +6053,7 @@ async function bookWithSubscription(subId,eventId){
     role:getUserEffectiveRole(store.currentUser),recurringDate:currentBookingRecDate||null,
     status:'confermata',
     depositStatus:null,paymentStatus:'abbonamento',gift:false,subscriptionId:subId,
+    surveyResponses:{},
     bookedAt:new Date().toISOString().split('T')[0],createdAt:new Date().toISOString()
   };
   store.bookings.push(newBooking);
@@ -8957,7 +9029,23 @@ function showEventDetail(evId,recDate){
           +'</div>';
       }
       // === NORMAL BOOKING VIEW ===
-      return '<h2 class="font-semibold text-white mb-3">Programma</h2>'+daysHtml+eventPkgHtml+loyaltyHtml+'<div style="position:sticky;bottom:16px;padding-top:16px"><button class="btn btn-primary w-full" style="padding:14px;font-size:1rem" onclick="doBook()">'+(isFreeEvent?'✅ Iscriviti gratuitamente':isManagedByOrg?'📋 Iscriviti!':'Conferma prenotazione')+'</button></div>';
+      const _preDepositCard=(ev.deposit&&ev.deposit.required&&ev.deposit.amount>0&&!isFreeEvent&&!isManagedByOrg)?(()=>{
+        const _payBtns=[];
+        if(ev.paymentMethods&&ev.paymentMethods.paypal)_payBtns.push('<a href="'+ev.paymentMethods.paypal+'" target="_blank" class="btn btn-sm" style="background:rgba(59,130,246,.15);color:var(--blue);border:1px solid rgba(59,130,246,.3);font-size:.7rem">PayPal ↗</a>');
+        if(ev.paymentMethods&&ev.paymentMethods.revolut)_payBtns.push('<a href="'+ev.paymentMethods.revolut+'" target="_blank" class="btn btn-sm" style="background:rgba(34,211,238,.1);color:#22d3ee;border:1px solid rgba(34,211,238,.3);font-size:.7rem">Revolut ↗</a>');
+        if(ev.paymentMethods&&ev.paymentMethods.cash)_payBtns.push('<span class="btn btn-sm" style="background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.3);font-size:.7rem">Contanti</span>');
+        const _uName=store.currentUser?store.currentUser.username:'';
+        const _causal=ev.deposit.causal?(ev.deposit.causal.replace(/Nome Cognome/gi,_uName).replace(/\\[nome\\]/gi,_uName)):'';
+        return '<div style="margin-bottom:12px;padding:12px 14px;background:rgba(234,179,8,.06);border:1px solid var(--yellow);border-radius:12px">'
+          +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><span style="font-size:.85rem">⚠️</span><span style="font-size:.8rem;font-weight:600;color:var(--yellow)">Anticipo richiesto</span></div>'
+          +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'
+          +'<div><div class="text-xs txt3" style="margin-bottom:2px">Importo</div><div style="background:var(--s100);border:1px solid var(--s400);border-radius:6px;padding:6px 10px;font-weight:700;color:#fff;font-size:.9rem">€'+ev.deposit.amount+',00</div></div>'
+          +(_causal?'<div><div class="text-xs txt3" style="margin-bottom:2px">Causale</div><div style="background:var(--s100);border:1px solid var(--s400);border-radius:6px;padding:6px 10px;font-size:.7rem;color:var(--brand-l);font-family:monospace;word-break:break-all">'+_causal+'</div></div>':'')
+          +'</div>'
+          +(_payBtns.length?'<div class="text-xs txt3" style="margin-bottom:4px">Metodi di pagamento</div><div class="flex gap-2 flex-wrap">'+_payBtns.join('')+'</div>':'')
+          +'</div>';
+      })():'';
+      return '<h2 class="font-semibold text-white mb-3">Programma</h2>'+daysHtml+eventPkgHtml+loyaltyHtml+'<div style="position:sticky;bottom:16px;padding-top:16px">'+_preDepositCard+'<button class="btn btn-primary w-full" style="padding:14px;font-size:1rem" onclick="doBook()">'+(isFreeEvent?'✅ Iscriviti gratuitamente':isManagedByOrg?'📋 Iscriviti!':'Conferma prenotazione')+'</button></div>';
     })()}
   </div>`;
   go('event-detail-dynamic');
