@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.13.2</title>
+<title>BodyEvents — V2.14.0</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤸</text></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -94,7 +94,7 @@ textarea.input{resize:none;font-family:inherit}
 .hamburger{display:none;background:none;border:none;color:var(--txt3);cursor:pointer;padding:8px;min-width:44px;min-height:44px;font-size:1.4rem;display:none;align-items:center;justify-content:center}
 .mobile-menu{display:none;background:var(--s50);border-top:1px solid var(--s300);padding:8px 16px 16px}
 .mobile-menu.open{display:block}
-.mobile-backdrop{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:39}
+.mobile-backdrop{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:41}
 .mobile-backdrop.open{display:block}
 .mobile-menu .mm-group{padding:8px 0}
 .mobile-menu .mm-group+.mm-group{border-top:1px solid var(--s300)}
@@ -224,6 +224,8 @@ textarea.input{resize:none;font-family:inherit}
   .overlay{padding:16px 8px}
   .table th,.table td{padding:5px 6px;font-size:.75rem}
   .card{padding:14px;overflow-x:hidden}
+  .tier-suggest-banner-inner{padding:10px 32px 10px 10px}
+  .container{padding-left:10px;padding-right:10px}
 }
 @media(min-width:769px) and (max-width:1024px){
   .grid-4{grid-template-columns:repeat(2,1fr)}
@@ -303,7 +305,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.13.2</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.14.0</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -428,9 +430,9 @@ textarea.input{resize:none;font-family:inherit}
     <div class="mm-group">
       <div class="mm-group-label">Community e piattaforma</div>
       <div class="nav-link master-only" style="display:none" onclick="go('admin-community-events');closeMobileAdmin()">📅 Eventi Organizzati</div>
-      <div class="nav-link" onclick="go('admin-community-jams');closeMobileAdmin()">🤝 Community Events</div>
+      <div class="nav-link master-only" style="display:none" onclick="go('admin-community-jams');closeMobileAdmin()">🤝 Community Events</div>
       <div class="nav-link master-only" style="display:none" onclick="go('admin-users');closeMobileAdmin()">👥 Gestione Utenti</div>
-      <div class="nav-link" onclick="go('admin-universes');closeMobileAdmin()">🌌 Universi</div>
+      <div class="nav-link master-only" style="display:none" onclick="go('admin-universes');closeMobileAdmin()">🌌 Universi</div>
     </div>
     <div class="mm-group">
       <div class="mm-group-label">Impostazioni</div>
@@ -828,9 +830,9 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
-      <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
+      <div class="sidebar-link master-only" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
-      <div class="sidebar-link" onclick="go('admin-universes')">🌌 Universi</div>
+      <div class="sidebar-link master-only" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -875,9 +877,9 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
-      <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
+      <div class="sidebar-link master-only" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
-      <div class="sidebar-link" onclick="go('admin-universes')">🌌 Universi</div>
+      <div class="sidebar-link master-only" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -906,9 +908,9 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only active" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
-      <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
+      <div class="sidebar-link master-only" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
-      <div class="sidebar-link" onclick="go('admin-universes')">🌌 Universi</div>
+      <div class="sidebar-link master-only" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -936,8 +938,9 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
-      <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
+      <div class="sidebar-link master-only" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only active" onclick="go('admin-users')">👥 Gestione Utenti</div>
+      <div class="sidebar-link master-only" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -982,9 +985,9 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
-      <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
+      <div class="sidebar-link master-only" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
-      <div class="sidebar-link active" onclick="go('admin-universes')">🌌 Universi</div>
+      <div class="sidebar-link master-only active" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -1068,9 +1071,9 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
-      <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
+      <div class="sidebar-link master-only" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
-      <div class="sidebar-link" onclick="go('admin-universes')">🌌 Universi</div>
+      <div class="sidebar-link master-only" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -1204,9 +1207,9 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
-      <div class="sidebar-link active" onclick="go('admin-community-jams')">🤝 Community Events</div>
+      <div class="sidebar-link master-only active" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
-      <div class="sidebar-link" onclick="go('admin-universes')">🌌 Universi</div>
+      <div class="sidebar-link master-only" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -1262,9 +1265,9 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
-      <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
+      <div class="sidebar-link master-only" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
-      <div class="sidebar-link" onclick="go('admin-universes')">🌌 Universi</div>
+      <div class="sidebar-link master-only" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -1639,9 +1642,9 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
-      <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
+      <div class="sidebar-link master-only" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
-      <div class="sidebar-link" onclick="go('admin-universes')">🌌 Universi</div>
+      <div class="sidebar-link master-only" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -1688,9 +1691,9 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
-      <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
+      <div class="sidebar-link master-only" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
-      <div class="sidebar-link" onclick="go('admin-universes')">🌌 Universi</div>
+      <div class="sidebar-link master-only" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -1809,9 +1812,9 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
-      <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
+      <div class="sidebar-link master-only" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
-      <div class="sidebar-link" onclick="go('admin-universes')">🌌 Universi</div>
+      <div class="sidebar-link master-only" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -1845,9 +1848,9 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
-      <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
+      <div class="sidebar-link master-only" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
-      <div class="sidebar-link" onclick="go('admin-universes')">🌌 Universi</div>
+      <div class="sidebar-link master-only" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -1883,9 +1886,9 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link active" onclick="go('admin-registry')">📋 Anagrafica</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
-      <div class="sidebar-link" onclick="go('admin-community-jams')">🤝 Community Events</div>
+      <div class="sidebar-link master-only" onclick="go('admin-community-jams')">🤝 Community Events</div>
       <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
-      <div class="sidebar-link" onclick="go('admin-universes')">🌌 Universi</div>
+      <div class="sidebar-link master-only" onclick="go('admin-universes')">🌌 Universi</div>
     </nav>
   </aside>
   <main class="admin-content">
@@ -3705,7 +3708,7 @@ function filterSubUsers(){
   if(!q||q.length<2){cont.innerHTML='';return;}
   const matches=store.users.filter(u=>(u.username||'').toLowerCase().includes(q)||(u.email||'').toLowerCase().includes(q)).slice(0,8);
   if(!matches.length){cont.innerHTML='<div class="text-xs txt3">Nessun utente trovato</div>';return;}
-  cont.innerHTML=matches.map(u=>'<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border:1px solid var(--s300);border-radius:10px;margin-bottom:6px;background:var(--s100)"><div><span class="text-sm font-medium text-white">'+(u.username||'N/D')+'</span><span class="text-xs txt3 ml-2">'+(u.email||'')+'</span></div><button class="btn btn-sm btn-primary" onclick="manualAssignSub(\''+u.id+'\',\''+u.username+'\',\''+u.email+'\')">Assegna</button></div>').join('');
+  cont.innerHTML=matches.map(u=>'<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border:1px solid var(--s300);border-radius:10px;margin-bottom:6px;background:var(--s100)"><div><span class="text-sm font-medium text-white">'+escHtml(u.username||'N/D')+'</span><span class="text-xs txt3 ml-2">'+escHtml(u.email||'')+'</span></div><button class="btn btn-sm btn-primary" onclick="manualAssignSub(\''+escHtml(u.id)+'\',\''+escHtml(u.username)+'\',\''+escHtml(u.email)+'\')">Assegna</button></div>').join('');
 }
 
 function generateSubQR(){
@@ -5967,7 +5970,7 @@ function _doBookNormal(){
   // Build summary HTML
   let summaryCards=items.map(it=>`<div style="background:var(--s100);border:1px solid var(--s300);border-radius:10px;padding:10px 14px;margin-bottom:8px">
     <div class="flex items-center justify-between" style="gap:8px">
-      <div style="flex:1;min-width:0"><div class="text-sm font-medium text-white" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${it.name}</div><div class="text-xs txt3" style="margin-top:2px">${it.date}${it.time?' · '+it.time:''}</div></div>
+      <div style="flex:1;min-width:0"><div class="text-sm font-medium text-white" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(it.name)}</div><div class="text-xs txt3" style="margin-top:2px">${escHtml(it.date)}${it.time?' · '+escHtml(it.time):''}</div></div>
       <div style="flex-shrink:0;text-align:right"><div class="text-sm font-bold text-white">€${it.price}</div><div style="margin-top:2px"><span class="badge badge-pubblicato" style="font-size:.65rem">${it.tier}</span></div></div>
     </div>
   </div>`).join('');
@@ -6357,7 +6360,7 @@ function renderAttendance(){
     const avatarClass=isNew?'avatar-brand':isWalkin?'avatar-brand':isChecked?(b.color||'avatar-green'):'';
     const avatarStyle=!isChecked&&!isWalkin?'background:var(--s300);color:var(--txt3)':'';
     rows+=`<tr style="${rowBg}">
-      <td><div class="flex items-center gap-2"><div class="avatar ${avatarClass}" ${avatarStyle?'style="'+avatarStyle+'"':''}>${isNew?'🆕':b.initials||'?'}</div><div><div class="font-medium text-white text-sm">${b.userName}</div><div class="text-xs txt3">${sessionsLabel(b)}</div></div></div></td>
+      <td><div class="flex items-center gap-2"><div class="avatar ${avatarClass}" ${avatarStyle?'style="'+avatarStyle+'"':''}>${isNew?'🆕':b.initials||'?'}</div><div><div class="font-medium text-white text-sm">${escHtml(b.userName)}</div><div class="text-xs txt3">${sessionsLabel(b)}</div></div></div></td>
       <td>${attendBtn}</td>
       <td><span class="badge ${typeBadge}">${typeLabel}</span></td>
       <td>${payBtn}</td>
@@ -6407,7 +6410,7 @@ function renderCheckinA(){
     <p class="txt3 mb-6">Check-in completato automaticamente per tutte le sessioni prenotate</p>
     <div class="card mb-4" style="text-align:left;border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.05)">
       <div class="flex gap-2 mb-2"><span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span><span class="badge badge-pubblicato">Check-in OK</span></div>
-      <h3 class="font-semibold text-white">${ev.title}</h3>
+      <h3 class="font-semibold text-white">${escHtml(ev.title)}</h3>
       <div class="text-xs txt3 mt-2">📅 ${d0?fmtDate(d0.date)+' · '+d0.startTime+' — '+d0.endTime:''}</div>
       ${amount>0?`<div class="text-xs txt3 mt-1">💰 €${amount}</div>`:'<div class="text-xs txt3 mt-1">🆓 Gratuito</div>'}
       <div class="text-xs txt3 mt-1">💳 Pagamento: ${payStatus}</div>
@@ -6447,7 +6450,7 @@ function renderCheckinB(){
       </div>
       <div class="card mb-3" style="text-align:left">
         <div class="flex gap-2 mb-2"><span class="badge ${typeBadge}" style="${typeBadgeStyle}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span></div>
-        <h3 class="font-semibold text-white">${ev.title}</h3>
+        <h3 class="font-semibold text-white">${escHtml(ev.title)}</h3>
         <div class="text-xs txt3 mt-2">📅 ${d0?fmtDate(d0.date)+' · '+d0.startTime+' — '+d0.endTime:''}</div>
         <div class="text-xs txt3 mt-1">👥 Posti disponibili: ${spotsLeft}</div>
       </div>
@@ -6471,7 +6474,7 @@ function renderCheckinB(){
       <h1 class="text-2xl font-bold text-white mb-2">Check-in completato!</h1>
       <p class="txt3 mb-4">Sei registrato come walk-in.</p>
       <div class="card mb-4" style="border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.05)">
-        <div class="text-sm text-white font-medium">${ev.title}</div>
+        <div class="text-sm text-white font-medium">${escHtml(ev.title)}</div>
         <div class="text-xs txt3 mt-1" id="walkin-result-info">Walk-in</div>
       </div>
       <button class="btn btn-secondary w-full" onclick="go('events')">← Torna agli eventi</button>
@@ -6558,7 +6561,7 @@ function renderCheckinC(){
       </div>
       <div class="card mb-3" style="text-align:left">
         <div class="flex gap-2 mb-2"><span class="badge ${typeBadge}" style="${typeBadgeStyle}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span></div>
-        <h3 class="font-semibold text-white text-sm">${ev.title}</h3>
+        <h3 class="font-semibold text-white text-sm">${escHtml(ev.title)}</h3>
         <div class="text-xs txt3 mt-1">📅 ${d0?fmtDate(d0.date)+' · '+d0.startTime+' — '+d0.endTime:''}</div>
       </div>
       ${pricingHtml}
@@ -6573,7 +6576,7 @@ function renderCheckinC(){
       <p class="txt3 mb-2">Registrazione e check-in completati.</p>
       <p class="text-xs txt3 mb-4">Ti abbiamo inviato un'email per completare il profilo.</p>
       <div class="card mb-4" style="border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.05)">
-        <div class="text-sm text-white font-medium">${ev.title}</div>
+        <div class="text-sm text-white font-medium">${escHtml(ev.title)}</div>
         <div class="text-xs txt3 mt-1" id="newp-result-info">Nuovo iscritto</div>
       </div>
       <button class="btn btn-secondary w-full" onclick="go('events')">Scopri altri eventi</button>
@@ -6686,16 +6689,16 @@ function renderUserEvents(){
       <div class="flex gap-4" style="align-items:flex-start">
         ${cardThumb}
         <div class="flex-1">
-          <h3 class="text-lg font-semibold text-white" style="margin-bottom:4px">${ev.title}</h3>
-          <p class="text-sm txt3">${ev.description.substring(0,80)}${ev.description.length>80?'...':''}</p>
+          <h3 class="text-lg font-semibold text-white" style="margin-bottom:4px">${escHtml(ev.title)}</h3>
+          <p class="text-sm txt3">${escHtml(ev.description.substring(0,80))}${ev.description.length>80?'...':''}</p>
           <div class="flex gap-2 mt-2 flex-wrap">
             ${getMultiUniverseBadgesHtml(ev)}<span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span><span class="badge" style="background:rgba(255,255,255,.04);color:var(--txt2);border:1px solid rgba(255,255,255,.08);font-size:.6rem">🏷️ Organizzato</span>${daysBadge}${levelBadges}${recBadge}${pricingBadge}${confirmBadge}${bookClosedBadge}
           </div>
           <div class="flex gap-4 mt-2 text-xs txt3">
             <span>📅 ${dateRange}</span><span>🕐 ${d0?.startTime||''} — ${d0?.endTime||''}</span>
           </div>
-          <div class="flex gap-2 mt-1 text-xs txt3"><span>📍 ${ev.location}</span></div>
-          <div class="text-xs txt3 mt-1">con ${ev.teacher} · <span style="color:var(--brand-l)">${ev.orgName}</span>${ev.partnerIds&&ev.partnerIds.length?' <span style="color:#a855f7">+ '+ev.partnerIds.length+' partner</span>':''}</div>
+          <div class="flex gap-2 mt-1 text-xs txt3"><span>📍 ${escHtml(ev.location)}</span></div>
+          <div class="text-xs txt3 mt-1">con ${escHtml(ev.teacher)} · <span style="color:var(--brand-l)">${escHtml(ev.orgName)}</span>${ev.partnerIds&&ev.partnerIds.length?' <span style="color:#a855f7">+ '+ev.partnerIds.length+' partner</span>':''}</div>
         </div>
       </div>
     </div>`;
@@ -6734,12 +6737,12 @@ function renderUserEvents(){
         </div>
         <div class="flex-1">
           <div class="flex gap-2 flex-wrap mb-1">${univBadges}<span class="badge ${badgeType(jam.type||'jam')}" style="${badgeTypeStyle(jam.type||'jam')}">${getJamTypeDisplay(jam.type||'jam')}</span><span class="badge" style="background:rgba(255,255,255,.04);color:var(--txt2);border:1px dashed rgba(255,255,255,.12);font-size:.6rem">🤝 Community</span>${joinedBadge}</div>
-          <h3 class="font-semibold text-white">${jam.title}</h3>
+          <h3 class="font-semibold text-white">${escHtml(jam.title)}</h3>
           <div class="flex gap-3 mt-1 text-xs txt3">
             <span>📅 ${fmtDate(jam.date)}</span><span>🕐 ${jam.startTime} — ${jam.endTime}</span>
           </div>
-          <div class="flex gap-2 mt-1 text-xs txt3"><span>📍 ${jam.location}</span></div>
-          <div class="text-xs txt3 mt-1">proposta da ${jam.userName} · 👥 ${spotsText} partecipanti</div>
+          <div class="flex gap-2 mt-1 text-xs txt3"><span>📍 ${escHtml(jam.location)}</span></div>
+          <div class="text-xs txt3 mt-1">proposta da ${escHtml(jam.userName)} · 👥 ${spotsText} partecipanti</div>
         </div>
       </div>
     </div>`;
@@ -7039,7 +7042,7 @@ function renderUserDashboard(){
           <span style="font-size:.6rem;color:rgba(240,171,252,.5)">${monthStr}</span>
         </div>
         <div class="flex-1">
-          <h3 class="font-semibold text-white">${ev.title}</h3>
+          <h3 class="font-semibold text-white">${escHtml(ev.title)}</h3>
           ${cardDateTimeLine}
           ${cardPriceLine}
           ${b.recurringDate?'<div class="text-xs mt-1" style="color:var(--yellow)">🔄 Evento ricorrente</div>':''}
@@ -7067,7 +7070,7 @@ function renderUserDashboard(){
             <span style="font-size:.9rem;font-weight:700;color:var(--txt3)">${ev.days[0]?new Date(ev.days[0].date+'T00:00:00').getDate():''}</span>
           </div>
           <div class="flex-1">
-            <div class="font-medium text-white text-sm">${ev.title}</div>
+            <div class="font-medium text-white text-sm">${escHtml(ev.title)}</div>
             <div class="text-xs txt3">${b.tier==='alto'?'Sostenitore':b.tier==='medio'?'Standard':'Ridotto'} — €${b.amount}</div>
           </div>
           <span class="badge" style="background:var(--red-bg);color:var(--red)">Cancellata</span>
@@ -7096,11 +7099,11 @@ function renderUserDashboard(){
           </div>
           <div class="flex-1">
             <div class="flex gap-2 flex-wrap mb-1">${univBadges}<span class="badge ${badgeType(jam.type||'jam')}" style="${badgeTypeStyle(jam.type||'jam')}">${getJamTypeDisplay(jam.type||'jam')}</span><span class="badge" style="background:rgba(16,185,129,.15);color:var(--green)">✅ Iscritto</span></div>
-            <h3 class="font-semibold text-white">${jam.title}</h3>
+            <h3 class="font-semibold text-white">${escHtml(jam.title)}</h3>
             <div class="flex gap-3 mt-1 text-xs txt3">
               <span>📅 ${fmtDate(jam.date)}</span><span>🕐 ${jam.startTime} — ${jam.endTime}</span>
             </div>
-            <div class="text-xs txt3 mt-1">📍 ${jam.location} · 👥 ${spotsText} partecipanti</div>
+            <div class="text-xs txt3 mt-1">📍 ${escHtml(jam.location)} · 👥 ${spotsText} partecipanti</div>
           </div>
         </div>
         <div class="flex gap-2 mt-4" style="border-top:1px solid var(--s300);padding-top:12px">
@@ -7115,7 +7118,7 @@ function renderUserDashboard(){
 function cancelUserBooking(bId){
   const bk=store.bookings.find(x=>x.id===bId);if(!bk)return;
   const ev=store.events.find(e=>e.id===bk.eventId);
-  const evName=ev?ev.title:'questo evento';
+  const evName=ev?escHtml(ev.title):'questo evento';
   showConfirm('Cancella prenotazione','Vuoi davvero cancellare la tua prenotazione per <strong>'+evName+'</strong>?',()=>{
     showConfirm('Conferma definitiva','⚠️ Questa azione è irreversibile. Confermi la cancellazione?',()=>{
       bk.status='cancellata';
@@ -7660,7 +7663,7 @@ function showJamDetail(jamId){
     contactHtml+='</div>';
   }
 
-  const partsList=parts.length?parts.map(p=>`<div class="flex items-center gap-2 py-2" style="border-bottom:1px solid var(--s300)"><span style="width:32px;height:32px;border-radius:50%;background:var(--brand-d);display:flex;align-items:center;justify-content:center;font-size:.75rem;color:var(--brand-l)">${p.userName.charAt(0)}</span><span class="text-sm text-white">${p.userName}</span></div>`).join(''):'<p class="text-sm txt3">Nessun partecipante ancora.</p>';
+  const partsList=parts.length?parts.map(p=>`<div class="flex items-center gap-2 py-2" style="border-bottom:1px solid var(--s300)"><span style="width:32px;height:32px;border-radius:50%;background:var(--brand-d);display:flex;align-items:center;justify-content:center;font-size:.75rem;color:var(--brand-l)">${p.userName.charAt(0)}</span><span class="text-sm text-white">${escHtml(p.userName)}</span></div>`).join(''):'<p class="text-sm txt3">Nessun partecipante ancora.</p>';
 
   const isOwner=jam.userId===uid;
   const ownerActions=isOwner?`<div class="flex gap-2 mt-3" style="padding-top:12px;border-top:1px solid var(--s300)">
@@ -7686,9 +7689,9 @@ function showJamDetail(jamId){
         <span class="badge ${badgeType(jam.type||'jam')}" style="${badgeTypeStyle(jam.type||'jam')}">${getJamTypeDisplay(jam.type||'jam')}</span>
         ${spotsInfo}
       </div>
-      <h1 class="text-2xl font-bold text-white">${jam.title}</h1>
-      <p class="txt3 mt-2">${jam.description}</p>
-      <div class="flex items-center gap-2 mt-3 text-sm txt3">👤 proposta da ${jam.userName}</div>
+      <h1 class="text-2xl font-bold text-white">${escHtml(jam.title)}</h1>
+      <p class="txt3 mt-2">${escHtml(jam.description)}</p>
+      <div class="flex items-center gap-2 mt-3 text-sm txt3">👤 proposta da ${escHtml(jam.userName)}</div>
       ${ownerActions}
     </div>
 
@@ -7698,7 +7701,7 @@ function showJamDetail(jamId){
     <div class="card mb-4">
       <div class="flex items-center gap-3 mb-3 text-sm"><span>📅 ${fmtDate(jam.date)}</span></div>
       <div class="flex items-center gap-3 mb-3 text-sm"><span>🕐 ${jam.startTime} — ${jam.endTime}</span></div>
-      <div class="flex items-center gap-3 text-sm"><span>📍 ${jam.location}</span>${jam.locationUrl?` <a href="${jam.locationUrl}" target="_blank" style="color:var(--brand-l);text-decoration:none;font-size:.75rem">🗺️ Apri Maps</a>`:''}</div>
+      <div class="flex items-center gap-3 text-sm"><span>📍 ${escHtml(jam.location)}</span>${jam.locationUrl?` <a href="${jam.locationUrl}" target="_blank" style="color:var(--brand-l);text-decoration:none;font-size:.75rem">🗺️ Apri Maps</a>`:''}</div>
     </div>
 
     ${groupLinkHtml}
@@ -7784,16 +7787,16 @@ function renderJamCard(jam,uid,isMine){
       </div>
       <div class="flex-1">
         <div class="flex gap-2 items-center flex-wrap">
-          <h3 class="text-lg font-semibold text-white" style="margin-bottom:0">${jam.title}</h3>
+          <h3 class="text-lg font-semibold text-white" style="margin-bottom:0">${escHtml(jam.title)}</h3>
           ${(jam.universeIds||[]).map(id=>getUniverseBadgeHtml(id)).join('')}${mineBadge}${joinedBadge}${jConfirmBadge}${alertBadge}
         </div>
-        <p class="text-sm txt3 mt-1">${jam.description.substring(0,80)}${jam.description.length>80?'...':''}</p>
+        <p class="text-sm txt3 mt-1">${escHtml(jam.description.substring(0,80))}${jam.description.length>80?'...':''}</p>
         <div class="flex gap-4 mt-2 text-xs txt3">
           <span>\ud83d\udcc5 ${fmtDate(jam.date)}</span><span>\ud83d\udd50 ${jam.startTime} \u2014 ${jam.endTime}</span>
         </div>
-        <div class="flex gap-2 mt-1 text-xs txt3"><span>\ud83d\udccd ${jam.location}</span></div>
+        <div class="flex gap-2 mt-1 text-xs txt3"><span>\ud83d\udccd ${escHtml(jam.location)}</span></div>
         <div class="flex justify-between items-center mt-2">
-          <span class="text-xs txt3">proposta da ${jam.userName}</span>
+          <span class="text-xs txt3">proposta da ${escHtml(jam.userName)}</span>
           <span class="text-xs" style="color:${spotsColor}">\ud83d\udc65 ${spotsLabel}</span>
         </div>
       </div>
@@ -7833,20 +7836,20 @@ function editJamModal(jamId){
     <div class="dialog" style="max-width:500px">
       <h2 class="text-xl font-bold text-white mb-4">✏️ Modifica Community Event</h2>
       <div class="mb-4"><label class="label">🌌 Universi *</label><div id="je-universes-list" class="flex gap-2 flex-wrap"></div></div>
-      <div class="mb-4"><label class="label">Titolo *</label><input class="input" id="je-title" value="${jam.title}"></div>
-      <div class="mb-4"><label class="label">Descrizione</label><textarea class="input" id="je-desc" rows="2">${jam.description}</textarea></div>
+      <div class="mb-4"><label class="label">Titolo *</label><input class="input" id="je-title" value="${escHtml(jam.title)}"></div>
+      <div class="mb-4"><label class="label">Descrizione</label><textarea class="input" id="je-desc" rows="2">${escHtml(jam.description)}</textarea></div>
       <div class="mb-4"><label class="label">Data *</label><input class="input" id="je-date" type="date" value="${jam.date}"></div>
       <div class="grid grid-2 gap-3 mb-4">
         <div><label class="label">Inizio *</label><input class="input" id="je-start" type="time" value="${jam.startTime}"></div>
         <div><label class="label">Fine *</label><input class="input" id="je-end" type="time" value="${jam.endTime}"></div>
       </div>
       <div class="grid grid-2 gap-3 mb-4">
-        <div><label class="label">📍 Ubicazione *</label><input class="input" id="je-location" value="${jam.location}"></div>
-        <div><label class="label">🗺️ Link Maps</label><input class="input" id="je-location-url" value="${jam.locationUrl||''}"></div>
+        <div><label class="label">📍 Ubicazione *</label><input class="input" id="je-location" value="${escHtml(jam.location)}"></div>
+        <div><label class="label">🗺️ Link Maps</label><input class="input" id="je-location-url" value="${escHtml(jam.locationUrl||'')}"></div>
       </div>
       <div class="grid grid-2 gap-3 mb-4">
         <div><label class="label">👥 Max partecipanti</label><input class="input" id="je-max-spots" type="number" value="${jam.maxSpots||''}"></div>
-        <div><label class="label">💬 Link gruppo</label><input class="input" id="je-group-link" value="${jam.groupLink||''}"></div>
+        <div><label class="label">💬 Link gruppo</label><input class="input" id="je-group-link" value="${escHtml(jam.groupLink||'')}"></div>
       </div>
       <div class="mb-4">
         <label class="flex items-center gap-2 text-sm mb-3" style="cursor:pointer"><input type="checkbox" id="je-min-subs" onchange="document.getElementById('je-min-subs-opts').classList.toggle('hidden')" ${jam.minSubscribers?'checked':''}> Richiedi minimo partecipanti</label>
@@ -7856,8 +7859,8 @@ function editJamModal(jamId){
         </div>
       </div>
       <div class="grid grid-2 gap-3 mb-4">
-        <div><label class="label">📞 Telefono</label><input class="input" id="je-phone" value="${jam.contactPhone||''}"></div>
-        <div><label class="label">📧 Email</label><input class="input" id="je-email" value="${jam.contactEmail||''}"></div>
+        <div><label class="label">📞 Telefono</label><input class="input" id="je-phone" value="${escHtml(jam.contactPhone||'')}"></div>
+        <div><label class="label">📧 Email</label><input class="input" id="je-email" value="${escHtml(jam.contactEmail||'')}"></div>
       </div>
       <div class="flex gap-2 justify-end mt-6">
         <button class="btn btn-secondary" onclick="document.getElementById('jam-edit-overlay').remove()">Annulla</button>
@@ -7949,8 +7952,8 @@ function openShareModal(eventId){
         <p class="text-xs txt3 mb-2">Anteprima WhatsApp:</p>
         <div style="background:var(--s200);border:1px solid var(--s400);border-radius:12px;padding:12px">
           ${imageHtml}
-          <h3 class="font-semibold text-white text-sm mb-1">${ev.title}</h3>
-          <p class="text-xs txt3 mb-2">${ev.description.substring(0,60)}...</p>
+          <h3 class="font-semibold text-white text-sm mb-1">${escHtml(ev.title)}</h3>
+          <p class="text-xs txt3 mb-2">${escHtml(ev.description.substring(0,60))}...</p>
           <a href="${shareUrl}" style="color:var(--brand-l);font-size:.85rem;word-break:break-all">${shareUrl}</a>
         </div>
       </div>
@@ -8215,8 +8218,8 @@ function buildFullPricingHtml(ev,prefix){
         const sBtns=buildTierBtns(s.tiers,prefix+'tiers-'+s.id,s.earlyBird,ev.id,subDiscPct);
         html+=`<div class="check-item mb-2" onclick="toggleCheck(this,'${s.id}')" style="padding:6px 8px">
           <div class="checkbox"><span style="display:none;color:#fff;font-size:.6rem">✓</span></div>
-          <div class="flex-1"><div class="font-medium text-white" style="font-size:.82rem">${s.name}</div>
-            <div class="flex gap-2 mt-1 items-center flex-wrap"><span class="text-xs txt3">🕐 ${s.startTime} — ${s.endTime}</span><span class="badge ${badgeLevel(s.level)}">${capitalize(s.level)}</span>${s.teacher?'<span class="text-xs txt3">👤 '+s.teacher+'</span>':''}</div>
+          <div class="flex-1"><div class="font-medium text-white" style="font-size:.82rem">${escHtml(s.name)}</div>
+            <div class="flex gap-2 mt-1 items-center flex-wrap"><span class="text-xs txt3">🕐 ${s.startTime} — ${s.endTime}</span><span class="badge ${badgeLevel(s.level)}">${capitalize(s.level)}</span>${s.teacher?'<span class="text-xs txt3">👤 '+escHtml(s.teacher)+'</span>':''}</div>
           </div></div>`;
         if(sBtns) html+=`<div class="tier-grid mb-2 hidden" id="${prefix}tiers-${s.id}">${sBtns}</div>`;
         html+=renderEarlyBirdGrid(s.earlyBird,prefix+'tier-ebs-'+s.id,ev.id,s.tiers,subDiscPct);
@@ -8237,8 +8240,8 @@ function buildFullPricingHtml(ev,prefix){
       const useTiers=day.tiers||(s?s.tiers:ev.tiers);
       html+='<div style="margin-left:12px;padding-left:12px;border-left:2px solid rgba(217,70,239,.2);margin-top:8px;margin-bottom:8px">';
       if(s){
-        html+=`<div class="mb-2"><div class="font-medium text-white text-sm">${s.name}</div>
-          <div class="flex gap-2 mt-1 items-center flex-wrap"><span class="text-xs txt3">🕐 ${s.startTime} — ${s.endTime}</span><span class="badge ${badgeLevel(s.level)}">${capitalize(s.level)}</span>${s.teacher?'<span class="text-xs txt3">👤 '+s.teacher+'</span>':''}</div></div>`;
+        html+=`<div class="mb-2"><div class="font-medium text-white text-sm">${escHtml(s.name)}</div>
+          <div class="flex gap-2 mt-1 items-center flex-wrap"><span class="text-xs txt3">🕐 ${s.startTime} — ${s.endTime}</span><span class="badge ${badgeLevel(s.level)}">${capitalize(s.level)}</span>${s.teacher?'<span class="text-xs txt3">👤 '+escHtml(s.teacher)+'</span>':''}</div></div>`;
       }
       const stdBtns=buildTierBtns(useTiers,prefix+'tier-day-'+ev.id+'-'+di,day.earlyBird,ev.id,subDiscPct);
       html+=`<p class="text-xs txt3 mb-2" style="font-style:italic">Scegli in base alle tue possibilità</p>`;
@@ -8323,7 +8326,7 @@ function showEventDetail(evId,recDate){
   if(ev.paymentMethods.revolut)payLinks.push(`<a class="badge" style="background:rgba(6,182,212,.08);color:#22d3ee;padding:6px 12px" href="${ev.paymentMethods.revolut}" target="_blank">💳 Revolut ↗</a>`);
   if(ev.paymentMethods.cash)payLinks.push('<span class="badge" style="background:var(--green-bg);color:var(--green);padding:6px 12px">💵 Cash</span>');
   const levelBadges=getEventLevelBadges(ev);
-  const locLink=ev.locationUrl?`<a href="${ev.locationUrl}" target="_blank" style="color:var(--brand-l)">📍 ${ev.location} ↗</a>`:`📍 ${ev.location}`;
+  const locLink=ev.locationUrl?`<a href="${ev.locationUrl}" target="_blank" style="color:var(--brand-l)">📍 ${escHtml(ev.location)} ↗</a>`:`📍 ${escHtml(ev.location)}`;
 
   const isFreeEvent=ev.pricingMode==='free';
   const isManagedByOrg=ev.pricingMode==='managed';
@@ -8391,23 +8394,23 @@ function showEventDetail(evId,recDate){
       if(!skipPricing) daysHtml+=`<p class="text-sm txt3 mb-3">Seleziona le sessioni:</p>`;
       daysHtml+=`<div style="max-width:90%;margin:0 auto">`;
       day.sessions.forEach(s=>{
-        const sLoc=s.location?`<div class="text-xs txt3 mt-1">${s.locationUrl?'<a href="'+s.locationUrl+'" target="_blank" style="color:var(--brand-l)">📍 '+s.location+' ↗</a>':'📍 '+s.location}</div>`:'';
+        const sLoc=s.location?`<div class="text-xs txt3 mt-1">${s.locationUrl?'<a href="'+s.locationUrl+'" target="_blank" style="color:var(--brand-l)">📍 '+escHtml(s.location)+' ↗</a>':'📍 '+escHtml(s.location)}</div>`:'';
         if(!skipPricing){
           const sBtns=buildTierBtns(s.tiers,'tiers-'+s.id,s.earlyBird,ev.id,_sdPct);
           daysHtml+=`<div class="check-item mb-2" onclick="toggleCheck(this,'${s.id}')" style="padding:8px 10px">
             <div class="checkbox"><span style="display:none;color:#fff;font-size:.6rem">✓</span></div>
             <div class="flex-1">
-              <div class="font-medium text-white" style="font-size:.82rem">${s.name}</div>
-              <div class="flex gap-2 mt-1 items-center flex-wrap"><span class="text-xs txt3">🕐 ${s.startTime} — ${s.endTime}</span><span class="badge ${badgeLevel(s.level)}">${capitalize(s.level)}</span>${s.teacher?'<span class="text-xs txt3">👤 '+s.teacher+'</span>':''}${s.maxSpots?'<span class="text-xs txt3">👥 Max '+s.maxSpots+'</span>':''}</div>
-              ${s.description?'<div class="text-xs txt3 mt-1" style="line-height:1.3">'+s.description+'</div>':''}${sLoc}
+              <div class="font-medium text-white" style="font-size:.82rem">${escHtml(s.name)}</div>
+              <div class="flex gap-2 mt-1 items-center flex-wrap"><span class="text-xs txt3">🕐 ${s.startTime} — ${s.endTime}</span><span class="badge ${badgeLevel(s.level)}">${capitalize(s.level)}</span>${s.teacher?'<span class="text-xs txt3">👤 '+escHtml(s.teacher)+'</span>':''}${s.maxSpots?'<span class="text-xs txt3">👥 Max '+s.maxSpots+'</span>':''}</div>
+              ${s.description?'<div class="text-xs txt3 mt-1" style="line-height:1.3">'+escHtml(s.description)+'</div>':''}${sLoc}
             </div></div>`;
           if(sBtns) daysHtml+=`<div class="tier-grid mb-2 hidden" id="tiers-${s.id}">${sBtns}</div>`;
           daysHtml+=renderEarlyBirdGrid(s.earlyBird,'tier-ebs-'+s.id,ev.id,s.tiers,_sdPct);
         } else {
           daysHtml+=`<div class="mb-2">
-            <div class="font-medium text-white" style="font-size:.82rem">${s.name}</div>
-            <div class="flex gap-2 mt-1 items-center flex-wrap"><span class="text-xs txt3">🕐 ${s.startTime} — ${s.endTime}</span><span class="badge ${badgeLevel(s.level)}">${capitalize(s.level)}</span>${s.teacher?'<span class="text-xs txt3">👤 '+s.teacher+'</span>':''}${s.maxSpots?'<span class="text-xs txt3">👥 Max '+s.maxSpots+'</span>':''}</div>
-            ${s.description?'<div class="text-xs txt3 mt-1" style="line-height:1.3">'+s.description+'</div>':''}${sLoc}
+            <div class="font-medium text-white" style="font-size:.82rem">${escHtml(s.name)}</div>
+            <div class="flex gap-2 mt-1 items-center flex-wrap"><span class="text-xs txt3">🕐 ${s.startTime} — ${s.endTime}</span><span class="badge ${badgeLevel(s.level)}">${capitalize(s.level)}</span>${s.teacher?'<span class="text-xs txt3">👤 '+escHtml(s.teacher)+'</span>':''}${s.maxSpots?'<span class="text-xs txt3">👥 Max '+s.maxSpots+'</span>':''}</div>
+            ${s.description?'<div class="text-xs txt3 mt-1" style="line-height:1.3">'+escHtml(s.description)+'</div>':''}${sLoc}
           </div>`;
         }
       });
@@ -8429,12 +8432,12 @@ function showEventDetail(evId,recDate){
     } else if(isSingleSession){
       const s=day.sessions[0]||null;
       const useTiers=day.tiers||(s?s.tiers:ev.tiers);
-      const sLoc=s&&s.location?`<div class="text-xs txt3 mt-1">${s.locationUrl?'<a href="'+s.locationUrl+'" target="_blank" style="color:var(--brand-l)">📍 '+s.location+' ↗</a>':'📍 '+s.location}</div>`:'';
+      const sLoc=s&&s.location?`<div class="text-xs txt3 mt-1">${s.locationUrl?'<a href="'+s.locationUrl+'" target="_blank" style="color:var(--brand-l)">📍 '+escHtml(s.location)+' ↗</a>':'📍 '+escHtml(s.location)}</div>`:'';
       daysHtml+=`<div style="margin-left:16px;padding-left:16px;border-left:2px solid rgba(217,70,239,.2);margin-top:12px">
         ${s?`<div class="mb-3">
-          <div class="font-medium text-white text-sm">${s.name}</div>
-          <div class="flex gap-2 mt-1 items-center"><span class="text-xs txt3">🕐 ${s.startTime} — ${s.endTime}</span><span class="badge ${badgeLevel(s.level)}">${capitalize(s.level)}</span>${s.teacher?'<span class="text-xs txt3">👤 '+s.teacher+'</span>':''}${s.maxSpots?'<span class="text-xs txt3">👥 Max '+s.maxSpots+'</span>':''}</div>
-          ${s.description?'<div class="text-xs txt3 mt-1">'+s.description+'</div>':''}${sLoc}
+          <div class="font-medium text-white text-sm">${escHtml(s.name)}</div>
+          <div class="flex gap-2 mt-1 items-center"><span class="text-xs txt3">🕐 ${s.startTime} — ${s.endTime}</span><span class="badge ${badgeLevel(s.level)}">${capitalize(s.level)}</span>${s.teacher?'<span class="text-xs txt3">👤 '+escHtml(s.teacher)+'</span>':''}${s.maxSpots?'<span class="text-xs txt3">👥 Max '+s.maxSpots+'</span>':''}</div>
+          ${s.description?'<div class="text-xs txt3 mt-1">'+escHtml(s.description)+'</div>':''}${sLoc}
         </div>`:''}`;
       if(!skipPricing){
         const stdBtns=buildTierBtns(useTiers,'tier-day-'+ev.id+'-'+di,day.earlyBird,ev.id,_sdPct);
@@ -8501,12 +8504,12 @@ function showEventDetail(evId,recDate){
     <div class="card mb-6" ${isDisabledByAlert?'style="opacity:.5;pointer-events:none"':''}>
       ${(()=>{const hd=(ev.imageHeader||ev.image)?{src:ev.imageHeader?.src||ev.image,zoom:ev.imageHeader?.zoom||100,posX:ev.imageHeader?.posX||0,posY:ev.imageHeader?.posY||0}:null;if(!hd)return '';const s=hd.zoom/100;const denomW=420*s-420;const denomH=300*s-300;const px=denomW>0?Math.round(Math.abs(hd.posX)/denomW*100):50;const py=denomH>0?Math.round(Math.abs(hd.posY)/denomH*100):50;const op=`object-position:${isNaN(px)?50:px}% ${isNaN(py)?50:py}%`;return '<div style="margin:-20px -20px 16px;border-radius:16px 16px 0 0;overflow:hidden"><img src="'+hd.src+'" style="width:100%;max-height:300px;object-fit:cover;'+op+'" alt=""></div>';})()}
       <div class="flex gap-2 mb-3 flex-wrap"><span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>${levelBadges}</div>
-      <h1 class="text-2xl font-bold text-white">${ev.title}</h1>
-      <div class="txt3 mt-2" style="white-space:pre-wrap;line-height:1.6">${ev.description.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')}</div>
-      <div class="flex items-center gap-2 mt-3 text-sm txt3">👤 con ${ev.teacher}</div>
+      <h1 class="text-2xl font-bold text-white">${escHtml(ev.title)}</h1>
+      <div class="txt3 mt-2" style="white-space:pre-wrap;line-height:1.6">${escHtml(ev.description).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')}</div>
+      <div class="flex items-center gap-2 mt-3 text-sm txt3">👤 con ${escHtml(ev.teacher)}</div>
       <div class="flex items-center gap-2 mt-2 text-sm">${locLink}</div>
-      <div class="text-xs mt-2" style="color:var(--brand-l)">${ev.orgName}</div>
-      ${(()=>{if(!ev.partnerIds||!ev.partnerIds.length)return '';const pBadges=ev.partnerIds.map(pid=>{const m=store.managers.find(x=>x.id===pid);return m?'<span class="badge" style="background:rgba(168,85,247,.1);color:#a855f7;font-size:.65rem;padding:3px 8px">🤝 '+m.orgName+'</span>':'';}).filter(Boolean).join('');return '<div class="flex gap-2 flex-wrap mt-2">'+pBadges+'</div>';})()}
+      <div class="text-xs mt-2" style="color:var(--brand-l)">${escHtml(ev.orgName)}</div>
+      ${(()=>{if(!ev.partnerIds||!ev.partnerIds.length)return '';const pBadges=ev.partnerIds.map(pid=>{const m=store.managers.find(x=>x.id===pid);return m?'<span class="badge" style="background:rgba(168,85,247,.1);color:#a855f7;font-size:.65rem;padding:3px 8px">🤝 '+escHtml(m.orgName)+'</span>':'';}).filter(Boolean).join('');return '<div class="flex gap-2 flex-wrap mt-2">'+pBadges+'</div>';})()}
       ${payLinks.length?'<div class="flex gap-3 mt-4 flex-wrap" style="padding-top:16px;border-top:1px solid var(--s300)">'+payLinks.join('')+'</div>':''}
       ${contactHtml}
     </div>
@@ -8640,7 +8643,7 @@ function renderAdminEvents(){
     const isCapofila=isEventCapofila(ev,u.id);
     const isPartner=!isCapofila;
     const dateStr=ev.days.length>1?fmtDateShort(ev.days[0]?.date)+' — '+fmtDateShort(ev.days[ev.days.length-1]?.date):fmtDate(ev.days[0]?.date);
-    const orgLabel=isPartner?' · <span style="color:var(--brand-l)">'+ev.orgName+'</span>':'';
+    const orgLabel=isPartner?' · <span style="color:var(--brand-l)">'+escHtml(ev.orgName)+'</span>':'';
     const partnerBadge=isPartner?getCapofilaLabel(ev,u.id):'';
     const eyeBtn=`<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();showEventDetail('${ev.id}')" title="Anteprima vista utente">👁️</button>`;
     // Partner events: read-only actions only (view, metrics)
@@ -8678,9 +8681,9 @@ function renderAdminEvents(){
             ${getRecurrenceBadge(ev)}
             ${ev.alert?'<span class="badge" style="background:'+(ev.alert.type==='modificato'?'var(--orange-bg)':'var(--red-bg)')+';color:'+(ev.alert.type==='modificato'?'var(--orange)':'var(--red)')+'">⚠️ '+(ev.alert.type==='cancellato'?'Annullato':ev.alert.type==='rimandato'?'Rimandato':'Modificato')+'</span>':''}
           </div>
-          <h3 class="font-semibold text-white">${ev.title}</h3>
+          <h3 class="font-semibold text-white">${escHtml(ev.title)}</h3>
           <div class="text-xs txt3 mt-1">📅 ${dateStr} · 🕐 ${ev.days[0]?.startTime||''} — ${ev.days[0]?.endTime||''}${orgLabel}</div>
-          <div class="text-xs txt3">📍 ${ev.location}</div>
+          <div class="text-xs txt3">📍 ${escHtml(ev.location)}</div>
         </div>
         <div class="flex gap-2 flex-wrap">${actions}</div>
       </div>
@@ -9171,7 +9174,7 @@ function renderCommunityEvents(){
 
   c.innerHTML=evts.map(ev=>{
     const dateStr=ev.days.length>1?fmtDateShort(ev.days[0]?.date)+' — '+fmtDateShort(ev.days[ev.days.length-1]?.date):fmtDate(ev.days[0]?.date);
-    const orgLabel=' · <span style="color:var(--brand-l)">'+ev.orgName+'</span>';
+    const orgLabel=' · <span style="color:var(--brand-l)">'+escHtml(ev.orgName)+'</span>';
     const opacity=ev.status==='bozza'?'opacity:.7':'';
     return `<div class="card mb-3" style="${opacity};cursor:pointer" onclick="showAdminEventDetail('${ev.id}')">
       <div class="flex justify-between items-center flex-wrap gap-3">
@@ -9181,9 +9184,9 @@ function renderCommunityEvents(){
             <span class="badge ${badgeStatus(ev.status)}">${capitalize(ev.status)}</span>
             ${getRecurrenceBadge(ev)}
           </div>
-          <h3 class="font-semibold text-white">${ev.title}</h3>
+          <h3 class="font-semibold text-white">${escHtml(ev.title)}</h3>
           <div class="text-xs txt3 mt-1">📅 ${dateStr} · 🕐 ${ev.days[0]?.startTime||''} — ${ev.days[0]?.endTime||''}${orgLabel}</div>
-          <div class="text-xs txt3">📍 ${ev.location}</div>
+          <div class="text-xs txt3">📍 ${escHtml(ev.location)}</div>
         </div>
         <div class="flex gap-2">
           <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();showEventDetail('${ev.id}')" title="Preview utente">👁️</button>
@@ -9226,11 +9229,11 @@ function renderAdminCommunityJams(){
           <div class="flex gap-2 items-center mb-1">
             <span class="badge ${badgeType(jam.type||'jam')}" style="${badgeTypeStyle(jam.type||'jam')}">${getJamTypeDisplay(jam.type||'jam')}</span>
           </div>
-          <h3 class="font-semibold text-white">${jam.title}</h3>
-          <p class="text-sm txt3">${jam.description}</p>
+          <h3 class="font-semibold text-white">${escHtml(jam.title)}</h3>
+          <p class="text-sm txt3">${escHtml(jam.description)}</p>
           <div class="text-xs txt3 mt-2">📅 ${fmtDate(jam.date)} · 🕐 ${jam.startTime} — ${jam.endTime}</div>
-          <div class="text-xs txt3">📍 ${jam.location}</div>
-          <div class="text-xs txt3 mt-1">proposta da <span style="color:var(--brand-l)">${jam.userName}</span> · 👥 ${(jam.participants||[]).length}${jam.maxSpots?'/'+jam.maxSpots:''} partecipanti</div>
+          <div class="text-xs txt3">📍 ${escHtml(jam.location)}</div>
+          <div class="text-xs txt3 mt-1">proposta da <span style="color:var(--brand-l)">${escHtml(jam.userName)}</span> · 👥 ${(jam.participants||[]).length}${jam.maxSpots?'/'+jam.maxSpots:''} partecipanti</div>
           ${(()=>{
             const jcs=getJamConfirmationStatus(jam);
             if(!jcs)return '';
@@ -9286,13 +9289,13 @@ async function exportFullBackup(){
   if(store.currentUser.role!=='master'){showToast('Solo il Master può eseguire backup','error');return;}
   showToast('Preparazione backup in corso...');
   try{
-    const collections=['users','managers','events','bookings','communityJams','attendances','universes'];
+    const collections=['users','managers','events','bookings','communityJams','attendances','universes','subscriptionTypes','subscriptions'];
     const backup={
       _meta:{
         appName:'BodyEvents',
         exportDate:new Date().toISOString(),
         exportedBy:store.currentUser.email,
-        version:'2.5.5',
+        version:'2.13.3',
         collections:collections
       }
     };
@@ -9381,7 +9384,7 @@ function renderAdminDashboard(){
   if(!dc)return;
   if(pub.length){
     if(dt)dt.style.display='';
-    dc.innerHTML=`<div class="card" style="padding:0;overflow:hidden"><table class="table"><thead><tr><th>Evento</th><th>Data</th><th>Tipo</th><th>Org</th><th>Stato</th></tr></thead><tbody>${pub.slice(0,5).map(ev=>{const isP=!isEventCapofila(ev,u.id);return`<tr style="cursor:pointer${isP?';border-left:3px solid #a855f7':''}" onclick="showAdminEventDetail('${ev.id}')"><td class="font-medium text-white">${ev.title}${isP?' <span style="color:#a855f7;font-size:.7rem">🤝</span>':''}</td><td>${ev.days[0]?fmtDateShort(ev.days[0].date):''}</td><td><span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span></td><td class="text-xs txt3">${ev.orgName}</td><td><span class="badge badge-pubblicato">Pubblicato</span></td></tr>`;}).join('')}</tbody></table></div>`;
+    dc.innerHTML=`<div class="card" style="padding:0;overflow:hidden"><table class="table"><thead><tr><th>Evento</th><th>Data</th><th>Tipo</th><th>Org</th><th>Stato</th></tr></thead><tbody>${pub.slice(0,5).map(ev=>{const isP=!isEventCapofila(ev,u.id);return`<tr style="cursor:pointer${isP?';border-left:3px solid #a855f7':''}" onclick="showAdminEventDetail('${ev.id}')"><td class="font-medium text-white">${escHtml(ev.title)}${isP?' <span style="color:#a855f7;font-size:.7rem">🤝</span>':''}</td><td>${ev.days[0]?fmtDateShort(ev.days[0].date):''}</td><td><span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span></td><td class="text-xs txt3">${escHtml(ev.orgName||'')}</td><td><span class="badge badge-pubblicato">Pubblicato</span></td></tr>`;}).join('')}</tbody></table></div>`;
   } else {if(dt)dt.style.display='none';dc.innerHTML='';}
 }
 
@@ -9808,7 +9811,7 @@ function checkNearbyEvents(dateStr,di){
     <div class="flex items-center gap-2 mb-2"><span style="font-size:1rem">⚠️</span><span class="text-sm font-semibold" style="color:var(--yellow)">Eventi vicini a questa data (±5 giorni)</span></div>
     ${nearby.map(ev=>{
       const dates=ev.days.map(d=>fmtDateShort(d.date)).join(', ');
-      return `<div class="flex items-center gap-2 mb-1"><span class="badge ${badgeType(ev.type)} text-xs" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span><span class="text-sm text-white">${ev.title}</span><span class="text-xs txt3">${dates}</span><span class="text-xs txt3">· ${ev.orgName}</span></div>`;
+      return `<div class="flex items-center gap-2 mb-1"><span class="badge ${badgeType(ev.type)} text-xs" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span><span class="text-sm text-white">${escHtml(ev.title)}</span><span class="text-xs txt3">${dates}</span><span class="text-xs txt3">· ${escHtml(ev.orgName)}</span></div>`;
     }).join('')}
   </div>`;
 }
@@ -9839,11 +9842,11 @@ function toggleEventPicker(wrapEl,scope,di){
     const checked=checkedIds.has(ev.title)?'checked':'';
     const evDate=ev.days&&ev.days[0]?fmtDateShort(ev.days[0].date):'';
     const dateRange=ev.days&&ev.days.length>1?evDate+' → '+fmtDateShort(ev.days[ev.days.length-1].date):evDate;
-    const partnerLabel=isPartner?'<span class="text-xs" style="color:var(--brand-l)"> · 🤝 '+(ev.orgName||'')+'</span>':'';
+    const partnerLabel=isPartner?'<span class="text-xs" style="color:var(--brand-l)"> · 🤝 '+escHtml(ev.orgName||'')+'</span>':'';
     return `<label class="flex items-center gap-2 text-sm" style="cursor:pointer;padding:6px 0;border-bottom:1px solid var(--s300)">
-      <input type="checkbox" value="${ev.title}" class="ep-check" ${checked} onchange="updatePickerLabel(this)">
+      <input type="checkbox" value="${escHtml(ev.title)}" class="ep-check" ${checked} onchange="updatePickerLabel(this)">
       <span class="badge ${badgeType(ev.type)}" style="font-size:.6rem;padding:2px 6px;${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>
-      <span style="flex:1"><span class="text-white">${ev.title}</span>${partnerLabel}<br><span class="text-xs txt3">📅 ${dateRange}</span></span>${statusBadge}
+      <span style="flex:1"><span class="text-white">${escHtml(ev.title)}</span>${partnerLabel}<br><span class="text-xs txt3">📅 ${dateRange}</span></span>${statusBadge}
     </label>`;
   };
   let html='';
@@ -9883,7 +9886,7 @@ function toggleLoyaltyEventPicker(wrapEl){
     return `<label class="flex items-center gap-2 text-sm" style="cursor:pointer;padding:6px 0;border-bottom:1px solid var(--s300)">
       <input type="checkbox" value="${ev.id}" class="ep-check" ${checked} onchange="updatePickerLabel(this)">
       <span class="badge ${badgeType(ev.type)}" style="font-size:.6rem;padding:2px 6px;${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>
-      <span style="flex:1"><span class="text-white">${ev.title}</span>${partnerLabel}<br><span class="text-xs txt3">📅 ${dateRange} · 👥 ${bookingsCount} iscritti</span></span>
+      <span style="flex:1"><span class="text-white">${escHtml(ev.title)}</span>${partnerLabel}<br><span class="text-xs txt3">📅 ${dateRange} · 👥 ${bookingsCount} iscritti</span></span>
     </label>`;
   };
   let html='';
@@ -10757,7 +10760,7 @@ function renderAdminBookings(){
       const avatarCls=b.color||'';
       const avatarStyle=!avatarCls?'style="background:var(--s300);color:var(--txt3)"':'';
       return `<tr style="${rowStyle}">
-        <td><div class="flex items-center gap-2"><div class="avatar ${avatarCls}" ${avatarStyle}>${b.initials}</div><div><div class="font-medium text-white text-sm" style="${nameStyle}">${b.userName}</div><div class="text-xs txt3">${b.email}</div></div></div></td>
+        <td><div class="flex items-center gap-2"><div class="avatar ${avatarCls}" ${avatarStyle}>${b.initials}</div><div><div class="font-medium text-white text-sm" style="${nameStyle}">${escHtml(b.userName)}</div><div class="text-xs txt3">${escHtml(b.email)}</div></div></div></td>
         <td class="text-sm">${getEvTitle(b.eventId)}</td>
         <td class="text-sm">${getSessionNames(b.eventId,b.sessions)}</td>
         <td class="font-medium ${isCancelled?'txt3':''}">${amountHtml} ${giftBtn}</td>
@@ -11027,8 +11030,8 @@ function renderUsersTab(){
         :'<span class="badge badge-bozza">'+u.status+'</span>';
       const roleLbl=getRoleLabelHtml(getUserEffectiveRole(u));
       html+='<tr style="cursor:pointer" onclick="showUserDetail(\''+u.id+'\')">';
-      html+='<td class="font-medium">'+u.username+'</td>';
-      html+='<td class="text-sm txt2">'+u.email+'</td>';
+      html+='<td class="font-medium">'+escHtml(u.username)+'</td>';
+      html+='<td class="text-sm txt2">'+escHtml(u.email)+'</td>';
       html+='<td class="text-sm">'+roleLbl+'</td>';
       html+='<td>'+statusBadge+'</td>';
       html+='<td class="text-sm txt2">'+fmtDate(u.registeredAt)+'</td>';
@@ -11067,9 +11070,9 @@ function renderUsersTab(){
         :'<span class="badge badge-pubblicato">🛡️ Manager</span>';
       const isSelf=m.id===store.currentUser.id;
       html+='<tr style="cursor:pointer" onclick="showOrgDetail(\''+m.id+'\')">';
-      html+='<td class="font-medium">'+m.username+'</td>';
-      html+='<td class="text-sm">'+m.orgName+'</td>';
-      html+='<td class="text-sm txt2">'+m.email+'</td>';
+      html+='<td class="font-medium">'+escHtml(m.username)+'</td>';
+      html+='<td class="text-sm">'+escHtml(m.orgName)+'</td>';
+      html+='<td class="text-sm txt2">'+escHtml(m.email)+'</td>';
       html+='<td>'+roleBadge+'</td>';
       html+='<td class="text-center">'+evCount+'</td>';
       html+='<td onclick="event.stopPropagation()">'+(isSelf?'<span class="text-sm txt3">— Tu —</span>':'<div class="flex gap-2"><button class="btn btn-sm btn-secondary" onclick="openUserForm(\'org\',\''+m.id+'\')">✏️</button><button class="btn btn-sm" style="background:var(--red-bg);color:var(--red);border:1px solid var(--red)" onclick="startRemoveUser(\''+m.id+'\',\'org\')">🗑️</button></div>')+'</td>';
@@ -11093,7 +11096,7 @@ function showUserDetail(userId){
   bks.forEach(b=>{
     const ev=store.events.find(e=>e.id===b.eventId);
     bkRows+=`<tr>
-      <td class="text-sm">${ev?ev.title:'Evento rimosso'}</td>
+      <td class="text-sm">${ev?escHtml(ev.title):'Evento rimosso'}</td>
       <td class="text-sm txt2">${fmtDate(b.bookedAt)}</td>
       <td class="text-sm">${b.paymentStatus==='gratuito'?'🆓 Gratuito':b.paymentStatus==='pagato'?'✅ Pagato':'⏳ '+b.paymentStatus}</td>
       <td class="text-sm text-right">${b.amount>0?b.amount+'€':'—'}</td>
@@ -11101,8 +11104,8 @@ function showUserDetail(userId){
   });
 
   const o=document.getElementById('user-form-overlay');
-  o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto';
-  o.innerHTML=`<div style="background:var(--s100);border:1px solid var(--s400);border-radius:20px;padding:32px;max-width:640px;width:100%;margin:40px auto">
+  o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;overflow-y:auto';
+  o.innerHTML=`<div style="background:var(--s100);border:1px solid var(--s400);border-radius:20px;padding:24px;max-width:640px;width:100%;margin:20px auto">
     <div class="flex justify-between items-center mb-6">
       <h2 class="text-xl font-bold text-white">👤 Dettaglio Utente</h2>
       <button class="btn btn-ghost" onclick="document.getElementById('user-form-overlay').style.display='none'">✕</button>
@@ -11110,8 +11113,8 @@ function showUserDetail(userId){
     <div class="flex gap-4 items-center mb-6">
       <div style="width:64px;height:64px;border-radius:50%;background:var(--brand-bg);display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:var(--brand-l);font-weight:700;flex-shrink:0">${u.username.split(' ').map(w=>w[0]).join('').toUpperCase()}</div>
       <div>
-        <div class="text-lg font-bold text-white">${u.username}</div>
-        <div class="text-sm txt2">${u.email}</div>
+        <div class="text-lg font-bold text-white">${escHtml(u.username)}</div>
+        <div class="text-sm txt2">${escHtml(u.email)}</div>
         <div class="flex gap-2 mt-1">
           <span class="badge" style="background:${u.status==='attivo'?'var(--green-bg)':'var(--yellow-bg)'};color:${statusColor}">${u.status==='attivo'?'✅ Attivo':'⏸️ Sospeso'}</span>
           <span class="badge badge-bozza">${roleLbl}</span>
@@ -11148,7 +11151,7 @@ function showOrgDetail(mId){
     const bkCount=store.bookings.filter(b=>b.eventId===e.id&&b.status!=='cancellata').length;
     const d0=e.days[0];
     evRows+=`<tr>
-      <td class="text-sm font-medium">${e.title}</td>
+      <td class="text-sm font-medium">${escHtml(e.title)}</td>
       <td class="text-sm txt2">${d0?fmtDate(d0.date):'—'}</td>
       <td><span class="badge badge-${e.status}">${e.status}</span></td>
       <td class="text-sm text-center">${bkCount}</td>
@@ -11156,8 +11159,8 @@ function showOrgDetail(mId){
   });
 
   const o=document.getElementById('user-form-overlay');
-  o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto';
-  o.innerHTML=`<div style="background:var(--s100);border:1px solid var(--s400);border-radius:20px;padding:32px;max-width:640px;width:100%;margin:40px auto">
+  o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;overflow-y:auto';
+  o.innerHTML=`<div style="background:var(--s100);border:1px solid var(--s400);border-radius:20px;padding:24px;max-width:640px;width:100%;margin:20px auto">
     <div class="flex justify-between items-center mb-6">
       <h2 class="text-xl font-bold text-white">🛡️ Dettaglio Organizzatore</h2>
       <button class="btn btn-ghost" onclick="document.getElementById('user-form-overlay').style.display='none'">✕</button>
@@ -11165,8 +11168,8 @@ function showOrgDetail(mId){
     <div class="flex gap-4 items-center mb-6">
       <div style="width:64px;height:64px;border-radius:16px;background:var(--green-bg);display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:var(--green);font-weight:700;flex-shrink:0">${m.orgName.substring(0,2).toUpperCase()}</div>
       <div>
-        <div class="text-lg font-bold text-white">${m.orgName}</div>
-        <div class="text-sm txt2">${m.username} · ${m.email}</div>
+        <div class="text-lg font-bold text-white">${escHtml(m.orgName)}</div>
+        <div class="text-sm txt2">${escHtml(m.username)} · ${escHtml(m.email)}</div>
         <div class="flex gap-2 mt-1">
           ${m.role==='master'?'<span class="badge badge-workshop">👑 Master</span>':'<span class="badge badge-pubblicato">🛡️ Manager</span>'}
         </div>
@@ -11177,8 +11180,8 @@ function showOrgDetail(mId){
       <div class="stat-card"><div class="value" style="color:var(--green)">${pubEvts.length}</div><div class="label">Pubblicati</div></div>
       <div class="stat-card"><div class="value" style="color:var(--brand-l)">${totalBks}</div><div class="label">Prenotazioni</div></div>
     </div>
-    ${m.city?`<div class="card mb-3" style="padding:12px"><div class="text-xs txt3">Città / Zona</div><div class="text-sm font-medium">${m.city}</div></div>`:''}
-    ${m.description?`<div class="card mb-3" style="padding:12px"><div class="text-xs txt3">Descrizione</div><div class="text-sm">${m.description}</div></div>`:''}
+    ${m.city?`<div class="card mb-3" style="padding:12px"><div class="text-xs txt3">Città / Zona</div><div class="text-sm font-medium">${escHtml(m.city)}</div></div>`:''}
+    ${m.description?`<div class="card mb-3" style="padding:12px"><div class="text-xs txt3">Descrizione</div><div class="text-sm">${escHtml(m.description)}</div></div>`:''}
     ${evts.length?`<h3 class="font-semibold text-white mb-2 mt-4">📅 Eventi (${evts.length})</h3>
     <div class="overflow-auto mb-4"><table class="table w-full"><thead><tr><th>Evento</th><th>Data</th><th>Stato</th><th class="text-center">Iscritti</th></tr></thead><tbody>${evRows}</tbody></table></div>`:'<p class="txt3 text-sm mt-4">Nessun evento creato</p>'}
     <div class="flex gap-2 mt-4">
@@ -11199,10 +11202,10 @@ function openUserForm(type,editId){
   const icon=type==='user'?'👤':'🛡️';
 
   const o=document.getElementById('user-form-overlay');
-  o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto';
-  o.innerHTML=`<div style="background:var(--s100);border:1px solid var(--s400);border-radius:20px;padding:32px;max-width:540px;width:100%;margin:40px auto">
+  o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;overflow-y:auto';
+  o.innerHTML=`<div style="background:var(--s100);border:1px solid var(--s400);border-radius:20px;padding:24px;max-width:540px;width:100%;margin:20px auto">
     <div class="flex justify-between items-center mb-6">
-      <h2 class="text-xl font-bold text-white">${icon} ${title}</h2>
+      <h2 class="text-xl font-bold text-white">${icon} ${escHtml(title)}</h2>
       <button class="btn btn-ghost" onclick="document.getElementById('user-form-overlay').style.display='none'">✕</button>
     </div>
     <div class="flex flex-col gap-3">
@@ -11847,7 +11850,7 @@ function showAdminEventDetail(evId){
   active.forEach(b=>{if(b.role&&roles[b.role]!==undefined)roles[b.role]++;});
   // Date display
   const dateStr=recTabs?(recDateFilter&&recDateFilter!=='__all__'?fmtDate(recDateFilter):'🔄 Ricorrente — ogni '+({lunedi:'lunedì',martedi:'martedì',mercoledi:'mercoledì',giovedi:'giovedì',venerdi:'venerdì',sabato:'sabato',domenica:'domenica'}[ev.recurrence.day]||ev.recurrence.day)):(ev.days.length>1?fmtDateShort(ev.days[0]?.date)+' — '+fmtDateShort(ev.days[ev.days.length-1]?.date):fmtDate(ev.days[0]?.date));
-  const locLink=ev.locationUrl?`<a href="${ev.locationUrl}" target="_blank" style="color:var(--brand-l)">📍 ${ev.location} ↗</a>`:`📍 ${ev.location}`;
+  const locLink=ev.locationUrl?`<a href="${ev.locationUrl}" target="_blank" style="color:var(--brand-l)">📍 ${escHtml(ev.location)} ↗</a>`:`📍 ${escHtml(ev.location)}`;
   const roleName=r=>r==='base'?'💪 Base':r==='flyer'?'🦅 Flyer':r==='non_so'?'🤷 Non lo so ancora':r==='entrambi'?'🔄 Entrambi':'—';
   const roleColor=r=>r==='base'?'var(--green)':r==='flyer'?'var(--blue)':r==='non_so'?'var(--txt3)':'var(--purple)';
   // Session name lookup
@@ -11919,15 +11922,15 @@ function showAdminEventDetail(evId){
         <span class="badge ${badgeStatus(ev.status)}">${capitalize(ev.status)}</span>
         ${getRecurrenceBadge(ev)}
       </div>
-      <h1 class="text-2xl font-bold text-white">${ev.title}</h1>
-      <div class="txt3 mt-2" style="white-space:pre-wrap;line-height:1.6">${ev.description.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')}</div>
+      <h1 class="text-2xl font-bold text-white">${escHtml(ev.title)}</h1>
+      <div class="txt3 mt-2" style="white-space:pre-wrap;line-height:1.6">${escHtml(ev.description).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')}</div>
       <div class="flex gap-4 mt-3 flex-wrap text-sm txt3">
         <span>📅 ${dateStr}</span>
         <span>🕐 ${ev.days[0]?.startTime||''} — ${ev.days[0]?.endTime||''}</span>
-        <span>👤 ${ev.teacher}</span>
+        <span>👤 ${escHtml(ev.teacher)}</span>
       </div>
       <div class="text-sm mt-2">${locLink}</div>
-      <div class="text-xs mt-2" style="color:var(--brand-l)">${ev.orgName} ${getPartnerBadgesHtml(ev)}</div>
+      <div class="text-xs mt-2" style="color:var(--brand-l)">${escHtml(ev.orgName)} ${getPartnerBadgesHtml(ev)}</div>
       ${!isEventCapofila(ev,store.currentUser.id)?'<div style="margin-top:6px"><span style="display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:8px;font-size:.75rem;background:rgba(168,85,247,.12);color:#a855f7;border:1px solid rgba(168,85,247,.25)">🤝 Sei partner di questo evento — visualizzazione in sola lettura</span></div>':''}
     </div>
 
@@ -11981,8 +11984,8 @@ function showAdminEventDetail(evId){
             ?'<button class="btn btn-ghost btn-sm" style="font-size:.7rem" onclick="event.stopPropagation();markRefund(\''+evId+'\',\''+r.bookingId+'\')">↩️ Riapri</button>'
             :'<button class="btn btn-sm" style="background:var(--green-bg);color:var(--green);border:1px solid rgba(16,185,129,.3);font-size:.7rem" onclick="event.stopPropagation();markRefund(\''+evId+'\',\''+r.bookingId+'\')">✅ Segna rimborsato</button>';
           return '<tr style="'+rowStyle+'">'
-            +'<td class="font-medium text-white text-sm">'+r.userName+'</td>'
-            +'<td class="text-xs txt3">'+r.email+'</td>'
+            +'<td class="font-medium text-white text-sm">'+escHtml(r.userName)+'</td>'
+            +'<td class="text-xs txt3">'+escHtml(r.email)+'</td>'
             +'<td class="text-sm">'+(r.paidAmount?'€'+r.paidAmount:'—')+'</td>'
             +'<td class="text-sm">'+(r.depositAmount?'€'+r.depositAmount:'—')+'</td>'
             +'<td class="font-bold" style="color:var(--orange)">€'+r.totalRefund+'</td>'
@@ -12019,7 +12022,7 @@ function showAdminEventDetail(evId){
           const avatarCls=b.color||'';
           const avatarStyle=!avatarCls?'style="background:var(--s300);color:var(--txt3)"':'';
           return `<tr>
-            <td><div class="flex items-center gap-2"><div class="avatar ${avatarCls}" ${avatarStyle}>${b.initials}</div><div><div class="font-medium text-white text-sm">${b.userName}</div><div class="text-xs txt3">${b.email}</div></div></div></td>
+            <td><div class="flex items-center gap-2"><div class="avatar ${avatarCls}" ${avatarStyle}>${b.initials}</div><div><div class="font-medium text-white text-sm">${escHtml(b.userName)}</div><div class="text-xs txt3">${escHtml(b.email)}</div></div></div></td>
             <td><span style="color:${roleColor(b.role)}">${roleName(b.role)}</span></td>
             <td style="min-width:140px">${getSessionNames(b.sessions)}</td>
             ${(ev.surveys||[]).map(sq=>{
@@ -12042,7 +12045,7 @@ function showAdminEventDetail(evId){
     <div class="card" style="padding:0;overflow:auto;opacity:.5">
       <table class="table"><thead><tr><th>Utente</th><th>Importo</th></tr></thead>
       <tbody>${cancelled.map(b=>`<tr>
-        <td><div class="flex items-center gap-2"><div class="avatar" style="background:var(--s300);color:var(--txt3)">${b.initials}</div><div class="font-medium text-white text-sm" style="text-decoration:line-through">${b.userName}</div></div></td>
+        <td><div class="flex items-center gap-2"><div class="avatar" style="background:var(--s300);color:var(--txt3)">${b.initials}</div><div class="font-medium text-white text-sm" style="text-decoration:line-through">${escHtml(b.userName)}</div></div></td>
         <td class="text-sm txt3">€${b.amount}</td>
       </tr>`).join('')}</tbody></table>
     </div>`:''}
@@ -12440,7 +12443,7 @@ fbAuth.onAuthStateChanged(async(user)=>{
 document.addEventListener('DOMContentLoaded',()=>{
   // Popola profile switcher
   const ps=document.getElementById('profileSwitcher');
-  if(ps){ps.innerHTML=store.managers.map(m=>`<option value="${m.id}">${m.role==='master'?'👑 ':''}${m.orgName} — ${m.username}</option>`).join('');ps.value=store.currentUser.id;}
+  if(ps){ps.innerHTML=store.managers.map(m=>`<option value="${m.id}">${m.role==='master'?'👑 ':''}${escHtml(m.orgName||'')} — ${escHtml(m.username||'')}</option>`).join('');ps.value=store.currentUser.id;}
   initEventDates();renderFormDays();renderUserEvents();
 
   // Set default "Dal" date to today in all filter date fields
@@ -12522,7 +12525,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 </div>
 
 <!-- Privacy Acceptance Modal (obbligatorio al primo accesso) -->
-<div id="privacy-accept-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(6px);z-index:9999;display:none;align-items:center;justify-content:center;padding:24px 16px;overflow-y:auto">
+<div id="privacy-accept-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(6px);z-index:9999;align-items:center;justify-content:center;padding:24px 16px;overflow-y:auto">
   <div style="background:var(--s100);border:1px solid var(--s300);border-radius:16px;padding:28px;max-width:480px;width:100%;box-shadow:0 25px 50px rgba(0,0,0,.5);margin:auto">
     <div style="text-align:center;margin-bottom:20px">
       <span style="font-size:2.5rem">🔒</span>
