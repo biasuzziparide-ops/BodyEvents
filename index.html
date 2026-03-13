@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.14.4</title>
+<title>BodyEvents — V2.14.6</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤸</text></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -305,7 +305,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.14.4</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.14.6</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -5187,7 +5187,7 @@ async function saveProfileChanges(){
 }
 
 /* ============================================================
-   IMAGE PROCESSING PIPELINE + CROP/ZOOM MODAL (V2.14.4)
+   IMAGE PROCESSING PIPELINE + CROP/ZOOM MODAL (V2.14.6)
    - Accepts any common image format (JPEG, PNG, WebP, BMP, GIF, HEIC*)
    - Auto-resizes to max 256x256 (avatars) or 300x300 (logos)
    - Converts to JPEG at quality 0.82 (~15-40KB output)
@@ -5695,7 +5695,15 @@ function updateSidebarOrgInfo(){
   const u=store.currentUser;if(!u)return;
   const mgr=store.managers.find(m=>m.id===u.id);if(!mgr)return;
   document.querySelectorAll('.sidebar-org-name').forEach(el=>el.textContent=mgr.orgName||'Organizzatore');
-  document.querySelectorAll('.sidebar-org-icon').forEach(el=>el.textContent=mgr.orgEmoji||'🛡️');
+  document.querySelectorAll('.sidebar-org-icon').forEach(el=>{
+    if(mgr.orgLogo){
+      el.innerHTML='<img src="'+mgr.orgLogo+'" style="width:100%;height:100%;object-fit:cover;border-radius:inherit">';
+      el.style.overflow='hidden';
+    } else {
+      el.textContent=mgr.orgEmoji||'🛡️';
+      el.style.overflow='';
+    }
+  });
 }
 
 function toggleMobile(){const m=document.getElementById('mobileMenu');m.classList.toggle('open');document.getElementById('mobileBackdrop').classList.toggle('open',m.classList.contains('open'))}
@@ -7110,7 +7118,13 @@ function renderUserDashboard(){
     const dayNum=dd?dd.getDate():'';
     const monthStr=dd?MONTHS_IT[dd.getMonth()]:'';
     const tierLabel=b.tier==='alto'?'Sostenitore':b.tier==='medio'?'Standard':'Ridotto';
-    const hasAlert=ev.alert;
+    // Only show modification alerts if user booked BEFORE the modification
+    const _alertRaw=ev.alert;
+    const _bookTs=b.createdAt||b.bookedAt||'';
+    const _alertTs=_alertRaw?(_alertRaw.timestamp||_alertRaw.date||''):'';
+    const _bookedBeforeAlert=_alertRaw&&_bookTs&&_alertTs&&_bookTs<_alertTs;
+    // For cancellato/rimandato always show (affects everyone); for modificato only if booked before
+    const hasAlert=_alertRaw&&(_alertRaw.type!=='modificato'||_bookedBeforeAlert);
     const alertType=hasAlert?ev.alert.type:'';
     const borderColor=hasAlert?(alertType==='cancellato'?'var(--red)':alertType==='rimandato'?'var(--yellow)':'var(--orange)'):(b.depositStatus==='pending'?'var(--yellow)':'var(--brand)');
     const bgColor=hasAlert?(alertType==='cancellato'?'rgba(239,68,68,.04)':alertType==='rimandato'?'rgba(234,179,8,.04)':'rgba(249,115,22,.04)'):(b.depositStatus==='pending'?'rgba(234,179,8,.02)':'rgba(217,70,239,.03)');
@@ -8747,9 +8761,25 @@ function showEventDetail(evId,recDate){
 
   const backView=currentView==='dashboard'?'dashboard':currentMode==='admin'?'admin-events':'events';
   const isAdminPreview=currentMode==='admin'&&backView==='admin-events';
-  // Alert banner
+  // Alert banner — only show 'modificato' alerts to users who booked BEFORE modification
   let alertBanner='';
-  if(ev.alert){
+  const _detShowAlert=(()=>{
+    if(!ev.alert)return false;
+    if(isAdminPreview)return true; // admin preview always shows alerts
+    if(ev.alert.type==='cancellato'||ev.alert.type==='rimandato')return true; // cancellation/postponement always visible
+    // For 'modificato': only if coming from dashboard with a booking made before the alert
+    if(ev.alert.type==='modificato'){
+      if(currentMode==='admin')return true;
+      const uid=store.currentUser?.id;const uEmail=store.currentUser?.email;
+      const myBk=store.bookings.find(bk=>bk.eventId===ev.id&&bk.status!=='cancellata'&&(bk.userId===uid||bk.email===uEmail));
+      if(!myBk)return false; // not booked = no alert
+      const bkTs=myBk.createdAt||myBk.bookedAt||'';
+      const alertTs=ev.alert.timestamp||ev.alert.date||'';
+      return bkTs&&alertTs&&bkTs<alertTs; // booked before modification
+    }
+    return false;
+  })();
+  if(_detShowAlert){
     const alertType=ev.alert.type;
     const stampText=alertType==='cancellato'?'ANNULLATO':alertType==='rimandato'?'RIMANDATO':'MODIFICATO';
     const stampColor=alertType==='cancellato'?'var(--red)':alertType==='rimandato'?'var(--yellow)':'var(--orange)';
@@ -9096,7 +9126,7 @@ function deleteEvent(id){
   } else {
     showConfirm('Cancella evento','Cancellare questo evento? Gli utenti prenotati lo vedranno come ANNULLATO.',()=>{
       ev.status='cancellato';
-      ev.alert={type:'cancellato',message:'Evento cancellato dall\'organizzatore.',date:new Date().toISOString().split('T')[0]};
+      ev.alert={type:'cancellato',message:'Evento cancellato dall\'organizzatore.',date:new Date().toISOString().split('T')[0],timestamp:new Date().toISOString()};
       fsSet('events',ev.id,ev).catch(console.error);
       renderAdminEvents();showToast('Evento cancellato (visibile agli utenti come annullato)','error');
     },'danger');
@@ -9286,7 +9316,7 @@ function executeAlertAction(){
   }
 
   // Normal (non-recurring or "all" dates) execution
-  ev.alert={type:action,message:msg,date:new Date().toISOString().split('T')[0]};
+  ev.alert={type:action,message:msg,date:new Date().toISOString().split('T')[0],timestamp:new Date().toISOString()};
   if(action==='cancellato'){
     ev.status='cancellato';
     if(isRecurring)ev.recurrence.active=false;
@@ -9400,6 +9430,7 @@ function confirmAlertEdit(){
     type:'modificato',
     message:'Evento modificato dall\'organizzatore',
     date:new Date().toISOString().split('T')[0],
+    timestamp:new Date().toISOString(),
     previousValues:snapshot
   };
   store.events[idx]=formEv;
@@ -9570,7 +9601,7 @@ async function exportFullBackup(){
         appName:'BodyEvents',
         exportDate:new Date().toISOString(),
         exportedBy:store.currentUser.email,
-        version:'2.14.4',
+        version:'2.14.6',
         collections:collections
       }
     };
