@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.15.9</title>
+<title>BodyEvents — V2.16.1</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -313,7 +313,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.15.9</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.16.1</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -4270,8 +4270,12 @@ function renderListToolbar(listId,reg){
   const hidden=new Set(cfg.hiddenCols||[]);
   let h='<div class="flex gap-2 items-center" style="flex-wrap:wrap;padding:6px 16px;border-top:1px solid var(--s300)">';
   h+='<button class="btn btn-sm" style="font-size:.7rem;padding:3px 8px;background:var(--s200);color:var(--txt2);border:1px solid var(--s400)" onclick="openRegistryColumnModal(\''+listId+'\')">➕ Colonna</button>';
-  if(hidden.size>0){
-    h+='<button class="btn btn-sm" style="font-size:.7rem;padding:3px 8px;background:rgba(245,158,11,.1);color:var(--warn);border:1px solid rgba(245,158,11,.25)" onclick="openColVisibilityMenu(\''+listId+'\',this)">'+hidden.size+' colonne nascoste</button>';
+  // Always show column visibility button when there are any columns
+  if(allCols.length>0){
+    const hasHidden=hidden.size>0;
+    const btnStyle=hasHidden?'background:rgba(245,158,11,.1);color:var(--warn);border:1px solid rgba(245,158,11,.25)':'background:var(--s200);color:var(--txt2);border:1px solid var(--s400)';
+    const btnLabel=hasHidden?'👁 Colonne ('+hidden.size+' nascoste)':'👁 Colonne';
+    h+='<button class="btn btn-sm" style="font-size:.7rem;padding:3px 8px;'+btnStyle+'" onclick="openColVisibilityMenu(\''+listId+'\',this)">'+btnLabel+'</button>';
   }
   if(listId==='main'){
     h+='<button class="btn btn-sm" style="font-size:.7rem;padding:3px 8px;background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="exportRegistryExcel()">📥 Excel</button>';
@@ -4307,11 +4311,12 @@ function renderRegistryTable(reg,entries,theadId,tbodyId,listId){
   hh+='<th style="'+thStyle+'" onclick="registrySort={col:\'name\',asc:registrySort.col===\'name\'?!registrySort.asc:true};renderAdminRegistry()">Nome'+arrow('name')+'</th>';
   hh+='<th style="'+thStyle+'" onclick="registrySort={col:\'email\',asc:registrySort.col===\'email\'?!registrySort.asc:true};renderAdminRegistry()">Email'+arrow('email')+'</th>';
   cols.forEach(c=>{
-    hh+='<th style="'+thStyle+';position:relative" draggable="true" data-colid="'+c.id+'" data-listid="'+listId+'" ondragstart="regColDragStart(event)" ondragover="event.preventDefault();this.style.borderLeft=\'2px solid var(--brand)\'" ondragleave="this.style.borderLeft=\'\'" ondrop="regColDrop(event,this)">';
+    const colAlign=(c.type==='number'||c.type==='boolean'||c.type==='color')?'center':'left';
+    hh+='<th style="'+thStyle+';text-align:'+colAlign+';position:relative" draggable="true" data-colid="'+c.id+'" data-listid="'+listId+'" ondragstart="regColDragStart(event)" ondragover="event.preventDefault();this.style.borderLeft=\'2px solid var(--brand)\'" ondragleave="this.style.borderLeft=\'\'" ondrop="regColDrop(event,this)">';
     hh+='<span onclick="event.stopPropagation();registrySort={col:\''+c.id+'\',asc:registrySort.col===\''+c.id+'\'?!registrySort.asc:true};renderAdminRegistry()" style="cursor:pointer">'+escHtml(c.name)+arrow(c.id)+'</span>';
-    hh+='<span style="float:right;display:inline-flex;gap:2px;margin-left:6px">';
-    hh+='<button style="background:none;border:none;color:var(--txt3);font-size:.5rem;cursor:pointer;opacity:.5;transition:opacity .15s;padding:0 1px;line-height:1" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.5" onclick="event.stopPropagation();toggleColVisibility(\''+listId+'\',\''+c.id+'\')" title="Nascondi colonna">&#9660;</button>';
-    hh+='<button style="background:none;border:none;color:var(--txt3);font-size:.5rem;cursor:pointer;opacity:.5;transition:opacity .15s;padding:0 1px;line-height:1" onmouseover="this.style.opacity=1;this.style.color=\'var(--red)\'" onmouseout="this.style.opacity=.5;this.style.color=\'var(--txt3)\'" onclick="event.stopPropagation();deleteRegistryColumn(\''+c.id+'\')" title="Elimina colonna">&#10005;</button>';
+    hh+='<span style="display:inline-flex;gap:3px;margin-left:6px;vertical-align:middle">';
+    hh+='<button style="background:none;border:none;color:var(--txt3);font-size:.6rem;cursor:pointer;opacity:.4;transition:all .15s;padding:1px 2px;line-height:1;border-radius:3px" onmouseover="this.style.opacity=1;this.style.background=\'var(--s300)\'" onmouseout="this.style.opacity=.4;this.style.background=\'none\'" onclick="event.stopPropagation();toggleColVisibility(\''+listId+'\',\''+c.id+'\')" title="Nascondi colonna">👁</button>';
+    hh+='<button style="background:none;border:none;color:var(--txt3);font-size:.55rem;cursor:pointer;opacity:.4;transition:all .15s;padding:1px 2px;line-height:1;border-radius:3px" onmouseover="this.style.opacity=1;this.style.color=\'var(--red)\';this.style.background=\'rgba(239,68,68,.1)\'" onmouseout="this.style.opacity=.4;this.style.color=\'var(--txt3)\';this.style.background=\'none\'" onclick="event.stopPropagation();deleteRegistryColumn(\''+c.id+'\')" title="Elimina colonna">&#10005;</button>';
     hh+='</span>';
     hh+='</th>';
   });
@@ -4408,26 +4413,47 @@ function openColVisibilityMenu(listId,btnEl){
   const cfg=getListConfig(reg,listId);
   const allCols=reg.columns||[];
   const hidden=new Set(cfg.hiddenCols||[]);
+  if(!allCols.length){showToast('Nessuna colonna personalizzata da gestire','error');return;}
   const menu=document.createElement('div');
   menu.className='reg-col-vis-menu';
-  menu.style.cssText='position:absolute;z-index:9999;background:var(--card);border:1px solid var(--s400);border-radius:10px;padding:8px;box-shadow:0 4px 16px rgba(0,0,0,.4);min-width:180px';
-  menu.innerHTML='<div style="font-size:.7rem;color:var(--txt3);margin-bottom:6px;padding:0 4px">Visibilità colonne</div>';
+  menu.style.cssText='position:absolute;z-index:9999;background:var(--card);border:1px solid var(--s400);border-radius:12px;padding:10px;box-shadow:0 4px 20px rgba(0,0,0,.5);min-width:200px';
+  menu.innerHTML='<div style="font-size:.72rem;font-weight:600;color:var(--txt2);margin-bottom:8px;padding:0 4px;letter-spacing:.3px">👁 Visibilità colonne</div>';
   allCols.forEach(c=>{
     const isHidden=hidden.has(c.id);
     const row=document.createElement('div');
-    row.style.cssText='display:flex;align-items:center;gap:6px;padding:4px;border-radius:6px;cursor:pointer;font-size:.8rem;color:var(--txt1)';
+    row.style.cssText='display:flex;align-items:center;gap:8px;padding:6px 6px;border-radius:8px;cursor:pointer;font-size:.82rem;color:'+(isHidden?'var(--txt3)':'var(--txt1)')+';transition:background .1s';
     row.onmouseover=()=>row.style.background='var(--s200)';
     row.onmouseout=()=>row.style.background='';
-    row.innerHTML='<span style="width:18px;height:18px;border-radius:4px;border:2px solid '+(isHidden?'var(--s400)':'var(--green)')+';background:'+(isHidden?'var(--s100)':'rgba(16,185,129,.15)')+';display:flex;align-items:center;justify-content:center;font-size:.6rem">'+(isHidden?'':'✓')+'</span>'+escHtml(c.name);
+    const toggleW=32,toggleH=18;
+    row.innerHTML=`<span style="width:${toggleW}px;height:${toggleH}px;border-radius:${toggleH}px;background:${isHidden?'var(--s400)':'var(--green)'};position:relative;display:inline-block;flex-shrink:0;transition:background .2s"><span style="position:absolute;top:2px;${isHidden?'left:2px':'right:2px'};width:${toggleH-4}px;height:${toggleH-4}px;border-radius:50%;background:#fff;transition:all .2s;box-shadow:0 1px 3px rgba(0,0,0,.3)"></span></span>`+
+      '<span style="'+(isHidden?'text-decoration:line-through;opacity:.6':'')+'">'+(c.type==='number'?'🔢 ':c.type==='boolean'?'✅ ':c.type==='color'?'🎨 ':'📝 ')+escHtml(c.name)+'</span>';
     row.onclick=()=>{toggleColVisibility(listId,c.id);menu.remove();};
     menu.appendChild(row);
   });
+  // Show all / Hide all buttons
+  if(allCols.length>1){
+    const divider=document.createElement('div');
+    divider.style.cssText='border-top:1px solid var(--s300);margin:8px 0 6px';
+    menu.appendChild(divider);
+    const actionsRow=document.createElement('div');
+    actionsRow.style.cssText='display:flex;gap:6px;justify-content:center';
+    actionsRow.innerHTML=`<button class="btn btn-sm" style="font-size:.65rem;padding:2px 8px;background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.25)" onclick="showAllRegistryCols('${listId}');this.closest('.reg-col-vis-menu').remove()">Mostra tutte</button><button class="btn btn-sm" style="font-size:.65rem;padding:2px 8px;background:var(--s200);color:var(--txt3);border:1px solid var(--s400)" onclick="hideAllRegistryCols('${listId}');this.closest('.reg-col-vis-menu').remove()">Nascondi tutte</button>`;
+    menu.appendChild(actionsRow);
+  }
   document.body.appendChild(menu);
   const r=btnEl.getBoundingClientRect();
   menu.style.top=(r.bottom+4+window.scrollY)+'px';
   menu.style.left=Math.max(8,r.left)+'px';
   const closeMenu=e=>{if(!menu.contains(e.target)&&e.target!==btnEl){menu.remove();document.removeEventListener('click',closeMenu);}};
   setTimeout(()=>document.addEventListener('click',closeMenu),10);
+}
+function showAllRegistryCols(listId){
+  const reg=getRegistryData();const cfg=getListConfig(reg,listId);
+  cfg.hiddenCols=[];saveRegistry();renderAdminRegistry();
+}
+function hideAllRegistryCols(listId){
+  const reg=getRegistryData();const cfg=getListConfig(reg,listId);
+  cfg.hiddenCols=(reg.columns||[]).map(c=>c.id);saveRegistry();renderAdminRegistry();
 }
 
 function toggleColVisibility(listId,colId){
@@ -4476,6 +4502,8 @@ function updateRegistryCell(uid,colId,value){
   if(!entry.customData)entry.customData={};
   entry.customData[colId]=value;
   saveRegistry();
+  // Re-render to update totals and any dependent UI
+  renderAdminRegistry();
 }
 function toggleRegistryBool(uid,colId){
   const reg=getRegistryData();
@@ -5270,7 +5298,7 @@ async function saveProfileChanges(){
 }
 
 /* ============================================================
-   IMAGE PROCESSING PIPELINE + CROP/ZOOM MODAL (V2.15.9)
+   IMAGE PROCESSING PIPELINE + CROP/ZOOM MODAL (V2.16.1)
    - Accepts any common image format (JPEG, PNG, WebP, BMP, GIF, HEIC*)
    - Auto-resizes to max 256x256 (avatars) or 300x300 (logos)
    - Converts to JPEG at quality 0.82 (~15-40KB output)
