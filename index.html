@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.15.7</title>
+<title>BodyEvents — V2.15.9</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -313,7 +313,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.15.7</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.15.9</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -4206,8 +4206,9 @@ function getListConfig(reg,listId){
   const allColIds=(reg.columns||[]).map(c=>c.id);
   const inOrder=new Set(cfg.colOrder.filter(id=>allColIds.includes(id)));
   allColIds.forEach(id=>{if(!inOrder.has(id))cfg.colOrder.push(id);});
-  // Remove stale ids
-  cfg.colOrder=cfg.colOrder.filter(id=>allColIds.includes(id));
+  // Remove stale ids and deduplicate
+  const _seen=new Set();
+  cfg.colOrder=cfg.colOrder.filter(id=>{if(!allColIds.includes(id)||_seen.has(id))return false;_seen.add(id);return true;});
   cfg.hiddenCols=(cfg.hiddenCols||[]).filter(id=>allColIds.includes(id));
   return cfg;
 }
@@ -4369,6 +4370,11 @@ function renderRegistryTable(reg,entries,theadId,tbodyId,listId){
     });
     fh+='</tr>';
     tfoot.innerHTML=fh;
+  } else {
+    // No custom columns with data → remove any existing tfoot
+    const table=thead.closest('table');
+    const tfoot=table?.querySelector('tfoot');
+    if(tfoot)tfoot.remove();
   }
 }
 
@@ -4532,9 +4538,11 @@ function confirmRegistryColumn(){
   if(!reg.columns)reg.columns=[];
   if(reg.columns.length>=10){showToast('Massimo 10 colonne personalizzate','error');return;}
   const id='col_'+Date.now().toString(36);
-  reg.columns.push({id,name,type});
-  // Insert at position 0 (after Nome) in the originating list
+  // IMPORTANT: get list config BEFORE adding to global columns, so auto-append doesn't fire
   const originCfg=getListConfig(reg,_regColCreateListId);
+  // Now add to global columns
+  reg.columns.push({id,name,type});
+  // Insert at position 0 (after Nome) in the originating list — no duplicate since getListConfig ran before the column existed
   originCfg.colOrder.unshift(id);
   // For all OTHER lists, append at end (getListConfig auto-appends missing)
   const allListIds=['main',...(reg.sublists||[]).map(s=>s.id)];
@@ -5262,7 +5270,7 @@ async function saveProfileChanges(){
 }
 
 /* ============================================================
-   IMAGE PROCESSING PIPELINE + CROP/ZOOM MODAL (V2.15.7)
+   IMAGE PROCESSING PIPELINE + CROP/ZOOM MODAL (V2.15.9)
    - Accepts any common image format (JPEG, PNG, WebP, BMP, GIF, HEIC*)
    - Auto-resizes to max 256x256 (avatars) or 300x300 (logos)
    - Converts to JPEG at quality 0.82 (~15-40KB output)
@@ -5920,6 +5928,22 @@ function toggleWSDay(n){
   else{c.classList.add('hidden');card.style.borderColor='var(--s300)';card.style.background='var(--s50)';}
 }
 let selectedBookRole='';
+const freeSelectedSessions=new Set();
+const freeSelectedDays=new Set();
+function toggleFreeSession(el,sessionId){
+  el.classList.toggle('selected');
+  const ck=el.querySelector('.checkbox span');
+  if(ck)ck.style.display=el.classList.contains('selected')?'block':'none';
+  if(el.classList.contains('selected'))freeSelectedSessions.add(sessionId);
+  else freeSelectedSessions.delete(sessionId);
+}
+function toggleFreeDay(el,dayIdx){
+  el.classList.toggle('selected');
+  const ck=el.querySelector('.checkbox span');
+  if(ck)ck.style.display=el.classList.contains('selected')?'block':'none';
+  if(el.classList.contains('selected'))freeSelectedDays.add(dayIdx);
+  else freeSelectedDays.delete(dayIdx);
+}
 function selectBookRole(el){
   document.querySelectorAll('.book-role-btn').forEach(b=>{b.style.background='';b.style.color='';b.style.borderColor='var(--s400)';});
   el.style.background='var(--brand-d)';el.style.color='#fff';el.style.borderColor='var(--brand)';
@@ -5989,6 +6013,36 @@ function doBook(){
 
 async function bookWithSubscription(subId,eventId){
   const ev=store.events.find(e=>e.id===eventId);if(!ev)return;
+  // Collect session selections for events with multiple sessions
+  const hasMultipleSessions=ev.days.some(d=>d.sessions&&d.sessions.length>1);
+  const hasSelections=freeSelectedSessions.size>0||freeSelectedDays.size>0;
+  if(hasMultipleSessions&&!hasSelections){
+    showToast('Seleziona almeno una sessione o una giornata intera!','error');return;
+  }
+  // Build session IDs and items from selections
+  const _subSessionIds=[];
+  const _subItems=[];
+  let _subScope='evento';
+  if(hasMultipleSessions&&hasSelections){
+    ev.days.forEach((day,di)=>{
+      if(freeSelectedDays.has(di)){
+        _subScope=_subScope==='sessione'?'misto':'giornata';
+        day.sessions.forEach(s=>_subSessionIds.push(s.id));
+        _subItems.push({type:'giornata',name:'Giornata intera — '+fmtDateShort(day.date),date:fmtDateShort(day.date),time:day.startTime+' — '+day.endTime,tier:'Abbonamento',price:0});
+      } else {
+        (day.sessions||[]).forEach(s=>{
+          if(freeSelectedSessions.has(s.id)){
+            _subScope='sessione';
+            _subSessionIds.push(s.id);
+            _subItems.push({type:'sessione',name:s.name,date:fmtDateShort(day.date),time:s.startTime+' — '+s.endTime,tier:'Abbonamento',price:0});
+          }
+        });
+      }
+    });
+  } else {
+    _subItems.push({type:'abbonamento',name:ev.title,date:fmtDateShort(ev.days[0]?.date),time:'',tier:'Abbonamento',price:0});
+    ev.days.forEach(d=>(d.sessions||[]).forEach(s=>_subSessionIds.push(s.id)));
+  }
   // Collect survey responses if the event has surveys
   const hasSurveys=ev.surveys&&ev.surveys.length>0;
   if(hasSurveys){
@@ -6027,8 +6081,8 @@ async function bookWithSubscription(subId,eventId){
         id:genId('bk'),eventId:ev.id,userId:store.currentUser.id,
         userName:store.currentUser.username,email:store.currentUser.email,
         initials,color:avatarColors[Math.floor(Math.random()*avatarColors.length)],
-        items:[{type:'abbonamento',name:ev.title,date:fmtDateShort(ev.days[0]?.date),time:'',tier:'Abbonamento',price:0}],
-        sessions:[],scope:'evento',tier:'medio',amount:0,totalAmount:0,
+        items:_subItems,
+        sessions:_subSessionIds,scope:_subScope,tier:'medio',amount:0,totalAmount:0,
         role:selectedBookRole,recurringDate:currentBookingRecDate||null,
         status:'confermata',
         depositStatus:null,paymentStatus:'abbonamento',gift:false,subscriptionId:subId,
@@ -6054,8 +6108,8 @@ async function bookWithSubscription(subId,eventId){
     id:genId('bk'),eventId:ev.id,userId:store.currentUser.id,
     userName:store.currentUser.username,email:store.currentUser.email,
     initials,color:avatarColors[Math.floor(Math.random()*avatarColors.length)],
-    items:[{type:'abbonamento',name:ev.title,date:fmtDateShort(ev.days[0]?.date),time:'',tier:'Abbonamento',price:0}],
-    sessions:[],scope:'evento',tier:'medio',amount:0,totalAmount:0,
+    items:_subItems,
+    sessions:_subSessionIds,scope:_subScope,tier:'medio',amount:0,totalAmount:0,
     role:getUserEffectiveRole(store.currentUser),recurringDate:currentBookingRecDate||null,
     status:'confermata',
     depositStatus:null,paymentStatus:'abbonamento',gift:false,subscriptionId:subId,
@@ -6089,8 +6143,55 @@ function _doBookNormal(){
 
   const evIsFree=ev.pricingMode==='free';
   const evIsManaged=ev.pricingMode==='managed';
-  // For free/managed events, skip tier selection entirely
+  // For free/managed events, skip tier selection — but collect session/day selections
   if(evIsFree||evIsManaged){
+    // Determine what the user selected (sessions, days, or entire event)
+    const hasMultipleSessions=ev.days.some(d=>d.sessions&&d.sessions.length>1);
+    const hasSelections=freeSelectedSessions.size>0||freeSelectedDays.size>0;
+    // If event has multi-session days, require at least one selection
+    if(hasMultipleSessions&&!hasSelections){
+      showToast('Seleziona almeno una sessione o una giornata intera!','error');
+      return;
+    }
+    // Build items list from selections
+    const freeItems=[];
+    const freeSessionIds=[];
+    let freeScope='evento';
+    if(hasMultipleSessions&&hasSelections){
+      ev.days.forEach((day,di)=>{
+        if(freeSelectedDays.has(di)){
+          // Whole day selected
+          freeScope=freeScope==='sessione'?'misto':'giornata';
+          day.sessions.forEach(s=>freeSessionIds.push(s.id));
+          freeItems.push({type:'giornata',name:'Giornata intera — '+fmtDateShort(day.date),date:fmtDateShort(day.date),time:day.startTime+' — '+day.endTime,tier:evIsFree?'Gratuito':'Da definire',price:0});
+        } else {
+          // Check individual sessions
+          (day.sessions||[]).forEach(s=>{
+            if(freeSelectedSessions.has(s.id)){
+              freeScope='sessione';
+              freeSessionIds.push(s.id);
+              freeItems.push({type:'sessione',name:s.name,date:fmtDateShort(day.date),time:s.startTime+' — '+s.endTime,tier:evIsFree?'Gratuito':'Da definire',price:0});
+            }
+          });
+        }
+      });
+    } else {
+      // Single-session days or single day → book entire event
+      freeItems.push({type:evIsFree?'iscrizione gratuita':'interesse',name:ev.title,date:fmtDateShort(ev.days[0]?.date),time:'',tier:evIsFree?'Gratuito':'Da definire',price:0});
+      ev.days.forEach(d=>(d.sessions||[]).forEach(s=>freeSessionIds.push(s.id)));
+    }
+    // Build summary HTML for the dialog
+    let freeSummaryHtml='';
+    if(freeItems.length>1||freeItems[0]?.type!=='iscrizione gratuita'){
+      freeSummaryHtml='<div class="mb-3"><div class="text-xs txt3 mb-2" style="text-transform:uppercase;letter-spacing:.5px">Hai selezionato</div>';
+      freeItems.forEach(it=>{
+        freeSummaryHtml+=`<div style="background:var(--s100);border:1px solid var(--s300);border-radius:8px;padding:8px 12px;margin-bottom:6px">
+          <div class="text-sm font-medium text-white">${escHtml(it.name)}</div>
+          <div class="text-xs txt3">${it.date}${it.time?' · '+it.time:''}</div>
+        </div>`;
+      });
+      freeSummaryHtml+='</div>';
+    }
     const o=document.createElement('div');o.className='overlay';
     const roleSelector=`<div class="card mb-3">
       <label class="text-sm font-medium text-white mb-2" style="display:block">🎭 Qual è il tuo ruolo preferito?</label>
@@ -6136,7 +6237,7 @@ function _doBookNormal(){
     const msgHtml=evIsFree?'':managedInfoHtml;
     o.innerHTML=`<div class="dialog" style="max-width:500px;width:90%">
       <h3 class="text-lg font-semibold text-white mb-4">${evIsFree?'✅ Iscrizione gratuita':'📋 Iscriviti all\'evento'}</h3>
-      ${roleSelector}${msgHtml}${renderSurveyQuestions(ev,'book_')}
+      ${freeSummaryHtml}${roleSelector}${msgHtml}${renderSurveyQuestions(ev,'book_')}
       <div class="flex gap-3 mt-6" style="justify-content:flex-end">
         <button class="btn btn-ghost btn-sm" id="bookCancel">Annulla</button>
         <button class="btn btn-primary btn-sm" id="bookConfirm">${evIsFree?'Iscriviti':(managedNeedsDeposit?'Prenota (anticipo richiesto)':'Iscriviti!')}</button>
@@ -6156,8 +6257,9 @@ function _doBookNormal(){
         id:genId('bk'),eventId:ev.id,userId:store.currentUser.id,
         userName:store.currentUser.username,email:store.currentUser.email,
         initials,color:avatarColors[Math.floor(Math.random()*avatarColors.length)],
-        items:[{type:evIsFree?'iscrizione gratuita':'interesse',name:ev.title,date:fmtDateShort(ev.days[0]?.date),time:'',tier:evIsFree?'Gratuito':'Da definire',price:0}],
-        sessions:[],scope:'evento',tier:'medio',amount:0,totalAmount:0,
+        items:freeItems,
+        sessions:freeSessionIds,
+        scope:freeScope,tier:'medio',amount:0,totalAmount:0,
         role:selectedBookRole,
         status:managedNeedsDeposit?'in_attesa_anticipo':'confermata',
         depositStatus:managedNeedsDeposit?'pending':null,
@@ -8786,6 +8888,8 @@ function showEventDetail(evId,recDate){
   // Reset tier selections for a clean booking
   Object.keys(selectedTiers).forEach(k=>delete selectedTiers[k]);
   selectedBookRole='';
+  freeSelectedSessions.clear();
+  freeSelectedDays.clear();
   const c=document.getElementById('dynamic-event-detail');if(!c)return;
   const payLinks=[];
   if(ev.paymentMethods.paypal)payLinks.push(`<a class="badge" style="background:rgba(59,130,246,.08);color:var(--blue);padding:6px 12px" href="${ev.paymentMethods.paypal}" target="_blank">💳 PayPal ↗</a>`);
@@ -8857,7 +8961,7 @@ function showEventDetail(evId,recDate){
 
     if(day.sessions.length>1){
       daysHtml+=`<div style="margin-left:16px;padding-left:16px;border-left:2px solid rgba(217,70,239,.2);margin-top:12px">`;
-      if(!skipPricing) daysHtml+=`<p class="text-sm txt3 mb-3">Seleziona le sessioni:</p>`;
+      daysHtml+=`<p class="text-sm txt3 mb-3">Seleziona le sessioni${skipPricing?'' :' e il prezzo'}:</p>`;
       daysHtml+=`<div style="max-width:90%;margin:0 auto">`;
       day.sessions.forEach(s=>{
         const sLoc=s.location?`<div class="text-xs txt3 mt-1">${s.locationUrl?'<a href="'+s.locationUrl+'" target="_blank" style="color:var(--brand-l)">📍 '+escHtml(s.location)+' ↗</a>':'📍 '+escHtml(s.location)}</div>`:'';
@@ -8873,10 +8977,14 @@ function showEventDetail(evId,recDate){
           if(sBtns) daysHtml+=`<div class="tier-grid mb-2 hidden" id="tiers-${s.id}">${sBtns}</div>`;
           daysHtml+=renderEarlyBirdGrid(s.earlyBird,'tier-ebs-'+s.id,ev.id,s.tiers,_sdPct);
         } else {
-          daysHtml+=`<div class="mb-2">
-            <div class="font-medium text-white" style="font-size:.82rem">${escHtml(s.name)}</div>
-            <div class="flex gap-2 mt-1 items-center flex-wrap"><span class="text-xs txt3">🕐 ${s.startTime} — ${s.endTime}</span><span class="badge ${badgeLevel(s.level)}">${capitalize(s.level)}</span>${s.teacher?'<span class="text-xs txt3">👤 '+escHtml(s.teacher)+'</span>':''}${s.maxSpots?'<span class="text-xs txt3">👥 Max '+s.maxSpots+'</span>':''}</div>
-            ${s.description?'<div class="text-xs txt3 mt-1" style="line-height:1.3">'+escHtml(s.description)+'</div>':''}${sLoc}
+          // Free/managed: show selectable check-items for sessions
+          daysHtml+=`<div class="check-item mb-2" onclick="toggleFreeSession(this,'${s.id}')" style="padding:8px 10px;cursor:pointer">
+            <div class="checkbox"><span style="display:none;color:#fff;font-size:.6rem">✓</span></div>
+            <div class="flex-1">
+              <div class="font-medium text-white" style="font-size:.82rem">${escHtml(s.name)}</div>
+              <div class="flex gap-2 mt-1 items-center flex-wrap"><span class="text-xs txt3">🕐 ${s.startTime} — ${s.endTime}</span><span class="badge ${badgeLevel(s.level)}">${capitalize(s.level)}</span>${s.teacher?'<span class="text-xs txt3">👤 '+escHtml(s.teacher)+'</span>':''}${s.maxSpots?'<span class="text-xs txt3">👥 Max '+s.maxSpots+'</span>':''}</div>
+              ${s.description?'<div class="text-xs txt3 mt-1" style="line-height:1.3">'+escHtml(s.description)+'</div>':''}${sLoc}
+            </div>
           </div>`;
         }
       });
@@ -8893,6 +9001,15 @@ function showEventDetail(evId,recDate){
           </div>`;
         }
         daysHtml+=renderEarlyBirdGrid(day.earlyBird,'tier-ebday-'+ev.id+'-'+di,ev.id,day.tiers,_sdPct);
+      } else if(day.sessions.length>1){
+        // Free/managed: offer "Giornata intera" as alternative to individual sessions
+        daysHtml+=`<div class="check-item mt-3 mb-2" onclick="toggleFreeDay(this,${di})" style="padding:8px 12px;cursor:pointer;background:rgba(16,185,129,.04);border:1px solid rgba(16,185,129,.2);border-radius:10px">
+          <div class="checkbox"><span style="display:none;color:#fff;font-size:.6rem">✓</span></div>
+          <div class="flex-1">
+            <div class="font-medium text-sm" style="color:var(--green)">📅 Giornata intera — ${fmtDate(day.date)}</div>
+            <div class="text-xs txt3 mt-1">Include tutte le sessioni di questa giornata</div>
+          </div>
+        </div>`;
       }
 
     } else if(isSingleSession){
