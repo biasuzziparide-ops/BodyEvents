@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.14.6</title>
+<title>BodyEvents — V2.14.7</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤸</text></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -305,7 +305,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.14.6</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.14.7</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -1325,10 +1325,14 @@ textarea.input{resize:none;font-family:inherit}
       <!-- Chiusura prenotazioni (moved from adv) -->
       <div style="padding-top:12px;border-top:1px solid var(--s300)" class="mb-4">
         <div class="grid grid-2 gap-3">
-          <div><label class="label">🔒 Prenotazioni chiudono il</label><input class="input" id="ne-booking-deadline" type="date" onchange="this._userEdited=true">
-          <p class="text-xs txt3 mt-1">Lascia vuoto per chiudere a fine evento.</p></div>
+          <div id="ne-deadline-wrap">
+            <div id="ne-deadline-date-mode"><label class="label">🔒 Prenotazioni chiudono il</label><input class="input" id="ne-booking-deadline" type="date" onchange="this._userEdited=true">
+            <p class="text-xs txt3 mt-1">Lascia vuoto per chiudere a fine evento.</p></div>
+            <div id="ne-deadline-days-mode" class="hidden"><label class="label">🔒 Chiudi iscrizioni (giorni prima)</label><input class="input" id="ne-booking-deadline-days" type="number" min="0" max="60" placeholder="es. 3" style="max-width:120px">
+            <p class="text-xs txt3 mt-1">Giorni prima di ogni ricorrenza. Lascia vuoto per chiudere all'inizio dell'evento.</p></div>
+          </div>
           <div>
-            <label class="flex items-center gap-2 text-sm" style="cursor:pointer;margin-top:22px"><input type="checkbox" id="ne-recurrence" onchange="document.getElementById('ne-rec-opts').classList.toggle('hidden')"> 🔄 Evento ricorrente</label>
+            <label class="flex items-center gap-2 text-sm" style="cursor:pointer;margin-top:22px"><input type="checkbox" id="ne-recurrence" onchange="toggleRecurrenceUI()"> 🔄 Evento ricorrente</label>
             <div id="ne-rec-opts" class="hidden mt-2">
               <div><label class="label">Giorno della settimana</label>
                 <select class="input" id="ne-rec-day"><option value="lunedi">Lunedì</option><option value="martedi">Martedì</option><option value="mercoledi" selected>Mercoledì</option><option value="giovedi">Giovedì</option><option value="venerdi">Venerdì</option><option value="sabato">Sabato</option><option value="domenica">Domenica</option></select></div>
@@ -5187,7 +5191,7 @@ async function saveProfileChanges(){
 }
 
 /* ============================================================
-   IMAGE PROCESSING PIPELINE + CROP/ZOOM MODAL (V2.14.6)
+   IMAGE PROCESSING PIPELINE + CROP/ZOOM MODAL (V2.14.7)
    - Accepts any common image format (JPEG, PNG, WebP, BMP, GIF, HEIC*)
    - Auto-resizes to max 256x256 (avatars) or 300x300 (logos)
    - Converts to JPEG at quality 0.82 (~15-40KB output)
@@ -5854,12 +5858,10 @@ function doBook(){
   const ev=store.events.find(e=>e.id===currentBookingEventId);
   if(!ev){showToast('Errore: evento non trovato','error');return;}
 
-  // Block booking after deadline (explicit deadline or end of last event day)
-  // For recurring events, use the recurring date as the effective deadline
-  const _recDeadline=currentBookingRecDate||null;
-  const _effDeadline=_recDeadline||ev.bookingDeadline||(ev.days&&ev.days.length?ev.days.reduce((mx,d)=>d.date>mx?d.date:mx,ev.days[0].date):null);
+  // Block booking after deadline (uses getEffectiveBookingDeadline for recurring support)
+  const _effDeadline=getEffectiveBookingDeadline(ev,currentBookingRecDate);
   if(_effDeadline&&new Date().toISOString().split('T')[0]>_effDeadline){
-    showToast('Le prenotazioni per questo evento sono chiuse'+(ev.bookingDeadline?' dal '+fmtDateShort(ev.bookingDeadline):''),'error');return;
+    showToast('Le prenotazioni per questo evento sono chiuse (dal '+fmtDateShort(_effDeadline)+')','error');return;
   }
 
   // Block duplicate booking — check if user already has an active booking for this event+date
@@ -6957,7 +6959,7 @@ function renderUserEvents(){
     const pricingBadge=ev.pricingMode==='free'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🆓 Gratuito</span>':ev.pricingMode==='managed'?'<span class="badge badge-yellow">🤝 Costi con org.</span>':(_minP>0?'<span class="badge" style="background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)">💰 da €'+_minP+'</span>':'');
     const confirmStatus=getConfirmationStatus(ev);
     const confirmBadge=confirmStatus==='attesa'?'<span class="badge badge-attesa">⏳ In attesa raggiungimento numero minimo</span>':confirmStatus==='confermato'?'<span class="badge badge-confermato">✅ Confermato</span>':'';
-    const _effBkDl=ev.bookingDeadline||(ev.days&&ev.days.length?ev.days.reduce((mx,d)=>d.date>mx?d.date:mx,ev.days[0].date):null);
+    const _effBkDl=getEffectiveBookingDeadline(ev,ev._recDate||null);
     const _bookClosed=_effBkDl&&new Date().toISOString().split('T')[0]>_effBkDl;
     const bookClosedBadge=_bookClosed?'<span class="badge" style="background:var(--red-bg);color:var(--red)">🔒 Prenotazioni chiuse</span>':'';
     const _thumbData=(ev.imageThumb||ev.image)?{src:ev.imageThumb?.src||ev.image,zoom:ev.imageThumb?.zoom||100,posX:ev.imageThumb?.posX||0,posY:ev.imageThumb?.posY||0}:null;
@@ -8877,15 +8879,15 @@ function showEventDetail(evId,recDate){
           +surveyHtml
           +'</div>';
       }
-      // === CHECK BOOKING DEADLINE (explicit or end of last event day) ===
-      const _detEffDl=ev.bookingDeadline||(ev.days&&ev.days.length?ev.days.reduce((mx,d)=>d.date>mx?d.date:mx,ev.days[0].date):null);
+      // === CHECK BOOKING DEADLINE (uses getEffectiveBookingDeadline for recurring support) ===
+      const _detEffDl=getEffectiveBookingDeadline(ev,_detRecDate);
       const _bookingClosed=_detEffDl&&new Date().toISOString().split('T')[0]>_detEffDl;
       if(_bookingClosed){
         return '<h2 class="font-semibold text-white mb-3">Programma</h2>'+daysHtml+eventPkgHtml+loyaltyHtml
           +'<div class="card text-center mt-4" style="border:2px solid var(--red);background:var(--red-bg);padding:20px">'
           +'<span style="font-size:2rem">🔒</span>'
           +'<p class="font-bold mt-2" style="color:var(--red)">Prenotazioni chiuse</p>'
-          +'<p class="text-sm txt3 mt-2">'+(ev.bookingDeadline?'Le prenotazioni si sono chiuse il '+fmtDateShort(ev.bookingDeadline):'Le prenotazioni sono chiuse (evento terminato)')+'</p>'
+          +'<p class="text-sm txt3 mt-2">Le prenotazioni si sono chiuse il '+fmtDateShort(_detEffDl)+'</p>'
           +'</div>';
       }
       // === NORMAL BOOKING VIEW ===
@@ -9012,6 +9014,47 @@ function publishEvent(id){showConfirm('Pubblica evento','Pubblicare ora? Sarà v
 function revertToDraft(id){showConfirm('Torna in bozza','Riportare questo evento in bozza? Non sarà più visibile agli utenti finché non verrà ripubblicato.',()=>{
   const ev=store.events.find(e=>e.id===id);if(ev){ev.status='bozza';fsUpdate('events',ev.id,{status:'bozza'}).catch(console.error);renderAdminEvents();showToast('Evento riportato in bozza');}
 })}
+/* Toggle recurrence UI: switch deadline field between date and days-before */
+function toggleRecurrenceUI(){
+  const recChk=document.getElementById('ne-recurrence');
+  const recOpts=document.getElementById('ne-rec-opts');
+  const dateMode=document.getElementById('ne-deadline-date-mode');
+  const daysMode=document.getElementById('ne-deadline-days-mode');
+  if(recChk&&recChk.checked){
+    if(recOpts)recOpts.classList.remove('hidden');
+    if(dateMode)dateMode.classList.add('hidden');
+    if(daysMode)daysMode.classList.remove('hidden');
+  }else{
+    if(recOpts)recOpts.classList.add('hidden');
+    if(dateMode)dateMode.classList.remove('hidden');
+    if(daysMode)daysMode.classList.add('hidden');
+  }
+}
+/* Calculate effective booking deadline for any event instance
+   - For recurring events with bookingDeadlineDaysBefore: recDate - N days
+   - For non-recurring with bookingDeadline: that fixed date
+   - Fallback: end of last event day (or recDate for recurring)
+*/
+function getEffectiveBookingDeadline(ev,recDate){
+  // Recurring event with days-before deadline
+  if(ev.recurrence&&ev.bookingDeadlineDaysBefore!=null&&ev.bookingDeadlineDaysBefore!==''){
+    const refDate=recDate||ev.days?.[0]?.date;
+    if(refDate){
+      const d=new Date(refDate+'T00:00:00');
+      d.setDate(d.getDate()-parseInt(ev.bookingDeadlineDaysBefore));
+      return d.toISOString().split('T')[0];
+    }
+  }
+  // Recurring event without explicit deadline: use the recurrence date itself
+  if(recDate&&!ev.bookingDeadline){
+    return recDate;
+  }
+  // Non-recurring or has explicit fixed deadline
+  if(ev.bookingDeadline)return ev.bookingDeadline;
+  // Fallback: last event day
+  if(ev.days&&ev.days.length)return ev.days.reduce((mx,d)=>d.date>mx?d.date:mx,ev.days[0].date);
+  return null;
+}
 function autoConcludeEvents(){
   const today=new Date().toISOString().split('T')[0];
   store.events.forEach(ev=>{
@@ -9601,7 +9644,7 @@ async function exportFullBackup(){
         appName:'BodyEvents',
         exportDate:new Date().toISOString(),
         exportedBy:store.currentUser.email,
-        version:'2.14.6',
+        version:'2.14.7',
         collections:collections
       }
     };
@@ -9716,6 +9759,9 @@ function resetForm(){
   // Reset booking deadline
   const bdEl=document.getElementById('ne-booking-deadline');
   if(bdEl){bdEl.value='';bdEl._userEdited=false;}
+  const bdDaysEl=document.getElementById('ne-booking-deadline-days');
+  if(bdDaysEl)bdDaysEl.value='';
+  toggleRecurrenceUI();
   updateBookingDeadlineDefault();
   // Reset partners
   const pw=document.getElementById('ne-partners-selected');
@@ -10532,7 +10578,8 @@ function collectFormData(){
     pricingMode,
     minSubscribers:null, // V2.13.0: moved to session level (s.minSubscribers)
     surveys:collectSurveysFromForm(),
-    bookingDeadline:document.getElementById('ne-booking-deadline')?.value||null,
+    bookingDeadline:recChk?null:(document.getElementById('ne-booking-deadline')?.value||null),
+    bookingDeadlineDaysBefore:recChk?(document.getElementById('ne-booking-deadline-days')?.value!==''?parseInt(document.getElementById('ne-booking-deadline-days')?.value):null):null,
     status:'bozza',recurrence:recChk?{day:recDay,active:true,exceptions:{},pausedUntil:null}:null,createdAt:new Date().toISOString().split('T')[0],
     allowDayPurchase:document.getElementById('ne-allow-day-purchase')?.checked!==false,
     partnerIds:getPartnerIdsFromForm(),
@@ -10814,9 +10861,12 @@ function editEvent(id){
   }
   updateEventEBTierVisibility();
   // minSubscribers: now at session level (V2.13.0) — restored via renderFormSession()
-  // Restore booking deadline
+  // Restore booking deadline (date mode for single, days-before for recurring)
   const bdEl=document.getElementById('ne-booking-deadline');
   if(bdEl&&ev.bookingDeadline){bdEl.value=ev.bookingDeadline;bdEl._userEdited=true;}
+  const bdDaysEl=document.getElementById('ne-booking-deadline-days');
+  if(bdDaysEl&&ev.bookingDeadlineDaysBefore!=null){bdDaysEl.value=ev.bookingDeadlineDaysBefore;}
+  toggleRecurrenceUI(); // Ensure correct deadline mode is shown
   // Auto-open advanced options panel if survey is present (V2.13.0 updated for collapsible)
   if(ev.surveys&&ev.surveys.length){
     const advPanel=document.getElementById('ne-advanced-opts');
