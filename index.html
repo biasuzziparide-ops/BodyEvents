@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.14.3</title>
+<title>BodyEvents — V2.14.4</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤸</text></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -305,7 +305,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.14.3</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.14.4</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -1117,7 +1117,7 @@ textarea.input{resize:none;font-family:inherit}
               📷 Carica logo
               <input type="file" id="org-logo-input" accept="image/*" style="display:none" onchange="handleOrgLogoUpload(this)">
             </label>
-            <span class="text-xs txt3 ml-2">Max 500KB, verrà ritagliato a quadrato</span>
+            <span class="text-xs txt3 ml-2">JPEG, PNG, WebP — verrà ridimensionato automaticamente</span>
           </div>
         </div>
       </div>
@@ -1965,7 +1965,7 @@ textarea.input{resize:none;font-family:inherit}
       📷 Carica foto
       <input type="file" id="user-logo-input" accept="image/*" style="display:none" onchange="handleUserLogoUpload(this)">
     </label>
-    <span class="text-xs txt3 ml-2">Max 500KB</span>
+    <span class="text-xs txt3 ml-2">JPEG, PNG, WebP — verrà ridimensionato automaticamente</span>
   </div>
 
   <!-- Dati account -->
@@ -5186,23 +5186,196 @@ async function saveProfileChanges(){
   showToast('Profilo aggiornato!');
 }
 
-// User logo upload
-function handleUserLogoUpload(input){
-  const file=input.files[0];if(!file)return;
-  if(file.size>512000){showToast('Immagine troppo grande (max 500KB)','error');input.value='';return;}
-  const reader=new FileReader();
-  reader.onload=async(e)=>{
-    const src=e.target.result;
-    const u=store.currentUser;if(!u)return;
-    u.profileLogo=src;
-    const col=store.managers.some(m=>m.id===u.id)?'managers':'users';
-    await fsUpdate(col,u.id,{profileLogo:src});
-    const rec=store.users.find(x=>x.id===u.id)||store.managers.find(x=>x.id===u.id);
-    if(rec)rec.profileLogo=src;
-    updateUserAvatarDisplay();
-    showToast('Foto profilo aggiornata!');
+/* ============================================================
+   IMAGE PROCESSING PIPELINE + CROP/ZOOM MODAL (V2.14.4)
+   - Accepts any common image format (JPEG, PNG, WebP, BMP, GIF, HEIC*)
+   - Auto-resizes to max 256x256 (avatars) or 300x300 (logos)
+   - Converts to JPEG at quality 0.82 (~15-40KB output)
+   - Strips all EXIF/metadata via canvas redraw
+   - Firestore doc limit is 1MB; base64 at ~30KB is safe
+   * HEIC: browser support varies; works in Safari, may fail in Chrome
+   ============================================================ */
+function loadImageFromFile(file){
+  return new Promise((resolve,reject)=>{
+    // Accept up to 20MB raw input — we'll compress it down
+    if(file.size>20*1024*1024){reject(new Error('File troppo grande (max 20MB)'));return;}
+    const url=URL.createObjectURL(file);
+    const img=new Image();
+    img.onload=()=>{URL.revokeObjectURL(url);resolve(img);};
+    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Formato immagine non supportato'));};
+    img.src=url;
+  });
+}
+function processImageToBase64(img,cropData,maxSize){
+  // cropData: {x,y,w,h} in source-image coordinates (the visible crop region)
+  // maxSize: output square dimension
+  const canvas=document.createElement('canvas');
+  canvas.width=maxSize;canvas.height=maxSize;
+  const ctx=canvas.getContext('2d');
+  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+  // Draw the cropped region scaled to fit the output square
+  ctx.drawImage(img,cropData.x,cropData.y,cropData.w,cropData.h,0,0,maxSize,maxSize);
+  // Export as JPEG — small, no EXIF, universal support
+  let quality=0.82;
+  let dataUrl=canvas.toDataURL('image/jpeg',quality);
+  // If still too large (unlikely at 256px), reduce quality
+  while(dataUrl.length>150000&&quality>0.3){quality-=0.1;dataUrl=canvas.toDataURL('image/jpeg',quality);}
+  return dataUrl;
+}
+
+/* --- CROP/ZOOM MODAL --- */
+let _cropState=null;
+function openCropModal(imgElement,opts){
+  // opts: {shape:'circle'|'square', maxSize:256, onConfirm:fn(base64)}
+  const shape=opts.shape||'circle';
+  const maxOut=opts.maxSize||256;
+  const imgW=imgElement.naturalWidth;
+  const imgH=imgElement.naturalHeight;
+  // Initial crop: center square covering as much as possible
+  const minDim=Math.min(imgW,imgH);
+  _cropState={
+    img:imgElement,imgW,imgH,shape,maxOut,
+    onConfirm:opts.onConfirm,
+    // Crop region in image coordinates
+    cx:imgW/2, cy:imgH/2, // center of crop
+    cropSize:minDim, // side length of crop square in image coords
+    minCrop:Math.min(minDim,64), maxCrop:minDim,
+    dragging:false, lastX:0, lastY:0
   };
-  reader.readAsDataURL(file);
+  // Build overlay
+  const overlay=document.createElement('div');
+  overlay.id='crop-modal-overlay';
+  overlay.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;touch-action:none';
+  // Title
+  const title=document.createElement('div');
+  title.style.cssText='color:#fff;font-size:1rem;font-weight:600;margin-bottom:12px;text-align:center';
+  title.textContent='Ritaglia immagine';
+  overlay.appendChild(title);
+  // Canvas container
+  const cWrap=document.createElement('div');
+  const vpSize=Math.min(window.innerWidth-48,window.innerHeight-200,320);
+  cWrap.style.cssText='position:relative;width:'+vpSize+'px;height:'+vpSize+'px;overflow:hidden;border-radius:'+(shape==='circle'?'50%':'16px')+';border:3px solid rgba(255,255,255,.5);background:#000;touch-action:none';
+  const canvas=document.createElement('canvas');
+  canvas.width=vpSize;canvas.height=vpSize;
+  canvas.style.cssText='width:100%;height:100%;cursor:grab;touch-action:none';
+  cWrap.appendChild(canvas);
+  overlay.appendChild(cWrap);
+  _cropState.canvas=canvas;_cropState.vpSize=vpSize;
+  // Zoom slider
+  const sliderWrap=document.createElement('div');
+  sliderWrap.style.cssText='display:flex;align-items:center;gap:12px;margin-top:16px;width:'+vpSize+'px;max-width:100%';
+  const labelOut=document.createElement('span');labelOut.textContent='🔍−';labelOut.style.cssText='color:#fff;font-size:1.2rem;cursor:pointer';
+  const slider=document.createElement('input');
+  slider.type='range';slider.min='0';slider.max='100';slider.value='0';
+  slider.style.cssText='flex:1;accent-color:var(--brand,#6c5ce7);height:6px';
+  const labelIn=document.createElement('span');labelIn.textContent='🔍+';labelIn.style.cssText='color:#fff;font-size:1.2rem;cursor:pointer';
+  labelOut.onclick=()=>{slider.value=Math.max(0,parseInt(slider.value)-10);slider.dispatchEvent(new Event('input'));};
+  labelIn.onclick=()=>{slider.value=Math.min(100,parseInt(slider.value)+10);slider.dispatchEvent(new Event('input'));};
+  sliderWrap.appendChild(labelOut);sliderWrap.appendChild(slider);sliderWrap.appendChild(labelIn);
+  overlay.appendChild(sliderWrap);
+  // Buttons
+  const btnWrap=document.createElement('div');
+  btnWrap.style.cssText='display:flex;gap:12px;margin-top:20px';
+  const btnCancel=document.createElement('button');
+  btnCancel.className='btn btn-secondary';btnCancel.textContent='Annulla';
+  btnCancel.style.cssText='min-width:100px;padding:10px 20px;font-size:.9rem';
+  btnCancel.onclick=()=>{closeCropModal();};
+  const btnConfirm=document.createElement('button');
+  btnConfirm.className='btn btn-primary';btnConfirm.textContent='Conferma';
+  btnConfirm.style.cssText='min-width:100px;padding:10px 20px;font-size:.9rem';
+  btnConfirm.onclick=()=>{confirmCrop();};
+  btnWrap.appendChild(btnCancel);btnWrap.appendChild(btnConfirm);
+  overlay.appendChild(btnWrap);
+  document.body.appendChild(overlay);
+  // --- Zoom slider logic ---
+  slider.addEventListener('input',()=>{
+    const t=parseInt(slider.value)/100; // 0=no zoom (full image), 1=max zoom
+    const s=_cropState;
+    s.cropSize=s.maxCrop - t*(s.maxCrop - s.minCrop);
+    clampCropCenter();
+    drawCropPreview();
+  });
+  // --- Drag/pan logic (mouse + touch) ---
+  function ptrDown(ex,ey){_cropState.dragging=true;_cropState.lastX=ex;_cropState.lastY=ey;canvas.style.cursor='grabbing';}
+  function ptrMove(ex,ey){
+    if(!_cropState.dragging)return;
+    const s=_cropState;
+    const scale=s.cropSize/s.vpSize; // image-pixels per viewport-pixel
+    const dx=(ex-s.lastX)*scale;
+    const dy=(ey-s.lastY)*scale;
+    s.cx-=dx;s.cy-=dy;
+    s.lastX=ex;s.lastY=ey;
+    clampCropCenter();
+    drawCropPreview();
+  }
+  function ptrUp(){_cropState.dragging=false;canvas.style.cursor='grab';}
+  canvas.addEventListener('mousedown',e=>{e.preventDefault();ptrDown(e.clientX,e.clientY);});
+  window.addEventListener('mousemove',_cropMouseMove=e=>{ptrMove(e.clientX,e.clientY);});
+  window.addEventListener('mouseup',_cropMouseUp=()=>{ptrUp();});
+  canvas.addEventListener('touchstart',e=>{e.preventDefault();const t=e.touches[0];ptrDown(t.clientX,t.clientY);},{passive:false});
+  canvas.addEventListener('touchmove',e=>{e.preventDefault();const t=e.touches[0];ptrMove(t.clientX,t.clientY);},{passive:false});
+  canvas.addEventListener('touchend',e=>{ptrUp();});
+  // Initial draw
+  drawCropPreview();
+}
+let _cropMouseMove=null,_cropMouseUp=null;
+function clampCropCenter(){
+  const s=_cropState;
+  const half=s.cropSize/2;
+  s.cx=Math.max(half,Math.min(s.imgW-half,s.cx));
+  s.cy=Math.max(half,Math.min(s.imgH-half,s.cy));
+}
+function drawCropPreview(){
+  const s=_cropState;if(!s||!s.canvas)return;
+  const ctx=s.canvas.getContext('2d');
+  const vp=s.vpSize;
+  const half=s.cropSize/2;
+  const sx=s.cx-half, sy=s.cy-half;
+  ctx.clearRect(0,0,vp,vp);
+  ctx.drawImage(s.img, sx, sy, s.cropSize, s.cropSize, 0, 0, vp, vp);
+}
+function confirmCrop(){
+  const s=_cropState;if(!s)return;
+  const half=s.cropSize/2;
+  const cropData={x:s.cx-half, y:s.cy-half, w:s.cropSize, h:s.cropSize};
+  const base64=processImageToBase64(s.img, cropData, s.maxOut);
+  closeCropModal();
+  if(s.onConfirm)s.onConfirm(base64);
+}
+function closeCropModal(){
+  const el=document.getElementById('crop-modal-overlay');
+  if(el)el.remove();
+  if(_cropMouseMove)window.removeEventListener('mousemove',_cropMouseMove);
+  if(_cropMouseUp)window.removeEventListener('mouseup',_cropMouseUp);
+  _cropMouseMove=null;_cropMouseUp=null;_cropState=null;
+}
+
+/* --- USER PROFILE IMAGE UPLOAD --- */
+function handleUserLogoUpload(input){
+  const file=input.files[0];if(!file){return;}
+  input.value=''; // reset so same file can be re-selected
+  loadImageFromFile(file).then(img=>{
+    openCropModal(img,{
+      shape:'circle', maxSize:256,
+      onConfirm:async(base64)=>{
+        const u=store.currentUser;if(!u)return;
+        u.profileLogo=base64;
+        const col=store.managers.some(m=>m.id===u.id)?'managers':'users';
+        try{
+          await fsUpdate(col,u.id,{profileLogo:base64});
+          const rec=store.users.find(x=>x.id===u.id)||store.managers.find(x=>x.id===u.id);
+          if(rec)rec.profileLogo=base64;
+          updateUserAvatarDisplay();
+          showToast('Foto profilo aggiornata!');
+        }catch(e){
+          console.error('Upload user logo error:',e);
+          showToast('Errore nel salvataggio della foto','error');
+        }
+      }
+    });
+  }).catch(err=>{
+    showToast(err.message||'Impossibile caricare l\'immagine','error');
+  });
 }
 function removeUserLogo(){
   const u=store.currentUser;if(!u)return;
@@ -5211,7 +5384,6 @@ function removeUserLogo(){
   fsUpdate(col,u.id,{profileLogo:null}).catch(console.error);
   const rec=store.users.find(x=>x.id===u.id)||store.managers.find(x=>x.id===u.id);
   if(rec)rec.profileLogo=null;
-  // Reset preview
   const preview=document.getElementById('user-logo-preview');
   if(preview)preview.style.display='none';
   const inp=document.getElementById('user-logo-input');
@@ -5417,24 +5589,27 @@ async function saveOrgProfile(){
   disableOrgProfileSave();
   showToast('Organizzazione aggiornata!');
 }
-/* Org logo upload handling */
+/* Org logo upload handling — uses crop modal + image pipeline */
 function handleOrgLogoUpload(input){
   const file=input.files[0];if(!file)return;
-  if(file.size>512000){showToast('Immagine troppo grande (max 500KB)','error');input.value='';return;}
-  const reader=new FileReader();
-  reader.onload=(e)=>{
-    const src=e.target.result;
-    window._orgLogoData=src;
-    const preview=document.getElementById('org-logo-preview');
-    const img=document.getElementById('org-logo-img');
-    if(preview)preview.style.display='block';
-    if(img)img.src=src;
-    // Clear emoji when logo is set
-    const emojiEl=document.getElementById('org-profile-emoji');
-    if(emojiEl)emojiEl.value='';
-    orgProfileChanged();
-  };
-  reader.readAsDataURL(file);
+  input.value=''; // reset so same file can be re-selected
+  loadImageFromFile(file).then(img=>{
+    openCropModal(img,{
+      shape:'square', maxSize:300,
+      onConfirm:(base64)=>{
+        window._orgLogoData=base64;
+        const preview=document.getElementById('org-logo-preview');
+        const previewImg=document.getElementById('org-logo-img');
+        if(preview)preview.style.display='block';
+        if(previewImg)previewImg.src=base64;
+        const emojiEl=document.getElementById('org-profile-emoji');
+        if(emojiEl)emojiEl.value='';
+        orgProfileChanged();
+      }
+    });
+  }).catch(err=>{
+    showToast(err.message||'Impossibile caricare l\'immagine','error');
+  });
 }
 function removeOrgLogo(){
   window._orgLogoData=false; // false = explicitly removed
@@ -9395,7 +9570,7 @@ async function exportFullBackup(){
         appName:'BodyEvents',
         exportDate:new Date().toISOString(),
         exportedBy:store.currentUser.email,
-        version:'2.14.3',
+        version:'2.14.4',
         collections:collections
       }
     };
