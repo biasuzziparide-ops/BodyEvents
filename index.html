@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.14.2</title>
+<title>BodyEvents — V2.14.3</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤸</text></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -305,7 +305,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.14.2</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.14.3</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -323,13 +323,13 @@ textarea.input{resize:none;font-family:inherit}
       <div class="logo-icon">🤸</div>
       <span class="logo-text">BodyEvents</span>
     </div>
-    <!-- Mobile top-nav: nav icons only (hidden on desktop) -->
+    <!-- Mobile top-nav: profile avatar + nav icons (hidden on desktop) -->
     <div class="mobile-topnav">
+      <div class="mtn-avatar" onclick="go('profile')"><span class="nav-user-avatar" style="width:38px;height:38px;border-radius:50%;background:var(--brand-bg);display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;color:var(--brand-l);overflow:hidden;border:2px solid var(--brand);cursor:pointer">👤</span></div>
       <div class="mtn-items">
         <div class="mtn-item active" data-view="events" onclick="go('events')"><span>📅</span><span class="mtn-label">Eventi</span></div>
         <div class="mtn-item" data-view="jams" onclick="go('jams')"><span>🤝</span><span class="mtn-label">Community</span></div>
         <div class="mtn-item" data-view="dashboard" onclick="go('dashboard')"><span>🎫</span><span class="mtn-label">Prenot.</span></div>
-        <div class="mtn-item" data-view="profile" onclick="go('profile')"><span>👤</span><span class="mtn-label">Profilo</span></div>
       </div>
     </div>
     <div class="nav-links" id="navLinks">
@@ -344,7 +344,6 @@ textarea.input{resize:none;font-family:inherit}
       </a>
       <button class="btn btn-ghost btn-sm" onclick="refreshData()" title="Aggiorna dati" style="font-size:1rem;padding:6px 8px">🔄</button>
     </div>
-    <button class="hamburger" onclick="toggleMobile()">☰</button>
   </div>
   <!-- Mobile quick-access bar (user) -->
   <div class="mobile-quickbar" id="quickbar-user">
@@ -403,7 +402,7 @@ textarea.input{resize:none;font-family:inherit}
       </a>
       <button class="btn btn-ghost btn-sm" onclick="refreshData()" title="Aggiorna dati" style="font-size:1rem;padding:6px 8px">🔄</button>
     </div>
-    <button class="hamburger" onclick="toggleMobileAdmin()">☰</button>
+    <button class="hamburger master-only" onclick="toggleMobileAdmin()" style="display:none">☰</button>
   </div>
   <!-- Mobile quick-access bar (admin) -->
   <div class="mobile-quickbar" id="quickbar-admin">
@@ -1945,20 +1944,28 @@ textarea.input{resize:none;font-family:inherit}
   <p class="page-sub mb-6">Gestisci il tuo account e la privacy</p>
 
   <!-- Avatar + info rapida -->
-  <div class="card mb-4 flex items-center gap-4" id="profile-header">
-    <div style="position:relative;flex-shrink:0">
-      <div style="width:72px;height:72px;border-radius:50%;background:var(--brand-bg);display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;color:var(--brand-l);overflow:hidden;border:2px solid var(--brand);cursor:pointer" id="profile-avatar" onclick="document.getElementById('user-logo-input').click()" title="Clicca per caricare una foto">
+  <div class="card mb-4" id="profile-header">
+    <div class="flex items-center gap-4 mb-4">
+      <div style="width:72px;height:72px;border-radius:50%;background:var(--brand-bg);display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;color:var(--brand-l);overflow:hidden;border:2px solid var(--brand);flex-shrink:0" id="profile-avatar"></div>
+      <div>
+        <h2 class="font-bold text-white text-lg" id="profile-display-name"></h2>
+        <div class="text-sm txt3" id="profile-email-display"></div>
+        <div class="text-xs txt3 mt-1" id="profile-member-since"></div>
       </div>
-      <label style="position:absolute;bottom:-2px;right:-2px;width:24px;height:24px;border-radius:50%;background:var(--brand);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.7rem;border:2px solid var(--s50)" title="Cambia foto">📷
-        <input type="file" id="user-logo-input" accept="image/*" style="display:none" onchange="handleUserLogoUpload(this)">
-      </label>
     </div>
-    <div>
-      <h2 class="font-bold text-white text-lg" id="profile-display-name"></h2>
-      <div class="text-sm txt3" id="profile-email-display"></div>
-      <div class="text-xs txt3 mt-1" id="profile-member-since"></div>
-      <div class="text-xs txt3 mt-1" id="profile-logo-hint" style="display:none">📷 Clicca sull'avatar per cambiare foto</div>
+    <!-- Foto profilo upload (same interface as org logo) -->
+    <div class="text-xs txt3 mb-1">Foto profilo</div>
+    <div id="user-logo-preview" style="display:none;margin-bottom:8px;position:relative">
+      <div style="width:80px;height:80px;border-radius:50%;overflow:hidden;border:2px solid var(--brand);position:relative">
+        <img id="user-logo-img" src="" style="width:100%;height:100%;object-fit:cover">
+      </div>
+      <button class="btn btn-sm" style="position:absolute;top:-6px;right:calc(100% - 86px);background:var(--red);color:#fff;border-radius:50%;width:22px;height:22px;padding:0;font-size:.7rem;line-height:1" onclick="removeUserLogo()">✕</button>
     </div>
+    <label class="btn btn-sm" style="background:var(--s200);color:var(--txt2);border:1px solid var(--s400);cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+      📷 Carica foto
+      <input type="file" id="user-logo-input" accept="image/*" style="display:none" onchange="handleUserLogoUpload(this)">
+    </label>
+    <span class="text-xs txt3 ml-2">Max 500KB</span>
   </div>
 
   <!-- Dati account -->
@@ -5192,7 +5199,6 @@ function handleUserLogoUpload(input){
     await fsUpdate(col,u.id,{profileLogo:src});
     const rec=store.users.find(x=>x.id===u.id)||store.managers.find(x=>x.id===u.id);
     if(rec)rec.profileLogo=src;
-    // Update avatar display
     updateUserAvatarDisplay();
     showToast('Foto profilo aggiornata!');
   };
@@ -5205,13 +5211,18 @@ function removeUserLogo(){
   fsUpdate(col,u.id,{profileLogo:null}).catch(console.error);
   const rec=store.users.find(x=>x.id===u.id)||store.managers.find(x=>x.id===u.id);
   if(rec)rec.profileLogo=null;
+  // Reset preview
+  const preview=document.getElementById('user-logo-preview');
+  if(preview)preview.style.display='none';
+  const inp=document.getElementById('user-logo-input');
+  if(inp)inp.value='';
   updateUserAvatarDisplay();
   showToast('Foto profilo rimossa');
 }
 function updateUserAvatarDisplay(){
   const u=store.currentUser;if(!u)return;
   const logo=u.profileLogo;
-  // Profile page avatar
+  // Profile page avatar (big circle)
   const avatarEl=document.getElementById('profile-avatar');
   if(avatarEl){
     if(logo){
@@ -5220,13 +5231,20 @@ function updateUserAvatarDisplay(){
       avatarEl.innerHTML='<span style="font-size:1.5rem;font-weight:700">'+escHtml(u.initials||'?')+'</span>';
     }
   }
-  // Navbar avatars
+  // Profile page upload preview
+  const preview=document.getElementById('user-logo-preview');
+  const previewImg=document.getElementById('user-logo-img');
+  if(preview&&previewImg){
+    if(logo){preview.style.display='block';previewImg.src=logo;}
+    else{preview.style.display='none';}
+  }
+  // Navbar avatars (desktop + mobile topnav)
   document.querySelectorAll('.nav-user-avatar').forEach(el=>{
     if(logo){
       el.innerHTML='<img src="'+logo+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
       el.style.overflow='hidden';
     } else {
-      el.textContent=u.initials||'?';
+      el.innerHTML='<span style="font-size:.85rem;font-weight:700">'+escHtml(u.initials||'?')+'</span>';
       el.style.overflow='';
     }
   });
@@ -9377,7 +9395,7 @@ async function exportFullBackup(){
         appName:'BodyEvents',
         exportDate:new Date().toISOString(),
         exportedBy:store.currentUser.email,
-        version:'2.14.2',
+        version:'2.14.3',
         collections:collections
       }
     };
