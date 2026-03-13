@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.14.0</title>
+<title>BodyEvents — V2.14.2</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤸</text></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -181,10 +181,10 @@ textarea.input{resize:none;font-family:inherit}
 .mobile-topnav{display:none}
 .mtn-avatar{cursor:pointer;flex-shrink:0}
 .mtn-items{display:flex;gap:2px;flex:1;justify-content:center}
-.mtn-item{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:48px;padding:4px 8px;border-radius:12px;cursor:pointer;font-size:1.3rem;transition:all .15s;gap:1px}
+.mtn-item{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:48px;padding:6px 10px;border-radius:14px;cursor:pointer;font-size:1.6rem;transition:all .15s;gap:2px}
 .mtn-item:hover{background:var(--s200)}
 .mtn-item.active{background:var(--brand-bg)}
-.mtn-item .mtn-label{font-size:.55rem;font-weight:600;color:var(--txt3);line-height:1;white-space:nowrap}
+.mtn-item .mtn-label{font-size:.6rem;font-weight:600;color:var(--txt3);line-height:1;white-space:nowrap}
 .mtn-item.active .mtn-label{color:var(--brand-l)}
 
 /* === RESPONSIVE === */
@@ -305,7 +305,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.14.0</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.14.2</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -323,9 +323,8 @@ textarea.input{resize:none;font-family:inherit}
       <div class="logo-icon">🤸</div>
       <span class="logo-text">BodyEvents</span>
     </div>
-    <!-- Mobile top-nav: avatar + nav icons (hidden on desktop) -->
+    <!-- Mobile top-nav: nav icons only (hidden on desktop) -->
     <div class="mobile-topnav">
-      <div class="mtn-avatar" onclick="go('profile')"><span style="width:30px;height:30px;border-radius:50%;background:var(--brand-bg);display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:var(--brand-l)" class="nav-user-avatar"></span></div>
       <div class="mtn-items">
         <div class="mtn-item active" data-view="events" onclick="go('events')"><span>📅</span><span class="mtn-label">Eventi</span></div>
         <div class="mtn-item" data-view="jams" onclick="go('jams')"><span>🤝</span><span class="mtn-label">Community</span></div>
@@ -383,7 +382,7 @@ textarea.input{resize:none;font-family:inherit}
     </div>
     <!-- Mobile top-nav: org icon + nav icons (hidden on desktop) -->
     <div class="mobile-topnav">
-      <div class="mtn-avatar" onclick="go('admin-org-profile')"><span class="sidebar-org-icon" style="width:30px;height:30px;border-radius:50%;background:var(--brand);display:flex;align-items:center;justify-content:center;font-size:.8rem">🛡️</span></div>
+      <div class="mtn-avatar" onclick="go('admin-org-profile')"><span class="sidebar-org-icon" style="width:38px;height:38px;border-radius:50%;background:var(--brand);display:flex;align-items:center;justify-content:center;font-size:1.1rem">🛡️</span></div>
       <div class="mtn-items">
         <div class="mtn-item" data-view="admin" onclick="go('admin')"><span>📊</span><span class="mtn-label">Home</span></div>
         <div class="mtn-item active" data-view="admin-events" onclick="go('admin-events')"><span>📅</span><span class="mtn-label">Eventi</span></div>
@@ -1947,11 +1946,18 @@ textarea.input{resize:none;font-family:inherit}
 
   <!-- Avatar + info rapida -->
   <div class="card mb-4 flex items-center gap-4" id="profile-header">
-    <div style="width:64px;height:64px;border-radius:50%;background:var(--brand-bg);display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;color:var(--brand-l);flex-shrink:0" id="profile-avatar"></div>
+    <div style="position:relative;flex-shrink:0">
+      <div style="width:72px;height:72px;border-radius:50%;background:var(--brand-bg);display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;color:var(--brand-l);overflow:hidden;border:2px solid var(--brand);cursor:pointer" id="profile-avatar" onclick="document.getElementById('user-logo-input').click()" title="Clicca per caricare una foto">
+      </div>
+      <label style="position:absolute;bottom:-2px;right:-2px;width:24px;height:24px;border-radius:50%;background:var(--brand);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.7rem;border:2px solid var(--s50)" title="Cambia foto">📷
+        <input type="file" id="user-logo-input" accept="image/*" style="display:none" onchange="handleUserLogoUpload(this)">
+      </label>
+    </div>
     <div>
       <h2 class="font-bold text-white text-lg" id="profile-display-name"></h2>
       <div class="text-sm txt3" id="profile-email-display"></div>
       <div class="text-xs txt3 mt-1" id="profile-member-since"></div>
+      <div class="text-xs txt3 mt-1" id="profile-logo-hint" style="display:none">📷 Clicca sull'avatar per cambiare foto</div>
     </div>
   </div>
 
@@ -3097,17 +3103,12 @@ async function createUniverseDirect(name,emoji,color,roles){
       fsUpdate('users',user.id,{subscribedUniverses:user.subscribedUniverses}).catch(console.error);
     }
   }
-  // Auto-add to ALL managers
-  for(const mgr of store.managers){
-    if(!mgr.universes)mgr.universes=[];
-    if(!mgr.universes.includes(univId)){
-      mgr.universes.push(univId);
-      fsUpdate('managers',mgr.id,{universes:mgr.universes}).catch(console.error);
-    }
-  }
-  // Update currentUser
+  // Only auto-add to the creating manager (admin), NOT all managers
   if(!store.currentUser.universes)store.currentUser.universes=[];
   if(!store.currentUser.universes.includes(univId))store.currentUser.universes.push(univId);
+  await fsUpdate('managers',store.currentUser.id,{universes:store.currentUser.universes});
+  const mgrRec=store.managers.find(m=>m.id===store.currentUser.id);
+  if(mgrRec)mgrRec.universes=store.currentUser.universes;
   showToast('Universo "'+name+'" creato e attivato!');
 }
 
@@ -4785,7 +4786,7 @@ async function loadCurrentUser(uid){
     }
     // Update navbar name
     document.querySelectorAll('.profile-name-user').forEach(el=>el.textContent=store.currentUser.username||'');
-    document.querySelectorAll('.nav-user-avatar').forEach(el=>el.textContent=(store.currentUser.initials||'U'));
+    updateUserAvatarDisplay();
     // Hide mode banner for regular users
     document.getElementById('modeBanner').style.display='none';
     document.getElementById('navbar-user').classList.remove('hidden');
@@ -4803,7 +4804,7 @@ async function loadCurrentUser(uid){
     // Update navbar name/org
     document.querySelectorAll('.profile-name').forEach(el=>el.textContent=store.currentUser.username||'');
     document.querySelectorAll('.profile-name-user').forEach(el=>el.textContent=store.currentUser.username||'');
-    document.querySelectorAll('.nav-user-avatar').forEach(el=>el.textContent=(store.currentUser.initials||'U'));
+    updateUserAvatarDisplay();
     document.querySelectorAll('.profile-org').forEach(el=>el.textContent=store.currentUser.orgName||'');
     updateSidebarOrgInfo();
     // Show mode banner only for managers/masters
@@ -5059,9 +5060,8 @@ function go(view){
 
 function populateProfileFields(){
   const u=store.currentUser;
-  // Header card
-  const avatarEl=document.getElementById('profile-avatar');
-  if(avatarEl) avatarEl.textContent=u.initials||(u.username||'??').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+  // Header card — avatar with logo support
+  updateUserAvatarDisplay();
   const displayNameEl=document.getElementById('profile-display-name');
   if(displayNameEl) displayNameEl.textContent=u.username||'';
   const emailDisplayEl=document.getElementById('profile-email-display');
@@ -5162,8 +5162,7 @@ async function saveProfileChanges(){
   const col=store.managers.some(m=>m.id===u.id)?'managers':'users';
   fsUpdate(col,u.id,{username:newUsername,initials:u.initials}).catch(console.error);
   // Update display
-  const avatarEl=document.getElementById('profile-avatar');
-  if(avatarEl)avatarEl.textContent=u.initials;
+  updateUserAvatarDisplay();
   const displayEl=document.getElementById('profile-display-name');
   if(displayEl)displayEl.textContent=newUsername;
   document.querySelectorAll('.profile-name-user').forEach(el=>el.textContent=newUsername);
@@ -5178,6 +5177,59 @@ async function saveProfileChanges(){
   });
   disableProfileSave();
   showToast('Profilo aggiornato!');
+}
+
+// User logo upload
+function handleUserLogoUpload(input){
+  const file=input.files[0];if(!file)return;
+  if(file.size>512000){showToast('Immagine troppo grande (max 500KB)','error');input.value='';return;}
+  const reader=new FileReader();
+  reader.onload=async(e)=>{
+    const src=e.target.result;
+    const u=store.currentUser;if(!u)return;
+    u.profileLogo=src;
+    const col=store.managers.some(m=>m.id===u.id)?'managers':'users';
+    await fsUpdate(col,u.id,{profileLogo:src});
+    const rec=store.users.find(x=>x.id===u.id)||store.managers.find(x=>x.id===u.id);
+    if(rec)rec.profileLogo=src;
+    // Update avatar display
+    updateUserAvatarDisplay();
+    showToast('Foto profilo aggiornata!');
+  };
+  reader.readAsDataURL(file);
+}
+function removeUserLogo(){
+  const u=store.currentUser;if(!u)return;
+  u.profileLogo=null;
+  const col=store.managers.some(m=>m.id===u.id)?'managers':'users';
+  fsUpdate(col,u.id,{profileLogo:null}).catch(console.error);
+  const rec=store.users.find(x=>x.id===u.id)||store.managers.find(x=>x.id===u.id);
+  if(rec)rec.profileLogo=null;
+  updateUserAvatarDisplay();
+  showToast('Foto profilo rimossa');
+}
+function updateUserAvatarDisplay(){
+  const u=store.currentUser;if(!u)return;
+  const logo=u.profileLogo;
+  // Profile page avatar
+  const avatarEl=document.getElementById('profile-avatar');
+  if(avatarEl){
+    if(logo){
+      avatarEl.innerHTML='<img src="'+logo+'" style="width:100%;height:100%;object-fit:cover">';
+    } else {
+      avatarEl.innerHTML='<span style="font-size:1.5rem;font-weight:700">'+escHtml(u.initials||'?')+'</span>';
+    }
+  }
+  // Navbar avatars
+  document.querySelectorAll('.nav-user-avatar').forEach(el=>{
+    if(logo){
+      el.innerHTML='<img src="'+logo+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+      el.style.overflow='hidden';
+    } else {
+      el.textContent=u.initials||'?';
+      el.style.overflow='';
+    }
+  });
 }
 
 /* ==============================
@@ -5228,13 +5280,16 @@ function populateOrgProfile(){
   const uWrap=document.getElementById('org-profile-universes');
   if(uWrap){
     const mgrUnivs=mgr.universes||[];
-    if(!mgrUnivs.length){uWrap.innerHTML='<div class="text-xs txt3">Nessun universo associato. Vai a 🌌 Universi per proporne uno.</div>';
+    const activeUnivs=getActiveUniverses();
+    if(!activeUnivs.length){uWrap.innerHTML='<div class="text-xs txt3">Nessun universo disponibile al momento.</div>';
     } else {
-      uWrap.innerHTML=mgrUnivs.map(uid=>{
-        const univ=store.universes.find(x=>x.id===uid);
-        if(!univ)return'';
-        return '<span class="badge" style="background:'+univ.color+'22;color:'+univ.color+';padding:6px 14px;font-size:.85rem;border-radius:10px">'+(univ.emoji||'')+' '+univ.name+'</span>';
-      }).filter(Boolean).join(' ');
+      uWrap.innerHTML=activeUnivs.map(univ=>{
+        const isSub=mgrUnivs.includes(univ.id);
+        return '<div style="padding:10px 12px;background:'+univ.color+'11;border:1px solid '+univ.color+'33;border-radius:12px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:12px">'
+          +'<div style="color:'+univ.color+';font-weight:600;font-size:.9rem">'+(univ.emoji||'')+' '+escHtml(univ.name)+'</div>'
+          +'<button class="btn btn-sm '+(isSub?'btn-primary':'btn-secondary')+'" onclick="toggleOrgUniverse(\''+univ.id+'\','+(!isSub)+')">'+(isSub?'✓ Iscritto':'+ Iscriviti')+'</button>'
+          +'</div>';
+      }).join('');
     }
   }
   // Stats
@@ -5253,6 +5308,33 @@ function populateOrgProfile(){
   // Universe requests
   renderOrgUniverseRequests();
   disableOrgProfileSave();
+}
+async function toggleOrgUniverse(univId,subscribe){
+  const u=store.currentUser;if(!u)return;
+  if(!u.universes)u.universes=[];
+  if(subscribe){
+    if(!u.universes.includes(univId))u.universes.push(univId);
+  }else{
+    u.universes=u.universes.filter(id=>id!==univId);
+  }
+  await fsUpdate('managers',u.id,{universes:u.universes});
+  const rec=store.managers.find(m=>m.id===u.id);
+  if(rec)rec.universes=u.universes;
+  showToast(subscribe?'Organizzazione iscritta all\'universo':'Organizzazione disiscritta dall\'universo');
+  // Re-render org profile universes section
+  const mgr=store.managers.find(m=>m.id===u.id)||u;
+  const uWrap=document.getElementById('org-profile-universes');
+  if(uWrap){
+    const mgrUnivs=mgr.universes||[];
+    const activeUnivs=getActiveUniverses();
+    uWrap.innerHTML=activeUnivs.map(univ=>{
+      const isSub=mgrUnivs.includes(univ.id);
+      return '<div style="padding:10px 12px;background:'+univ.color+'11;border:1px solid '+univ.color+'33;border-radius:12px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:12px">'
+        +'<div style="color:'+univ.color+';font-weight:600;font-size:.9rem">'+(univ.emoji||'')+' '+escHtml(univ.name)+'</div>'
+        +'<button class="btn btn-sm '+(isSub?'btn-primary':'btn-secondary')+'" onclick="toggleOrgUniverse(\''+univ.id+'\','+(!isSub)+')">'+(isSub?'✓ Iscritto':'+ Iscriviti')+'</button>'
+        +'</div>';
+    }).join('');
+  }
 }
 function orgProfileChanged(){
   const btn=document.getElementById('org-profile-save-btn');
@@ -9295,7 +9377,7 @@ async function exportFullBackup(){
         appName:'BodyEvents',
         exportDate:new Date().toISOString(),
         exportedBy:store.currentUser.email,
-        version:'2.13.3',
+        version:'2.14.2',
         collections:collections
       }
     };
