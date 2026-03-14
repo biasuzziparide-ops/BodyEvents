@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.17.2</title>
+<title>BodyEvents — V2.18.0</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -313,7 +313,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.17.2</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.18.0</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -5345,10 +5345,67 @@ function closeModal(){const m=document.getElementById('generic-modal');if(m)m.st
 let currentView='login';
 let currentMode='user';
 
+// === In-App Browser Detection ===
+function isInAppBrowser(){
+  const ua=navigator.userAgent||navigator.vendor||'';
+  return /FBAN|FBAV|Instagram|WhatsApp|Line\/|Snapchat|Twitter|MicroMessenger|WebView|wv\)/i.test(ua);
+}
+function getInAppBrowserName(){
+  const ua=navigator.userAgent||navigator.vendor||'';
+  if(/FBAN|FBAV/i.test(ua))return 'Facebook';
+  if(/Instagram/i.test(ua))return 'Instagram';
+  if(/WhatsApp/i.test(ua))return 'WhatsApp';
+  if(/Line\//i.test(ua))return 'Line';
+  if(/Snapchat/i.test(ua))return 'Snapchat';
+  if(/Twitter/i.test(ua))return 'Twitter';
+  if(/MicroMessenger/i.test(ua))return 'WeChat';
+  return 'in-app';
+}
+function showInAppBrowserBanner(){
+  if(document.getElementById('inapp-banner'))return;
+  const appName=getInAppBrowserName();
+  const isIOS=/iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const browserName=isIOS?'Safari':'Chrome';
+  const banner=document.createElement('div');
+  banner.id='inapp-banner';
+  banner.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(135deg,#7c3aed,#d946ef);padding:16px 20px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.4)';
+  banner.innerHTML=`
+    <p style="color:#fff;font-size:.85rem;margin:0 0 10px;line-height:1.5">
+      <strong>Stai usando il browser di ${appName}</strong><br>
+      Per accedere con Google, apri in ${browserName}
+    </p>
+    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+      <a href="${window.location.href}" target="_blank" rel="noopener" style="display:inline-block;padding:10px 20px;background:#fff;color:#333;border-radius:10px;font-weight:600;font-size:.85rem;text-decoration:none">
+        Apri in ${browserName} ↗
+      </a>
+      <button onclick="this.parentElement.parentElement.remove()" style="padding:10px 16px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:10px;font-size:.8rem;cursor:pointer">
+        Continua qui
+      </button>
+    </div>
+    <p style="color:rgba(255,255,255,.7);font-size:.7rem;margin:8px 0 0;line-height:1.4">
+      Puoi comunque accedere con email e password senza problemi
+    </p>`;
+  document.body.prepend(banner);
+}
+
 // === Firebase Auth Functions ===
 let _loginInProgress=false;
 let _registrationInProgress=false;
 async function loginWithGoogle(){
+  if(isInAppBrowser()){
+    // In-app browsers can't do popup reliably — use redirect
+    try{
+      _loginInProgress=true;
+      const provider=new firebase.auth.GoogleAuthProvider();
+      await fbAuth.signInWithRedirect(provider);
+      // Page will redirect — no further code runs
+    }catch(e){
+      _loginInProgress=false;
+      showInAppBrowserBanner();
+      showToast('Il browser di '+getInAppBrowserName()+' non supporta il login Google. Apri in Safari/Chrome oppure usa email e password.','error');
+    }
+    return;
+  }
   try{
     _loginInProgress=true;
     const provider=new firebase.auth.GoogleAuthProvider();
@@ -5384,7 +5441,15 @@ async function loginWithGoogle(){
     showToast('Login effettuato!');
   }catch(e){
     _loginInProgress=false;
-    if(e.code!=='auth/popup-closed-by-user')showToast('Errore login Google: '+e.message,'error');
+    if(e.code==='auth/popup-blocked'||e.code==='auth/cancelled-popup-request'){
+      // Popup blocked — fallback to redirect
+      try{
+        const provider=new firebase.auth.GoogleAuthProvider();
+        await fbAuth.signInWithRedirect(provider);
+      }catch(e2){showToast('Errore login: '+e2.message,'error');}
+    } else if(e.code!=='auth/popup-closed-by-user'){
+      showToast('Errore login Google: '+e.message,'error');
+    }
   }
 }
 
@@ -5604,6 +5669,11 @@ async function submitOrgRegistrationGoogle(){
   if(!termsCheck){showToast('Devi accettare le Condizioni d\'Uso','error');return;}
   if(!selectedUnivs.length&&!newUnivName){showToast('Seleziona almeno un universo o proponi un nuovo','error');return;}
 
+  if(isInAppBrowser()){
+    showInAppBrowserBanner();
+    showToast('Per registrarti con Google, apri il sito in Safari/Chrome. Oppure usa email e password qui sotto.','error');
+    return;
+  }
   try{
     _registrationInProgress=true;
     const provider=new firebase.auth.GoogleAuthProvider();
@@ -5955,7 +6025,7 @@ async function saveProfileChanges(){
 }
 
 /* ============================================================
-   IMAGE PROCESSING PIPELINE + CROP/ZOOM MODAL (V2.17.2)
+   IMAGE PROCESSING PIPELINE + CROP/ZOOM MODAL (V2.18.0)
    - Accepts any common image format (JPEG, PNG, WebP, BMP, GIF, HEIC*)
    - Auto-resizes to max 256x256 (avatars) or 300x300 (logos)
    - Converts to JPEG at quality 0.82 (~15-40KB output)
@@ -9212,25 +9282,39 @@ function openShareModal(eventId){
   overlay.id='share-modal-overlay';
   const _imgSrc=ev.imageThumb?.src||ev.imageHeader?.src||ev.image||null;
   const imageHtml=_imgSrc?`<img src="${_imgSrc}" style="width:100%;height:120px;object-fit:cover;border-radius:8px;margin-bottom:12px">`:'';
+  const dateStr=ev.days&&ev.days.length?fmtDate(ev.days[0].date)+(ev.days.length>1?' — '+fmtDate(ev.days[ev.days.length-1].date):''):'';
+  const waText=encodeURIComponent('*'+ev.title+'*\n📅 '+dateStr+'\n📍 '+(ev.location||'')+'\n\nIscriviti qui 👇\n'+shareUrl);
+  const hasNativeShare=!!navigator.share;
   overlay.innerHTML=`
     <div class="dialog" style="max-width:450px">
       <h2 class="text-lg font-bold text-white mb-4">📤 Condividi evento</h2>
 
       <div class="mb-4">
-        <p class="text-xs txt3 mb-2">Anteprima WhatsApp:</p>
+        <p class="text-xs txt3 mb-2">Anteprima:</p>
         <div style="background:var(--s200);border:1px solid var(--s400);border-radius:12px;padding:12px">
           ${imageHtml}
           <h3 class="font-semibold text-white text-sm mb-1">${escHtml(ev.title)}</h3>
-          <p class="text-xs txt3 mb-2">${escHtml(ev.description.substring(0,60))}...</p>
-          <a href="${shareUrl}" style="color:var(--brand-l);font-size:.85rem;word-break:break-all">${shareUrl}</a>
+          <p class="text-xs txt3 mb-1">📅 ${dateStr} · 📍 ${escHtml(ev.location||'')}</p>
+          <p class="text-xs txt3 mb-2">${escHtml((ev.description||'').substring(0,80))}${(ev.description||'').length>80?'...':''}</p>
+          <a href="${shareUrl}" style="color:var(--brand-l);font-size:.75rem;word-break:break-all">${shareUrl}</a>
         </div>
       </div>
 
+      <div class="mb-4" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <a href="https://wa.me/?text=${waText}" target="_blank" rel="noopener" class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;background:rgba(37,211,102,.12);color:#25d366;border:1px solid rgba(37,211,102,.3);text-decoration:none;font-size:.85rem">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492a.5.5 0 00.612.638l4.603-1.208A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-2.237 0-4.308-.724-5.993-1.95l-.42-.307-2.727.715.728-2.66-.337-.453A9.96 9.96 0 012 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"/></svg>
+          WhatsApp
+        </a>
+        <button class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;background:rgba(168,85,247,.12);color:#a855f7;border:1px solid rgba(168,85,247,.3);font-size:.85rem" onclick="copyShareLink()">
+          📋 Copia link
+        </button>
+      </div>
+      ${hasNativeShare?`<button class="btn btn-secondary w-full mb-4" style="padding:10px" onclick="nativeShareEvent('${eventId}')">📱 Condividi con...</button>`:''}
+
       <div class="mb-4">
-        <label class="label">Link condivisibile</label>
+        <label class="label">Link diretto</label>
         <div style="display:flex;gap:8px">
-          <input class="input" id="share-link-input" value="${shareUrl}" readonly style="flex:1">
-          <button class="btn btn-primary btn-sm" onclick="copyShareLink()">📋 Copia</button>
+          <input class="input" id="share-link-input" value="${shareUrl}" readonly style="flex:1;font-size:.8rem" onclick="this.select()">
         </div>
       </div>
 
@@ -9250,11 +9334,19 @@ function closeShareModal(){
 
 function copyShareLink(){
   const input=document.getElementById('share-link-input');
-  if(input){
-    input.select();
-    document.execCommand('copy');
-    showToast('Link copiato!','success');
+  if(!input)return;
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(input.value).then(()=>showToast('Link copiato!','success')).catch(()=>{input.select();document.execCommand('copy');showToast('Link copiato!','success');});
+  } else {
+    input.select();document.execCommand('copy');showToast('Link copiato!','success');
   }
+}
+
+function nativeShareEvent(eventId){
+  const ev=store.events.find(e=>e.id===eventId);if(!ev)return;
+  const shareUrl=window.location.origin+window.location.pathname+'?event='+eventId;
+  const dateStr=ev.days&&ev.days.length?fmtDate(ev.days[0].date):'';
+  navigator.share({title:ev.title,text:ev.title+' — '+dateStr+' — '+(ev.location||''),url:shareUrl}).catch(()=>{});
 }
 
 /* ==============================
@@ -9875,7 +9967,10 @@ function showEventDetail(evId,recDate){
     <div class="card mb-6" ${isDisabledByAlert?'style="opacity:.5;pointer-events:none"':''}>
       ${(()=>{const hd=(ev.imageHeader||ev.image)?{src:ev.imageHeader?.src||ev.image,zoom:ev.imageHeader?.zoom||100,posX:ev.imageHeader?.posX||0,posY:ev.imageHeader?.posY||0}:null;if(!hd)return '';const s=hd.zoom/100;const denomW=420*s-420;const denomH=300*s-300;const px=denomW>0?Math.round(Math.abs(hd.posX)/denomW*100):50;const py=denomH>0?Math.round(Math.abs(hd.posY)/denomH*100):50;const op=`object-position:${isNaN(px)?50:px}% ${isNaN(py)?50:py}%`;return '<div style="margin:-20px -20px 16px;border-radius:16px 16px 0 0;overflow:hidden"><img src="'+hd.src+'" style="width:100%;max-height:300px;object-fit:cover;'+op+'" alt=""></div>';})()}
       <div class="flex gap-2 mb-3 flex-wrap"><span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>${levelBadges}</div>
-      <h1 class="text-2xl font-bold text-white" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px" onclick="const _d=this.nextElementSibling;_d.classList.toggle('hidden');this.querySelector('.ev-desc-arrow').textContent=_d.classList.contains('hidden')?'▸':'▾'">${escHtml(ev.title)} <span class="ev-desc-arrow" style="font-size:.7rem;color:var(--txt3);flex-shrink:0">▸</span></h1>
+      <div style="display:flex;justify-content:space-between;align-items:start;gap:8px">
+        <h1 class="text-2xl font-bold text-white" style="cursor:pointer;display:flex;align-items:center;gap:8px;flex:1" onclick="const _d=document.getElementById('ev-detail-desc-block');_d.classList.toggle('hidden');this.querySelector('.ev-desc-arrow').textContent=_d.classList.contains('hidden')?'▸':'▾'">${escHtml(ev.title)} <span class="ev-desc-arrow" style="font-size:.7rem;color:var(--txt3);flex-shrink:0">▸</span></h1>
+        ${ev.status==='pubblicato'?`<button class="btn btn-ghost btn-sm" style="flex-shrink:0;padding:8px 12px;color:var(--brand-l);font-size:.85rem" onclick="event.stopPropagation();openShareModal('${ev.id}')" title="Condividi evento">📤</button>`:''}
+      </div>
       <div class="hidden" id="ev-detail-desc-block">
         <div class="txt3 mt-2" style="white-space:pre-wrap;line-height:1.6">${escHtml(ev.description).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')}</div>
         <div class="flex items-center gap-2 mt-3 text-sm txt3">👤 con ${escHtml(ev.teacher)}</div>
@@ -10060,10 +10155,11 @@ function renderAdminEvents(){
       const hasBookings=store.bookings.some(b=>b.eventId===ev.id&&b.status!=='cancellata');
       const isPausedRec=ev.recurrence&&ev.recurrence.active===false;
       const resumeBtn=isPausedRec?`<button class="btn btn-sm" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="event.stopPropagation();resumeRecurring('${ev.id}')">▶️ Riprendi</button>`:'';
+      const shareBtn=`<button class="btn btn-sm" style="background:rgba(59,130,246,.1);color:var(--blue);border:1px solid rgba(59,130,246,.25)" onclick="event.stopPropagation();openShareModal('${ev.id}')">📤 Condividi</button>`;
       if(hasBookings){
-        return `${eyeBtn}${resumeBtn}<button class="btn btn-sm" style="background:rgba(249,115,22,.12);color:var(--orange);border:1px solid rgba(249,115,22,.3)" onclick="event.stopPropagation();openAlertModal('${ev.id}')">⚠️ Modifica o Cancella</button>`;
+        return `${eyeBtn}${shareBtn}${resumeBtn}<button class="btn btn-sm" style="background:rgba(249,115,22,.12);color:var(--orange);border:1px solid rgba(249,115,22,.3)" onclick="event.stopPropagation();openAlertModal('${ev.id}')">⚠️ Modifica o Cancella</button>`;
       } else {
-        return `${eyeBtn}${resumeBtn}
+        return `${eyeBtn}${shareBtn}${resumeBtn}
         <button class="btn btn-sm" style="background:rgba(234,179,8,.15);color:var(--yellow);border:1px solid rgba(234,179,8,.3)" onclick="event.stopPropagation();revertToDraft('${ev.id}')">📝 Torna in bozza</button>
         <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteEvent('${ev.id}')">🗑️ Elimina</button>`;
       }
@@ -11298,9 +11394,14 @@ function renderFormSession(di,si,s,hidePricing){
       <div><label class="label">👤 Maestro</label><input class="input ne-s-teacher" value="${s.teacher||''}" data-di="${di}" data-si="${si}" placeholder="Nome insegnante"></div>
       <div><label class="label">Descrizione</label><input class="input ne-s-desc" value="${s.description||''}" data-di="${di}" data-si="${si}" placeholder="Opzionale"></div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" class="mb-2">
-      <div><label class="label">📍 Location sessione</label><input class="input ne-s-loc" value="${s.location||''}" data-di="${di}" data-si="${si}" placeholder="Se diversa dall'evento"></div>
-      <div><label class="label">🔗 Link Maps</label><input class="input ne-s-locurl" value="${s.locationUrl||''}" data-di="${di}" data-si="${si}" placeholder="https://maps.google.com/..."></div>
+    <div class="mb-2">
+      <div style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:2px 0" onclick="const b=this.nextElementSibling;b.classList.toggle('hidden');this.querySelector('.coll-arrow').textContent=b.classList.contains('hidden')?'▸':'▾'">
+        <span class="coll-arrow" style="font-size:.7rem;color:var(--txt3)">${(s.location||s.locationUrl)?'▾':'▸'}</span><span class="label" style="margin:0;font-size:.75rem;color:var(--txt3)">📍 Location sessione diversa</span><span style="font-size:.6rem;color:var(--txt4)">(clicca per espandere)</span>
+      </div>
+      <div class="${(s.location||s.locationUrl)?'':'hidden'}" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px">
+        <div><label class="label">📍 Location sessione</label><input class="input ne-s-loc" value="${s.location||''}" data-di="${di}" data-si="${si}" placeholder="Se diversa dall'evento"></div>
+        <div><label class="label">🔗 Link Maps</label><input class="input ne-s-locurl" value="${s.locationUrl||''}" data-di="${di}" data-si="${si}" placeholder="https://maps.google.com/..."></div>
+      </div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" class="mb-2">
       <div><label class="label">👥 Posti max</label><input class="input ne-s-max" type="number" value="${s.maxSpots||''}" data-di="${di}" data-si="${si}" placeholder="0 = illimitati" onchange="autoFillMaxSpots(this)"></div>
@@ -12096,8 +12197,9 @@ function editEvent(id){
   // Update page title and buttons for edit mode
   const titleEl=document.querySelector('#view-admin-new-event .page-title');
   const subEl=document.querySelector('#view-admin-new-event .page-sub');
-  if(titleEl)titleEl.textContent='✏️ Modifica Evento';
-  if(subEl)subEl.textContent='Modifica i dettagli e salva le modifiche';
+  const isDraft=ev.status==='bozza';
+  if(titleEl)titleEl.textContent=isDraft?'✏️ Continua Bozza':'✏️ Modifica Evento';
+  if(subEl)subEl.textContent=isDraft?'Continua a compilare i dettagli e pubblica quando sei pronto':'Modifica i dettagli e salva le modifiche';
   // If coming from alert "Modifica" flow, swap buttons
   const actionsDiv=document.getElementById('form-actions-bar');
   if(ev._pendingSnapshot&&actionsDiv){
@@ -12165,7 +12267,7 @@ function saveAsDraft(){
       const idx=store.events.findIndex(e=>e.id===editingEventId);
       if(idx>=0){
         const oldEv=store.events[idx];const oldPM=oldEv.pricingMode;const oldRefunds=oldEv.refunds;
-        ev.id=editingEventId;ev.managerId=oldEv.managerId;ev.orgName=oldEv.orgName;ev.createdAt=oldEv.createdAt;ev.alert=oldEv.alert;ev.refunds=oldRefunds||null;
+        ev.id=editingEventId;ev.status='bozza';ev.managerId=oldEv.managerId;ev.orgName=oldEv.orgName;ev.createdAt=oldEv.createdAt;ev.alert=oldEv.alert;ev.refunds=oldRefunds||null;
         // Preserve recurrence metadata
         if(oldEv.recurrence){if(ev.recurrence){ev.recurrence.exceptions=oldEv.recurrence.exceptions||{};ev.recurrence.active=oldEv.recurrence.active;ev.recurrence.pausedUntil=oldEv.recurrence.pausedUntil||null;}else{ev.recurrence=oldEv.recurrence;}}
         if(oldEv.bookings)ev.bookings=oldEv.bookings;
@@ -14055,6 +14157,42 @@ function handleDeepLink(){
 // Parse deep link immediately (before auth resolves)
 checkDeepLink();
 
+// Handle redirect result (for in-app browsers that used signInWithRedirect)
+fbAuth.getRedirectResult().then(async(result)=>{
+  if(result&&result.user){
+    const user=result.user;
+    // Check if user exists, create if new (same logic as loginWithGoogle)
+    let userDoc=await fbDb.collection('users').doc(user.uid).get();
+    if(!userDoc.exists){
+      let mgrDoc=await fbDb.collection('managers').doc(user.uid).get();
+      if(!mgrDoc.exists){
+        const now=new Date().toISOString();
+        if(!store.universes.length){try{const snap=await fbDb.collection('universes').get();store.universes=[];snap.forEach(doc=>{store.universes.push(doc.data());});}catch(e){}}
+        const activeUnivs=getActiveUniverses();
+        const subscribedUniverses=activeUnivs.map(u=>({universeId:u.id,preferredRole:u.roles&&u.roles[0]||''}));
+        const _initRole=(()=>{const r=(subscribedUniverses[0]&&subscribedUniverses[0].preferredRole||'').toLowerCase();if(r.includes('fly'))return 'flyer';if(r.includes('bas'))return 'base';if(r.includes('entramb'))return 'entrambi';return 'non_so';})();
+        const userData={
+          id:user.uid,username:user.displayName||user.email.split('@')[0],email:user.email,
+          role:_initRole,status:'attivo',registeredAt:now.split('T')[0],authMethod:'google',
+          initials:(user.displayName||'??').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase(),
+          color:'avatar-brand',subscribedUniverses,
+          consents:{privacy:false,privacyDate:null,marketing:false,marketingDate:null}
+        };
+        await fbDb.collection('users').doc(user.uid).set(userData);
+      }
+    }
+    showToast('Login effettuato!');
+  }
+}).catch(e=>{
+  if(e.code==='auth/missing-initial-state'){
+    // This is the exact error from the issue — show helpful message
+    if(isInAppBrowser()){showInAppBrowserBanner();}
+    showToast('Errore di sessione del browser. Apri il sito direttamente in Safari o Chrome.','error');
+  } else if(e.code!=='auth/popup-closed-by-user'){
+    console.error('Redirect result error:',e);
+  }
+});
+
 // Firebase Auth State Listener
 function dismissAuthSplash(){
   const sp=document.getElementById('auth-splash');
@@ -14084,6 +14222,8 @@ fbAuth.onAuthStateChanged(async(user)=>{
 
 /* Init on load */
 document.addEventListener('DOMContentLoaded',()=>{
+  // Show in-app browser warning on login page
+  if(isInAppBrowser()&&!fbAuth.currentUser)showInAppBrowserBanner();
   // Popola profile switcher
   const ps=document.getElementById('profileSwitcher');
   if(ps){ps.innerHTML=store.managers.map(m=>`<option value="${m.id}">${m.role==='master'?'👑 ':''}${escHtml(m.orgName||'')} — ${escHtml(m.username||'')}</option>`).join('');ps.value=store.currentUser.id;}
