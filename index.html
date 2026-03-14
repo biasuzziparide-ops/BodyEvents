@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.18.0</title>
+<title>BodyEvents — V2.19.0</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -313,7 +313,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.18.0</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.19.0</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -1398,12 +1398,13 @@ textarea.input{resize:none;font-family:inherit}
       <div class="mb-4" style="padding-bottom:16px;border-bottom:1px solid var(--s400)">
         <p class="text-sm font-medium text-white mb-2">📋 Thumbnail (card lista eventi)</p>
         <p class="text-xs txt3 mb-3">Immagine quadrata mostrata a sinistra di ogni card evento.</p>
-        <input class="input mb-3" id="ne-img-thumb-upload" type="file" accept="image/*" onchange="handleImgUpload('thumb',this)">
+        <input class="input mb-3" id="ne-img-thumb-upload" type="file" accept="image/*" onchange="handleImgUpload('thumb',this)" style="display:none">
+        <button class="btn btn-secondary btn-sm mb-3" onclick="document.getElementById('ne-img-thumb-upload').click()" id="ne-img-thumb-btn">📷 Carica immagine</button>
         <div id="ne-img-thumb-preview" style="display:none">
           <div style="background:var(--s100);border:1px solid var(--s400);border-radius:16px;padding:16px;max-width:420px">
             <div class="flex gap-4" style="align-items:flex-start">
-              <div style="flex-shrink:0;width:72px;height:72px;border-radius:12px;overflow:hidden;position:relative;border:2px dashed var(--brand);cursor:grab" id="ne-img-thumb-mask" onmousedown="startImgDrag(event,'thumb')" ontouchstart="startImgDrag(event,'thumb')">
-                <img id="ne-img-thumb-img" style="position:absolute;top:0;left:0;pointer-events:none;transform-origin:0 0" draggable="false">
+              <div style="flex-shrink:0;width:72px;height:72px;border-radius:12px;overflow:hidden;position:relative;border:2px solid var(--brand)" id="ne-img-thumb-mask">
+                <img id="ne-img-thumb-img" style="width:100%;height:100%;object-fit:cover" draggable="false">
               </div>
               <div class="flex-1" style="opacity:.4">
                 <div style="height:14px;width:70%;background:var(--s300);border-radius:4px;margin-bottom:6px"></div>
@@ -1412,31 +1413,28 @@ textarea.input{resize:none;font-family:inherit}
               </div>
             </div>
           </div>
-          <div class="flex items-center gap-3 mt-3" style="max-width:280px">
-            <span class="text-xs txt3">🔍</span>
-            <input type="range" id="ne-img-thumb-zoom" min="100" max="300" value="100" style="flex:1;accent-color:var(--brand)" oninput="applyImgZoom('thumb')">
-            <span class="text-xs txt3" id="ne-img-thumb-zoom-val">100%</span>
+          <div class="flex gap-2 mt-3">
+            <button class="btn btn-secondary btn-sm" onclick="reEditImg('thumb')" style="font-size:.75rem">✏️ Ri-edita</button>
+            <button class="btn btn-ghost btn-sm" onclick="removeImg('thumb')" style="font-size:.75rem;color:var(--red)">🗑️ Rimuovi</button>
           </div>
-          <p class="text-xs txt3 mt-1" style="font-style:italic">Trascina sull'immagine per centrare · Zoom per ingrandire</p>
-          <button class="btn btn-ghost btn-sm mt-2" onclick="removeImg('thumb')" style="font-size:.75rem;color:var(--red)">🗑️ Rimuovi</button>
+          <p class="text-xs txt3 mt-1" style="font-style:italic">Immagine ritagliata e ottimizzata</p>
         </div>
       </div>
       <!-- HEADER (detail page) -->
       <div>
         <p class="text-sm font-medium text-white mb-2">🖼️ Header (pagina dettaglio evento)</p>
         <p class="text-xs txt3 mb-3">Immagine panoramica in cima alla pagina dettaglio.</p>
-        <input class="input mb-3" id="ne-img-header-upload" type="file" accept="image/*" onchange="handleImgUpload('header',this)">
+        <input class="input mb-3" id="ne-img-header-upload" type="file" accept="image/*" onchange="handleImgUpload('header',this)" style="display:none">
+        <button class="btn btn-secondary btn-sm mb-3" onclick="document.getElementById('ne-img-header-upload').click()" id="ne-img-header-btn">📷 Carica immagine</button>
         <div id="ne-img-header-preview" style="display:none">
-          <div style="max-width:420px;border-radius:16px 16px 0 0;overflow:hidden;border:2px dashed var(--brand);position:relative;height:160px;cursor:grab" id="ne-img-header-mask" onmousedown="startImgDrag(event,'header')" ontouchstart="startImgDrag(event,'header')">
-            <img id="ne-img-header-img" style="position:absolute;top:0;left:0;pointer-events:none;transform-origin:0 0;width:100%" draggable="false">
+          <div style="max-width:420px;border-radius:16px 16px 0 0;overflow:hidden;border:2px solid var(--brand);height:160px" id="ne-img-header-mask">
+            <img id="ne-img-header-img" style="width:100%;height:100%;object-fit:cover" draggable="false">
           </div>
-          <div class="flex items-center gap-3 mt-3" style="max-width:280px">
-            <span class="text-xs txt3">🔍</span>
-            <input type="range" id="ne-img-header-zoom" min="100" max="300" value="100" style="flex:1;accent-color:var(--brand)" oninput="applyImgZoom('header')">
-            <span class="text-xs txt3" id="ne-img-header-zoom-val">100%</span>
+          <div class="flex gap-2 mt-3">
+            <button class="btn btn-secondary btn-sm" onclick="reEditImg('header')" style="font-size:.75rem">✏️ Ri-edita</button>
+            <button class="btn btn-ghost btn-sm" onclick="removeImg('header')" style="font-size:.75rem;color:var(--red)">🗑️ Rimuovi</button>
           </div>
-          <p class="text-xs txt3 mt-1" style="font-style:italic">Trascina sull'immagine per centrare · Zoom per ingrandire</p>
-          <button class="btn btn-ghost btn-sm mt-2" onclick="removeImg('header')" style="font-size:.75rem;color:var(--red)">🗑️ Rimuovi</button>
+          <p class="text-xs txt3 mt-1" style="font-style:italic">Immagine ritagliata e ottimizzata</p>
         </div>
       </div>
       </div><!-- /ne-images-collapsible -->
@@ -6025,17 +6023,18 @@ async function saveProfileChanges(){
 }
 
 /* ============================================================
-   IMAGE PROCESSING PIPELINE + CROP/ZOOM MODAL (V2.18.0)
-   - Accepts any common image format (JPEG, PNG, WebP, BMP, GIF, HEIC*)
-   - Auto-resizes to max 256x256 (avatars) or 300x300 (logos)
-   - Converts to JPEG at quality 0.82 (~15-40KB output)
-   - Strips all EXIF/metadata via canvas redraw
-   - Firestore doc limit is 1MB; base64 at ~30KB is safe
-   * HEIC: browser support varies; works in Safari, may fail in Chrome
+   UNIFIED IMAGE EDITOR (V2.19.0)
+   Full-featured image editor with:
+   - Crop with resizable/repositionable area + aspect ratio presets
+   - Zoom (pinch + slider)
+   - Brightness / Contrast / Saturation filters
+   - Shape preview (circle, square, panoramic)
+   - Auto-compression based on destination
+   - Strips EXIF metadata
+   Supports: JPEG, PNG, WebP, BMP, GIF, HEIC*
    ============================================================ */
 function loadImageFromFile(file){
   return new Promise((resolve,reject)=>{
-    // Accept up to 20MB raw input — we'll compress it down
     if(file.size>20*1024*1024){reject(new Error('File troppo grande (max 20MB)'));return;}
     const url=URL.createObjectURL(file);
     const img=new Image();
@@ -6044,148 +6043,327 @@ function loadImageFromFile(file){
     img.src=url;
   });
 }
-function processImageToBase64(img,cropData,maxSize){
-  // cropData: {x,y,w,h} in source-image coordinates (the visible crop region)
-  // maxSize: output square dimension
+function processImageToBase64(img,cropData,maxW,maxH,filters){
+  maxH=maxH||maxW;
   const canvas=document.createElement('canvas');
-  canvas.width=maxSize;canvas.height=maxSize;
+  canvas.width=maxW;canvas.height=maxH;
   const ctx=canvas.getContext('2d');
   ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
-  // Draw the cropped region scaled to fit the output square
-  ctx.drawImage(img,cropData.x,cropData.y,cropData.w,cropData.h,0,0,maxSize,maxSize);
-  // Export as JPEG — small, no EXIF, universal support
-  let quality=0.82;
+  // Apply filters
+  if(filters){
+    const parts=[];
+    if(filters.brightness!==undefined&&filters.brightness!==100)parts.push('brightness('+filters.brightness+'%)');
+    if(filters.contrast!==undefined&&filters.contrast!==100)parts.push('contrast('+filters.contrast+'%)');
+    if(filters.saturation!==undefined&&filters.saturation!==100)parts.push('saturate('+filters.saturation+'%)');
+    if(parts.length)ctx.filter=parts.join(' ');
+  }
+  ctx.drawImage(img,cropData.x,cropData.y,cropData.w,cropData.h,0,0,maxW,maxH);
+  let quality=0.82;let maxBytes=200000;
   let dataUrl=canvas.toDataURL('image/jpeg',quality);
-  // If still too large (unlikely at 256px), reduce quality
-  while(dataUrl.length>150000&&quality>0.3){quality-=0.1;dataUrl=canvas.toDataURL('image/jpeg',quality);}
+  while(dataUrl.length>maxBytes&&quality>0.3){quality-=0.08;dataUrl=canvas.toDataURL('image/jpeg',quality);}
   return dataUrl;
 }
 
-/* --- CROP/ZOOM MODAL --- */
-let _cropState=null;
-function openCropModal(imgElement,opts){
-  // opts: {shape:'circle'|'square', maxSize:256, onConfirm:fn(base64)}
-  const shape=opts.shape||'circle';
-  const maxOut=opts.maxSize||256;
+/* --- UNIFIED IMAGE EDITOR MODAL --- */
+let _ieState=null;
+let _ieMouseMove=null,_ieMouseUp=null;
+
+// Presets for each image destination
+const IE_PRESETS={
+  avatar: {label:'Foto profilo',shape:'circle',aspect:1,maxW:256,maxH:256,maxKB:100},
+  logo:   {label:'Logo organizzazione',shape:'square',aspect:1,maxW:300,maxH:300,maxKB:120},
+  thumb:  {label:'Thumbnail card evento',shape:'square',aspect:1,maxW:400,maxH:400,maxKB:150},
+  header: {label:'Header dettaglio evento',shape:'panoramic',aspect:16/9,maxW:800,maxH:450,maxKB:250}
+};
+const IE_ASPECTS={
+  '1:1':{r:1,label:'1:1'},
+  '16:9':{r:16/9,label:'16:9'},
+  '4:3':{r:4/3,label:'4:3'},
+  '3:2':{r:3/2,label:'3:2'},
+  'free':{r:0,label:'Libero'}
+};
+
+function openImageEditor(imgElement,opts){
+  // opts: {preset:'avatar'|'logo'|'thumb'|'header', onConfirm:fn(base64,metadata)}
+  const preset=IE_PRESETS[opts.preset]||IE_PRESETS.thumb;
   const imgW=imgElement.naturalWidth;
   const imgH=imgElement.naturalHeight;
-  // Initial crop: center square covering as much as possible
-  const minDim=Math.min(imgW,imgH);
-  _cropState={
-    img:imgElement,imgW,imgH,shape,maxOut,
+  // Initial crop: center, covering max area with aspect ratio
+  const aspect=preset.aspect||1;
+  let cropW,cropH;
+  if(aspect>=1){cropW=Math.min(imgW,imgH*aspect);cropH=cropW/aspect;}
+  else{cropH=Math.min(imgH,imgW/aspect);cropW=cropH*aspect;}
+  _ieState={
+    img:imgElement,imgW,imgH,preset,
     onConfirm:opts.onConfirm,
-    // Crop region in image coordinates
-    cx:imgW/2, cy:imgH/2, // center of crop
-    cropSize:minDim, // side length of crop square in image coords
-    minCrop:Math.min(minDim,64), maxCrop:minDim,
-    dragging:false, lastX:0, lastY:0
+    // Crop region in image coords
+    cropX:(imgW-cropW)/2, cropY:(imgH-cropH)/2, cropW, cropH,
+    aspect, freeAspect:false,
+    // Filters
+    brightness:100, contrast:100, saturation:100,
+    // Drag state
+    dragMode:null, // 'pan' | 'resize-tl' | 'resize-tr' | 'resize-bl' | 'resize-br'
+    dragStartX:0, dragStartY:0,
+    dragStartCropX:0, dragStartCropY:0, dragStartCropW:0, dragStartCropH:0,
+    // UI elements
+    canvas:null, vpW:0, vpH:0, scale:1
   };
-  // Build overlay
+  buildEditorUI();
+  drawEditorPreview();
+}
+
+function buildEditorUI(){
+  const s=_ieState;
   const overlay=document.createElement('div');
-  overlay.id='crop-modal-overlay';
-  overlay.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;touch-action:none';
-  // Title
-  const title=document.createElement('div');
-  title.style.cssText='color:#fff;font-size:1rem;font-weight:600;margin-bottom:12px;text-align:center';
-  title.textContent='Ritaglia immagine';
-  overlay.appendChild(title);
-  // Canvas container
-  const cWrap=document.createElement('div');
-  const vpSize=Math.min(window.innerWidth-48,window.innerHeight-200,320);
-  cWrap.style.cssText='position:relative;width:'+vpSize+'px;height:'+vpSize+'px;overflow:hidden;border-radius:'+(shape==='circle'?'50%':'16px')+';border:3px solid rgba(255,255,255,.5);background:#000;touch-action:none';
+  overlay.id='img-editor-overlay';
+  overlay.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;flex-direction:column;overflow-y:auto;touch-action:none';
+  // Header bar
+  const header=document.createElement('div');
+  header.style.cssText='display:flex;justify-content:space-between;align-items:center;padding:12px 20px;flex-shrink:0';
+  header.innerHTML='<div style="color:#fff;font-size:1rem;font-weight:600">'+s.preset.label+'</div><div style="display:flex;gap:8px"><button class="btn btn-secondary btn-sm" id="ie-btn-cancel" style="font-size:.8rem">Annulla</button><button class="btn btn-primary btn-sm" id="ie-btn-confirm" style="font-size:.8rem">Conferma</button></div>';
+  overlay.appendChild(header);
+
+  // Main area: canvas
+  const mainArea=document.createElement('div');
+  mainArea.style.cssText='flex:1;display:flex;align-items:center;justify-content:center;padding:8px;min-height:0;overflow:hidden';
+  const maxVpW=Math.min(window.innerWidth-32,600);
+  const maxVpH=Math.min(window.innerHeight-280,500);
+  // Scale image to fit viewport
+  const sc=Math.min(maxVpW/s.imgW, maxVpH/s.imgH, 1);
+  s.scale=sc;
+  s.vpW=Math.round(s.imgW*sc);
+  s.vpH=Math.round(s.imgH*sc);
+  const canvasWrap=document.createElement('div');
+  canvasWrap.style.cssText='position:relative;width:'+s.vpW+'px;height:'+s.vpH+'px;flex-shrink:0';
   const canvas=document.createElement('canvas');
-  canvas.width=vpSize;canvas.height=vpSize;
-  canvas.style.cssText='width:100%;height:100%;cursor:grab;touch-action:none';
-  cWrap.appendChild(canvas);
-  overlay.appendChild(cWrap);
-  _cropState.canvas=canvas;_cropState.vpSize=vpSize;
-  // Zoom slider
-  const sliderWrap=document.createElement('div');
-  sliderWrap.style.cssText='display:flex;align-items:center;gap:12px;margin-top:16px;width:'+vpSize+'px;max-width:100%';
-  const labelOut=document.createElement('span');labelOut.textContent='🔍−';labelOut.style.cssText='color:#fff;font-size:1.2rem;cursor:pointer';
-  const slider=document.createElement('input');
-  slider.type='range';slider.min='0';slider.max='100';slider.value='0';
-  slider.style.cssText='flex:1;accent-color:var(--brand,#6c5ce7);height:6px';
-  const labelIn=document.createElement('span');labelIn.textContent='🔍+';labelIn.style.cssText='color:#fff;font-size:1.2rem;cursor:pointer';
-  labelOut.onclick=()=>{slider.value=Math.max(0,parseInt(slider.value)-10);slider.dispatchEvent(new Event('input'));};
-  labelIn.onclick=()=>{slider.value=Math.min(100,parseInt(slider.value)+10);slider.dispatchEvent(new Event('input'));};
-  sliderWrap.appendChild(labelOut);sliderWrap.appendChild(slider);sliderWrap.appendChild(labelIn);
-  overlay.appendChild(sliderWrap);
-  // Buttons
-  const btnWrap=document.createElement('div');
-  btnWrap.style.cssText='display:flex;gap:12px;margin-top:20px';
-  const btnCancel=document.createElement('button');
-  btnCancel.className='btn btn-secondary';btnCancel.textContent='Annulla';
-  btnCancel.style.cssText='min-width:100px;padding:10px 20px;font-size:.9rem';
-  btnCancel.onclick=()=>{closeCropModal();};
-  const btnConfirm=document.createElement('button');
-  btnConfirm.className='btn btn-primary';btnConfirm.textContent='Conferma';
-  btnConfirm.style.cssText='min-width:100px;padding:10px 20px;font-size:.9rem';
-  btnConfirm.onclick=()=>{confirmCrop();};
-  btnWrap.appendChild(btnCancel);btnWrap.appendChild(btnConfirm);
-  overlay.appendChild(btnWrap);
-  document.body.appendChild(overlay);
-  // --- Zoom slider logic ---
-  slider.addEventListener('input',()=>{
-    const t=parseInt(slider.value)/100; // 0=no zoom (full image), 1=max zoom
-    const s=_cropState;
-    s.cropSize=s.maxCrop - t*(s.maxCrop - s.minCrop);
-    clampCropCenter();
-    drawCropPreview();
+  canvas.width=s.vpW;canvas.height=s.vpH;
+  canvas.style.cssText='width:100%;height:100%;cursor:crosshair;touch-action:none;border-radius:4px';
+  canvasWrap.appendChild(canvas);
+  mainArea.appendChild(canvasWrap);
+  overlay.appendChild(mainArea);
+  s.canvas=canvas;
+
+  // Controls panel
+  const controls=document.createElement('div');
+  controls.style.cssText='flex-shrink:0;padding:12px 20px 20px;max-width:600px;margin:0 auto;width:100%';
+  // Aspect ratio buttons
+  const arWrap=document.createElement('div');
+  arWrap.style.cssText='display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;align-items:center';
+  arWrap.innerHTML='<span style="color:var(--txt3);font-size:.7rem;margin-right:4px">Proporzioni:</span>';
+  const presetAspectKey=s.aspect===1?'1:1':s.aspect===16/9?'16:9':s.aspect===4/3?'4:3':s.aspect===3/2?'3:2':'free';
+  Object.entries(IE_ASPECTS).forEach(([key,val])=>{
+    const btn=document.createElement('button');
+    btn.className='btn btn-sm';
+    btn.dataset.arKey=key;
+    const isActive=(key===presetAspectKey);
+    btn.style.cssText='font-size:.7rem;padding:4px 10px;border-radius:8px;'+(isActive?'background:var(--brand);color:#fff;border:1px solid var(--brand)':'background:var(--s200);color:var(--txt3);border:1px solid var(--s400)');
+    btn.textContent=val.label;
+    btn.onclick=()=>ieSetAspect(key);
+    arWrap.appendChild(btn);
   });
-  // --- Drag/pan logic (mouse + touch) ---
-  function ptrDown(ex,ey){_cropState.dragging=true;_cropState.lastX=ex;_cropState.lastY=ey;canvas.style.cursor='grabbing';}
-  function ptrMove(ex,ey){
-    if(!_cropState.dragging)return;
-    const s=_cropState;
-    const scale=s.cropSize/s.vpSize; // image-pixels per viewport-pixel
-    const dx=(ex-s.lastX)*scale;
-    const dy=(ey-s.lastY)*scale;
-    s.cx-=dx;s.cy-=dy;
-    s.lastX=ex;s.lastY=ey;
-    clampCropCenter();
-    drawCropPreview();
+  controls.appendChild(arWrap);
+  // Filter sliders
+  const filtersWrap=document.createElement('div');
+  filtersWrap.style.cssText='display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:8px';
+  [{key:'brightness',label:'Luminosità',icon:'☀️'},{key:'contrast',label:'Contrasto',icon:'◐'},{key:'saturation',label:'Saturazione',icon:'🎨'}].forEach(f=>{
+    const col=document.createElement('div');
+    col.innerHTML='<div style="display:flex;align-items:center;gap:4px;margin-bottom:4px"><span style="font-size:.75rem">'+f.icon+'</span><span style="color:var(--txt3);font-size:.65rem">'+f.label+'</span><span id="ie-val-'+f.key+'" style="color:var(--txt2);font-size:.65rem;margin-left:auto">100%</span></div>';
+    const sl=document.createElement('input');
+    sl.type='range';sl.min='30';sl.max='200';sl.value='100';
+    sl.id='ie-sl-'+f.key;
+    sl.style.cssText='width:100%;accent-color:var(--brand);height:4px';
+    sl.oninput=()=>{s[f.key]=parseInt(sl.value);document.getElementById('ie-val-'+f.key).textContent=sl.value+'%';drawEditorPreview();};
+    sl.ondblclick=()=>{sl.value=100;s[f.key]=100;document.getElementById('ie-val-'+f.key).textContent='100%';drawEditorPreview();};
+    col.appendChild(sl);
+    filtersWrap.appendChild(col);
+  });
+  controls.appendChild(filtersWrap);
+  const resetBtn=document.createElement('button');
+  resetBtn.className='btn btn-ghost btn-sm';
+  resetBtn.style.cssText='font-size:.65rem;color:var(--txt3);padding:2px 8px';
+  resetBtn.textContent='↺ Reset filtri';
+  resetBtn.onclick=()=>{s.brightness=100;s.contrast=100;s.saturation=100;['brightness','contrast','saturation'].forEach(k=>{const el=document.getElementById('ie-sl-'+k);if(el)el.value=100;const v=document.getElementById('ie-val-'+k);if(v)v.textContent='100%';});drawEditorPreview();};
+  controls.appendChild(resetBtn);
+  overlay.appendChild(controls);
+  document.body.appendChild(overlay);
+  // Wire buttons
+  document.getElementById('ie-btn-cancel').onclick=closeImageEditor;
+  document.getElementById('ie-btn-confirm').onclick=confirmImageEditor;
+  // Wire canvas interaction
+  canvas.addEventListener('mousedown',ieCanvasDown);
+  window.addEventListener('mousemove',_ieMouseMove=ieCanvasMove);
+  window.addEventListener('mouseup',_ieMouseUp=ieCanvasUp);
+  canvas.addEventListener('touchstart',e=>{e.preventDefault();const t=e.touches[0];ieCanvasDown({clientX:t.clientX,clientY:t.clientY,target:canvas,preventDefault:()=>{}});},{passive:false});
+  canvas.addEventListener('touchmove',e=>{e.preventDefault();const t=e.touches[0];ieCanvasMove({clientX:t.clientX,clientY:t.clientY});},{passive:false});
+  canvas.addEventListener('touchend',()=>ieCanvasUp());
+}
+
+function ieSetAspect(key){
+  const s=_ieState;if(!s)return;
+  const val=IE_ASPECTS[key];
+  if(key==='free'){s.freeAspect=true;s.aspect=0;}
+  else{s.freeAspect=false;s.aspect=val.r;
+    // Refit crop to new aspect
+    let nw,nh;
+    if(val.r>=1){nw=Math.min(s.imgW,s.cropH*val.r,s.imgH*val.r);nh=nw/val.r;}
+    else{nh=Math.min(s.imgH,s.cropW/val.r,s.imgW/val.r);nw=nh*val.r;}
+    const cx=s.cropX+s.cropW/2, cy=s.cropY+s.cropH/2;
+    s.cropW=nw;s.cropH=nh;
+    s.cropX=Math.max(0,Math.min(s.imgW-nw,cx-nw/2));
+    s.cropY=Math.max(0,Math.min(s.imgH-nh,cy-nh/2));
   }
-  function ptrUp(){_cropState.dragging=false;canvas.style.cursor='grab';}
-  canvas.addEventListener('mousedown',e=>{e.preventDefault();ptrDown(e.clientX,e.clientY);});
-  window.addEventListener('mousemove',_cropMouseMove=e=>{ptrMove(e.clientX,e.clientY);});
-  window.addEventListener('mouseup',_cropMouseUp=()=>{ptrUp();});
-  canvas.addEventListener('touchstart',e=>{e.preventDefault();const t=e.touches[0];ptrDown(t.clientX,t.clientY);},{passive:false});
-  canvas.addEventListener('touchmove',e=>{e.preventDefault();const t=e.touches[0];ptrMove(t.clientX,t.clientY);},{passive:false});
-  canvas.addEventListener('touchend',e=>{ptrUp();});
-  // Initial draw
-  drawCropPreview();
+  // Update button styles
+  document.querySelectorAll('#img-editor-overlay [data-ar-key]').forEach(btn=>{
+    const active=btn.dataset.arKey===key;
+    btn.style.background=active?'var(--brand)':'var(--s200)';
+    btn.style.color=active?'#fff':'var(--txt3)';
+    btn.style.borderColor=active?'var(--brand)':'var(--s400)';
+  });
+  drawEditorPreview();
 }
-let _cropMouseMove=null,_cropMouseUp=null;
-function clampCropCenter(){
-  const s=_cropState;
-  const half=s.cropSize/2;
-  s.cx=Math.max(half,Math.min(s.imgW-half,s.cx));
-  s.cy=Math.max(half,Math.min(s.imgH-half,s.cy));
+
+function ieCanvasDown(e){
+  e.preventDefault();
+  const s=_ieState;if(!s)return;
+  const rect=s.canvas.getBoundingClientRect();
+  const mx=(e.clientX-rect.left)/s.scale;
+  const my=(e.clientY-rect.top)/s.scale;
+  // Check if near a corner handle (20px in image coords)
+  const ht=20/s.scale;
+  const cx=s.cropX,cy=s.cropY,cw=s.cropW,ch=s.cropH;
+  if(Math.abs(mx-cx)<ht&&Math.abs(my-cy)<ht){s.dragMode='resize-tl';}
+  else if(Math.abs(mx-(cx+cw))<ht&&Math.abs(my-cy)<ht){s.dragMode='resize-tr';}
+  else if(Math.abs(mx-cx)<ht&&Math.abs(my-(cy+ch))<ht){s.dragMode='resize-bl';}
+  else if(Math.abs(mx-(cx+cw))<ht&&Math.abs(my-(cy+ch))<ht){s.dragMode='resize-br';}
+  else if(mx>=cx&&mx<=cx+cw&&my>=cy&&my<=cy+ch){s.dragMode='pan';}
+  else{s.dragMode=null;return;}
+  s.dragStartX=e.clientX;s.dragStartY=e.clientY;
+  s.dragStartCropX=s.cropX;s.dragStartCropY=s.cropY;
+  s.dragStartCropW=s.cropW;s.dragStartCropH=s.cropH;
+  s.canvas.style.cursor=s.dragMode==='pan'?'grabbing':'nwse-resize';
 }
-function drawCropPreview(){
-  const s=_cropState;if(!s||!s.canvas)return;
+function ieCanvasMove(e){
+  const s=_ieState;if(!s||!s.dragMode)return;
+  const dx=(e.clientX-s.dragStartX)/s.scale;
+  const dy=(e.clientY-s.dragStartY)/s.scale;
+  const minDim=30;
+  if(s.dragMode==='pan'){
+    let nx=s.dragStartCropX+dx;
+    let ny=s.dragStartCropY+dy;
+    nx=Math.max(0,Math.min(s.imgW-s.cropW,nx));
+    ny=Math.max(0,Math.min(s.imgH-s.cropH,ny));
+    s.cropX=nx;s.cropY=ny;
+  } else {
+    // Resize from corner
+    let nx=s.dragStartCropX,ny=s.dragStartCropY,nw=s.dragStartCropW,nh=s.dragStartCropH;
+    if(s.dragMode==='resize-br'){nw=Math.max(minDim,s.dragStartCropW+dx);nh=Math.max(minDim,s.dragStartCropH+dy);}
+    else if(s.dragMode==='resize-bl'){const dw=-dx;nw=Math.max(minDim,s.dragStartCropW+dw);nx=s.dragStartCropX-(nw-s.dragStartCropW);nh=Math.max(minDim,s.dragStartCropH+dy);}
+    else if(s.dragMode==='resize-tr'){nw=Math.max(minDim,s.dragStartCropW+dx);const dh=-dy;nh=Math.max(minDim,s.dragStartCropH+dh);ny=s.dragStartCropY-(nh-s.dragStartCropH);}
+    else if(s.dragMode==='resize-tl'){const dw=-dx;const dh=-dy;nw=Math.max(minDim,s.dragStartCropW+dw);nh=Math.max(minDim,s.dragStartCropH+dh);nx=s.dragStartCropX-(nw-s.dragStartCropW);ny=s.dragStartCropY-(nh-s.dragStartCropH);}
+    // Enforce aspect ratio (unless free)
+    if(s.aspect&&!s.freeAspect){
+      if(s.dragMode.includes('r')){nh=nw/s.aspect;} else {nw=nh*s.aspect;}
+      if(s.dragMode==='resize-tl'){nx=s.dragStartCropX+s.dragStartCropW-nw;ny=s.dragStartCropY+s.dragStartCropH-nh;}
+      else if(s.dragMode==='resize-tr'){ny=s.dragStartCropY+s.dragStartCropH-nh;}
+      else if(s.dragMode==='resize-bl'){nx=s.dragStartCropX+s.dragStartCropW-nw;}
+    }
+    // Clamp to image bounds
+    nx=Math.max(0,nx);ny=Math.max(0,ny);
+    nw=Math.min(nw,s.imgW-nx);nh=Math.min(nh,s.imgH-ny);
+    if(nw>=minDim&&nh>=minDim){s.cropX=nx;s.cropY=ny;s.cropW=nw;s.cropH=nh;}
+  }
+  drawEditorPreview();
+}
+function ieCanvasUp(){
+  const s=_ieState;if(!s)return;
+  s.dragMode=null;
+  if(s.canvas)s.canvas.style.cursor='crosshair';
+}
+
+function drawEditorPreview(){
+  const s=_ieState;if(!s||!s.canvas)return;
   const ctx=s.canvas.getContext('2d');
-  const vp=s.vpSize;
-  const half=s.cropSize/2;
-  const sx=s.cx-half, sy=s.cy-half;
-  ctx.clearRect(0,0,vp,vp);
-  ctx.drawImage(s.img, sx, sy, s.cropSize, s.cropSize, 0, 0, vp, vp);
+  const sc=s.scale;
+  ctx.clearRect(0,0,s.vpW,s.vpH);
+  // Apply filters for preview
+  const parts=[];
+  if(s.brightness!==100)parts.push('brightness('+s.brightness+'%)');
+  if(s.contrast!==100)parts.push('contrast('+s.contrast+'%)');
+  if(s.saturation!==100)parts.push('saturate('+s.saturation+'%)');
+  ctx.filter=parts.length?parts.join(' '):'none';
+  // Draw full image
+  ctx.drawImage(s.img,0,0,s.imgW,s.imgH,0,0,s.vpW,s.vpH);
+  ctx.filter='none';
+  // Dark overlay outside crop
+  ctx.fillStyle='rgba(0,0,0,.55)';
+  ctx.fillRect(0,0,s.vpW,s.vpH);
+  // Clear crop area (show bright)
+  const cx=s.cropX*sc, cy=s.cropY*sc, cw=s.cropW*sc, ch=s.cropH*sc;
+  ctx.save();
+  if(s.preset.shape==='circle'){
+    ctx.beginPath();ctx.ellipse(cx+cw/2,cy+ch/2,cw/2,ch/2,0,0,Math.PI*2);ctx.clip();
+  } else {
+    ctx.beginPath();
+    const r=6;
+    ctx.moveTo(cx+r,cy);ctx.lineTo(cx+cw-r,cy);ctx.quadraticCurveTo(cx+cw,cy,cx+cw,cy+r);
+    ctx.lineTo(cx+cw,cy+ch-r);ctx.quadraticCurveTo(cx+cw,cy+ch,cx+cw-r,cy+ch);
+    ctx.lineTo(cx+r,cy+ch);ctx.quadraticCurveTo(cx,cy+ch,cx,cy+ch-r);
+    ctx.lineTo(cx,cy+r);ctx.quadraticCurveTo(cx,cy,cx+r,cy);ctx.clip();
+  }
+  // Redraw image in crop area (with filters)
+  ctx.filter=parts.length?parts.join(' '):'none';
+  ctx.drawImage(s.img,0,0,s.imgW,s.imgH,0,0,s.vpW,s.vpH);
+  ctx.filter='none';
+  ctx.restore();
+  // Crop border
+  ctx.strokeStyle='rgba(255,255,255,.8)';ctx.lineWidth=2;
+  if(s.preset.shape==='circle'){
+    ctx.beginPath();ctx.ellipse(cx+cw/2,cy+ch/2,cw/2,ch/2,0,0,Math.PI*2);ctx.stroke();
+  } else {ctx.strokeRect(cx,cy,cw,ch);}
+  // Rule-of-thirds lines (subtle)
+  ctx.strokeStyle='rgba(255,255,255,.2)';ctx.lineWidth=1;
+  ctx.setLineDash([4,4]);
+  for(let i=1;i<3;i++){ctx.beginPath();ctx.moveTo(cx+cw*i/3,cy);ctx.lineTo(cx+cw*i/3,cy+ch);ctx.stroke();ctx.beginPath();ctx.moveTo(cx,cy+ch*i/3);ctx.lineTo(cx+cw,cy+ch*i/3);ctx.stroke();}
+  ctx.setLineDash([]);
+  // Corner handles
+  const hs=8;
+  ctx.fillStyle='#fff';ctx.strokeStyle='var(--brand,#7c3aed)';ctx.lineWidth=2;
+  [[cx,cy],[cx+cw,cy],[cx,cy+ch],[cx+cw,cy+ch]].forEach(([hx,hy])=>{
+    ctx.beginPath();ctx.arc(hx,hy,hs,0,Math.PI*2);ctx.fill();ctx.stroke();
+  });
+  // Size indicator
+  const outW=Math.round(s.cropW);const outH=Math.round(s.cropH);
+  ctx.font='11px monospace';ctx.fillStyle='rgba(255,255,255,.7)';
+  ctx.fillText(outW+'×'+outH+'px',cx+4,cy+ch-6);
 }
-function confirmCrop(){
-  const s=_cropState;if(!s)return;
-  const half=s.cropSize/2;
-  const cropData={x:s.cx-half, y:s.cy-half, w:s.cropSize, h:s.cropSize};
-  const base64=processImageToBase64(s.img, cropData, s.maxOut);
-  closeCropModal();
-  if(s.onConfirm)s.onConfirm(base64);
+
+function confirmImageEditor(){
+  const s=_ieState;if(!s)return;
+  const filters={brightness:s.brightness,contrast:s.contrast,saturation:s.saturation};
+  const cropData={x:s.cropX,y:s.cropY,w:s.cropW,h:s.cropH};
+  const maxW=s.preset.maxW;
+  const maxH=Math.round(maxW*(s.cropH/s.cropW));
+  const base64=processImageToBase64(s.img,cropData,maxW,maxH,filters);
+  const metadata={cropX:s.cropX,cropY:s.cropY,cropW:s.cropW,cropH:s.cropH,filters,aspect:s.aspect,outputW:maxW,outputH:maxH};
+  closeImageEditor();
+  if(s.onConfirm)s.onConfirm(base64,metadata);
 }
-function closeCropModal(){
-  const el=document.getElementById('crop-modal-overlay');
+
+function closeImageEditor(){
+  const el=document.getElementById('img-editor-overlay');
   if(el)el.remove();
-  if(_cropMouseMove)window.removeEventListener('mousemove',_cropMouseMove);
-  if(_cropMouseUp)window.removeEventListener('mouseup',_cropMouseUp);
-  _cropMouseMove=null;_cropMouseUp=null;_cropState=null;
+  if(_ieMouseMove)window.removeEventListener('mousemove',_ieMouseMove);
+  if(_ieMouseUp)window.removeEventListener('mouseup',_ieMouseUp);
+  _ieMouseMove=null;_ieMouseUp=null;_ieState=null;
+}
+
+// Legacy compatibility wrappers
+function openCropModal(imgElement,opts){
+  const presetMap={circle:'avatar',square:'logo'};
+  openImageEditor(imgElement,{
+    preset:presetMap[opts.shape]||'thumb',
+    onConfirm:(base64)=>{if(opts.onConfirm)opts.onConfirm(base64);}
+  });
 }
 
 /* --- USER PROFILE IMAGE UPLOAD --- */
@@ -6193,8 +6371,8 @@ function handleUserLogoUpload(input){
   const file=input.files[0];if(!file){return;}
   input.value=''; // reset so same file can be re-selected
   loadImageFromFile(file).then(img=>{
-    openCropModal(img,{
-      shape:'circle', maxSize:256,
+    openImageEditor(img,{
+      preset:'avatar',
       onConfirm:async(base64)=>{
         const u=store.currentUser;if(!u)return;
         u.profileLogo=base64;
@@ -6447,8 +6625,8 @@ function handleOrgLogoUpload(input){
   const file=input.files[0];if(!file)return;
   input.value=''; // reset so same file can be re-selected
   loadImageFromFile(file).then(img=>{
-    openCropModal(img,{
-      shape:'square', maxSize:300,
+    openImageEditor(img,{
+      preset:'logo',
       onConfirm:(base64)=>{
         window._orgLogoData=base64;
         const preview=document.getElementById('org-logo-preview');
@@ -11906,27 +12084,37 @@ const _imgDrag={active:false,key:'',startX:0,startY:0,origX:0,origY:0};
 
 function handleImgUpload(key,input){
   const file=input.files[0];if(!file)return;
-  const reader=new FileReader();
-  reader.onload=(e)=>{
-    const src=e.target.result;
-    evImages[key]={src,zoom:100,posX:0,posY:0};
-    const img=document.getElementById('ne-img-'+key+'-img');
-    const preview=document.getElementById('ne-img-'+key+'-preview');
-    const zoomSlider=document.getElementById('ne-img-'+key+'-zoom');
-    if(img)img.src=src;
-    if(zoomSlider)zoomSlider.value=100;
-    if(preview)preview.style.display='block';
-    // Wait for image load to set initial sizing
-    if(img)img.onload=()=>applyImgZoom(key);
-  };
-  reader.onerror=()=>showToast('Errore caricamento immagine','error');
-  reader.readAsDataURL(file);
+  input.value='';
+  loadImageFromFile(file).then(img=>{
+    openImageEditor(img,{
+      preset:key, // 'thumb' or 'header'
+      onConfirm:(base64,metadata)=>{
+        evImages[key]={src:base64,zoom:100,posX:0,posY:0,_edited:true};
+        const imgEl=document.getElementById('ne-img-'+key+'-img');
+        const preview=document.getElementById('ne-img-'+key+'-preview');
+        if(imgEl)imgEl.src=base64;
+        if(preview)preview.style.display='block';
+        // For new editor: image is already cropped/compressed, no zoom/pan needed in form
+        if(imgEl){imgEl.style.width='100%';imgEl.style.height='100%';imgEl.style.objectFit='cover';imgEl.style.position='relative';imgEl.style.left='0';imgEl.style.top='0';}
+        // Hide zoom slider since image is pre-processed
+        const zoomWrap=document.getElementById('ne-img-'+key+'-zoom')?.parentElement;
+        if(zoomWrap)zoomWrap.style.display='none';
+        const dragTip=preview?.querySelector('[style*="font-style:italic"]');
+        if(dragTip)dragTip.textContent='Immagine ritagliata e ottimizzata · Clicca "Ri-edita" per modificare';
+      }
+    });
+  }).catch(e=>showToast(e.message,'error'));
 }
 function removeImg(key){
   evImages[key]=null;
   const input=document.getElementById('ne-img-'+key+'-upload');if(input)input.value='';
   const preview=document.getElementById('ne-img-'+key+'-preview');if(preview)preview.style.display='none';
   const img=document.getElementById('ne-img-'+key+'-img');if(img)img.src='';
+}
+function reEditImg(key){
+  // Re-open file picker to select a new image and edit it
+  const input=document.getElementById('ne-img-'+key+'-upload');
+  if(input)input.click();
 }
 function applyImgZoom(key){
   const data=evImages[key];if(!data)return;
@@ -12215,9 +12403,7 @@ function editEvent(id){
     evImages[key]={src:data.src,zoom:data.zoom||100,posX:data.posX||0,posY:data.posY||0};
     const img=document.getElementById('ne-img-'+key+'-img');
     const preview=document.getElementById('ne-img-'+key+'-preview');
-    const slider=document.getElementById('ne-img-'+key+'-zoom');
-    if(img){img.src=data.src;img.onload=()=>applyImgZoom(key);}
-    if(slider)slider.value=data.zoom||100;
+    if(img){img.src=data.src;img.style.width='100%';img.style.height='100%';img.style.objectFit='cover';img.style.position='relative';img.style.left='0';img.style.top='0';}
     if(preview)preview.style.display='block';
   }
   if(ev.imageThumb)restoreImgEdit('thumb',ev.imageThumb);
