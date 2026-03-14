@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.16.1</title>
+<title>BodyEvents — V2.17.1</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -84,11 +84,11 @@ textarea.input{resize:none;font-family:inherit}
 .navbar{position:sticky;top:0;z-index:40;background:rgba(15,15,19,.85);backdrop-filter:blur(16px);border-bottom:1px solid var(--s300)}
 .navbar-inner{display:flex;align-items:center;justify-content:space-between;height:60px;max-width:1100px;margin:0 auto;padding:0 16px}
 .logo{display:flex;align-items:center;gap:10px;cursor:pointer}
-.logo-icon{width:36px;height:36px;background:var(--brand-d);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.875rem;position:relative;overflow:visible}
-.logo-orbit{position:absolute;inset:-3px;border-radius:50%;border:1px solid rgba(217,70,239,.25);animation:logoOrbit 14s linear infinite}
-.logo-orbit::before{content:'';position:absolute;top:-1.5px;left:50%;transform:translateX(-50%);width:3px;height:3px;border-radius:50%;background:rgba(217,70,239,.7);box-shadow:0 0 4px rgba(217,70,239,.5)}
-.logo-orbit-inner{position:absolute;inset:4px;border-radius:50%;border:1px solid rgba(168,85,247,.2);animation:logoOrbitRev 9s linear infinite}
-.logo-orbit-inner::before{content:'';position:absolute;bottom:-1.5px;right:50%;transform:translateX(50%);width:3px;height:3px;border-radius:50%;background:rgba(168,85,247,.5);box-shadow:0 0 4px rgba(168,85,247,.3)}
+.logo-icon{width:38px;height:38px;background:transparent;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.875rem;position:relative;overflow:visible}
+.logo-orbit{position:absolute;inset:-4px;border-radius:50%;border:1px solid rgba(217,70,239,.2);animation:logoOrbit 16s linear infinite}
+.logo-orbit::before{content:'';position:absolute;top:-2px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:rgba(217,70,239,.65);box-shadow:0 0 6px rgba(217,70,239,.45)}
+.logo-orbit-inner{position:absolute;inset:5px;border-radius:50%;border:1px solid rgba(168,85,247,.25);animation:logoOrbitRev 10s linear infinite}
+.logo-orbit-inner::before{content:'';position:absolute;bottom:-2px;right:50%;transform:translateX(50%);width:4px;height:4px;border-radius:50%;background:rgba(168,85,247,.55);box-shadow:0 0 6px rgba(168,85,247,.35)}
 @keyframes logoOrbit{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 @keyframes logoOrbitRev{from{transform:rotate(0deg)}to{transform:rotate(-360deg)}}
 .logo-text{font-size:1.125rem;font-weight:700;color:#fff}
@@ -313,7 +313,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.16.1</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.17.1</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -328,7 +328,7 @@ textarea.input{resize:none;font-family:inherit}
 <nav class="navbar hidden" id="navbar-user" style="top:37px">
   <div class="navbar-inner">
     <div class="logo" onclick="go('events')">
-      <div class="logo-icon"><div class="logo-orbit"></div><div class="logo-orbit-inner"></div><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="position:relative;z-index:1"><circle cx="12" cy="8" r="3"/><path d="M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z"/><path d="M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8"/></svg></div>
+      <div class="logo-icon"><div class="logo-orbit"></div><div class="logo-orbit-inner"></div><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="position:relative;z-index:1"><circle cx="12" cy="8" r="3"/><path d="M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z"/><path d="M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8"/></svg></div>
       <span class="logo-text">BodyEvents</span>
     </div>
     <!-- Mobile top-nav: profile avatar + nav icons (hidden on desktop) -->
@@ -391,17 +391,17 @@ textarea.input{resize:none;font-family:inherit}
     <div class="mobile-topnav">
       <div class="mtn-avatar" onclick="go('admin-org-profile')"><span class="sidebar-org-icon" style="width:38px;height:38px;border-radius:50%;background:var(--brand);display:flex;align-items:center;justify-content:center;font-size:1.1rem">🛡️</span></div>
       <div class="mtn-items">
-        <div class="mtn-item" data-view="admin" onclick="go('admin')"><span>📊</span><span class="mtn-label">Home</span></div>
         <div class="mtn-item active" data-view="admin-events" onclick="go('admin-events')"><span>📅</span><span class="mtn-label">Eventi</span></div>
-        <div class="mtn-item" data-view="admin-checkin" onclick="go('admin-checkin')"><span>📱</span><span class="mtn-label">Check-in</span></div>
+        <div class="mtn-item" data-view="admin-checkin" onclick="go('admin-checkin')"><span>📱</span><span class="mtn-label">Presenze</span></div>
         <div class="mtn-item" data-view="admin-subscriptions" onclick="go('admin-subscriptions')"><span>💳</span><span class="mtn-label">Abbon.</span></div>
         <div class="mtn-item" data-view="admin-registry" onclick="go('admin-registry')"><span>📋</span><span class="mtn-label">Anagr.</span></div>
+        <div class="mtn-item" data-view="admin" onclick="go('admin')"><span>📊</span><span class="mtn-label">Home</span></div>
       </div>
     </div>
     <div class="nav-links">
-      <div class="nav-link" data-view="admin" onclick="go('admin')">📊 Dashboard</div>
       <div class="nav-link active" data-view="admin-events" onclick="go('admin-events')">📅 Eventi</div>
-      <div class="nav-link" data-view="admin-checkin" onclick="go('admin-checkin')">📱 Check-in</div>
+      <div class="nav-link" data-view="admin-checkin" onclick="go('admin-checkin')">📱 Presenze</div>
+      <div class="nav-link" data-view="admin" onclick="go('admin')">📊 Dashboard</div>
     </div>
     <div class="nav-auth" style="gap:4px">
       <a style="cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:8px;transition:background .15s" onmouseover="this.style.background='var(--s200)'" onmouseout="this.style.background=''" onclick="go('admin-org-profile')">
@@ -415,23 +415,23 @@ textarea.input{resize:none;font-family:inherit}
   <!-- Mobile quick-access bar (admin) -->
   <div class="mobile-quickbar" id="quickbar-admin">
     <div class="mobile-quickbar-inner">
-      <div class="mqb-item" data-view="admin" onclick="go('admin');closeMobileAdmin()"><span class="mqb-icon">📊</span><span class="mqb-label">Dashboard</span></div>
       <div class="mqb-item active" data-view="admin-events" onclick="go('admin-events');closeMobileAdmin()"><span class="mqb-icon">📅</span><span class="mqb-label">Eventi</span></div>
-      <div class="mqb-item" data-view="admin-checkin" onclick="go('admin-checkin');closeMobileAdmin()"><span class="mqb-icon">📱</span><span class="mqb-label">Check-in</span></div>
+      <div class="mqb-item" data-view="admin-checkin" onclick="go('admin-checkin');closeMobileAdmin()"><span class="mqb-icon">📱</span><span class="mqb-label">Presenze</span></div>
       <div class="mqb-item" data-view="admin-subscriptions" onclick="go('admin-subscriptions');closeMobileAdmin()"><span class="mqb-icon">💳</span><span class="mqb-label">Abbonamenti</span></div>
       <div class="mqb-item" data-view="admin-registry" onclick="go('admin-registry');closeMobileAdmin()"><span class="mqb-icon">📋</span><span class="mqb-label">Anagrafica</span></div>
+      <div class="mqb-item" data-view="admin" onclick="go('admin');closeMobileAdmin()"><span class="mqb-icon">📊</span><span class="mqb-label">Dashboard</span></div>
     </div>
   </div>
   <!-- Mobile full menu (admin) -->
   <div class="mobile-menu" id="mobileMenuAdmin">
     <div class="mm-group">
       <div class="mm-group-label">Gestione eventi</div>
-      <div class="nav-link" onclick="go('admin');closeMobileAdmin()">📊 Dashboard</div>
       <div class="nav-link" onclick="go('admin-events');closeMobileAdmin()">📅 Eventi</div>
       <div class="nav-link" onclick="go('admin-new-event');closeMobileAdmin()">➕ Nuovo Evento</div>
-      <div class="nav-link" onclick="go('admin-checkin');closeMobileAdmin()">📱 Check-in QR</div>
+      <div class="nav-link" onclick="go('admin-checkin');closeMobileAdmin()">📱 Presenze e Check-in</div>
       <div class="nav-link" onclick="go('admin-subscriptions');closeMobileAdmin()">💳 Abbonamenti</div>
       <div class="nav-link" onclick="go('admin-registry');closeMobileAdmin()">📋 Anagrafica</div>
+      <div class="nav-link" onclick="go('admin');closeMobileAdmin()">📊 Dashboard</div>
     </div>
     <div class="mm-group">
       <div class="mm-group-label">Community e piattaforma</div>
@@ -829,11 +829,11 @@ textarea.input{resize:none;font-family:inherit}
   <aside class="sidebar">
     <div class="sidebar-title sidebar-org-btn" style="cursor:pointer" onclick="go('admin-org-profile')"><div class="icon sidebar-org-icon">🛡️</div><div><div class="font-semibold text-white sidebar-org-name">Organizzatore</div><div class="text-xs txt3">Gestione</div></div></div>
     <nav class="sidebar-nav">
-      <div class="sidebar-link active" onclick="go('admin')">📊 Dashboard</div>
       <div class="sidebar-link" onclick="go('admin-events')">📅 Eventi</div>
-      <div class="sidebar-link" onclick="go('admin-checkin')">📱 Check-in QR</div>
+      <div class="sidebar-link" onclick="go('admin-checkin')">📱 Presenze e Check-in</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
+      <div class="sidebar-link active" onclick="go('admin')">📊 Dashboard</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link master-only" onclick="go('admin-community-jams')">🤝 Community Events</div>
@@ -876,11 +876,11 @@ textarea.input{resize:none;font-family:inherit}
   <aside class="sidebar">
     <div class="sidebar-title sidebar-org-btn" style="cursor:pointer" onclick="go('admin-org-profile')"><div class="icon sidebar-org-icon">🛡️</div><div><div class="font-semibold text-white sidebar-org-name">Organizzatore</div><div class="text-xs txt3">Gestione</div></div></div>
     <nav class="sidebar-nav">
-      <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div class="sidebar-link active" onclick="go('admin-events')">📅 Eventi</div>
-      <div class="sidebar-link" onclick="go('admin-checkin')">📱 Check-in QR</div>
+      <div class="sidebar-link" onclick="go('admin-checkin')">📱 Presenze e Check-in</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
+      <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link master-only" onclick="go('admin-community-jams')">🤝 Community Events</div>
@@ -907,11 +907,11 @@ textarea.input{resize:none;font-family:inherit}
   <aside class="sidebar">
     <div class="sidebar-title sidebar-org-btn" style="cursor:pointer" onclick="go('admin-org-profile')"><div class="icon sidebar-org-icon">🛡️</div><div><div class="font-semibold text-white sidebar-org-name">Organizzatore</div><div class="text-xs txt3">Gestione</div></div></div>
     <nav class="sidebar-nav">
-      <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div class="sidebar-link" onclick="go('admin-events')">📅 Eventi</div>
-      <div class="sidebar-link" onclick="go('admin-checkin')">📱 Check-in QR</div>
+      <div class="sidebar-link" onclick="go('admin-checkin')">📱 Presenze e Check-in</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
+      <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only active" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link master-only" onclick="go('admin-community-jams')">🤝 Community Events</div>
@@ -937,11 +937,11 @@ textarea.input{resize:none;font-family:inherit}
   <aside class="sidebar">
     <div class="sidebar-title sidebar-org-btn" style="cursor:pointer" onclick="go('admin-org-profile')"><div class="icon sidebar-org-icon">🛡️</div><div><div class="font-semibold text-white sidebar-org-name">Organizzatore</div><div class="text-xs txt3">Gestione</div></div></div>
     <nav class="sidebar-nav">
-      <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div class="sidebar-link" onclick="go('admin-events')">📅 Eventi</div>
-      <div class="sidebar-link" onclick="go('admin-checkin')">📱 Check-in QR</div>
+      <div class="sidebar-link" onclick="go('admin-checkin')">📱 Presenze e Check-in</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
+      <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link master-only" onclick="go('admin-community-jams')">🤝 Community Events</div>
@@ -984,11 +984,11 @@ textarea.input{resize:none;font-family:inherit}
   <aside class="sidebar">
     <div class="sidebar-title sidebar-org-btn" style="cursor:pointer" onclick="go('admin-org-profile')"><div class="icon sidebar-org-icon">🛡️</div><div><div class="font-semibold text-white sidebar-org-name">Organizzatore</div><div class="text-xs txt3">Gestione</div></div></div>
     <nav class="sidebar-nav">
-      <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div class="sidebar-link" onclick="go('admin-events')">📅 Eventi</div>
-      <div class="sidebar-link" onclick="go('admin-checkin')">📱 Check-in QR</div>
+      <div class="sidebar-link" onclick="go('admin-checkin')">📱 Presenze e Check-in</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
+      <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link master-only" onclick="go('admin-community-jams')">🤝 Community Events</div>
@@ -1070,11 +1070,11 @@ textarea.input{resize:none;font-family:inherit}
   <aside class="sidebar">
     <div class="sidebar-title sidebar-org-btn" style="cursor:pointer" onclick="go('admin-org-profile')"><div class="icon sidebar-org-icon">🛡️</div><div><div class="font-semibold text-white sidebar-org-name">Organizzatore</div><div class="text-xs txt3">Gestione</div></div></div>
     <nav class="sidebar-nav">
-      <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div class="sidebar-link" onclick="go('admin-events')">📅 Eventi</div>
-      <div class="sidebar-link" onclick="go('admin-checkin')">📱 Check-in QR</div>
+      <div class="sidebar-link" onclick="go('admin-checkin')">📱 Presenze e Check-in</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
+      <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link master-only" onclick="go('admin-community-jams')">🤝 Community Events</div>
@@ -1159,6 +1159,25 @@ textarea.input{resize:none;font-family:inherit}
         <label class="label">Email di contatto</label>
         <input class="input" id="org-profile-contact-email" value="" placeholder="Email pubblica per i partecipanti" oninput="orgProfileChanged()">
       </div>
+      <div style="border-top:1px solid var(--s400);margin:16px 0 12px"></div>
+      <h4 class="font-semibold text-white mb-3 text-sm">🔗 Link social e community</h4>
+      <p class="text-xs txt3 mb-3">Questi link saranno visibili agli utenti nel tuo profilo pubblico.</p>
+      <div class="mb-3">
+        <label class="label">WhatsApp (link gruppo o chat)</label>
+        <input class="input" id="org-profile-whatsapp" value="" placeholder="https://chat.whatsapp.com/... o https://wa.me/39..." oninput="orgProfileChanged()">
+      </div>
+      <div class="mb-3">
+        <label class="label">Instagram</label>
+        <input class="input" id="org-profile-instagram" value="" placeholder="https://instagram.com/tuoprofilo" oninput="orgProfileChanged()">
+      </div>
+      <div class="mb-3">
+        <label class="label">Facebook</label>
+        <input class="input" id="org-profile-facebook" value="" placeholder="https://facebook.com/tuapagina" oninput="orgProfileChanged()">
+      </div>
+      <div class="mb-3">
+        <label class="label">Sito web o altro link</label>
+        <input class="input" id="org-profile-website" value="" placeholder="https://..." oninput="orgProfileChanged()">
+      </div>
     </div>
 
     <!-- Account info -->
@@ -1206,11 +1225,11 @@ textarea.input{resize:none;font-family:inherit}
   <aside class="sidebar">
     <div class="sidebar-title sidebar-org-btn" style="cursor:pointer" onclick="go('admin-org-profile')"><div class="icon sidebar-org-icon">🛡️</div><div><div class="font-semibold text-white sidebar-org-name">Organizzatore</div><div class="text-xs txt3">Gestione</div></div></div>
     <nav class="sidebar-nav">
-      <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div class="sidebar-link" onclick="go('admin-events')">📅 Eventi</div>
-      <div class="sidebar-link" onclick="go('admin-checkin')">📱 Check-in QR</div>
+      <div class="sidebar-link" onclick="go('admin-checkin')">📱 Presenze e Check-in</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
+      <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link master-only active" onclick="go('admin-community-jams')">🤝 Community Events</div>
@@ -1264,11 +1283,11 @@ textarea.input{resize:none;font-family:inherit}
   <aside class="sidebar">
     <div class="sidebar-title sidebar-org-btn" style="cursor:pointer" onclick="go('admin-org-profile')"><div class="icon sidebar-org-icon">🛡️</div><div><div class="font-semibold text-white sidebar-org-name">Organizzatore</div><div class="text-xs txt3">Gestione</div></div></div>
     <nav class="sidebar-nav">
-      <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div class="sidebar-link" onclick="go('admin-events')">📅 Eventi</div>
-      <div class="sidebar-link" onclick="go('admin-checkin')">📱 Check-in QR</div>
+      <div class="sidebar-link" onclick="go('admin-checkin')">📱 Presenze e Check-in</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
+      <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link master-only" onclick="go('admin-community-jams')">🤝 Community Events</div>
@@ -1660,11 +1679,11 @@ textarea.input{resize:none;font-family:inherit}
   <aside class="sidebar">
     <div class="sidebar-title sidebar-org-btn" style="cursor:pointer" onclick="go('admin-org-profile')"><div class="icon sidebar-org-icon">🛡️</div><div><div class="font-semibold text-white sidebar-org-name">Organizzatore</div><div class="text-xs txt3">Gestione</div></div></div>
     <nav class="sidebar-nav">
-      <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div class="sidebar-link" onclick="go('admin-events')">📅 Eventi</div>
-      <div class="sidebar-link" onclick="go('admin-checkin')">📱 Check-in QR</div>
+      <div class="sidebar-link" onclick="go('admin-checkin')">📱 Presenze e Check-in</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
+      <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link master-only" onclick="go('admin-community-jams')">🤝 Community Events</div>
@@ -1709,11 +1728,11 @@ textarea.input{resize:none;font-family:inherit}
   <aside class="sidebar">
     <div class="sidebar-title sidebar-org-btn" style="cursor:pointer" onclick="go('admin-org-profile')"><div class="icon sidebar-org-icon">🛡️</div><div><div class="font-semibold text-white sidebar-org-name">Organizzatore</div><div class="text-xs txt3">Gestione</div></div></div>
     <nav class="sidebar-nav">
-      <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div class="sidebar-link" onclick="go('admin-events')">📅 Eventi</div>
-      <div class="sidebar-link active" onclick="go('admin-checkin')">📱 Check-in QR</div>
+      <div class="sidebar-link active" onclick="go('admin-checkin')">📱 Presenze e Check-in</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
+      <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link master-only" onclick="go('admin-community-jams')">🤝 Community Events</div>
@@ -1722,7 +1741,7 @@ textarea.input{resize:none;font-family:inherit}
     </nav>
   </aside>
   <main class="admin-content">
-    <h1 class="page-title">Check-in QR</h1>
+    <h1 class="page-title">Presenze e Check-in</h1>
     <p class="page-sub mb-6">Genera il QR code per il check-in all'ingresso dell'evento</p>
 
     <!-- QR Nuovo Utente (registrazione piattaforma) -->
@@ -1830,11 +1849,11 @@ textarea.input{resize:none;font-family:inherit}
   <aside class="sidebar">
     <div class="sidebar-title sidebar-org-btn" style="cursor:pointer" onclick="go('admin-org-profile')"><div class="icon sidebar-org-icon">🛡️</div><div><div class="font-semibold text-white sidebar-org-name">Organizzatore</div><div class="text-xs txt3">Gestione</div></div></div>
     <nav class="sidebar-nav">
-      <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div class="sidebar-link" onclick="go('admin-events')">📅 Eventi</div>
-      <div class="sidebar-link" onclick="go('admin-checkin')">📱 Check-in QR</div>
+      <div class="sidebar-link" onclick="go('admin-checkin')">📱 Presenze e Check-in</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
+      <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link master-only" onclick="go('admin-community-jams')">🤝 Community Events</div>
@@ -1866,11 +1885,11 @@ textarea.input{resize:none;font-family:inherit}
   <aside class="sidebar">
     <div class="sidebar-title sidebar-org-btn" style="cursor:pointer" onclick="go('admin-org-profile')"><div class="icon sidebar-org-icon">🛡️</div><div><div class="font-semibold text-white sidebar-org-name">Organizzatore</div><div class="text-xs txt3">Gestione</div></div></div>
     <nav class="sidebar-nav">
-      <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div class="sidebar-link" onclick="go('admin-events')">📅 Eventi</div>
-      <div class="sidebar-link" onclick="go('admin-checkin')">📱 Check-in QR</div>
+      <div class="sidebar-link" onclick="go('admin-checkin')">📱 Presenze e Check-in</div>
       <div class="sidebar-link active" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
+      <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link master-only" onclick="go('admin-community-jams')">🤝 Community Events</div>
@@ -1904,11 +1923,11 @@ textarea.input{resize:none;font-family:inherit}
   <aside class="sidebar">
     <div class="sidebar-title sidebar-org-btn" style="cursor:pointer" onclick="go('admin-org-profile')"><div class="icon sidebar-org-icon">🛡️</div><div><div class="font-semibold text-white sidebar-org-name">Organizzatore</div><div class="text-xs txt3">Gestione</div></div></div>
     <nav class="sidebar-nav">
-      <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div class="sidebar-link" onclick="go('admin-events')">📅 Eventi</div>
-      <div class="sidebar-link" onclick="go('admin-checkin')">📱 Check-in QR</div>
+      <div class="sidebar-link" onclick="go('admin-checkin')">📱 Presenze e Check-in</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div class="sidebar-link active" onclick="go('admin-registry')">📋 Anagrafica</div>
+      <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
       <div class="sidebar-link master-only" onclick="go('admin-community-jams')">🤝 Community Events</div>
@@ -1922,9 +1941,9 @@ textarea.input{resize:none;font-family:inherit}
       <button class="btn btn-sm" style="background:var(--s200);color:var(--txt2);border:1px solid var(--s400)" onclick="openRegistrySublistModal()">📂 Aggiungi Sottolista</button>
     </div>
     <!-- Sublists area -->
-    <div id="registry-sublists-area"></div>
+    <div id="registry-sublists-area" style="margin-bottom:20px"></div>
     <!-- Main registry table -->
-    <div class="card" style="overflow:hidden">
+    <div class="card" style="overflow:hidden;margin-bottom:20px">
       <div style="padding:12px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between" onclick="toggleRegistryCollapse('main')">
         <h3 class="font-semibold text-white" style="margin:0">📋 Anagrafica Generale <span id="registry-count" class="text-xs txt3"></span></h3>
         <span class="coll-arrow text-xs txt3" id="registry-main-arrow">▾</span>
@@ -2146,7 +2165,7 @@ textarea.input{resize:none;font-family:inherit}
 <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;background:linear-gradient(135deg,#1a0a1a 0%,#0f0f13 60%,#0a0f1a 100%)">
   <div style="max-width:400px;width:100%">
     <div class="text-center mb-6">
-      <div class="logo-icon mx-auto" style="width:56px;height:56px;border-radius:50%;margin-bottom:16px"><div class="logo-orbit"></div><div class="logo-orbit-inner"></div><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" style="position:relative;z-index:1"><circle cx="12" cy="8" r="3"/><path d="M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z"/><path d="M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8"/></svg></div>
+      <div class="logo-icon mx-auto" style="width:56px;height:56px;border-radius:50%;margin-bottom:16px"><div class="logo-orbit"></div><div class="logo-orbit-inner"></div><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="position:relative;z-index:1"><circle cx="12" cy="8" r="3"/><path d="M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z"/><path d="M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8"/></svg></div>
       <h1 class="text-2xl font-bold text-white">BodyEvents</h1>
       <p class="txt3 text-sm mt-2">Accedi al tuo account</p>
     </div>
@@ -2216,7 +2235,7 @@ textarea.input{resize:none;font-family:inherit}
 <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;background:linear-gradient(135deg,#0a0f1a 0%,#0f0f13 60%,#1a0a1a 100%)">
   <div style="max-width:480px;width:100%">
     <div class="text-center mb-6">
-      <div class="logo-icon mx-auto" style="width:56px;height:56px;border-radius:50%;margin-bottom:16px"><div class="logo-orbit"></div><div class="logo-orbit-inner"></div><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" style="position:relative;z-index:1"><circle cx="12" cy="8" r="3"/><path d="M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z"/><path d="M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8"/></svg></div>
+      <div class="logo-icon mx-auto" style="width:56px;height:56px;border-radius:50%;margin-bottom:16px"><div class="logo-orbit"></div><div class="logo-orbit-inner"></div><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="position:relative;z-index:1"><circle cx="12" cy="8" r="3"/><path d="M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z"/><path d="M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8"/></svg></div>
       <h1 class="text-2xl font-bold text-white">Crea il tuo account</h1>
       <p class="txt3 text-sm mt-2">Unisciti alla community!</p>
     </div>
@@ -2292,29 +2311,32 @@ textarea.input{resize:none;font-family:inherit}
     </div>
 
     <div class="card" id="reg-org-form">
-      <!-- Google Register -->
-      <button class="btn w-full mb-4" style="padding:14px;background:#fff;color:#333;border:1px solid #ddd;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;border-radius:12px;font-size:.95rem" onclick="loginWithGoogle()">
+      <!-- Google Register for Organizer -->
+      <button class="btn w-full mb-4" style="padding:14px;background:#fff;color:#333;border:1px solid #ddd;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;border-radius:12px;font-size:.95rem" onclick="submitOrgRegistrationGoogle()">
         <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
         Registrati con Google
       </button>
+      <p class="text-xs txt3 text-center mb-3" style="margin-top:-8px">Compila prima i dati del gruppo qui sotto, poi clicca per registrarti con Google</p>
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
         <div style="flex:1;height:1px;background:var(--s400)"></div>
-        <span class="text-xs txt3">oppure compila il form</span>
+        <span class="text-xs txt3">oppure usa email e password</span>
         <div style="flex:1;height:1px;background:var(--s400)"></div>
       </div>
 
-      <h3 class="font-semibold text-white mb-3" style="font-size:.9rem">👤 Dati personali</h3>
-      <div class="mb-3">
-        <label class="label">Username *</label>
-        <input class="input" id="rego-username" placeholder="Il tuo nome, nickname o come vuoi essere chiamato">
-      </div>
-      <div class="mb-3">
-        <label class="label">Email *</label>
-        <input class="input" type="email" id="rego-email" placeholder="mario@acrogroup.it">
-      </div>
-      <div class="mb-3">
-        <label class="label mt-2">Password *</label>
-        <input class="input" type="password" placeholder="Minimo 6 caratteri" id="rego-password">
+      <h3 class="font-semibold text-white mb-3" style="font-size:.9rem">👤 Dati personali <span class="text-xs txt3 font-normal">(solo per registrazione email)</span></h3>
+      <div id="rego-email-fields">
+        <div class="mb-3">
+          <label class="label">Username *</label>
+          <input class="input" id="rego-username" placeholder="Il tuo nome, nickname o come vuoi essere chiamato">
+        </div>
+        <div class="mb-3">
+          <label class="label">Email *</label>
+          <input class="input" type="email" id="rego-email" placeholder="mario@acrogroup.it">
+        </div>
+        <div class="mb-3">
+          <label class="label mt-2">Password *</label>
+          <input class="input" type="password" placeholder="Minimo 6 caratteri" id="rego-password">
+        </div>
       </div>
 
       <div style="border-top:1px solid var(--s400);margin:16px 0"></div>
@@ -2587,7 +2609,7 @@ const OB_TOURS={
     slides:[
       {icon:'👋',title:'Benvenuto su BodyEvents!',text:'Questa piattaforma è una <b>bacheca comunitaria</b> per scoprire, proporre e organizzare eventi. Qui puoi gestire il tuo palinsesto, condividere informazioni logistiche e raggiungere le diverse comunità.'},
       {icon:'🌌',title:'Gli Universi',text:'Gli eventi sono organizzati in <b>universi tematici</b>: ogni universo raccoglie un\'area di pratica (es. AcroYoga, Danza, Yoga...). Al suo interno trovi <b>lezioni, workshop, jam, ritiri</b> e altro. I tuoi eventi saranno collegati agli universi che scegli.'},
-      {icon:'🚀',title:'Inizia subito',text:'Dal <b>menu di navigazione</b> accedi a tutte le sezioni: <b>📅 Eventi</b>, <b>📱 Check-in QR</b>, <b>💳 Abbonamenti</b>, <b>🤝 Community Events</b> e <b>🌌 Universi</b>. Puoi passare alla vista utente in qualsiasi momento dal toggle in alto.'}
+      {icon:'🚀',title:'Inizia subito',text:'Dal <b>menu di navigazione</b> accedi a tutte le sezioni: <b>📅 Eventi</b>, <b>📱 Presenze e Check-in</b>, <b>💳 Abbonamenti</b>, <b>🤝 Community Events</b> e <b>🌌 Universi</b>. Puoi passare alla vista utente in qualsiasi momento dal toggle in alto.'}
     ]
   },
   // --- USER TOURS ---
@@ -2619,7 +2641,7 @@ const OB_TOURS={
   tour_admin_intro:{
     slides:[
       {icon:'🛡️',title:'Pannello Organizzatore',text:'Benvenuto nel tuo pannello! Da qui gestisci <b>eventi, prenotazioni, check-in</b> e community. Le card in alto mostrano le statistiche chiave.'},
-      {icon:'📱',title:'Navigazione',text:'Usa il <b>menu di navigazione</b> per spostarti tra le sezioni. Puoi tornare alla <b>vista utente</b> in qualsiasi momento dal toggle in alto. Le sezioni principali sono: Eventi, Check-in QR, Abbonamenti, Community Events e Universi.'}
+      {icon:'📱',title:'Navigazione',text:'Usa il <b>menu di navigazione</b> per spostarti tra le sezioni. Puoi tornare alla <b>vista utente</b> in qualsiasi momento dal toggle in alto. Le sezioni principali sono: Eventi, Presenze e Check-in, Abbonamenti, Community Events e Universi.'}
     ]
   },
   tour_admin_events:{
@@ -3677,7 +3699,8 @@ function renderSubTypes(c){
     const compatTypes=(t.compatibleEventTypes||[]).map(et=>{
       return '<span class="badge" style="background:var(--s300);color:var(--txt2);font-size:.7rem">'+getEventTypeLabel(et)+'</span>';
     }).join(' ');
-    html+='<div class="card mb-3" style="border-left:4px solid '+(univ?.color||'var(--brand)')+'">';
+    const expiryLabel=t.expiryMode==='absolute'&&t.absoluteExpiry?'📅 Scade il '+fmtDateShort(t.absoluteExpiry):t.validityDays?'⏰ '+t.validityDays+' giorni':'∞ Nessuna scadenza';
+    html+='<div class="card mb-3" style="border-left:4px solid '+(univ?.color||'var(--brand)')+';cursor:pointer" onclick="openSubTypePanel(\''+t.id+'\')">';
     html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">';
     html+='<div style="flex:1">';
     html+='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="font-semibold text-white text-lg">'+t.name+'</span>'+univBadge;
@@ -3685,7 +3708,7 @@ function renderSubTypes(c){
     html+='</div>';
     html+='<div class="text-sm txt2 mt-2" style="display:flex;gap:16px;flex-wrap:wrap">';
     html+='<span>🎟️ '+t.entries+' ingressi</span>';
-    html+='<span>⏰ '+(t.validityDays?t.validityDays+' giorni':'Nessuna scadenza')+'</span>';
+    html+='<span>'+expiryLabel+'</span>';
     html+='<span>💰 €'+(t.price||0).toFixed(2)+'</span>';
     html+='</div>';
     if(compatTypes) html+='<div class="mt-2 flex gap-2 flex-wrap">'+compatTypes+'</div>';
@@ -3695,7 +3718,7 @@ function renderSubTypes(c){
     html+='<span style="color:var(--red)">⏳ '+expiredSubs.length+' scaduti</span>';
     html+='<span style="color:var(--yellow)">💰 €'+totalRevenue.toFixed(2)+' incassati</span>';
     html+='</div></div>';
-    html+='<div style="display:flex;gap:6px;flex-shrink:0">';
+    html+='<div style="display:flex;gap:6px;flex-shrink:0" onclick="event.stopPropagation()">';
     html+='<button class="btn btn-sm btn-secondary" onclick="editSubType(\''+t.id+'\')">✏️</button>';
     html+='<button class="btn btn-sm" style="background:var(--red-bg);color:var(--red)" onclick="toggleSubTypeStatus(\''+t.id+'\')">'+((t.status||'active')==='active'?'⏸️':'▶️')+'</button>';
     html+='</div></div></div>';
@@ -3711,7 +3734,7 @@ function renderSubAssigned(c){
   // Filters
   let html='<div class="flex gap-3 mb-4 flex-wrap">';
   html+='<select class="input" id="sub-filter-status" onchange="renderSubAssigned(document.getElementById(\'admin-sub-content\'))" style="max-width:180px;font-size:.85rem"><option value="">Tutti gli stati</option><option value="active">Attivi</option><option value="expired">Scaduti</option><option value="suspended">Sospesi</option></select>';
-  html+='<select class="input" id="sub-filter-payment" onchange="renderSubAssigned(document.getElementById(\'admin-sub-content\'))" style="max-width:180px;font-size:.85rem"><option value="">Tutti i pagamenti</option><option value="pagato">Pagato</option><option value="da_pagare">Da pagare</option><option value="parziale">Parziale</option><option value="omaggiato">Omaggio</option></select>';
+  html+='<select class="input" id="sub-filter-payment" onchange="renderSubAssigned(document.getElementById(\'admin-sub-content\'))" style="max-width:180px;font-size:.85rem"><option value="">Tutti i pagamenti</option><option value="pagato">Pagato</option><option value="da_pagare">Da pagare</option><option value="parziale">Parziale</option><option value="omaggiato">Omaggio</option><option value="prezzo_modificato">Prezzo modificato</option></select>';
   html+='<button class="btn btn-sm btn-secondary" onclick="exportSubsExcel()">📊 Esporta Excel</button>';
   html+='</div>';
 
@@ -3734,7 +3757,7 @@ function renderSubAssigned(c){
     const remaining=s.entriesTotal-s.entriesUsed;
     const pctUsed=s.entriesTotal?Math.round(s.entriesUsed/s.entriesTotal*100):0;
     const statusBadge=s.status==='active'?'<span class="badge badge-pubblicato">Attivo</span>':s.status==='expired'?'<span class="badge badge-red">Scaduto</span>':'<span class="badge badge-yellow">Sospeso</span>';
-    const payBadge=s.paymentStatus==='pagato'?'<span style="color:var(--green)">✅ Pagato</span>':s.paymentStatus==='parziale'?'<span style="color:var(--yellow)">⚠️ Parziale</span>':s.paymentStatus==='omaggiato'?'<span style="color:var(--purple)">🎁 Omaggio</span>':'<span style="color:var(--red)">❌ Da pagare</span>';
+    const payBadge=s.paymentStatus==='pagato'?'<span style="color:var(--green)">✅ Pagato</span>':s.paymentStatus==='parziale'?'<span style="color:var(--yellow)">⚠️ Parziale</span>':s.paymentStatus==='omaggiato'?'<span style="color:var(--purple)">🎁 Omaggio</span>':s.paymentStatus==='prezzo_modificato'?'<span style="color:var(--yellow)">💰 Prezzo modificato</span>':'<span style="color:var(--red)">❌ Da pagare</span>';
     const expDate=s.expiresAt?fmtDateShort(s.expiresAt.split('T')[0]):'∞';
     html+='<tr style="border-bottom:1px solid var(--s300)">';
     html+='<td style="padding:10px 12px"><div class="font-medium text-white text-sm">'+(s.userName||'N/D')+'</div><div class="text-xs txt3">'+(s.userEmail||'')+'</div></td>';
@@ -3789,9 +3812,20 @@ function filterSubUsers(){
   const q=(document.getElementById('manual-sub-user-search')?.value||'').toLowerCase();
   const cont=document.getElementById('manual-sub-user-results');if(!cont)return;
   if(!q||q.length<2){cont.innerHTML='';return;}
-  const matches=store.users.filter(u=>(u.username||'').toLowerCase().includes(q)||(u.email||'').toLowerCase().includes(q)).slice(0,8);
+  // Search BOTH users AND managers (admin users have profiles in managers collection)
+  const userMatches=store.users.filter(u=>(u.username||'').toLowerCase().includes(q)||(u.email||'').toLowerCase().includes(q));
+  const mgrMatches=store.managers.filter(m=>(m.username||'').toLowerCase().includes(q)||(m.email||'').toLowerCase().includes(q));
+  // Merge and deduplicate by id
+  const seen=new Set();
+  const allMatches=[];
+  [...userMatches,...mgrMatches].forEach(u=>{if(!seen.has(u.id)){seen.add(u.id);allMatches.push(u);}});
+  const matches=allMatches.slice(0,10);
   if(!matches.length){cont.innerHTML='<div class="text-xs txt3">Nessun utente trovato</div>';return;}
-  cont.innerHTML=matches.map(u=>'<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border:1px solid var(--s300);border-radius:10px;margin-bottom:6px;background:var(--s100)"><div><span class="text-sm font-medium text-white">'+escHtml(u.username||'N/D')+'</span><span class="text-xs txt3 ml-2">'+escHtml(u.email||'')+'</span></div><button class="btn btn-sm btn-primary" onclick="manualAssignSub(\''+escHtml(u.id)+'\',\''+escHtml(u.username)+'\',\''+escHtml(u.email)+'\')">Assegna</button></div>').join('');
+  cont.innerHTML=matches.map(u=>{
+    const isManager=store.managers.some(m=>m.id===u.id);
+    const badge=isManager?'<span class="badge" style="background:rgba(99,102,241,.15);color:var(--brand-l);font-size:.6rem;margin-left:6px">🛡️ Org</span>':'';
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border:1px solid var(--s300);border-radius:10px;margin-bottom:6px;background:var(--s100)"><div><span class="text-sm font-medium text-white">'+escHtml(u.username||'N/D')+'</span>'+badge+'<span class="text-xs txt3 ml-2">'+escHtml(u.email||'')+'</span></div><button class="btn btn-sm btn-primary" onclick="manualAssignSub(\''+escHtml(u.id)+'\',\''+escHtml(u.username||'')+'\',\''+escHtml(u.email||'')+'\')">Assegna</button></div>';
+  }).join('');
 }
 
 function generateSubQR(){
@@ -3830,14 +3864,25 @@ async function createSubscription(typeId,userId,userName,userEmail,managerId,pay
   const sType=store.subscriptionTypes.find(t=>t.id===typeId);
   if(!sType)return null;
   const now=new Date();
-  const expiresAt=sType.validityDays?new Date(now.getTime()+sType.validityDays*86400000).toISOString():null;
+  // Expiry: absolute mode uses fixed date, relative uses validityDays from now
+  let expiresAt=null;
+  const expiryMode=sType.expiryMode||'relative';
+  if(expiryMode==='absolute'&&sType.absoluteExpiry){
+    expiresAt=new Date(sType.absoluteExpiry+'T23:59:59').toISOString();
+  } else if(expiryMode==='relative'&&sType.validityDays){
+    expiresAt=new Date(now.getTime()+sType.validityDays*86400000).toISOString();
+  } else if(sType.validityDays){
+    // Legacy fallback
+    expiresAt=new Date(now.getTime()+sType.validityDays*86400000).toISOString();
+  }
   const sub={
     id:genId('sub'),typeId,userId,userName:userName||'',userEmail:userEmail||'',managerId,
     assignedAt:now.toISOString(),expiresAt,
     entriesTotal:sType.entries||0,entriesUsed:0,
     usageHistory:[],
-    paymentStatus:paymentStatus||'da_pagare',paymentAmount:paymentAmount||0,paymentDate:paymentStatus==='pagato'?now.toISOString():null,paymentMethod:paymentMethod||'',
-    notes:notes||'',status:'active'
+    paymentStatus:paymentStatus||'da_pagare',paymentAmount:paymentAmount||sType.price||0,
+    paymentDate:paymentStatus==='pagato'?now.toISOString():null,paymentMethod:paymentMethod||'',
+    notes:notes||'',status:'active',typeName:sType.name
   };
   store.subscriptions.push(sub);
   await fsSet('subscriptions',sub.id,sub).catch(console.error);
@@ -3855,7 +3900,7 @@ function redeemSubManually(token){
 async function executeRedeem(){
   const email=(document.getElementById('redeem-email')?.value||'').trim().toLowerCase();
   if(!email){showToast('Inserisci un\'email','error');return;}
-  const user=store.users.find(u=>(u.email||'').toLowerCase()===email);
+  const user=store.users.find(u=>(u.email||'').toLowerCase()===email)||store.managers.find(m=>(m.email||'').toLowerCase()===email);
   if(!user){showToast('Utente non trovato con questa email','error');return;}
   const p=window._pendingSubAssign;
   if(!p){showToast('Nessun abbonamento da riscattare','error');return;}
@@ -3878,8 +3923,18 @@ function openSubTypeModal(editId){
   formHtml+='<div style="max-height:70vh;overflow-y:auto;padding-right:8px">';
   formHtml+='<div class="mb-3"><label class="label">Nome tipologia *</label><input class="input" id="st-name" value="'+(existing?.name||'')+'" placeholder="es. Pacchetto 10 lezioni"></div>';
   formHtml+='<div class="grid grid-2 gap-3 mb-3"><div><label class="label">Numero ingressi *</label><input class="input" id="st-entries" type="number" value="'+(existing?.entries||10)+'" placeholder="10"></div>';
-  formHtml+='<div><label class="label">Validità (giorni)</label><input class="input" id="st-validity" type="number" value="'+(existing?.validityDays||'')+'" placeholder="es. 90 (vuoto=illimitata)"></div></div>';
-  formHtml+='<div class="mb-3"><label class="label">Prezzo (€) *</label><input class="input" id="st-price" type="number" value="'+(existing?.price||'')+'" placeholder="es. 80" style="max-width:180px"></div>';
+  formHtml+='<div><label class="label">Prezzo (€) *</label><input class="input" id="st-price" type="number" value="'+(existing?.price||'')+'" placeholder="es. 80"></div></div>';
+  // Expiry mode
+  const curExpiryMode=existing?.expiryMode||(existing?.validityDays?'relative':'none');
+  formHtml+='<div class="mb-3"><label class="label">Modalità scadenza</label>';
+  formHtml+='<select class="input mb-2" id="st-expiry-mode" onchange="toggleExpiryFields()">';
+  formHtml+='<option value="none"'+(curExpiryMode==='none'?' selected':'')+'>Nessuna scadenza</option>';
+  formHtml+='<option value="relative"'+((curExpiryMode==='relative'&&existing?.validityDays)?' selected':'')+'>Relativa (giorni dalla data di assegnazione)</option>';
+  formHtml+='<option value="absolute"'+(curExpiryMode==='absolute'?' selected':'')+'>Assoluta (data fissa per tutti)</option>';
+  formHtml+='</select>';
+  formHtml+='<div id="st-expiry-relative"'+(curExpiryMode==='relative'&&existing?.validityDays?'':' style="display:none"')+'><input class="input" id="st-validity" type="number" value="'+(existing?.validityDays||'')+'" placeholder="es. 90 giorni dalla data di assegnazione"></div>';
+  formHtml+='<div id="st-expiry-absolute"'+(curExpiryMode==='absolute'?'':' style="display:none"')+'><input class="input" id="st-absolute-expiry" type="date" value="'+(existing?.absoluteExpiry||'')+'"><p class="text-xs txt3 mt-1">Tutti gli utenti condivideranno questa data di scadenza.</p></div>';
+  formHtml+='</div>';
   formHtml+='<div class="mb-3"><label class="label">Universo *</label><select class="input" id="st-universe" onchange="updateSubTypeCompatTypes()">';
   activeUnivs.forEach(u=>{formHtml+='<option value="'+u.id+'"'+(u.id===defaultUnivId?' selected':'')+'>'+u.emoji+' '+u.name+'</option>';});
   formHtml+='</select></div>';
@@ -3935,29 +3990,133 @@ async function saveSubType(overlay,editId){
   if(!entries){showToast('Inserisci il numero di ingressi','error');return;}
   const price=parseFloat(document.getElementById('st-price')?.value)||0;
   const validityDays=parseInt(document.getElementById('st-validity')?.value)||null;
+  const expiryMode=document.getElementById('st-expiry-mode')?.value||'relative';
+  const absoluteExpiry=document.getElementById('st-absolute-expiry')?.value||null;
   const universeId=document.getElementById('st-universe')?.value||'univ_acro';
   const compatibleEventTypes=Array.from(document.querySelectorAll('.st-compat-btn.selected')).map(b=>b.dataset.type);
   const notes=(document.getElementById('st-notes')?.value||'').trim();
 
   if(editId){
     const existing=store.subscriptionTypes.find(t=>t.id===editId);
-    if(existing){
-      Object.assign(existing,{name,entries,validityDays,price,universeId,compatibleEventTypes,notes});
-      await fsUpdate('subscriptionTypes',editId,{name,entries,validityDays,price,universeId,compatibleEventTypes,notes}).catch(console.error);
+    if(!existing)return;
+    const assignedSubs=store.subscriptions.filter(s=>s.typeId===editId);
+    if(assignedSubs.length>0){
+      // --- DOUBLE CONFIRMATION for edit with assigned subs ---
+      const priceChanged=existing.price!==price;
+      const entriesChanged=existing.entries!==entries;
+      const changesDesc=[];
+      if(entriesChanged)changesDesc.push('Ingressi: '+existing.entries+' → '+entries);
+      if(priceChanged)changesDesc.push('Prezzo: €'+existing.price?.toFixed(2)+' → €'+price.toFixed(2));
+      if(existing.name!==name)changesDesc.push('Nome: "'+existing.name+'" → "'+name+'"');
+      if(existing.validityDays!==validityDays)changesDesc.push('Validità: '+(existing.validityDays||'illimitata')+' → '+(validityDays||'illimitata'));
+      if(existing.expiryMode!==expiryMode||existing.absoluteExpiry!==absoluteExpiry)changesDesc.push('Modalità scadenza aggiornata');
+
+      const confirmed=await _doubleConfirmSubEdit(assignedSubs.length,changesDesc,priceChanged,entriesChanged);
+      if(!confirmed){return;}
+
+      // --- PROPAGATE changes to all assigned subscriptions ---
+      const updatePromises=[];
+      for(const sub of assignedSubs){
+        const updates={};
+        // Propagate entries: keep entriesUsed, update entriesTotal
+        if(entriesChanged){
+          updates.entriesTotal=entries;
+          sub.entriesTotal=entries;
+          // If sub was expired because entries ran out, but now has more entries, reactivate
+          if(sub.status==='expired'&&sub.entriesUsed<entries){
+            updates.status='active';sub.status='active';
+          }
+        }
+        // Propagate price change
+        if(priceChanged){
+          if(sub.paymentStatus==='pagato'||sub.paymentStatus==='parziale'){
+            // Already paid — flag for review
+            updates.paymentStatus='prezzo_modificato';
+            updates.originalPaidAmount=sub.paymentAmount||0;
+            updates.priceAtPayment=existing.price;
+            sub.paymentStatus='prezzo_modificato';
+            sub.originalPaidAmount=sub.paymentAmount||0;
+            sub.priceAtPayment=existing.price;
+          } else {
+            // Not yet paid — just update the expected amount
+            updates.paymentAmount=price;
+            sub.paymentAmount=price;
+          }
+        }
+        // Propagate name for display
+        updates.typeName=name;sub.typeName=name;
+        // Update expiry mode
+        if(expiryMode==='absolute'&&absoluteExpiry){
+          updates.expiresAt=new Date(absoluteExpiry+'T23:59:59').toISOString();
+          sub.expiresAt=updates.expiresAt;
+        }
+        if(Object.keys(updates).length){
+          updatePromises.push(fsUpdate('subscriptions',sub.id,updates).catch(console.error));
+        }
+      }
+      await Promise.all(updatePromises);
     }
+    // Update the template itself
+    Object.assign(existing,{name,entries,validityDays,price,universeId,compatibleEventTypes,notes,expiryMode,absoluteExpiry});
+    await fsUpdate('subscriptionTypes',editId,{name,entries,validityDays,price,universeId,compatibleEventTypes,notes,expiryMode,absoluteExpiry}).catch(console.error);
+    overlay.remove();
+    showToast('Tipologia aggiornata'+(assignedSubs.length>0?' e propagata a '+assignedSubs.length+' abbonamenti':'')+'!');
   }else{
     const newType={
-      id:genId('stype'),managerId:store.currentUser.id,name,entries,validityDays,
+      id:genId('stype'),managerId:store.currentUser.id,name,entries,validityDays,expiryMode,absoluteExpiry,
       universeId,compatibleEventTypes,price,notes,status:'active',createdAt:new Date().toISOString()
     };
     store.subscriptionTypes.push(newType);
     await fsSet('subscriptionTypes',newType.id,newType).catch(console.error);
+    overlay.remove();
+    showToast('Tipologia creata!');
   }
-  overlay.remove();
-  showToast(editId?'Tipologia aggiornata!':'Tipologia creata!');
   renderSubTypes(document.getElementById('admin-sub-content'));
 }
 
+// Double confirmation for subscription type edits
+function _doubleConfirmSubEdit(numAffected,changesDesc,priceChanged,entriesChanged){
+  return new Promise(resolve=>{
+    const o=document.createElement('div');o.className='overlay';o.style.zIndex='10001';
+    let html='<h3 class="text-lg font-semibold text-white mb-3">⚠️ Conferma propagazione modifiche</h3>';
+    html+='<div class="card mb-3" style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);padding:14px">';
+    html+='<p class="text-sm" style="color:var(--yellow)"><strong>'+numAffected+' abbonament'+(numAffected===1?'o':'i')+' assegnat'+(numAffected===1?'o':'i')+'</strong> verr'+(numAffected===1?'à':'anno')+' aggiornati automaticamente.</p>';
+    html+='</div>';
+    if(changesDesc.length){
+      html+='<div class="mb-3"><p class="text-xs font-semibold txt2 mb-1">Modifiche da propagare:</p>';
+      changesDesc.forEach(d=>{html+='<div class="text-sm text-white" style="padding:4px 0">• '+d+'</div>';});
+      html+='</div>';
+    }
+    html+='<div class="card mb-3" style="background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);padding:12px">';
+    html+='<p class="text-xs" style="color:var(--green)">✅ I parametri individuali (ingressi utilizzati, date di assegnazione, storico) <strong>non</strong> verranno modificati.</p>';
+    if(entriesChanged) html+='<p class="text-xs mt-1" style="color:var(--green)">✅ Il numero di ingressi utilizzati resterà invariato — cambia solo il limite massimo.</p>';
+    if(priceChanged) html+='<p class="text-xs mt-1" style="color:var(--yellow)">⚠️ Gli utenti che hanno già pagato riceveranno lo stato "prezzo modificato — verificare pagamento".</p>';
+    html+='</div>';
+    html+='<div class="flex gap-3" style="justify-content:flex-end"><button class="btn btn-ghost btn-sm" id="dcs-cancel">Annulla</button><button class="btn btn-primary btn-sm" id="dcs-step1">Conferma modifiche</button></div>';
+    o.innerHTML='<div class="dialog" style="max-width:520px;width:92%">'+html+'</div>';
+    document.body.appendChild(o);
+    o.querySelector('#dcs-cancel').onclick=()=>{o.remove();resolve(false);};
+    o.addEventListener('click',e=>{if(e.target===o){o.remove();resolve(false);}});
+    o.querySelector('#dcs-step1').onclick=()=>{
+      // --- Second confirmation ---
+      const inner=o.querySelector('.dialog');
+      inner.innerHTML='<h3 class="text-lg font-semibold text-white mb-4">🔒 Conferma finale</h3>';
+      inner.innerHTML+='<p class="text-sm txt2 mb-4">Stai per applicare le modifiche a <strong class="text-white">'+numAffected+' abbonament'+(numAffected===1?'o':'i')+'</strong>. Questa azione non può essere annullata.</p>';
+      inner.innerHTML+='<p class="text-sm mb-4" style="color:var(--yellow)">Vuoi procedere?</p>';
+      inner.innerHTML+='<div class="flex gap-3" style="justify-content:flex-end"><button class="btn btn-ghost btn-sm" id="dcs-cancel2">Annulla</button><button class="btn btn-sm" style="background:var(--red-bg);color:var(--red);border:1px solid var(--red)" id="dcs-confirm">✅ Applica modifiche</button></div>';
+      inner.querySelector('#dcs-cancel2').onclick=()=>{o.remove();resolve(false);};
+      inner.querySelector('#dcs-confirm').onclick=()=>{o.remove();resolve(true);};
+    };
+  });
+}
+
+function toggleExpiryFields(){
+  const mode=document.getElementById('st-expiry-mode')?.value||'none';
+  const relDiv=document.getElementById('st-expiry-relative');
+  const absDiv=document.getElementById('st-expiry-absolute');
+  if(relDiv)relDiv.style.display=mode==='relative'?'':'none';
+  if(absDiv)absDiv.style.display=mode==='absolute'?'':'none';
+}
 function editSubType(id){openSubTypeModal(id);}
 
 async function toggleSubTypeStatus(id){
@@ -3979,7 +4138,11 @@ function showSubDetail(subId){
   html+='<div class="text-sm mt-1"><strong>Ingressi:</strong> '+remaining+'/'+s.entriesTotal+' rimanenti</div>';
   html+='<div class="text-sm mt-1"><strong>Assegnato il:</strong> '+fmtDateShort(s.assignedAt?.split('T')[0]||'')+'</div>';
   if(s.expiresAt) html+='<div class="text-sm mt-1"><strong>Scade il:</strong> '+fmtDateShort(s.expiresAt.split('T')[0])+'</div>';
-  html+='<div class="text-sm mt-1"><strong>Pagamento:</strong> '+({pagato:'✅ Pagato',da_pagare:'❌ Da pagare',parziale:'⚠️ Parziale',omaggiato:'🎁 Omaggio'}[s.paymentStatus]||s.paymentStatus)+(s.paymentAmount?' — €'+s.paymentAmount.toFixed(2):'')+'</div>';
+  html+='<div class="text-sm mt-1"><strong>Pagamento:</strong> '+({pagato:'✅ Pagato',da_pagare:'❌ Da pagare',parziale:'⚠️ Parziale',omaggiato:'🎁 Omaggio',prezzo_modificato:'💰 Prezzo modificato — verificare'}[s.paymentStatus]||s.paymentStatus)+(s.paymentAmount?' — €'+s.paymentAmount.toFixed(2):'')+'</div>';
+  if(s.paymentStatus==='prezzo_modificato'){
+    const newPrice=sType?.price||0;
+    html+='<div class="text-xs mt-1" style="color:var(--yellow);background:rgba(245,158,11,.08);padding:6px 10px;border-radius:8px;border:1px solid rgba(245,158,11,.2)">⚠️ Pagato €'+(s.originalPaidAmount||0).toFixed(2)+' — nuovo prezzo tipologia: €'+newPrice.toFixed(2)+'. Verificare differenza.</div>';
+  }
   if(s.notes) html+='<div class="text-sm mt-1"><strong>Note:</strong> '+s.notes+'</div>';
   html+='</div>';
 
@@ -4030,31 +4193,267 @@ async function exportSubsExcel(){
   const isMaster=mgr.role==='master';
   const mySubs=store.subscriptions.filter(s=>isMaster||s.managerId===mgr.id);
   if(!mySubs.length){showToast('Nessun dato da esportare','error');return;}
-  const wb=new ExcelJS.Workbook();
+  if(typeof ExcelJS==='undefined'){
+    const sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';document.head.appendChild(sc);
+    await new Promise(r=>{sc.onload=r;setTimeout(r,6000);});
+  }
+  if(typeof ExcelJS==='undefined'){showToast('Errore caricamento libreria','error');return;}
+  const wb=new ExcelJS.Workbook();wb.creator='BodyEvents';
   const ws=wb.addWorksheet('Abbonamenti');
-  ws.columns=[
-    {header:'Utente',key:'user',width:20},{header:'Email',key:'email',width:25},
-    {header:'Tipologia',key:'type',width:20},{header:'Ingressi Tot.',key:'total',width:12},
-    {header:'Ingressi Usati',key:'used',width:12},{header:'Rimanenti',key:'remaining',width:12},
-    {header:'Assegnato il',key:'assigned',width:15},{header:'Scadenza',key:'expires',width:15},
-    {header:'Pagamento',key:'payment',width:15},{header:'Importo €',key:'amount',width:12},
-    {header:'Stato',key:'status',width:12},{header:'Note',key:'notes',width:25}
-  ];
-  ws.getRow(1).font={bold:true};
-  mySubs.forEach(s=>{
-    const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
-    ws.addRow({
-      user:s.userName||'',email:s.userEmail||'',type:sType?.name||s.typeId,
-      total:s.entriesTotal,used:s.entriesUsed,remaining:s.entriesTotal-s.entriesUsed,
-      assigned:s.assignedAt?.split('T')[0]||'',expires:s.expiresAt?.split('T')[0]||'∞',
-      payment:{pagato:'Pagato',da_pagare:'Da pagare',parziale:'Parziale',omaggiato:'Omaggio'}[s.paymentStatus]||'',
-      amount:s.paymentAmount||0,status:{active:'Attivo',expired:'Scaduto',suspended:'Sospeso'}[s.status]||'',
-      notes:s.notes||''
-    });
+  const totalCols=12;
+
+  // Title
+  ws.mergeCells(1,1,1,totalCols);
+  const tc=ws.getCell('A1');tc.value='Tutti gli abbonamenti';
+  tc.font={name:'Calibri',size:16,bold:true,color:{argb:'FFFFFFFF'}};
+  tc.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF6366F1'}};
+  tc.alignment={horizontal:'center',vertical:'middle'};ws.getRow(1).height=36;
+  ws.mergeCells(2,1,2,totalCols);
+  const dc=ws.getCell('A2');dc.value='Esportato il: '+new Date().toLocaleDateString('it-IT');
+  dc.font={name:'Calibri',size:10,italic:true,color:{argb:'FF9CA3AF'}};
+  dc.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1E1E2E'}};
+  dc.alignment={horizontal:'center'};ws.getRow(2).height=22;ws.getRow(3).height=8;
+
+  const headers=['Utente','Email','Tipologia','Ingressi Tot.','Ingressi Usati','Rimanenti','Assegnato il','Scadenza','Pagamento','Importo €','Stato','Note'];
+  const headerRow=ws.getRow(4);
+  headers.forEach((h,i)=>{
+    const cell=headerRow.getCell(i+1);cell.value=h;
+    cell.font={name:'Calibri',size:11,bold:true,color:{argb:'FFFFFFFF'}};
+    cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF8B5CF6'}};
+    cell.border={bottom:{style:'medium',color:{argb:'FF6366F1'}}};
   });
+  headerRow.height=28;
+
+  mySubs.forEach((s,ri)=>{
+    const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
+    const row=ws.getRow(5+ri);
+    [s.userName||'',s.userEmail||'',sType?.name||s.typeId,s.entriesTotal,s.entriesUsed,s.entriesTotal-s.entriesUsed,
+     s.assignedAt?.split('T')[0]||'',s.expiresAt?.split('T')[0]||'Illimitata',
+     {pagato:'Pagato',da_pagare:'Da pagare',parziale:'Parziale',omaggiato:'Omaggio',prezzo_modificato:'Prezzo modificato'}[s.paymentStatus]||'',
+     s.paymentAmount||0,{active:'Attivo',expired:'Scaduto',suspended:'Sospeso'}[s.status]||'',s.notes||''
+    ].forEach((v,ci)=>{
+      const cell=row.getCell(ci+1);cell.value=v;cell.font={name:'Calibri',size:10.5};
+      cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:ri%2===0?'FFF8F8FC':'FFFFFFFF'}};
+      cell.border={bottom:{style:'thin',color:{argb:'FFE5E7EB'}}};
+    });
+    row.height=22;
+  });
+  [20,25,20,12,12,12,15,15,18,12,12,25].forEach((w,i)=>{ws.getColumn(i+1).width=w;});
+  ws.autoFilter={from:{row:4,column:1},to:{row:4,column:totalCols}};
+
   const buf=await wb.xlsx.writeBuffer();
   const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='abbonamenti_'+new Date().toISOString().split('T')[0]+'.xlsx';a.click();
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='abbonamenti_'+new Date().toISOString().split('T')[0]+'.xlsx';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  showToast('Excel scaricato!');
+}
+
+// ======= SUBSCRIPTION TYPE DETAIL PANEL =======
+function openSubTypePanel(typeId){
+  const t=store.subscriptionTypes.find(x=>x.id===typeId);if(!t)return;
+  const univ=store.universes.find(u=>u.id===t.universeId);
+  const allSubs=store.subscriptions.filter(s=>s.typeId===typeId);
+  const activeSubs=allSubs.filter(s=>s.status==='active');
+  const expiredSubs=allSubs.filter(s=>s.status==='expired'||s.status==='suspended');
+  const totalRevenue=allSubs.filter(s=>s.paymentStatus==='pagato'||s.paymentStatus==='parziale').reduce((sum,s)=>sum+(s.paymentAmount||0),0);
+  const pendingRevenue=allSubs.filter(s=>s.paymentStatus==='da_pagare'||s.paymentStatus==='prezzo_modificato').reduce((sum,s)=>sum+(t.price||0),0);
+  const expiryLabel=t.expiryMode==='absolute'&&t.absoluteExpiry?'📅 Scadenza fissa: '+fmtDateShort(t.absoluteExpiry):t.validityDays?'⏰ '+t.validityDays+' giorni dalla data di assegnazione':'∞ Nessuna scadenza';
+
+  const o=document.createElement('div');o.className='overlay';o.id='sub-type-panel';
+  let html='<div class="flex justify-between items-center mb-4"><h3 class="text-xl font-bold text-white">💳 '+escHtml(t.name)+'</h3><button class="btn btn-ghost" onclick="document.getElementById(\'sub-type-panel\').remove()">✕</button></div>';
+
+  // Summary cards
+  html+='<div class="grid grid-4 gap-3 mb-4">';
+  html+='<div class="stat-card"><div class="value" style="color:var(--green)">'+activeSubs.length+'</div><div class="label">Attivi</div></div>';
+  html+='<div class="stat-card"><div class="value" style="color:var(--txt3)">'+expiredSubs.length+'</div><div class="label">Scaduti/Sospesi</div></div>';
+  html+='<div class="stat-card"><div class="value" style="color:var(--green)">€'+totalRevenue.toFixed(0)+'</div><div class="label">Incassati</div></div>';
+  html+='<div class="stat-card"><div class="value" style="color:var(--yellow)">€'+pendingRevenue.toFixed(0)+'</div><div class="label">Da incassare</div></div>';
+  html+='</div>';
+
+  // Type info
+  html+='<div class="card mb-4" style="background:rgba(99,102,241,.04);border:1px solid rgba(99,102,241,.15)">';
+  html+='<div class="text-sm" style="display:flex;gap:16px;flex-wrap:wrap">';
+  html+='<span>🎟️ <strong>'+t.entries+'</strong> ingressi</span>';
+  html+='<span>'+expiryLabel+'</span>';
+  html+='<span>💰 <strong>€'+(t.price||0).toFixed(2)+'</strong></span>';
+  if(univ) html+='<span>'+univ.emoji+' '+univ.name+'</span>';
+  html+='</div></div>';
+
+  // Action buttons
+  html+='<div class="flex gap-2 mb-4 flex-wrap">';
+  html+='<button class="btn btn-sm btn-secondary" onclick="editSubType(\''+t.id+'\');document.getElementById(\'sub-type-panel\').remove()">✏️ Modifica</button>';
+  html+='<button class="btn btn-sm" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="exportSubTypeExcel(\''+t.id+'\')">📥 Esporta Excel</button>';
+  html+='</div>';
+
+  // Search + assign inline
+  html+='<div class="card mb-4"><h4 class="font-semibold text-white mb-3 text-sm">➕ Assegna a un utente</h4>';
+  html+='<div class="flex gap-2"><input class="input" id="stp-user-search" placeholder="Cerca per nome o email..." oninput="filterStpUsers(\''+typeId+'\')" style="flex:1"><select class="input" id="stp-payment-sel" style="width:140px;font-size:.8rem"><option value="da_pagare">Da pagare</option><option value="pagato">Pagato</option><option value="omaggiato">Omaggio</option></select></div>';
+  html+='<div id="stp-user-results" class="mt-2"></div></div>';
+
+  // User list
+  html+='<h4 class="font-semibold text-white mb-3 text-sm">👥 Utenti con questo abbonamento ('+allSubs.length+')</h4>';
+  html+='<input class="input mb-3" id="stp-filter-search" placeholder="🔍 Filtra utenti..." oninput="filterStpList(\''+typeId+'\')" style="max-width:300px">';
+  html+='<div id="stp-user-list">';
+  html+=_renderStpUserList(allSubs,t);
+  html+='</div>';
+
+  o.innerHTML='<div class="dialog" style="max-width:700px;width:95%;max-height:90vh;overflow-y:auto">'+html+'</div>';
+  document.body.appendChild(o);
+  o.addEventListener('click',e=>{if(e.target===o)o.remove()});
+}
+
+function _renderStpUserList(subs,sType){
+  if(!subs.length) return '<div class="text-sm txt3 text-center" style="padding:20px">Nessun utente ha questo abbonamento.</div>';
+  let html='<div class="card" style="padding:0;overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:.82rem">';
+  html+='<thead><tr style="background:var(--s200);text-align:left"><th style="padding:8px 10px;color:var(--txt2)">Utente</th><th style="padding:8px 10px;color:var(--txt2)">Ingressi</th><th style="padding:8px 10px;color:var(--txt2)">Scadenza</th><th style="padding:8px 10px;color:var(--txt2)">Pagamento</th><th style="padding:8px 10px;color:var(--txt2)">Stato</th><th style="padding:8px 10px;color:var(--txt2)"></th></tr></thead><tbody>';
+  subs.sort((a,b)=>(a.status==='active'?0:1)-(b.status==='active'?0:1)||(a.userName||'').localeCompare(b.userName||'')).forEach(s=>{
+    const remaining=s.entriesTotal-s.entriesUsed;
+    const pctUsed=s.entriesTotal?Math.round(s.entriesUsed/s.entriesTotal*100):0;
+    const statusBadge=s.status==='active'?'<span class="badge badge-pubblicato" style="font-size:.7rem">Attivo</span>':s.status==='expired'?'<span class="badge badge-red" style="font-size:.7rem">Scaduto</span>':'<span class="badge badge-yellow" style="font-size:.7rem">Sospeso</span>';
+    const payBadge=s.paymentStatus==='pagato'?'<span style="color:var(--green);font-size:.75rem">✅</span>':s.paymentStatus==='prezzo_modificato'?'<span style="color:var(--yellow);font-size:.75rem">💰⚠️</span>':s.paymentStatus==='omaggiato'?'<span style="color:var(--purple);font-size:.75rem">🎁</span>':'<span style="color:var(--red);font-size:.75rem">❌</span>';
+    const expDate=s.expiresAt?fmtDateShort(s.expiresAt.split('T')[0]):'∞';
+    html+='<tr style="border-bottom:1px solid var(--s300);cursor:pointer" onclick="showSubDetail(\''+s.id+'\')">';
+    html+='<td style="padding:8px 10px"><div class="font-medium text-white text-sm">'+(s.userName||'N/D')+'</div><div class="text-xs txt3">'+(s.userEmail||'')+'</div></td>';
+    html+='<td style="padding:8px 10px"><div class="text-sm text-white">'+remaining+'/'+s.entriesTotal+'</div><div style="background:var(--s400);border-radius:3px;height:3px;width:50px;margin-top:3px"><div style="background:'+(remaining<=2?'var(--red)':'var(--green)')+';border-radius:3px;height:3px;width:'+pctUsed+'%"></div></div></td>';
+    html+='<td style="padding:8px 10px" class="text-sm txt2">'+expDate+'</td>';
+    html+='<td style="padding:8px 10px">'+payBadge+'</td>';
+    html+='<td style="padding:8px 10px">'+statusBadge+'</td>';
+    html+='<td style="padding:8px 10px"><button class="btn btn-sm btn-ghost" style="font-size:.7rem" onclick="event.stopPropagation();showSubDetail(\''+s.id+'\')">👁️</button></td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+  return html;
+}
+
+function filterStpUsers(typeId){
+  const q=(document.getElementById('stp-user-search')?.value||'').toLowerCase();
+  const cont=document.getElementById('stp-user-results');if(!cont)return;
+  if(!q||q.length<2){cont.innerHTML='';return;}
+  const seen=new Set();const allMatches=[];
+  [...store.users,...store.managers].forEach(u=>{
+    if(!seen.has(u.id)&&((u.username||'').toLowerCase().includes(q)||(u.email||'').toLowerCase().includes(q))){
+      seen.add(u.id);allMatches.push(u);
+    }
+  });
+  const matches=allMatches.slice(0,8);
+  if(!matches.length){cont.innerHTML='<div class="text-xs txt3">Nessun utente trovato</div>';return;}
+  cont.innerHTML=matches.map(u=>{
+    const alreadyHas=store.subscriptions.some(s=>s.typeId===typeId&&s.userId===u.id&&s.status==='active');
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border:1px solid var(--s300);border-radius:8px;margin-bottom:4px;background:var(--s100)"><div><span class="text-sm font-medium text-white">'+escHtml(u.username||'')+'</span><span class="text-xs txt3 ml-2">'+escHtml(u.email||'')+'</span>'+(alreadyHas?' <span class="badge" style="font-size:.6rem;background:var(--green-bg);color:var(--green)">già assegnato</span>':'')+'</div>'+(alreadyHas?'':'<button class="btn btn-sm btn-primary" style="font-size:.7rem" onclick="assignFromPanel(\''+typeId+'\',\''+escHtml(u.id)+'\',\''+escHtml(u.username||'')+'\',\''+escHtml(u.email||'')+'\')">Assegna</button>')+'</div>';
+  }).join('');
+}
+
+async function assignFromPanel(typeId,userId,userName,userEmail){
+  const payment=document.getElementById('stp-payment-sel')?.value||'da_pagare';
+  const sType=store.subscriptionTypes.find(t=>t.id===typeId);
+  const amount=payment==='pagato'?(sType?.price||0):0;
+  await createSubscription(typeId,userId,userName,userEmail,store.currentUser.id,payment,amount,'','Assegnazione da pannello');
+  showToast('Abbonamento assegnato a '+userName+'!');
+  // Refresh panel
+  document.getElementById('sub-type-panel')?.remove();
+  openSubTypePanel(typeId);
+}
+
+function filterStpList(typeId){
+  const q=(document.getElementById('stp-filter-search')?.value||'').toLowerCase();
+  const t=store.subscriptionTypes.find(x=>x.id===typeId);
+  let subs=store.subscriptions.filter(s=>s.typeId===typeId);
+  if(q) subs=subs.filter(s=>(s.userName||'').toLowerCase().includes(q)||(s.userEmail||'').toLowerCase().includes(q));
+  const cont=document.getElementById('stp-user-list');
+  if(cont) cont.innerHTML=_renderStpUserList(subs,t);
+}
+
+// Excel export for a specific subscription type
+async function exportSubTypeExcel(typeId){
+  const t=store.subscriptionTypes.find(x=>x.id===typeId);if(!t)return;
+  const subs=store.subscriptions.filter(s=>s.typeId===typeId);
+  if(!subs.length){showToast('Nessun abbonamento da esportare','error');return;}
+  if(typeof ExcelJS==='undefined'){
+    const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';document.head.appendChild(s);
+    await new Promise(r=>{s.onload=r;setTimeout(r,6000);});
+  }
+  if(typeof ExcelJS==='undefined'){showToast('Errore caricamento libreria','error');return;}
+  const wb=new ExcelJS.Workbook();wb.creator='BodyEvents';
+  const ws=wb.addWorksheet('Abbonamenti');
+  const totalCols=8;
+
+  // Title row
+  ws.mergeCells(1,1,1,totalCols);
+  const titleCell=ws.getCell('A1');
+  titleCell.value='Abbonamento: '+t.name;
+  titleCell.font={name:'Calibri',size:16,bold:true,color:{argb:'FFFFFFFF'}};
+  titleCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF6366F1'}};
+  titleCell.alignment={horizontal:'center',vertical:'middle'};
+  ws.getRow(1).height=36;
+
+  // Subtitle
+  ws.mergeCells(2,1,2,totalCols);
+  const subCell=ws.getCell('A2');
+  subCell.value='Ingressi: '+t.entries+' | Prezzo: €'+(t.price||0).toFixed(2)+' | Esportato il: '+new Date().toLocaleDateString('it-IT');
+  subCell.font={name:'Calibri',size:10,italic:true,color:{argb:'FF9CA3AF'}};
+  subCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1E1E2E'}};
+  subCell.alignment={horizontal:'center',vertical:'middle'};
+  ws.getRow(2).height=22;
+  ws.getRow(3).height=8;
+
+  // Headers
+  const headers=['Nome','Email','Data assegnazione','Stato pagamento','Ingressi usati','Ingressi totali','Scadenza','Stato'];
+  const headerRow=ws.getRow(4);
+  headers.forEach((h,i)=>{
+    const cell=headerRow.getCell(i+1);
+    cell.value=h;
+    cell.font={name:'Calibri',size:11,bold:true,color:{argb:'FFFFFFFF'}};
+    cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF8B5CF6'}};
+    cell.alignment={horizontal:'left',vertical:'middle'};
+    cell.border={bottom:{style:'medium',color:{argb:'FF6366F1'}}};
+  });
+  headerRow.height=28;
+
+  // Data
+  subs.sort((a,b)=>(a.userName||'').localeCompare(b.userName||'')).forEach((s,ri)=>{
+    const row=ws.getRow(5+ri);
+    row.getCell(1).value=s.userName||'';
+    row.getCell(2).value=s.userEmail||'';
+    row.getCell(3).value=s.assignedAt?.split('T')[0]||'';
+    row.getCell(4).value={pagato:'Pagato',da_pagare:'Da pagare',parziale:'Parziale',omaggiato:'Omaggio',prezzo_modificato:'Prezzo modificato'}[s.paymentStatus]||s.paymentStatus;
+    row.getCell(5).value=s.entriesUsed;row.getCell(5).alignment={horizontal:'center'};
+    row.getCell(6).value=s.entriesTotal;row.getCell(6).alignment={horizontal:'center'};
+    row.getCell(7).value=s.expiresAt?s.expiresAt.split('T')[0]:'Illimitata';
+    row.getCell(8).value={active:'Attivo',expired:'Scaduto',suspended:'Sospeso'}[s.status]||s.status;
+    const bgColor=ri%2===0?'FFF8F8FC':'FFFFFFFF';
+    for(let ci=1;ci<=totalCols;ci++){
+      const cell=row.getCell(ci);
+      cell.font={name:'Calibri',size:10.5};
+      cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:bgColor}};
+      cell.border={bottom:{style:'thin',color:{argb:'FFE5E7EB'}}};
+    }
+    // Color payment status cell
+    const payCell=row.getCell(4);
+    if(s.paymentStatus==='pagato')payCell.font={name:'Calibri',size:10.5,color:{argb:'FF10B981'}};
+    else if(s.paymentStatus==='da_pagare')payCell.font={name:'Calibri',size:10.5,color:{argb:'FFEF4444'}};
+    else if(s.paymentStatus==='prezzo_modificato')payCell.font={name:'Calibri',size:10.5,bold:true,color:{argb:'FFF59E0B'}};
+    row.height=22;
+  });
+
+  // Summary row
+  const sumRow=ws.getRow(5+subs.length);
+  sumRow.getCell(1).value='TOTALI';sumRow.getCell(1).font={name:'Calibri',size:11,bold:true,color:{argb:'FF10B981'}};
+  sumRow.getCell(5).value=subs.reduce((s,x)=>s+x.entriesUsed,0);sumRow.getCell(5).font={name:'Calibri',size:11,bold:true};sumRow.getCell(5).alignment={horizontal:'center'};
+  sumRow.getCell(6).value=subs.reduce((s,x)=>s+x.entriesTotal,0);sumRow.getCell(6).font={name:'Calibri',size:11,bold:true};sumRow.getCell(6).alignment={horizontal:'center'};
+  for(let ci=1;ci<=totalCols;ci++){
+    sumRow.getCell(ci).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF0FDF4'}};
+    sumRow.getCell(ci).border={top:{style:'medium',color:{argb:'FF10B981'}},bottom:{style:'medium',color:{argb:'FF10B981'}}};
+  }
+  sumRow.height=26;
+
+  // Column widths
+  [28,30,16,20,14,14,16,14].forEach((w,i)=>{ws.getColumn(i+1).width=w;});
+  ws.autoFilter={from:{row:4,column:1},to:{row:4,column:totalCols}};
+
+  const buf=await wb.xlsx.writeBuffer();
+  const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Abbonamento_'+t.name.replace(/[^a-zA-Z0-9àèéìòùÀÈÉÌÒÙ ]/g,'_')+'_'+new Date().toISOString().split('T')[0]+'.xlsx';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
   showToast('Excel scaricato!');
 }
 
@@ -4268,7 +4667,7 @@ function renderListToolbar(listId,reg){
   const cfg=getListConfig(reg,listId);
   const allCols=reg.columns||[];
   const hidden=new Set(cfg.hiddenCols||[]);
-  let h='<div class="flex gap-2 items-center" style="flex-wrap:wrap;padding:6px 16px;border-top:1px solid var(--s300)">';
+  let h='<div class="flex gap-2 items-center" style="flex-wrap:wrap;padding:8px 16px;border-bottom:1px solid var(--s300)">';
   h+='<button class="btn btn-sm" style="font-size:.7rem;padding:3px 8px;background:var(--s200);color:var(--txt2);border:1px solid var(--s400)" onclick="openRegistryColumnModal(\''+listId+'\')">➕ Colonna</button>';
   // Always show column visibility button when there are any columns
   if(allCols.length>0){
@@ -4279,6 +4678,8 @@ function renderListToolbar(listId,reg){
   }
   if(listId==='main'){
     h+='<button class="btn btn-sm" style="font-size:.7rem;padding:3px 8px;background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="exportRegistryExcel()">📥 Excel</button>';
+  } else {
+    h+='<button class="btn btn-sm" style="font-size:.7rem;padding:3px 8px;background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="exportSublistExcel(\''+listId+'\')">📥 Excel</button>';
   }
   h+='</div>';
   return h;
@@ -4596,6 +4997,7 @@ function deleteRegistryColumn(colId){
 
 // Sublist management
 function openRegistrySublistModal(){
+  _editingSublistId=null;
   const reg=getRegistryData();
   if((reg.sublists||[]).length>=5){showToast('Massimo 5 sottoliste','error');return;}
   const cols=reg.columns||[];
@@ -4660,13 +5062,23 @@ function confirmRegistrySublist(){
   });
   if(!conditions.length){showToast('Aggiungi almeno una condizione','error');return;}
   const reg=getRegistryData();if(!reg.sublists)reg.sublists=[];
-  const id='sl_'+Date.now().toString(36);
-  // Derive a display logic string (for backward compat display)
   const logics=[...new Set(conditions.slice(1).map(c=>c.logic||'AND'))];
   const displayLogic=logics.length===1?logics[0]:'MIXED';
-  reg.sublists.push({id,name,logic:displayLogic,conditions,visible:true});
-  saveRegistry();closeModal();renderAdminRegistry();
-  showToast('Sottolista "'+name+'" creata');
+
+  if(_editingSublistId){
+    // Edit mode — update existing sublist
+    const sl=reg.sublists.find(s=>s.id===_editingSublistId);
+    if(sl){sl.name=name;sl.logic=displayLogic;sl.conditions=conditions;}
+    _editingSublistId=null;
+    saveRegistry();closeModal();renderAdminRegistry();
+    showToast('Sottolista "'+name+'" aggiornata');
+  } else {
+    // Create mode
+    const id='sl_'+Date.now().toString(36);
+    reg.sublists.push({id,name,logic:displayLogic,conditions,visible:true});
+    saveRegistry();closeModal();renderAdminRegistry();
+    showToast('Sottolista "'+name+'" creata');
+  }
 }
 
 function filterRegistrySublist(entries,sublist,columns){
@@ -4708,7 +5120,7 @@ function renderRegistrySublists(reg){
   if(!sublists.length){area.innerHTML='';return;}
   let html='';
   // Toggle bar
-  html+='<div class="card mb-3" style="padding:10px 16px"><div class="flex gap-2 items-center" style="flex-wrap:wrap"><span class="text-xs font-semibold" style="color:var(--txt2)">Sottoliste:</span>';
+  html+='<div class="card" style="padding:10px 16px;margin-bottom:20px"><div class="flex gap-2 items-center" style="flex-wrap:wrap"><span class="text-xs font-semibold" style="color:var(--txt2)">Sottoliste:</span>';
   sublists.forEach(sl=>{
     html+='<button class="btn btn-sm" style="font-size:.75rem;padding:4px 10px;border-radius:8px;'+(sl.visible?'background:rgba(99,102,241,.15);color:var(--brand-l);border:1px solid rgba(99,102,241,.3)':'background:var(--s200);color:var(--txt3);border:1px solid var(--s400)')+'" onclick="toggleSublistVisibility(\''+sl.id+'\')">'+escHtml(sl.name)+(sl.visible?' ✓':'')+'</button>';
     html+='<button style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:.6rem;margin-left:-6px" onclick="deleteSublist(\''+sl.id+'\')" title="Elimina">✕</button>';
@@ -4719,14 +5131,19 @@ function renderRegistrySublists(reg){
     const filtered=filterRegistrySublist(reg.entries,sl,reg.columns);
     const theadId='sl-thead-'+sl.id;const tbodyId='sl-tbody-'+sl.id;const bodyId='sl-body-'+sl.id;
     const slCollapsed=isRegistryCollapsed(sl.id);
-    html+='<div class="card mb-3" style="overflow:hidden">';
+    html+='<div class="card" style="overflow:hidden;margin-bottom:20px">';
     html+='<div style="padding:10px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;background:rgba(99,102,241,.06)" onclick="toggleRegistryCollapse(\''+sl.id+'\')">';
     html+='<h4 class="font-semibold" style="margin:0;color:var(--brand-l);font-size:.9rem">📂 '+escHtml(sl.name)+' <span class="text-xs txt3" style="font-weight:400">('+filtered.length+' utenti · '+sl.logic+')</span></h4>';
-    html+='<div class="flex items-center gap-2"><button class="btn btn-sm" style="font-size:.65rem;padding:2px 8px;background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.2)" onclick="event.stopPropagation();exportSublistExcel(\''+sl.id+'\')">📥</button><span class="coll-arrow text-xs txt3">'+(slCollapsed?'▸':'▾')+'</span></div>';
+    html+='<div class="flex items-center gap-2" onclick="event.stopPropagation()">';
+    html+='<button class="btn btn-sm" style="font-size:.65rem;padding:2px 8px;background:var(--s200);color:var(--txt2);border:1px solid var(--s400)" onclick="editSublist(\''+sl.id+'\')" title="Modifica">✏️</button>';
+    html+='<button class="btn btn-sm" style="font-size:.65rem;padding:2px 8px;background:var(--red-bg);color:var(--red);border:1px solid rgba(239,68,68,.3)" onclick="deleteSublist(\''+sl.id+'\')" title="Elimina">🗑️</button>';
+    html+='<span class="coll-arrow text-xs txt3" onclick="toggleRegistryCollapse(\''+sl.id+'\')" style="cursor:pointer">'+(slCollapsed?'▸':'▾')+'</span>';
     html+='</div>';
-    html+='<div id="'+bodyId+'"'+(slCollapsed?' class="hidden"':'')+' ><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.82rem"><thead id="'+theadId+'"></thead><tbody id="'+tbodyId+'"></tbody></table></div>';
-    // Toolbar per sublist
-    html+='<div id="sl-toolbar-'+sl.id+'"'+(slCollapsed?' class="hidden"':'')+'></div>';
+    html+='</div>';
+    html+='<div id="'+bodyId+'"'+(slCollapsed?' class="hidden"':'')+' >';
+    // Toolbar per sublist — ABOVE table like main
+    html+='<div id="sl-toolbar-'+sl.id+'"></div>';
+    html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.82rem"><thead id="'+theadId+'"></thead><tbody id="'+tbodyId+'"></tbody></table></div>';
     html+='</div></div>';
   });
   area.innerHTML=html;
@@ -4742,6 +5159,46 @@ function renderRegistrySublists(reg){
 function toggleSublistVisibility(slId){
   const reg=getRegistryData();const sl=(reg.sublists||[]).find(s=>s.id===slId);
   if(sl)sl.visible=!sl.visible;saveRegistry();renderAdminRegistry();
+}
+let _editingSublistId=null;
+function editSublist(slId){
+  const reg=getRegistryData();
+  const sl=(reg.sublists||[]).find(s=>s.id===slId);if(!sl)return;
+  const cols=reg.columns||[];
+  if(!cols.length){showToast('Nessuna colonna disponibile','error');return;}
+  _editingSublistId=slId;
+  const html=`<div style="padding:20px"><h3 class="font-semibold text-white mb-4">✏️ Modifica sottolista</h3>
+    <div class="mb-3"><label class="label">Nome sottolista</label><input class="input" id="reg-sl-name" placeholder="es. Staff, Livello avanzato..." value="${escHtml(sl.name)}"></div>
+    <div class="mb-3"><label class="label">Condizioni</label>
+      <div id="reg-sl-conditions"></div>
+      <button class="btn btn-sm mt-2" style="background:var(--s200);color:var(--txt2);border:1px solid var(--s400)" onclick="addSublistCondition()">+ Aggiungi condizione</button>
+    </div>
+    <div class="flex gap-2 mt-4"><button class="btn btn-primary flex-1" onclick="confirmRegistrySublist()">💾 Salva modifiche</button><button class="btn btn-secondary flex-1" onclick="_editingSublistId=null;closeModal()">Annulla</button></div>
+  </div>`;
+  openGenericModal(html);
+  // Re-populate existing conditions
+  setTimeout(()=>{
+    const conds=sl.conditions||[];
+    conds.forEach((cond,idx)=>{
+      addSublistCondition();
+      const condDiv=document.getElementById('reg-sl-cond-'+_slCondIdx);if(!condDiv)return;
+      // Set column
+      const colSel=condDiv.querySelector('[data-role=col]');
+      if(colSel){colSel.value=cond.colId;updateConditionOp(colSel,_slCondIdx);}
+      // Set operator
+      const opSel=condDiv.querySelector('[data-role=op]');
+      if(opSel)opSel.value=cond.op;
+      // Set value
+      const valEl=condDiv.querySelector('[data-role=val]');
+      if(valEl)valEl.value=cond.value;
+      // Set logic connector (for conditions after the first)
+      if(idx>0){
+        const wrapEl=document.getElementById('reg-sl-cond-wrap-'+_slCondIdx);
+        const logicSel=wrapEl?.querySelector('[data-role=logic]');
+        if(logicSel)logicSel.value=cond.logic||'AND';
+      }
+    });
+  },80);
 }
 function deleteSublist(slId){
   showConfirm('Elimina sottolista','Vuoi eliminare questa sottolista?',()=>{
@@ -4762,23 +5219,114 @@ function exportRegistryExcel(sublistId){
 function exportSublistExcel(slId){exportRegistryExcel(slId);}
 
 async function _exportRegistryXLSX(title,entries,cols){
-  if(typeof XLSX==='undefined'){
-    const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';document.head.appendChild(s);
-    await new Promise(r=>{s.onload=r;setTimeout(r,5000);});
+  // Load ExcelJS for styled export
+  if(typeof ExcelJS==='undefined'){
+    const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';document.head.appendChild(s);
+    await new Promise(r=>{s.onload=r;setTimeout(r,6000);});
   }
-  if(typeof XLSX==='undefined'){showToast('Errore caricamento libreria Excel','error');return;}
-  const header=['Nome','Email',...cols.map(c=>c.name)];
-  const rows=entries.map(e=>{
-    const row=[e.name||'',e.email||''];
-    cols.forEach(c=>{const v=e.customData?.[c.id];if(c.type==='boolean')row.push(v?'✅ Sì':'❌ No');else if(c.type==='color'){const idx=REGISTRY_COLORS.indexOf(v);row.push(idx>=0?REGISTRY_COLOR_NAMES[idx]:'—');}else if(c.type==='number')row.push(parseFloat(v)||0);else row.push(v||'');});
-    return row;
+  if(typeof ExcelJS==='undefined'){showToast('Errore caricamento libreria Excel','error');return;}
+
+  const wb=new ExcelJS.Workbook();
+  wb.creator='BodyEvents';wb.created=new Date();
+  const ws=wb.addWorksheet('Anagrafica',{properties:{defaultRowHeight:20}});
+
+  const totalCols=2+cols.length;
+
+  // --- Row 1: Title ---
+  ws.mergeCells(1,1,1,totalCols);
+  const titleCell=ws.getCell('A1');
+  titleCell.value=title;
+  titleCell.font={name:'Calibri',size:16,bold:true,color:{argb:'FFFFFFFF'}};
+  titleCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF6366F1'}};
+  titleCell.alignment={horizontal:'center',vertical:'middle'};
+  ws.getRow(1).height=36;
+
+  // --- Row 2: Export date ---
+  ws.mergeCells(2,1,2,totalCols);
+  const dateCell=ws.getCell('A2');
+  dateCell.value='Esportato il: '+new Date().toLocaleDateString('it-IT',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  dateCell.font={name:'Calibri',size:10,italic:true,color:{argb:'FF9CA3AF'}};
+  dateCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1E1E2E'}};
+  dateCell.alignment={horizontal:'center',vertical:'middle'};
+  ws.getRow(2).height=22;
+
+  // --- Row 3: Spacer ---
+  ws.getRow(3).height=8;
+
+  // --- Row 4: Headers ---
+  const headerRow=ws.getRow(4);
+  const headers=['Nome','Email',...cols.map(c=>c.name)];
+  headers.forEach((h,i)=>{
+    const cell=headerRow.getCell(i+1);
+    cell.value=h;
+    cell.font={name:'Calibri',size:11,bold:true,color:{argb:'FFFFFFFF'}};
+    cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF8B5CF6'}};
+    cell.alignment={horizontal:i>=2&&cols[i-2]&&(cols[i-2].type==='number'||cols[i-2].type==='boolean')?'center':'left',vertical:'middle'};
+    cell.border={bottom:{style:'medium',color:{argb:'FF6366F1'}}};
   });
-  const data=[[title],['Esportato il: '+new Date().toLocaleDateString('it-IT')],[],header,...rows];
-  const ws=XLSX.utils.aoa_to_sheet(data);
-  ws['!cols']=[{wch:25},{wch:30},...cols.map(()=>({wch:18}))];
-  ws['!merges']=[{s:{r:0,c:0},e:{r:0,c:1+cols.length}},{s:{r:1,c:0},e:{r:1,c:1+cols.length}}];
-  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Anagrafica');
-  XLSX.writeFile(wb,title.replace(/[^a-zA-Z0-9àèéìòùÀÈÉÌÒÙ ]/g,'_')+'.xlsx');
+  headerRow.height=28;
+
+  // --- Data rows ---
+  entries.forEach((e,ri)=>{
+    const row=ws.getRow(5+ri);
+    row.getCell(1).value=e.name||'';
+    row.getCell(2).value=e.email||'';
+    cols.forEach((c,ci)=>{
+      const v=e.customData?.[c.id];
+      const cell=row.getCell(3+ci);
+      if(c.type==='boolean'){cell.value=v?'Sì':'No';}
+      else if(c.type==='color'){const idx=REGISTRY_COLORS.indexOf(v);cell.value=idx>=0?REGISTRY_COLOR_NAMES[idx]:'—';}
+      else if(c.type==='number'){cell.value=parseFloat(v)||0;}
+      else{cell.value=v||'';}
+      cell.alignment={horizontal:(c.type==='number'||c.type==='boolean')?'center':'left',vertical:'middle'};
+    });
+    // Zebra striping
+    const bgColor=ri%2===0?'FFF8F8FC':'FFFFFFFF';
+    for(let ci=1;ci<=totalCols;ci++){
+      const cell=row.getCell(ci);
+      cell.font={name:'Calibri',size:10.5};
+      cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:bgColor}};
+      cell.border={bottom:{style:'thin',color:{argb:'FFE5E7EB'}}};
+    }
+    row.height=22;
+  });
+
+  // --- Totals row for number columns ---
+  const numCols=cols.filter(c=>c.type==='number');
+  if(numCols.length>0){
+    const totRow=ws.getRow(5+entries.length);
+    totRow.getCell(1).value='TOTALI';
+    totRow.getCell(1).font={name:'Calibri',size:11,bold:true,color:{argb:'FF10B981'}};
+    cols.forEach((c,ci)=>{
+      if(c.type==='number'){
+        const sum=entries.reduce((s,e)=>s+(parseFloat(e.customData?.[c.id])||0),0);
+        const cell=totRow.getCell(3+ci);
+        cell.value=sum;
+        cell.font={name:'Calibri',size:11,bold:true,color:{argb:'FF10B981'}};
+        cell.alignment={horizontal:'center'};
+      }
+    });
+    for(let ci=1;ci<=totalCols;ci++){
+      totRow.getCell(ci).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF0FDF4'}};
+      totRow.getCell(ci).border={top:{style:'medium',color:{argb:'FF10B981'}},bottom:{style:'medium',color:{argb:'FF10B981'}}};
+    }
+    totRow.height=26;
+  }
+
+  // --- Column widths ---
+  ws.getColumn(1).width=28;
+  ws.getColumn(2).width=32;
+  cols.forEach((c,i)=>{ws.getColumn(3+i).width=c.type==='number'?14:c.type==='boolean'?12:20;});
+
+  // --- Auto-filter on header row ---
+  ws.autoFilter={from:{row:4,column:1},to:{row:4,column:totalCols}};
+
+  // --- Download ---
+  const buf=await wb.xlsx.writeBuffer();
+  const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=title.replace(/[^a-zA-Z0-9àèéìòùÀÈÉÌÒÙ ]/g,'_')+'.xlsx';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
   showToast('File Excel scaricato');
 }
 
@@ -4799,6 +5347,7 @@ let currentMode='user';
 
 // === Firebase Auth Functions ===
 let _loginInProgress=false;
+let _registrationInProgress=false;
 async function loginWithGoogle(){
   try{
     _loginInProgress=true;
@@ -4919,6 +5468,18 @@ async function loadCurrentUser(uid){
   if(mgrDoc.exists){
     store.currentUser=mgrDoc.data();
     if(!store.managers.find(m=>m.id===uid)){store.managers.push(mgrDoc.data());}
+
+    // Block access if pending approval
+    if(store.currentUser.status==='pending_approval'){
+      document.getElementById('modeBanner').style.display='none';
+      document.getElementById('navbar-user').classList.remove('hidden');
+      document.querySelectorAll('.profile-name-user').forEach(el=>el.textContent=store.currentUser.username||'');
+      updateUserAvatarDisplay();
+      // Show a pending approval message instead of admin panel
+      showPendingApprovalView();
+      return;
+    }
+
     // Update navbar name/org
     document.querySelectorAll('.profile-name').forEach(el=>el.textContent=store.currentUser.username||'');
     document.querySelectorAll('.profile-name-user').forEach(el=>el.textContent=store.currentUser.username||'');
@@ -4936,6 +5497,32 @@ async function loadCurrentUser(uid){
   }
   showToast('Profilo non trovato. Contatta il supporto.','error');
   fbAuth.signOut();
+}
+
+function showPendingApprovalView(){
+  // Show a message that the org registration is pending approval
+  const c=document.getElementById('dynamic-event-detail');
+  // Use a simple overlay approach — show events view with a banner
+  go('events');
+  setTimeout(()=>{
+    const o=document.createElement('div');o.className='overlay';o.id='pending-approval-overlay';
+    o.innerHTML=`<div class="dialog" style="max-width:500px;width:90%;text-align:center">
+      <div style="font-size:3rem;margin-bottom:16px">🛡️</div>
+      <h2 class="text-xl font-bold text-white mb-3">Richiesta in attesa di approvazione</h2>
+      <p class="txt2 text-sm mb-4" style="line-height:1.6">La tua richiesta di registrazione come organizzatore per <strong class="text-white">${escHtml(store.currentUser.orgName||'')}</strong> è in fase di revisione.</p>
+      <div class="card mb-4" style="background:var(--s200);text-align:left;padding:16px">
+        <div class="text-xs txt3 mb-2" style="letter-spacing:.3px">PROSSIMI PASSI</div>
+        <div class="text-sm txt2" style="line-height:1.8">
+          1. Il Master Admin verificherà i tuoi dati<br>
+          2. Riceverai una conferma via email<br>
+          3. Potrai accedere alla vista organizzatore
+        </div>
+      </div>
+      <p class="text-xs txt3 mb-4">Nel frattempo puoi navigare l'app come utente, esplorare gli eventi e iscriverti.</p>
+      <button class="btn btn-primary btn-sm" onclick="document.getElementById('pending-approval-overlay')?.remove()">Continua come utente</button>
+    </div>`;
+    document.body.appendChild(o);
+  },200);
 }
 
 function doLogout(){
@@ -4968,6 +5555,7 @@ async function submitUserRegistration(){
   if(!privacyCheck){showToast('Devi accettare l\'Informativa sulla Privacy','error');return;}
 
   try{
+    _registrationInProgress=true;
     const cred=await fbAuth.createUserWithEmailAndPassword(email,password);
     await cred.user.updateProfile({displayName:username});
     const now=new Date().toISOString();
@@ -4983,13 +5571,79 @@ async function submitUserRegistration(){
       consents:{privacy:privacyCheck,privacyDate:privacyCheck?now:null,marketing:marketingCheck,marketingDate:marketingCheck?now:null}
     };
     await fbDb.collection('users').doc(cred.user.uid).set(userData);
+    _registrationInProgress=false;
     document.getElementById('reg-form').classList.add('hidden');
     document.getElementById('reg-sent').classList.remove('hidden');
     showToast('Registrazione completata: '+username);
   }catch(e){
+    _registrationInProgress=false;
     if(e.code==='auth/email-already-in-use'){showToast('Questa email è già registrata','error');}
     else if(e.code==='auth/weak-password'){showToast('Password troppo debole (minimo 6 caratteri)','error');}
     else{showToast('Errore: '+e.message,'error');}
+  }
+}
+
+// Google registration for organizers — validates org fields first, then Google auth
+async function submitOrgRegistrationGoogle(){
+  const orgName=(document.getElementById('rego-orgname')?.value||'').trim();
+  const city=(document.getElementById('rego-city')?.value||'').trim();
+  const desc=(document.getElementById('rego-desc')?.value||'').trim();
+  const ageCheck=document.getElementById('rego-age-check')?.checked||false;
+  const privacyCheck=document.getElementById('rego-privacy-check')?.checked||false;
+  const termsCheck=document.getElementById('rego-terms-check')?.checked||false;
+  const marketingCheck=document.getElementById('rego-marketing-check')?.checked||false;
+  const selectedUnivs=Array.from(document.querySelectorAll('.rego-univ-check:checked')).map(cb=>cb.value);
+  const newUnivName=(document.getElementById('rego-new-univ-name')?.value||'').trim();
+  const newUnivEmoji=(document.getElementById('rego-new-univ-emoji')?.value||'').trim();
+  const newUnivRoles=(document.getElementById('rego-new-univ-roles')?.value||'').trim();
+
+  // Validate org fields (username/email/password not needed for Google)
+  if(!orgName||!city){showToast('Compila il nome del gruppo e la città prima di procedere','error');return;}
+  if(!ageCheck){showToast('Devi confermare di avere almeno 14 anni','error');return;}
+  if(!privacyCheck){showToast('Devi accettare l\'Informativa sulla Privacy','error');return;}
+  if(!termsCheck){showToast('Devi accettare le Condizioni d\'Uso','error');return;}
+  if(!selectedUnivs.length&&!newUnivName){showToast('Seleziona almeno un universo o proponi un nuovo','error');return;}
+
+  try{
+    _registrationInProgress=true;
+    const provider=new firebase.auth.GoogleAuthProvider();
+    const result=await fbAuth.signInWithPopup(provider);
+    const user=result.user;
+    const now=new Date().toISOString();
+
+    // Check if this Google account is already registered as user or manager
+    const existingUser=await fbDb.collection('users').doc(user.uid).get();
+    const existingMgr=await fbDb.collection('managers').doc(user.uid).get();
+    if(existingUser.exists||existingMgr.exists){
+      _registrationInProgress=false;
+      showToast('Questo account Google è già registrato. Usa il login normale.','error');
+      return;
+    }
+
+    // If proposing a new universe, create it as pending
+    if(newUnivName){
+      const roles=newUnivRoles?newUnivRoles.split(',').map(r=>r.trim()).filter(r=>r):[];
+      const newUnivId=genId('univ');
+      const newUniv={id:newUnivId,name:newUnivName,emoji:newUnivEmoji||'🌐',color:UNIVERSE_PALETTE[store.universes.length%UNIVERSE_PALETTE.length],roles,pendingRoles:[],status:'pending',createdBy:user.uid,approvedBy:null,createdAt:now};
+      await fbDb.collection('universes').doc(newUnivId).set(newUniv);
+      selectedUnivs.push(newUnivId);
+    }
+
+    const mgrData={
+      id:user.uid,username:user.displayName||user.email.split('@')[0],email:user.email,
+      orgName,city,description:desc,role:'manager',status:'pending_approval',
+      universes:selectedUnivs,authMethod:'google',
+      consents:{privacy:privacyCheck,privacyDate:privacyCheck?now:null,terms:termsCheck,termsDate:termsCheck?now:null,marketing:marketingCheck,marketingDate:marketingCheck?now:null},
+      requestedAt:now.split('T')[0]
+    };
+    await fbDb.collection('managers').doc(user.uid).set(mgrData);
+    _registrationInProgress=false;
+    document.getElementById('reg-org-form').classList.add('hidden');
+    document.getElementById('reg-org-sent').classList.remove('hidden');
+    showToast('Richiesta organizzatore inviata per: '+orgName);
+  }catch(e){
+    _registrationInProgress=false;
+    if(e.code!=='auth/popup-closed-by-user')showToast('Errore: '+e.message,'error');
   }
 }
 
@@ -5034,6 +5688,7 @@ async function submitOrgRegistration(){
   if(!selectedUnivs.length&&!newUnivName){showToast('Seleziona almeno un universo o proponi un nuovo','error');return;}
 
   try{
+    _registrationInProgress=true;
     const cred=await fbAuth.createUserWithEmailAndPassword(email,password);
     await cred.user.updateProfile({displayName:username});
     const now=new Date().toISOString();
@@ -5054,10 +5709,12 @@ async function submitOrgRegistration(){
       requestedAt:now.split('T')[0]
     };
     await fbDb.collection('managers').doc(cred.user.uid).set(mgrData);
+    _registrationInProgress=false;
     document.getElementById('reg-org-form').classList.add('hidden');
     document.getElementById('reg-org-sent').classList.remove('hidden');
     showToast('Richiesta organizzatore inviata per: '+orgName);
   }catch(e){
+    _registrationInProgress=false;
     if(e.code==='auth/email-already-in-use'){showToast('Questa email è già registrata','error');}
     else if(e.code==='auth/weak-password'){showToast('Password troppo debole (minimo 6 caratteri)','error');}
     else{showToast('Errore: '+e.message,'error');}
@@ -5298,7 +5955,7 @@ async function saveProfileChanges(){
 }
 
 /* ============================================================
-   IMAGE PROCESSING PIPELINE + CROP/ZOOM MODAL (V2.16.1)
+   IMAGE PROCESSING PIPELINE + CROP/ZOOM MODAL (V2.17.1)
    - Accepts any common image format (JPEG, PNG, WebP, BMP, GIF, HEIC*)
    - Auto-resizes to max 256x256 (avatars) or 300x300 (logos)
    - Converts to JPEG at quality 0.82 (~15-40KB output)
@@ -5577,6 +6234,12 @@ function populateOrgProfile(){
   // Phone & contact email
   const phoneEl=document.getElementById('org-profile-phone');if(phoneEl)phoneEl.value=mgr.phone||'';
   const contactEmailEl=document.getElementById('org-profile-contact-email');if(contactEmailEl)contactEmailEl.value=mgr.contactEmail||'';
+  // Social links
+  const social=mgr.socialLinks||{};
+  const waEl=document.getElementById('org-profile-whatsapp');if(waEl)waEl.value=social.whatsapp||'';
+  const igEl=document.getElementById('org-profile-instagram');if(igEl)igEl.value=social.instagram||'';
+  const fbEl=document.getElementById('org-profile-facebook');if(fbEl)fbEl.value=social.facebook||'';
+  const webEl=document.getElementById('org-profile-website');if(webEl)webEl.value=social.website||'';
   // Universes
   const uWrap=document.getElementById('org-profile-universes');
   if(uWrap){
@@ -5666,14 +6329,23 @@ async function saveOrgProfile(){
     mgr.orgName=nameVal;mgr.orgEmoji=emojiVal;mgr.city=cityVal;mgr.description=descVal;mgr.username=usernameVal;
     mgr.initials=usernameVal.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
     mgr.phone=phoneVal;mgr.contactEmail=contactEmailVal;
+    // Social links
+    const socialLinks={
+      whatsapp:(document.getElementById('org-profile-whatsapp')?.value||'').trim(),
+      instagram:(document.getElementById('org-profile-instagram')?.value||'').trim(),
+      facebook:(document.getElementById('org-profile-facebook')?.value||'').trim(),
+      website:(document.getElementById('org-profile-website')?.value||'').trim()
+    };
+    mgr.socialLinks=socialLinks;
     if(logoData)mgr.orgLogo=logoData;else if(logoData===false)mgr.orgLogo=null;
   }
   u.orgName=nameVal;u.orgEmoji=emojiVal;u.city=cityVal;u.description=descVal;u.username=usernameVal;
   u.initials=usernameVal.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
   u.phone=phoneVal;u.contactEmail=contactEmailVal;
+  u.socialLinks=mgr?.socialLinks||{};
   if(logoData)u.orgLogo=logoData;else if(logoData===false)u.orgLogo=null;
   // Update Firestore
-  const updateData={orgName:nameVal,orgEmoji:emojiVal,city:cityVal,description:descVal,username:usernameVal,initials:u.initials,phone:phoneVal,contactEmail:contactEmailVal};
+  const updateData={orgName:nameVal,orgEmoji:emojiVal,city:cityVal,description:descVal,username:usernameVal,initials:u.initials,phone:phoneVal,contactEmail:contactEmailVal,socialLinks:mgr?.socialLinks||{}};
   if(logoData)updateData.orgLogo=logoData;
   else if(logoData===false)updateData.orgLogo=null;
   await fsUpdate('managers',u.id,updateData).catch(console.error);
@@ -6971,7 +7643,7 @@ function setBookingPayment(bookingId,status){
 function renderCheckinA(){
   const c=document.getElementById('checkin-a-content');if(!c)return;
   const ev=getCheckinEvent();
-  if(!ev){c.innerHTML='<p class="txt3">Nessun evento selezionato. Torna a Check-in QR e seleziona un evento.</p><button class="btn btn-secondary mt-4" onclick="go(\'admin-checkin\')">← Torna</button>';return;}
+  if(!ev){c.innerHTML='<p class="txt3">Nessun evento selezionato. Torna a Presenze e Check-in e seleziona un evento.</p><button class="btn btn-secondary mt-4" onclick="go(\'admin-checkin\')">← Torna</button>';return;}
   // Find first booked user for this event (for check-in preview)
   const bk=store.bookings.find(b=>b.eventId===ev.id&&b.status!=='cancellata'&&(!checkinRecDate||(b.recurringDate||null)===checkinRecDate));
   const userName=bk?bk.userName:'Nessun utente';
@@ -7288,7 +7960,7 @@ function renderUserEvents(){
           <div style="display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px;font-size:.72rem;color:var(--txt3)">
             <span>📅 ${dateRange}</span><span>🕐 ${d0?.startTime||''} – ${d0?.endTime||''}</span><span>📍 ${escHtml(ev.location)}</span>
           </div>
-          <div style="font-size:.7rem;color:var(--txt3);margin-top:3px">con ${escHtml(ev.teacher)} · <span style="color:var(--brand-l)">${escHtml(ev.orgName)}</span>${ev.partnerIds&&ev.partnerIds.length?' <span style="color:#a855f7">+ '+ev.partnerIds.length+' partner</span>':''}</div>${_deadlineBanner}
+          <div style="font-size:.7rem;color:var(--txt3);margin-top:3px">con ${escHtml(ev.teacher)} · <a style="color:var(--brand-l);cursor:pointer;text-decoration:none" onclick="event.stopPropagation();showOrgPublicProfile('${ev.managerId}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${escHtml(ev.orgName)}</a>${ev.partnerIds&&ev.partnerIds.length?' <span style="color:#a855f7">+ '+ev.partnerIds.length+' partner</span>':''}</div>${_deadlineBanner}
         </div>
       </div>
     </div>`;
@@ -8907,6 +9579,78 @@ function collectCheckinBookingData(ev,prefix){
 }
 
 /* ==============================
+   ORG PUBLIC PROFILE OVERLAY
+============================== */
+function showOrgPublicProfile(managerId){
+  const mgr=store.managers.find(m=>m.id===managerId);
+  if(!mgr){showToast('Organizzatore non trovato','error');return;}
+  const social=mgr.socialLinks||{};
+  const univ=mgr.universes?mgr.universes.map(uid=>{const u=store.universes.find(x=>x.id===uid);return u?(u.emoji+' '+u.name):null;}).filter(Boolean):[];
+  const eventCount=store.events.filter(e=>e.managerId===managerId&&e.status==='pubblicato').length;
+
+  const o=document.createElement('div');o.className='overlay';o.style.zIndex='10001';
+  let html='<div style="text-align:center;margin-bottom:20px">';
+  // Logo/avatar
+  if(mgr.orgLogo){
+    html+='<div style="width:88px;height:88px;border-radius:50%;margin:0 auto 12px;overflow:hidden;border:3px solid var(--brand);box-shadow:0 0 24px rgba(99,102,241,.2)"><img src="'+mgr.orgLogo+'" style="width:100%;height:100%;object-fit:cover"></div>';
+  } else {
+    html+='<div style="width:88px;height:88px;border-radius:50%;margin:0 auto 12px;background:var(--brand-bg);display:flex;align-items:center;justify-content:center;font-size:2.4rem;border:3px solid var(--brand);box-shadow:0 0 24px rgba(99,102,241,.2)">'+(mgr.orgEmoji||'🛡️')+'</div>';
+  }
+  html+='<h2 class="font-bold text-white text-xl">'+escHtml(mgr.orgName)+'</h2>';
+  if(mgr.city) html+='<p class="text-sm txt3 mt-1">📍 '+escHtml(mgr.city)+'</p>';
+  html+='</div>';
+
+  // Universes
+  if(univ.length){
+    html+='<div class="flex gap-2 flex-wrap justify-center mb-4">';
+    univ.forEach(u=>{html+='<span class="badge" style="background:var(--brand-bg);color:var(--brand-l)">'+u+'</span>';});
+    html+='</div>';
+  }
+
+  // Description
+  if(mgr.description){
+    html+='<div class="card mb-4" style="background:rgba(99,102,241,.04);border:1px solid rgba(99,102,241,.12)">';
+    html+='<p class="text-sm txt2" style="line-height:1.6">'+escHtml(mgr.description)+'</p>';
+    html+='</div>';
+  }
+
+  // Stats
+  html+='<div style="display:flex;gap:12px;justify-content:center;margin-bottom:20px">';
+  html+='<div style="text-align:center;padding:10px 20px;background:var(--s200);border-radius:12px"><div class="font-bold text-white text-lg">'+eventCount+'</div><div class="text-xs txt3">Eventi</div></div>';
+  html+='</div>';
+
+  // Contact info
+  const hasContact=mgr.phone||mgr.contactEmail;
+  const hasSocial=social.whatsapp||social.instagram||social.facebook||social.website;
+  if(hasContact||hasSocial){
+    html+='<div class="card" style="padding:16px">';
+    if(hasContact){
+      html+='<h4 class="font-semibold text-white text-sm mb-3">📞 Contatti</h4>';
+      if(mgr.phone) html+='<a href="tel:'+escHtml(mgr.phone)+'" style="display:flex;align-items:center;gap:10px;padding:8px 0;color:var(--txt);text-decoration:none"><span style="width:36px;height:36px;border-radius:10px;background:rgba(16,185,129,.1);display:flex;align-items:center;justify-content:center;font-size:1rem">📞</span><div><div class="text-sm text-white">'+escHtml(mgr.phone)+'</div><div class="text-xs txt3">Telefono</div></div></a>';
+      if(mgr.contactEmail) html+='<a href="mailto:'+escHtml(mgr.contactEmail)+'" style="display:flex;align-items:center;gap:10px;padding:8px 0;color:var(--txt);text-decoration:none"><span style="width:36px;height:36px;border-radius:10px;background:rgba(99,102,241,.1);display:flex;align-items:center;justify-content:center;font-size:1rem">📧</span><div><div class="text-sm text-white">'+escHtml(mgr.contactEmail)+'</div><div class="text-xs txt3">Email</div></div></a>';
+    }
+    if(hasSocial){
+      if(hasContact) html+='<div style="border-top:1px solid var(--s300);margin:12px 0"></div>';
+      html+='<h4 class="font-semibold text-white text-sm mb-3">🔗 Social e community</h4>';
+      html+='<div style="display:flex;gap:10px;flex-wrap:wrap">';
+      if(social.whatsapp) html+='<a href="'+escHtml(social.whatsapp)+'" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;padding:10px 16px;background:rgba(37,211,102,.1);border:1px solid rgba(37,211,102,.25);border-radius:12px;color:#25d366;text-decoration:none;font-size:.85rem;font-weight:600;flex:1;min-width:140px;justify-content:center"><span style="font-size:1.2rem">💬</span> WhatsApp</a>';
+      if(social.instagram) html+='<a href="'+escHtml(social.instagram)+'" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;padding:10px 16px;background:rgba(228,64,95,.08);border:1px solid rgba(228,64,95,.2);border-radius:12px;color:#e4405f;text-decoration:none;font-size:.85rem;font-weight:600;flex:1;min-width:140px;justify-content:center"><span style="font-size:1.2rem">📸</span> Instagram</a>';
+      if(social.facebook) html+='<a href="'+escHtml(social.facebook)+'" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;padding:10px 16px;background:rgba(24,119,242,.08);border:1px solid rgba(24,119,242,.2);border-radius:12px;color:#1877f2;text-decoration:none;font-size:.85rem;font-weight:600;flex:1;min-width:140px;justify-content:center"><span style="font-size:1.2rem">👤</span> Facebook</a>';
+      if(social.website) html+='<a href="'+escHtml(social.website)+'" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:8px;padding:10px 16px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:12px;color:var(--brand-l);text-decoration:none;font-size:.85rem;font-weight:600;flex:1;min-width:140px;justify-content:center"><span style="font-size:1.2rem">🌐</span> Sito web</a>';
+      html+='</div>';
+    }
+    html+='</div>';
+  }
+
+  // Close button
+  html+='<div class="text-center mt-4"><button class="btn btn-ghost" onclick="this.closest(\'.overlay\').remove()">Chiudi</button></div>';
+
+  o.innerHTML='<div class="dialog" style="max-width:480px;width:92%;max-height:85vh;overflow-y:auto">'+html+'</div>';
+  document.body.appendChild(o);
+  o.addEventListener('click',e=>{if(e.target===o)o.remove()});
+}
+
+/* ==============================
    RENDER: DYNAMIC EVENT DETAIL
 ============================== */
 function showEventDetail(evId,recDate){
@@ -9136,8 +9880,8 @@ function showEventDetail(evId,recDate){
         <div class="txt3 mt-2" style="white-space:pre-wrap;line-height:1.6">${escHtml(ev.description).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')}</div>
         <div class="flex items-center gap-2 mt-3 text-sm txt3">👤 con ${escHtml(ev.teacher)}</div>
         <div class="flex items-center gap-2 mt-2 text-sm">${locLink}</div>
-        <div class="text-xs mt-2" style="color:var(--brand-l)">${escHtml(ev.orgName)}</div>
-        ${(()=>{if(!ev.partnerIds||!ev.partnerIds.length)return '';const pBadges=ev.partnerIds.map(pid=>{const m=store.managers.find(x=>x.id===pid);return m?'<span class="badge" style="background:rgba(168,85,247,.1);color:#a855f7;font-size:.65rem;padding:3px 8px">🤝 '+escHtml(m.orgName)+'</span>':'';}).filter(Boolean).join('');return '<div class="flex gap-2 flex-wrap mt-2">'+pBadges+'</div>';})()}
+        <div class="text-xs mt-2"><a style="color:var(--brand-l);cursor:pointer;text-decoration:none" onclick="event.stopPropagation();showOrgPublicProfile('${ev.managerId}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${escHtml(ev.orgName)}</a></div>
+        ${(()=>{if(!ev.partnerIds||!ev.partnerIds.length)return '';const pBadges=ev.partnerIds.map(pid=>{const m=store.managers.find(x=>x.id===pid);return m?'<span class="badge" style="background:rgba(168,85,247,.1);color:#a855f7;font-size:.65rem;padding:3px 8px;cursor:pointer" onclick="event.stopPropagation();showOrgPublicProfile(\''+pid+'\')">🤝 '+escHtml(m.orgName)+'</span>':'';}).filter(Boolean).join('');return '<div class="flex gap-2 flex-wrap mt-2">'+pBadges+'</div>';})()}
         ${payLinks.length?'<div class="flex gap-3 mt-4 flex-wrap" style="padding-top:16px;border-top:1px solid var(--s300)">'+payLinks.join('')+'</div>':''}
         ${contactHtml}
       </div>
@@ -11879,12 +12623,13 @@ function renderUsersTab(){
   } else {
     const masters=store.managers.filter(m=>m.role==='master').length;
     const managers=store.managers.filter(m=>m.role==='manager').length;
+    const pendingMgrs=store.managers.filter(m=>m.status==='pending_approval').length;
     const totalEvs=store.events.length;
     if(statsRow)statsRow.innerHTML=`
       <div class="stat-card"><div class="value" style="color:var(--brand-l)">${masters}</div><div class="label">Master</div></div>
       <div class="stat-card"><div class="value" style="color:var(--green)">${managers}</div><div class="label">Organizzatori</div></div>
-      <div class="stat-card"><div class="value" style="color:var(--blue)">${store.managers.length}</div><div class="label">Totale</div></div>
-      <div class="stat-card"><div class="value" style="color:var(--yellow)">${totalEvs}</div><div class="label">Eventi totali</div></div>`;
+      <div class="stat-card"><div class="value" style="color:var(--yellow)">${pendingMgrs}</div><div class="label">In attesa</div></div>
+      <div class="stat-card"><div class="value" style="color:var(--blue)">${totalEvs}</div><div class="label">Eventi totali</div></div>`;
 
     let list=store.managers.filter(m=>{
       if(!q)return true;
@@ -11892,21 +12637,40 @@ function renderUsersTab(){
     });
     if(!list.length){c.innerHTML='<div class="card text-center txt2 mt-4">Nessun organizzatore trovato</div>';return;}
     let html='<div class="overflow-auto"><table class="table w-full"><thead><tr>';
-    html+='<th>Organizzatore</th><th>Organizzazione</th><th>Email</th><th>Ruolo</th><th>Eventi</th><th>Azioni</th>';
+    html+='<th>Organizzatore</th><th>Organizzazione</th><th>Email</th><th>Ruolo</th><th>Stato</th><th>Eventi</th><th>Azioni</th>';
     html+='</tr></thead><tbody>';
     list.forEach(m=>{
       const evCount=store.events.filter(e=>e.managerId===m.id).length;
       const roleBadge=m.role==='master'
         ?'<span class="badge badge-workshop">👑 Master</span>'
         :'<span class="badge badge-pubblicato">🛡️ Manager</span>';
+      const mgrStatus=m.status||'pending_approval';
+      const statusBadge=mgrStatus==='pending_approval'
+        ?'<span class="badge" style="background:var(--yellow-bg);color:var(--yellow)">⏳ In attesa</span>'
+        :(mgrStatus==='approved'||mgrStatus==='attivo')
+        ?'<span class="badge badge-pubblicato">✅ Approvato</span>'
+        :'<span class="badge badge-bozza">'+mgrStatus+'</span>';
       const isSelf=m.id===store.currentUser.id;
       html+='<tr style="cursor:pointer" onclick="showOrgDetail(\''+m.id+'\')">';
       html+='<td class="font-medium">'+escHtml(m.username)+'</td>';
       html+='<td class="text-sm">'+escHtml(m.orgName)+'</td>';
       html+='<td class="text-sm txt2">'+escHtml(m.email)+'</td>';
       html+='<td>'+roleBadge+'</td>';
+      html+='<td>'+statusBadge+'</td>';
       html+='<td class="text-center">'+evCount+'</td>';
-      html+='<td onclick="event.stopPropagation()">'+(isSelf?'<span class="text-sm txt3">— Tu —</span>':'<div class="flex gap-2"><button class="btn btn-sm btn-secondary" onclick="openUserForm(\'org\',\''+m.id+'\')">✏️</button><button class="btn btn-sm" style="background:var(--red-bg);color:var(--red);border:1px solid var(--red)" onclick="startRemoveUser(\''+m.id+'\',\'org\')">🗑️</button></div>')+'</td>';
+      let actionsHtml='';
+      if(isSelf){actionsHtml='<span class="text-sm txt3">— Tu —</span>';}
+      else {
+        actionsHtml='<div class="flex gap-2 flex-wrap">';
+        if(mgrStatus==='pending_approval'){
+          actionsHtml+='<button class="btn btn-sm" style="background:var(--green-bg);color:var(--green);border:1px solid var(--green)" onclick="approveManager(\''+m.id+'\')">✅ Approva</button>';
+          actionsHtml+='<button class="btn btn-sm" style="background:var(--red-bg);color:var(--red);border:1px solid var(--red)" onclick="rejectManager(\''+m.id+'\')">❌ Rifiuta</button>';
+        }
+        actionsHtml+='<button class="btn btn-sm btn-secondary" onclick="openUserForm(\'org\',\''+m.id+'\')">✏️</button>';
+        actionsHtml+='<button class="btn btn-sm" style="background:var(--red-bg);color:var(--red);border:1px solid var(--red)" onclick="startRemoveUser(\''+m.id+'\',\'org\')">🗑️</button>';
+        actionsHtml+='</div>';
+      }
+      html+='<td onclick="event.stopPropagation()">'+actionsHtml+'</td>';
       html+='</tr>';
     });
     html+='</tbody></table></div>';
@@ -12131,6 +12895,24 @@ function saveUserForm(type,editId){
 }
 
 /* === Toggle user active/suspended === */
+function approveManager(mgrId){
+  const m=store.managers.find(x=>x.id===mgrId);if(!m)return;
+  openConfirmDialog('Approvare l\'organizzatore "'+escHtml(m.orgName||m.username)+'"?','Approva',()=>{
+    m.status='approved';
+    fsUpdate('managers',m.id,{status:'approved'}).catch(console.error);
+    showToast('Organizzatore approvato: '+m.orgName);
+    renderUsersTab();
+  });
+}
+function rejectManager(mgrId){
+  const m=store.managers.find(x=>x.id===mgrId);if(!m)return;
+  openConfirmDialog('Rifiutare e rimuovere l\'organizzatore "'+escHtml(m.orgName||m.username)+'"? Questa azione è irreversibile.','Rifiuta',()=>{
+    store.managers=store.managers.filter(x=>x.id!==mgrId);
+    fbDb.collection('managers').doc(mgrId).delete().catch(console.error);
+    showToast('Organizzatore rifiutato e rimosso');
+    renderUsersTab();
+  });
+}
 function toggleUserStatus(userId){
   const u=store.users.find(x=>x.id===userId);if(!u)return;
   if(u.status==='attivo'){
@@ -12784,7 +13566,7 @@ function showAdminEventDetail(evId){
           <span>👤 ${escHtml(ev.teacher)}</span>
         </div>
         <div class="text-sm mt-2">${locLink}</div>
-        <div class="text-xs mt-2" style="color:var(--brand-l)">${escHtml(ev.orgName)} ${getPartnerBadgesHtml(ev)}</div>
+        <div class="text-xs mt-2"><a style="color:var(--brand-l);cursor:pointer;text-decoration:none" onclick="event.stopPropagation();showOrgPublicProfile('${ev.managerId}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${escHtml(ev.orgName)}</a> ${getPartnerBadgesHtml(ev)}</div>
         ${!isEventCapofila(ev,store.currentUser.id)?'<div style="margin-top:6px"><span style="display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:8px;font-size:.75rem;background:rgba(168,85,247,.12);color:#a855f7;border:1px solid rgba(168,85,247,.25)">🤝 Sei partner di questo evento — visualizzazione in sola lettura</span></div>':''}
       </div>
     </div>
@@ -13280,8 +14062,8 @@ function dismissAuthSplash(){
 }
 fbAuth.onAuthStateChanged(async(user)=>{
   if(user){
-    // Skip if loginWithGoogle is handling things (avoids race condition)
-    if(_loginInProgress) return;
+    // Skip if loginWithGoogle or registration is handling things (avoids race condition)
+    if(_loginInProgress||_registrationInProgress) return;
     // Check for magic link sign-in
     if(fbAuth.isSignInWithEmailLink(window.location.href)){
       let email=window.localStorage.getItem('emailForSignIn');
