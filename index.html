@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.28.1</title>
+<title>BodyEvents — V2.29.0</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -26,7 +26,7 @@
 --txt:#f3f4f6;--txt2:#9ca3af;--txt3:#6b7280;
 }
 html{overflow-x:hidden}
-body{background:var(--bg);color:var(--txt);font-family:'Inter',system-ui,-apple-system,sans-serif;line-height:1.5;min-height:100vh;overflow-x:hidden;word-break:break-word}
+body{background:var(--bg);color:var(--txt);font-family:'Inter',system-ui,-apple-system,sans-serif;line-height:1.5;min-height:100vh;overflow-x:hidden}
 a{color:var(--brand-l);text-decoration:none}
 /* Scrollbar */
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--s50)}::-webkit-scrollbar-thumb{background:var(--s400);border-radius:9px}
@@ -315,7 +315,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.28.1</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.29.0</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2838,6 +2838,11 @@ async function fsUpdate(col,id,data){
 async function fsDelete(col,id){
   try{await fbDb.collection(col).doc(id).delete();}
   catch(e){console.error('fsDelete error:',col,id,e);showToast('Errore eliminazione dati','error');}
+}
+/* Safe push: add booking to store only if not already present (prevents in-memory duplicates) */
+function pushBookingSafe(newBooking){
+  if(store.bookings.find(b=>b.id===newBooking.id))return;
+  store.bookings.push(newBooking);
 }
 
 // Load all data from Firestore into local store
@@ -7020,7 +7025,10 @@ function selectBookRole(el){
   el.style.background='var(--brand-d)';el.style.color='#fff';el.style.borderColor='var(--brand)';
   selectedBookRole=el.dataset.role;
 }
-function doBook(){
+async function doBook(){
+  // Block booking if data hasn't loaded yet
+  if(!_dataLoaded){showToast('Caricamento dati in corso, attendi...','error');return;}
+
   const ev=store.events.find(e=>e.id===currentBookingEventId);
   if(!ev){showToast('Errore: evento non trovato','error');return;}
 
@@ -7030,10 +7038,22 @@ function doBook(){
     showToast('Le prenotazioni per questo evento sono chiuse (dal '+fmtDateShort(_effDeadline)+')','error');return;
   }
 
-  // Block duplicate booking — check if user already has an active booking for this event+date
+  // Block duplicate booking — check LOCAL store first
   const _bkRecDate=currentBookingRecDate||null;
   const existingBooking=store.bookings.find(b=>b.eventId===ev.id&&b.userId===store.currentUser.id&&b.status!=='cancellata'&&(b.recurringDate||null)===_bkRecDate);
   if(existingBooking){showToast('Sei già iscritto a questo evento!','error');return;}
+
+  // ALSO verify on Firestore directly (guards against stale local cache)
+  try{
+    const _fbDupSnap=await fbDb.collection('bookings').where('eventId','==',ev.id).where('userId','==',store.currentUser.id).get();
+    const _fbDup=_fbDupSnap.docs.find(d=>{const b=d.data();return b.status!=='cancellata'&&(b.recurringDate||null)===_bkRecDate;});
+    if(_fbDup){
+      // Sync to local store if missing
+      const _fbBkData=_fbDup.data();
+      if(!store.bookings.find(b=>b.id===_fbBkData.id))store.bookings.push(_fbBkData);
+      showToast('Sei già iscritto a questo evento!','error');return;
+    }
+  }catch(e){console.warn('Firestore duplicate check failed, proceeding with local check:',e);}
 
   // === ORGANIZER SELF-BOOKING: free with gift flag ===
   const _isOwnEvent=ev.managerId===store.currentUser.id;
@@ -7085,7 +7105,7 @@ function doBook(){
         surveyResponses:surveyResponses,
         bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
       };
-      store.bookings.push(newBooking);
+      pushBookingSafe(newBooking);
       await fsSet('bookings',newBooking.id,newBooking).catch(console.error);
       _ownOverlay.remove();
       showToast('Iscrizione confermata!');
@@ -7220,7 +7240,7 @@ async function bookWithSubscription(subId,eventId){
         surveyResponses:surveyResponses,
         bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
       };
-      store.bookings.push(newBooking);
+      pushBookingSafe(newBooking);
       await fsSet('bookings',newBooking.id,newBooking).catch(console.error);
       o.remove();
       showToast('Prenotazione confermata con abbonamento! 🎟️');
@@ -7247,7 +7267,7 @@ async function bookWithSubscription(subId,eventId){
     surveyResponses:{},
     bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
   };
-  store.bookings.push(newBooking);
+  pushBookingSafe(newBooking);
   await fsSet('bookings',newBooking.id,newBooking).catch(console.error);
   showToast('Prenotazione confermata con abbonamento! 🎟️');
   go('booking-done');
@@ -7399,7 +7419,7 @@ function _doBookNormal(){
         recurringDate:currentBookingRecDate||null,
         bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
       };
-      store.bookings.push(newBooking);
+      pushBookingSafe(newBooking);
       fsSet('bookings',newBooking.id,newBooking).catch(console.error);
       o.remove();
       showToast(evIsFree?'Iscrizione confermata!':(managedNeedsDeposit?'Prenotazione registrata — invia l\'anticipo per confermare!':'Interesse registrato — l\'organizzatore ti contatterà!'));
@@ -7765,7 +7785,7 @@ function _doBookNormal(){
       surveyResponses:surveyResponses,
       bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
     };
-    store.bookings.push(newBooking);
+    pushBookingSafe(newBooking);
     fsSet('bookings',newBooking.id,newBooking).catch(console.error);
     o.remove();
     showToast(needsDeposit?'Prenotazione registrata! Ricorda di versare l\'anticipo.':'Prenotazione confermata!');
@@ -8577,8 +8597,18 @@ function renderUserDashboard(){
   const uEmail=store.currentUser.email;
   const uName=store.currentUser.username;
   const uid=store.currentUser.id;
-  const active=store.bookings.filter(b=>b.status!=='cancellata'&&(b.userId===uid||b.email===uEmail||b.userName===uName));
-  const cancelled=store.bookings.filter(b=>b.status==='cancellata'&&(b.userId===uid||b.email===uEmail||b.userName===uName));
+  // Deduplicate: keep only one booking per event+recurringDate (latest wins)
+  const _seenBk=new Set();
+  const _dedupFilter=(b,statusMatch)=>{
+    const statusOk=statusMatch?b.status==='cancellata':b.status!=='cancellata';
+    if(!statusOk)return false;
+    if(!(b.userId===uid||b.email===uEmail||b.userName===uName))return false;
+    const key=b.eventId+'__'+(b.recurringDate||'')+'__'+(statusMatch?'c':'a');
+    if(_seenBk.has(key))return false;
+    _seenBk.add(key);return true;
+  };
+  const active=store.bookings.filter(b=>_dedupFilter(b,false));
+  const cancelled=store.bookings.filter(b=>_dedupFilter(b,true));
   // Get community events user has joined
   const joinedJams=store.communityJams.filter(j=>j.status!=='cancellato'&&!(j.alert&&j.alert.type==='cancellato')&&(j.participants||[]).some(p=>p.userId===uid));
 
