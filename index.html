@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.34.5</title>
+<title>BodyEvents — V2.34.6</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -329,7 +329,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.34.5</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.34.6</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -8352,13 +8352,7 @@ function renderAttendance(){
       return '<td class="text-xs" title="'+display+'">'+truncated+'</td>';
     }).join('');
   };
-  const _ciSessionMap={};ev.days.forEach(d=>(d.sessions||[]).forEach(s=>{_ciSessionMap[s.id]=s.name;}));
-  const _ciAllSessIds=[];ev.days.forEach(d=>(d.sessions||[]).forEach(s=>_ciAllSessIds.push(s.id)));
-  const sessionsLabel=(b)=>{
-    if(!b.sessions||!b.sessions.length)return b.scope==='evento'?'Evento intero':'—';
-    if(_ciAllSessIds.length>0&&_ciAllSessIds.every(id=>b.sessions.includes(id)))return'Evento intero';
-    return b.sessions.map(sid=>_ciSessionMap[sid]||sid).join(', ');
-  };
+  const sessionsLabel=(b)=>buildSessionBadges(b.sessions,ev,'text');
   // Sort: checked-in first, then not arrived
   const sortedBks=[...bks].sort((a,b)=>{
     if(a.checkedIn&&!b.checkedIn)return -1;if(!a.checkedIn&&b.checkedIn)return 1;
@@ -8429,12 +8423,9 @@ function renderCheckinA(){
   const amount=bk?bk.amount:0;
   const payStatus=bk?(bk.paymentStatus==='gratuito'?'Gratuito':bk.paymentStatus==='pagato'?'Pagato':'In attesa'):'—';
   // Session-agnostic: show all sessions the user is booked for
-  const _ciMap2={};ev.days.forEach(d=>(d.sessions||[]).forEach(s=>{_ciMap2[s.id]=s.name;}));
-  const _ciAll2=[];ev.days.forEach(d=>(d.sessions||[]).forEach(s=>_ciAll2.push(s.id)));
   const sessionsInfo=(()=>{
-    if(!bk||!bk.sessions||!bk.sessions.length)return'<div class="text-xs mt-1" style="color:var(--green)">✅ Evento intero</div>';
-    if(_ciAll2.length>0&&_ciAll2.every(id=>bk.sessions.includes(id)))return'<div class="text-xs mt-1" style="color:var(--green)">✅ Evento intero</div>';
-    return bk.sessions.map(sid=>'<div class="text-xs mt-1" style="color:var(--green)">✅ '+(_ciMap2[sid]||sid)+'</div>').join('');
+    const label=buildSessionBadges(bk?bk.sessions:null,ev,'text');
+    return'<div class="text-xs mt-1" style="color:var(--green)">✅ '+label+'</div>';
   })();
   c.innerHTML=`
     <div style="font-size:4rem;margin-bottom:16px">✅</div>
@@ -10946,20 +10937,29 @@ function showEventDetail(evId,recDate){
           });
           sessionsHtml+='</div>';
         } else {
-          // Fallback: show sessions from IDs
-          const sessionMap={};
-          ev.days.forEach(d=>(d.sessions||[]).forEach(s=>{sessionMap[s.id]=s;}));
+          // Fallback: smart session display from IDs using day-grouping logic
+          const _sessionMap={};
+          ev.days.forEach(d=>(d.sessions||[]).forEach(s=>{_sessionMap[s.id]=s;}));
           const _allEvSIds=[];ev.days.forEach(d=>(d.sessions||[]).forEach(s=>_allEvSIds.push(s.id)));
-          const _coversAll=myBooking.sessions&&myBooking.sessions.length&&_allEvSIds.length>0&&_allEvSIds.every(id=>myBooking.sessions.includes(id));
-          if(myBooking.sessions&&myBooking.sessions.length&&!_coversAll){
+          const _sIds=myBooking.sessions||[];
+          const _coversAll=_sIds.length&&_allEvSIds.length>0&&_allEvSIds.every(id=>_sIds.includes(id));
+          if(!_sIds.length||_coversAll){
+            sessionsHtml='<div class="mb-3"><div class="text-xs txt3 mb-2" style="text-transform:uppercase;letter-spacing:.5px">Tipo</div><div class="text-sm text-white">Intero evento</div></div>';
+          } else {
+            // Analyse per-day coverage
             sessionsHtml='<div class="mb-3"><div class="text-xs txt3 mb-2" style="text-transform:uppercase;letter-spacing:.5px">Sessioni prenotate</div>';
-            myBooking.sessions.forEach(sid=>{
-              const s=sessionMap[sid];
-              if(s) sessionsHtml+='<div class="py-2 text-sm text-white" style="border-bottom:1px solid var(--s200)">'+s.name+' <span class="text-xs txt3">'+s.startTime+' — '+s.endTime+'</span></div>';
+            ev.days.forEach((d,di)=>{
+              const daySessIds=(d.sessions||[]).map(s=>s.id);
+              const coveredAll=daySessIds.length>0&&daySessIds.every(id=>_sIds.includes(id));
+              if(coveredAll){
+                sessionsHtml+='<div class="py-2 text-sm text-white" style="border-bottom:1px solid var(--s200)">📅 Giornata '+(ev.days.length>1?(di+1):'')+(d.date?' <span class="text-xs txt3">'+fmtDateShort(d.date)+'</span>':'')+'</div>';
+              } else {
+                (d.sessions||[]).forEach(s=>{
+                  if(_sIds.includes(s.id)) sessionsHtml+='<div class="py-2 text-sm text-white" style="border-bottom:1px solid var(--s200)">'+s.name+' <span class="text-xs txt3">'+s.startTime+' — '+s.endTime+'</span></div>';
+                });
+              }
             });
             sessionsHtml+='</div>';
-          } else {
-            sessionsHtml='<div class="mb-3"><div class="text-xs txt3 mb-2" style="text-transform:uppercase;letter-spacing:.5px">Tipo</div><div class="text-sm text-white">Intero evento</div></div>';
           }
         }
         // Survey responses
@@ -13468,14 +13468,8 @@ function renderAdminBookings(){
   const getEvTitle=id=>{const ev=store.events.find(e=>e.id===id);return ev?ev.title:'—';};
   const getEvType=id=>{const ev=store.events.find(e=>e.id===id);return ev?ev.type:'';};
   const getSessionNames=(evId,sIds)=>{
-    if(!sIds||!sIds.length)return'Intero evento';
-    const ev=store.events.find(e=>e.id===evId);if(!ev)return'—';
-    // If sessions covers ALL event sessions → "Intero evento"
-    const allIds=[];ev.days.forEach(d=>(d.sessions||[]).forEach(s=>allIds.push(s.id)));
-    if(allIds.length>0&&allIds.every(id=>sIds.includes(id)))return'Intero evento';
-    const names=[];
-    ev.days.forEach(d=>d.sessions.forEach(s=>{if(sIds.includes(s.id))names.push(s.name.length>20?s.name.substring(0,18)+'…':s.name);}));
-    return names.length?names.join(', '):'Intero evento';
+    const _ev=store.events.find(e=>e.id===evId);if(!_ev)return'—';
+    return buildSessionBadges(sIds,_ev,'text');
   };
   tw.innerHTML=`<table class="table">
     <thead><tr><th>Utente</th><th>Evento</th><th>Dettaglio</th><th>Totale</th><th>Pagato</th><th>Anticipo</th><th>Azioni</th></tr></thead>
@@ -14274,6 +14268,68 @@ function bookingIncludesSession(b,sessionId,ev){
   return false;
 }
 
+/**
+ * Smart session badge builder.
+ * Analyses which sessions a booking covers and returns the most readable representation:
+ *  - ALL sessions of ALL days → "Intero evento"
+ *  - ALL sessions of some days (+ optional loose sessions) → "📅 Giornata N" badges + individual session badges
+ *  - Only loose sessions → individual session name badges
+ *
+ * @param {string[]} sIds - array of booked session IDs
+ * @param {object} ev - event object with ev.days[].sessions[]
+ * @param {'html'|'text'} mode - 'html' returns styled badge spans, 'text' returns plain text
+ * @returns {string}
+ */
+function buildSessionBadges(sIds,ev,mode){
+  if(!mode)mode='html';
+  const days=ev.days||[];
+  // Gather all event session IDs
+  const allIds=[];days.forEach(d=>(d.sessions||[]).forEach(s=>allIds.push(s.id)));
+  // Empty or no sessions
+  if(!sIds||!sIds.length||allIds.length===0){
+    return mode==='html'?'<span class="badge" style="background:var(--green-bg);color:var(--green);font-size:.65rem;white-space:nowrap">Intero evento</span>':'Intero evento';
+  }
+  // ALL sessions = intero evento
+  if(allIds.every(id=>sIds.includes(id))){
+    return mode==='html'?'<span class="badge" style="background:var(--green-bg);color:var(--green);font-size:.65rem;white-space:nowrap">Intero evento</span>':'Intero evento';
+  }
+  // Analyse per-day coverage
+  const dayBadges=[];const looseSessions=[];
+  days.forEach((d,di)=>{
+    const daySessIds=(d.sessions||[]).map(s=>s.id);
+    if(!daySessIds.length)return;
+    const coveredAll=daySessIds.every(id=>sIds.includes(id));
+    if(coveredAll){
+      const dayLabel=days.length>1?'📅 Giornata '+(di+1):'📅 Giornata';
+      dayBadges.push({label:dayLabel,date:d.date});
+    } else {
+      // Check individual sessions from this day
+      (d.sessions||[]).forEach(s=>{
+        if(sIds.includes(s.id)){
+          const nm=s.name||s.id;
+          looseSessions.push(nm.length>22?nm.substring(0,20)+'…':nm);
+        }
+      });
+    }
+  });
+  if(mode==='html'){
+    let html='<div class="flex flex-wrap gap-1">';
+    dayBadges.forEach(db=>{
+      html+='<span class="badge" style="background:rgba(59,130,246,.12);color:#60a5fa;font-size:.65rem;white-space:nowrap;padding:3px 8px">'+db.label+'</span>';
+    });
+    looseSessions.forEach(nm=>{
+      html+='<span class="badge" style="background:var(--brand-bg);color:var(--brand-l);font-size:.65rem;white-space:nowrap;padding:3px 8px" title="'+nm+'">'+nm+'</span>';
+    });
+    html+='</div>';
+    return html;
+  } else {
+    const parts=[];
+    dayBadges.forEach(db=>parts.push(db.label.replace('📅 ','')));
+    looseSessions.forEach(nm=>parts.push(nm));
+    return parts.length?parts.join(', '):'Intero evento';
+  }
+}
+
 function setAdminDetailMode(mode){
   adminDetailView.mode=mode;
   if(mode==='sessione'&&!adminDetailView.selectedSessionId){
@@ -14326,14 +14382,7 @@ async function downloadExcel(){
   const thinBorder={top:{style:'thin',color:{argb:'FFE5E7EB'}},bottom:{style:'thin',color:{argb:'FFE5E7EB'}},left:{style:'thin',color:{argb:'FFE5E7EB'}},right:{style:'thin',color:{argb:'FFE5E7EB'}}};
 
   const roleName=r=>r==='base'?'Base':r==='flyer'?'Flyer':r==='non_so'?'Non lo so':r==='entrambi'?'Entrambi':'—';
-  const sessionMap={};
-  ev.days.forEach(d=>d.sessions.forEach(s=>{sessionMap[s.id]=s.name;}));
-  const allEvSessionIds=[];ev.days.forEach(d=>(d.sessions||[]).forEach(s=>allEvSessionIds.push(s.id)));
-  const getSessionLabel=(sIds)=>{
-    if(!sIds||!sIds.length)return'Intero evento';
-    if(allEvSessionIds.length>0&&allEvSessionIds.every(id=>sIds.includes(id)))return'Intero evento';
-    return sIds.map(sid=>sessionMap[sid]||sid).join(', ');
-  };
+  const getSessionLabel=(sIds)=>buildSessionBadges(sIds,ev,'text');
   const payLabel=b=>b.gift?'Regalo':b.paymentStatus==='pagato'?'Pagato':b.paymentStatus==='gratuito'?'Gratuito':'Non pagato';
   const depLabel=b=>b.depositStatus==='ricevuto'?'Ricevuto':b.depositStatus==='pending'?'Pending':'—';
 
@@ -14664,20 +14713,8 @@ function showAdminEventDetail(evId){
   const locLink=ev.locationUrl?`<a href="${ev.locationUrl}" target="_blank" style="color:var(--brand-l)">📍 ${escHtml(ev.location)} ↗</a>`:`📍 ${escHtml(ev.location)}`;
   const roleName=r=>r==='base'?'💪 Base':r==='flyer'?'🦅 Flyer':r==='non_so'?'🤷 Non lo so ancora':r==='entrambi'?'🔄 Entrambi':'—';
   const roleColor=r=>r==='base'?'var(--green)':r==='flyer'?'var(--blue)':r==='non_so'?'var(--txt3)':'var(--purple)';
-  // Session name lookup
-  const sessionMap={};
-  ev.days.forEach(d=>d.sessions.forEach(s=>{sessionMap[s.id]=s.name;}));
-  const allEventSessionIds=[];ev.days.forEach(d=>(d.sessions||[]).forEach(s=>allEventSessionIds.push(s.id)));
-  const getSessionNames=(sIds)=>{
-    if(!sIds||!sIds.length)return'<span class="badge" style="background:var(--green-bg);color:var(--green);font-size:.65rem;white-space:nowrap">Intero evento</span>';
-    // If sessions covers ALL event sessions → show "Intero evento"
-    if(allEventSessionIds.length>0&&allEventSessionIds.every(id=>sIds.includes(id)))return'<span class="badge" style="background:var(--green-bg);color:var(--green);font-size:.65rem;white-space:nowrap">Intero evento</span>';
-    return'<div class="flex flex-wrap gap-1">'+sIds.map(sid=>{
-      const nm=sessionMap[sid]||sid;
-      const short=nm.length>22?nm.substring(0,20)+'…':nm;
-      return'<span class="badge" style="background:var(--brand-bg);color:var(--brand-l);font-size:.65rem;white-space:nowrap;padding:3px 8px" title="'+nm+'">'+short+'</span>';
-    }).join('')+'</div>';
-  };
+  // Session name lookup — uses global buildSessionBadges()
+  const getSessionNames=(sIds)=>buildSessionBadges(sIds,ev,'html');
 
   // View toggle for multi-session events
   let viewSubtitle='';
