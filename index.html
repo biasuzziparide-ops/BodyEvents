@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.33.1</title>
+<title>BodyEvents — V2.34.0</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -329,7 +329,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.33.1</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.34.0</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -3785,15 +3785,63 @@ function renderSubTypes(c){
   c.innerHTML=html;
 }
 
+// Sort state for subscriptions table
+let _subSortField='status';
+let _subSortDir='asc';
+function toggleSubSort(field){
+  if(_subSortField===field) _subSortDir=_subSortDir==='asc'?'desc':'asc';
+  else{_subSortField=field;_subSortDir='asc';}
+  renderSubAssigned(document.getElementById('admin-sub-content'));
+}
+
 function renderSubAssigned(c){
   const mgr=store.currentUser;
   const isMaster=mgr.role==='master';
   const mySubs=store.subscriptions.filter(s=>isMaster||s.managerId===mgr.id);
 
+  // ── METRICHE ECONOMICHE ──
+  const totalSold=mySubs.length;
+  const paidSubs=mySubs.filter(s=>s.paymentStatus==='pagato'||s.paymentStatus==='parziale');
+  const freeSubs=mySubs.filter(s=>s.paymentStatus==='gratuito'||s.paymentStatus==='omaggiato'||(s.paymentAmount||0)===0);
+  const totalRevenue=paidSubs.reduce((sum,s)=>sum+(s.paymentAmount||0),0);
+  const pendingSubs=mySubs.filter(s=>s.paymentStatus==='da_pagare'||s.paymentStatus==='prezzo_modificato');
+  const pendingRevenue=pendingSubs.reduce((sum,s)=>sum+(s.paymentAmount||0),0);
+  // Revenue per type
+  const revenueByType={};
+  mySubs.forEach(s=>{
+    const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
+    const tName=sType?.name||s.typeId;
+    if(!revenueByType[tName]) revenueByType[tName]={paid:0,count:0,free:0};
+    revenueByType[tName].count++;
+    if(s.paymentStatus==='pagato'||s.paymentStatus==='parziale') revenueByType[tName].paid+=(s.paymentAmount||0);
+    if(s.paymentStatus==='gratuito'||s.paymentStatus==='omaggiato'||(s.paymentAmount||0)===0) revenueByType[tName].free++;
+  });
+
+  let html='';
+  // Metrics cards
+  html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px">';
+  html+='<div class="card" style="padding:14px;text-align:center;border-color:var(--green)"><div class="text-xs txt3 mb-1">💰 Entrate totali</div><div class="text-lg font-bold" style="color:var(--green)">€'+totalRevenue.toFixed(2)+'</div></div>';
+  html+='<div class="card" style="padding:14px;text-align:center;border-color:var(--yellow)"><div class="text-xs txt3 mb-1">⏳ Da incassare</div><div class="text-lg font-bold" style="color:var(--yellow)">€'+pendingRevenue.toFixed(2)+'</div></div>';
+  html+='<div class="card" style="padding:14px;text-align:center"><div class="text-xs txt3 mb-1">📊 Totale venduti</div><div class="text-lg font-bold text-white">'+(totalSold-freeSubs.length)+'</div></div>';
+  html+='<div class="card" style="padding:14px;text-align:center"><div class="text-xs txt3 mb-1">🆓 Gratuiti/Omaggio</div><div class="text-lg font-bold text-white">'+freeSubs.length+'</div></div>';
+  html+='</div>';
+  // Revenue per type (collapsible)
+  const typeEntries=Object.entries(revenueByType);
+  if(typeEntries.length>0){
+    html+='<details class="card mb-4" style="padding:12px;cursor:pointer"><summary class="font-semibold text-white text-sm mb-2">📊 Dettaglio per tipologia</summary>';
+    html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:10px">';
+    typeEntries.forEach(([name,data])=>{
+      html+='<div style="background:var(--s200);border-radius:8px;padding:10px 12px"><div class="font-medium text-white text-sm">'+escHtml(name)+'</div>';
+      html+='<div class="text-xs txt3 mt-1">'+data.count+' assegnati · '+data.free+' gratuiti</div>';
+      html+='<div class="text-sm mt-1" style="color:var(--green)">💰 €'+data.paid.toFixed(2)+'</div></div>';
+    });
+    html+='</div></details>';
+  }
+
   // Filters
-  let html='<div class="flex gap-3 mb-4 flex-wrap">';
+  html+='<div class="flex gap-3 mb-4 flex-wrap">';
   html+='<select class="input" id="sub-filter-status" onchange="renderSubAssigned(document.getElementById(\'admin-sub-content\'))" style="max-width:180px;font-size:.85rem"><option value="">Tutti gli stati</option><option value="active">Attivi</option><option value="expired">Scaduti</option><option value="suspended">Sospesi</option></select>';
-  html+='<select class="input" id="sub-filter-payment" onchange="renderSubAssigned(document.getElementById(\'admin-sub-content\'))" style="max-width:180px;font-size:.85rem"><option value="">Tutti i pagamenti</option><option value="pagato">Pagato</option><option value="da_pagare">Da pagare</option><option value="parziale">Parziale</option><option value="omaggiato">Omaggio</option><option value="prezzo_modificato">Prezzo modificato</option></select>';
+  html+='<select class="input" id="sub-filter-payment" onchange="renderSubAssigned(document.getElementById(\'admin-sub-content\'))" style="max-width:180px;font-size:.85rem"><option value="">Tutti i pagamenti</option><option value="pagato">Pagato</option><option value="gratuito">Gratuito</option><option value="da_pagare">Da pagare</option><option value="parziale">Parziale</option><option value="omaggiato">Omaggio</option><option value="prezzo_modificato">Prezzo modificato</option></select>';
   html+='<button class="btn btn-sm btn-secondary" onclick="exportSubsExcel()">📊 Esporta Excel</button>';
   html+='</div>';
 
@@ -3808,20 +3856,48 @@ function renderSubAssigned(c){
     c.innerHTML=html;return;
   }
 
+  // Sort
+  filtered.sort((a,b)=>{
+    let va,vb;
+    const sTypeA=store.subscriptionTypes.find(t=>t.id===a.typeId);
+    const sTypeB=store.subscriptionTypes.find(t=>t.id===b.typeId);
+    switch(_subSortField){
+      case 'userName':va=(a.userName||'').toLowerCase();vb=(b.userName||'').toLowerCase();break;
+      case 'typeName':va=(sTypeA?.name||'').toLowerCase();vb=(sTypeB?.name||'').toLowerCase();break;
+      case 'entries':va=a.entriesTotal-a.entriesUsed;vb=b.entriesTotal-b.entriesUsed;break;
+      case 'expiresAt':va=a.expiresAt||'9999';vb=b.expiresAt||'9999';break;
+      case 'paymentStatus':va=a.paymentStatus||'';vb=b.paymentStatus||'';break;
+      case 'status':va=a.status==='active'?0:a.status==='expired'?1:2;vb=b.status==='active'?0:b.status==='expired'?1:2;break;
+      default:va=(a.userName||'').toLowerCase();vb=(b.userName||'').toLowerCase();
+    }
+    const cmp=typeof va==='number'?(va-vb):(va<vb?-1:va>vb?1:0);
+    return _subSortDir==='asc'?cmp:-cmp;
+  });
+
+  const _sortIcon=(field)=>_subSortField===field?(_subSortDir==='asc'?' ▲':' ▼'):'';
+  const _thStyle='padding:10px 12px;color:var(--txt2);font-weight:600;cursor:pointer;user-select:none;white-space:nowrap';
   html+='<div class="card" style="padding:0;overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:.85rem">';
-  html+='<thead><tr style="background:var(--s200);text-align:left"><th style="padding:10px 12px;color:var(--txt2);font-weight:600">Utente</th><th style="padding:10px 12px;color:var(--txt2);font-weight:600">Tipologia</th><th style="padding:10px 12px;color:var(--txt2);font-weight:600">Ingressi</th><th style="padding:10px 12px;color:var(--txt2);font-weight:600">Scadenza</th><th style="padding:10px 12px;color:var(--txt2);font-weight:600">Pagamento</th><th style="padding:10px 12px;color:var(--txt2);font-weight:600">Stato</th><th style="padding:10px 12px;color:var(--txt2);font-weight:600"></th></tr></thead>';
+  html+='<thead><tr style="background:var(--s200);text-align:left">';
+  html+='<th style="'+_thStyle+'" onclick="toggleSubSort(\'userName\')">Utente'+_sortIcon('userName')+'</th>';
+  html+='<th style="'+_thStyle+'" onclick="toggleSubSort(\'typeName\')">Tipologia'+_sortIcon('typeName')+'</th>';
+  html+='<th style="'+_thStyle+'" onclick="toggleSubSort(\'entries\')">Ingressi'+_sortIcon('entries')+'</th>';
+  html+='<th style="'+_thStyle+'" onclick="toggleSubSort(\'expiresAt\')">Scadenza'+_sortIcon('expiresAt')+'</th>';
+  html+='<th style="'+_thStyle+'" onclick="toggleSubSort(\'paymentStatus\')">Pagamento'+_sortIcon('paymentStatus')+'</th>';
+  html+='<th style="'+_thStyle+'" onclick="toggleSubSort(\'status\')">Stato'+_sortIcon('status')+'</th>';
+  html+='<th style="padding:10px 12px;color:var(--txt2);font-weight:600"></th></tr></thead>';
   html+='<tbody>';
-  filtered.sort((a,b)=>(a.status==='active'?0:1)-(b.status==='active'?0:1)||(a.userName||'').localeCompare(b.userName||'')).forEach(s=>{
+  filtered.forEach(s=>{
     const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
     const remaining=s.entriesTotal-s.entriesUsed;
     const pctUsed=s.entriesTotal?Math.round(s.entriesUsed/s.entriesTotal*100):0;
     const statusBadge=s.status==='active'?'<span class="badge badge-pubblicato">Attivo</span>':s.status==='expired'?'<span class="badge badge-red">Scaduto</span>':'<span class="badge badge-yellow">Sospeso</span>';
-    const payBadge=s.paymentStatus==='pagato'?'<span style="color:var(--green)">✅ Pagato</span>':s.paymentStatus==='parziale'?'<span style="color:var(--yellow)">⚠️ Parziale</span>':s.paymentStatus==='omaggiato'?'<span style="color:var(--purple)">🎁 Omaggio</span>':s.paymentStatus==='prezzo_modificato'?'<span style="color:var(--yellow)">💰 Prezzo modificato</span>':'<span style="color:var(--red)">❌ Da pagare</span>';
+    const payBadge=s.paymentStatus==='pagato'?'<span style="color:var(--green)">✅ Pagato</span>':s.paymentStatus==='gratuito'?'<span style="color:var(--green)">🆓 Gratuito</span>':s.paymentStatus==='parziale'?'<span style="color:var(--yellow)">⚠️ Parziale</span>':s.paymentStatus==='omaggiato'?'<span style="color:var(--purple)">🎁 Omaggio</span>':s.paymentStatus==='prezzo_modificato'?'<span style="color:var(--yellow)">💰 Prezzo modificato</span>':'<span style="color:var(--red)">❌ Da pagare</span>';
     const expDate=s.expiresAt?fmtDateShort(s.expiresAt.split('T')[0]):'∞';
+    const _isDiscSub=sType&&sType.mode==='discount';
     html+='<tr style="border-bottom:1px solid var(--s300)">';
     html+='<td style="padding:10px 12px"><div class="font-medium text-white text-sm">'+(s.userName||'N/D')+'</div><div class="text-xs txt3">'+(s.userEmail||'')+'</div></td>';
     html+='<td style="padding:10px 12px"><span class="text-sm text-white">'+(sType?.name||s.typeId)+'</span></td>';
-    html+='<td style="padding:10px 12px"><div class="text-sm text-white">'+remaining+'/'+s.entriesTotal+'</div><div style="background:var(--s400);border-radius:4px;height:4px;width:60px;margin-top:4px"><div style="background:'+((remaining<=2)?'var(--red)':'var(--green)')+';border-radius:4px;height:4px;width:'+pctUsed+'%"></div></div></td>';
+    html+='<td style="padding:10px 12px">'+(_isDiscSub?'<span class="text-sm" style="color:var(--brand-l)">📉 '+(sType.discountPercent||0)+'%</span>':'<div class="text-sm text-white">'+remaining+'/'+s.entriesTotal+'</div><div style="background:var(--s400);border-radius:4px;height:4px;width:60px;margin-top:4px"><div style="background:'+((remaining<=2)?'var(--red)':'var(--green)')+';border-radius:4px;height:4px;width:'+pctUsed+'%"></div></div>')+'</td>';
     html+='<td style="padding:10px 12px" class="text-sm">'+expDate+'</td>';
     html+='<td style="padding:10px 12px">'+payBadge+'</td>';
     html+='<td style="padding:10px 12px">'+statusBadge+'</td>';
@@ -3968,8 +4044,8 @@ async function createSubscription(typeId,userId,userName,userEmail,managerId,pay
     assignedAt:now.toISOString(),expiresAt,
     entriesTotal:sType.entries||0,entriesUsed:0,
     usageHistory:[],
-    paymentStatus:paymentStatus||'da_pagare',paymentAmount:paymentAmount||sType.price||0,
-    paymentDate:paymentStatus==='pagato'?now.toISOString():null,paymentMethod:paymentMethod||'',
+    paymentStatus:(sType.price===0||sType.price===null||sType.price===undefined)?'gratuito':(paymentStatus||'da_pagare'),paymentAmount:paymentAmount||sType.price||0,
+    paymentDate:(paymentStatus==='pagato'||(sType.price===0||sType.price===null||sType.price===undefined))?now.toISOString():null,paymentMethod:paymentMethod||'',
     notes:notes||'',status:'active',typeName:sType.name
   };
   store.subscriptions.push(sub);
@@ -4414,7 +4490,8 @@ function openSubTypePanel(typeId){
   const activeSubs=allSubs.filter(s=>s.status==='active');
   const expiredSubs=allSubs.filter(s=>s.status==='expired'||s.status==='suspended');
   const totalRevenue=allSubs.filter(s=>s.paymentStatus==='pagato'||s.paymentStatus==='parziale').reduce((sum,s)=>sum+(s.paymentAmount||0),0);
-  const pendingRevenue=allSubs.filter(s=>s.paymentStatus==='da_pagare'||s.paymentStatus==='prezzo_modificato').reduce((sum,s)=>sum+(t.price||0),0);
+  const pendingRevenue=allSubs.filter(s=>s.paymentStatus==='da_pagare'||s.paymentStatus==='prezzo_modificato').reduce((sum,s)=>sum+(s.paymentAmount||0),0);
+  const freeSubs=allSubs.filter(s=>s.paymentStatus==='gratuito'||s.paymentStatus==='omaggiato'||(s.paymentAmount||0)===0);
   const expiryLabel=t.expiryMode==='absolute'&&t.absoluteExpiry?'📅 Scadenza fissa: '+fmtDateShort(t.absoluteExpiry):t.validityDays?'⏰ '+t.validityDays+' giorni dalla data di assegnazione':'∞ Nessuna scadenza';
 
   const o=document.createElement('div');o.className='overlay';o.id='sub-type-panel';
@@ -4427,11 +4504,14 @@ function openSubTypePanel(typeId){
   html+='<div class="stat-card"><div class="value" style="color:var(--green)">€'+totalRevenue.toFixed(0)+'</div><div class="label">Incassati</div></div>';
   html+='<div class="stat-card"><div class="value" style="color:var(--yellow)">€'+pendingRevenue.toFixed(0)+'</div><div class="label">Da incassare</div></div>';
   html+='</div>';
+  if(freeSubs.length>0) html+='<div class="text-xs txt3 mb-3" style="text-align:center">🆓 '+freeSubs.length+' abbonament'+(freeSubs.length===1?'o':'i')+' gratuit'+(freeSubs.length===1?'o':'i')+'/omaggio (non inclus'+(freeSubs.length===1?'o':'i')+' nelle entrate)</div>';
 
   // Type info
+  const _isDiscType=(t.mode||'entries')==='discount';
   html+='<div class="card mb-4" style="background:rgba(99,102,241,.04);border:1px solid rgba(99,102,241,.15)">';
   html+='<div class="text-sm" style="display:flex;gap:16px;flex-wrap:wrap">';
-  html+='<span>🎟️ <strong>'+t.entries+'</strong> ingressi</span>';
+  if(_isDiscType) html+='<span>📉 Sconto <strong>'+(t.discountPercent||0)+'%</strong></span>';
+  else html+='<span>🎟️ <strong>'+t.entries+'</strong> ingressi</span>';
   html+='<span>'+expiryLabel+'</span>';
   html+='<span>💰 <strong>€'+(t.price||0).toFixed(2)+'</strong></span>';
   if(univ) html+='<span>'+univ.emoji+' '+univ.name+'</span>';
@@ -7427,7 +7507,7 @@ async function bookWithSubscription(subId,eventId){
         sessions:_subSessionIds,scope:_subScope,tier:'medio',amount:0,totalAmount:0,
         role:selectedBookRole,recurringDate:currentBookingRecDate||null,
         status:'confermata',
-        depositStatus:null,paymentStatus:'abbonamento',gift:false,subscriptionId:subId,
+        depositStatus:null,paymentStatus:'gratuito',gift:false,subscriptionId:subId,
         surveyResponses:surveyResponses,
         bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
       };
@@ -7454,7 +7534,7 @@ async function bookWithSubscription(subId,eventId){
     sessions:_subSessionIds,scope:_subScope,tier:'medio',amount:0,totalAmount:0,
     role:getUserEffectiveRole(store.currentUser),recurringDate:currentBookingRecDate||null,
     status:'confermata',
-    depositStatus:null,paymentStatus:'abbonamento',gift:false,subscriptionId:subId,
+    depositStatus:null,paymentStatus:'gratuito',gift:false,subscriptionId:subId,
     surveyResponses:{},
     bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
   };
@@ -13334,6 +13414,8 @@ function renderAdminBookings(){
       const amountHtml=!isCancelled&&b.gift?'<span style="color:var(--purple)">🎁 Regalo</span>':'€'+b.amount;
       const payHtml=isCancelled||b.gift?'<span class="text-xs txt3">—</span>'
         :b.paymentStatus==='pagato'?'<span class="badge" style="background:var(--green-bg);color:var(--green);cursor:pointer" onclick="event.stopPropagation();togglePayment(\''+b.id+'\',\'bookings\')">💰 Pagato</span>'
+        :b.paymentStatus==='gratuito'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🎟️ Gratuito</span>'
+        :b.paymentStatus==='abbonamento'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🎟️ Abb.</span>'
         :'<button class="btn btn-sm" style="background:rgba(234,179,8,.12);color:var(--yellow);border:1px solid rgba(234,179,8,.3);font-size:.7rem" onclick="event.stopPropagation();togglePayment(\''+b.id+'\',\'bookings\')">💰 Segna pagato</button>';
       const actionsHtml=isCancelled?''
         :b.depositStatus==='pending'?`<div class="flex gap-1">
@@ -13385,6 +13467,7 @@ function toggleGift(bId,ctx){
 }
 function togglePayment(bId,ctx){
   const b=store.bookings.find(x=>x.id===bId);if(!b)return;
+  if(b.paymentStatus==='gratuito'||b.paymentStatus==='abbonamento'||b.gift)return;
   b.paymentStatus=b.paymentStatus==='pagato'?null:'pagato';
   fsUpdate('bookings',b.id,{paymentStatus:b.paymentStatus}).catch(console.error);
   if(b.paymentStatus==='pagato')showToast('💰 Contrassegnato come pagato');
@@ -14477,8 +14560,8 @@ function showAdminEventDetail(evId){
   const pendingDep=active.filter(b=>b.depositStatus==='pending');
   const receivedDep=active.filter(b=>b.depositStatus==='ricevuto');
   const gifts=active.filter(b=>b.gift);
-  // Revenue (exclude gifts)
-  const paying=active.filter(b=>!b.gift);
+  // Revenue (exclude gifts, free bookings and subscription bookings)
+  const paying=active.filter(b=>!b.gift&&b.paymentStatus!=='gratuito'&&b.paymentStatus!=='abbonamento');
   const totalRevenue=paying.reduce((s,b)=>s+(b.amount||0),0);
   const paidRevenue=paying.filter(b=>b.paymentStatus==='pagato').reduce((s,b)=>s+(b.amount||0),0);
   // Anticipi ricevuti: somma deposit amount per chi ha anticipo confermato, esclusi regali
@@ -14698,9 +14781,11 @@ function showAdminEventDetail(evId){
           const amountHtml=b.gift?'<span style="color:var(--purple)">🎁 Regalo</span>':'€'+(b.amount||0);
           const payHtml=b.gift?'<span class="text-xs txt3">—</span>'
             :b.paymentStatus==='pagato'?'<span class="badge" style="background:var(--green-bg);color:var(--green);cursor:pointer" onclick="event.stopPropagation();togglePayment(\''+b.id+'\',\'detail\')">💰 Pagato</span>'
+            :b.paymentStatus==='gratuito'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🎟️ Gratuito</span>'
+            :b.paymentStatus==='abbonamento'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🎟️ Abb.</span>'
             :'<button class="btn btn-sm" style="background:rgba(234,179,8,.12);color:var(--yellow);border:1px solid rgba(234,179,8,.3);font-size:.7rem" onclick="event.stopPropagation();togglePayment(\''+b.id+'\',\'detail\')">💰 Segna pagato</button>';
           const _bOwed=b.gift?0:(b.amount||0);
-          const _bPaid=(b.gift||b.paymentStatus==='pagato')?_bOwed:0;
+          const _bPaid=(b.gift||b.paymentStatus==='pagato'||b.paymentStatus==='gratuito'||b.paymentStatus==='abbonamento')?_bOwed:0;
           const _bDep=(!b.gift&&b.depositStatus==='ricevuto')?depAmount:0;
           const _bDaInc=Math.max(0,_bOwed-_bPaid-_bDep);
           const daIncHtml=b.gift?'<span class="text-xs txt3">—</span>':(_bDaInc>0?'<span style="color:var(--yellow);font-weight:600">€'+_bDaInc+'</span>':'<span style="color:var(--green)">€0</span>');
