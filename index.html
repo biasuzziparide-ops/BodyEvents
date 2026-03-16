@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.20.2</title>
+<title>BodyEvents — V2.21.1</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -314,7 +314,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.20.2</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.21.1</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -1351,7 +1351,7 @@ textarea.input{resize:none;font-family:inherit}
         <div></div>
       </div>
       <div class="mb-4">
-        <div><label class="label">Insegnante / Referente</label><input class="input" id="ne-teacher" placeholder="es. Nome Insegnante"></div>
+        <div><label class="label">Referente</label><input class="input" id="ne-teacher" placeholder="es. Nome Referente"></div>
       </div>
       <div class="mb-3"><label class="label">📍 Location / Indirizzo *</label><input class="input" id="ne-location" placeholder="es. Parco degli Alberi, Via Roma, Treviso"></div>
       <div class="mb-4"><label class="label">🔗 Link Google Maps</label><input class="input" id="ne-location-url" placeholder="https://maps.google.com/..."></div>
@@ -1768,11 +1768,12 @@ textarea.input{resize:none;font-family:inherit}
         <button class="btn btn-sm btn-secondary" onclick="copyNewUserLink()">🔗 Copia link registrazione</button>
       </div>
       <div id="qr-new-user-display" class="hidden mt-4 text-center">
-        <div class="qr-box mb-3" id="qr-new-user-wrap"></div>
+        <div class="qr-box mb-3" id="qr-new-user-wrap" style="cursor:zoom-in" onclick="openFullscreenQR('qr-new-user-wrap')"></div>
         <p class="text-sm font-medium" style="color:var(--green)">QR Registrazione Piattaforma</p>
         <p class="text-xs txt3 mt-1">Scansiona per registrarsi a BodyEvents</p>
         <div class="flex gap-2 justify-center mt-3">
           <button class="btn btn-sm btn-primary" onclick="downloadNewUserQR()">📥 Scarica QR</button>
+          <button class="btn btn-sm btn-secondary" onclick="openFullscreenQR('qr-new-user-wrap')">🔍 Schermo intero</button>
         </div>
       </div>
     </div>
@@ -1787,13 +1788,14 @@ textarea.input{resize:none;font-family:inherit}
 
       <!-- QR Code display -->
       <div class="text-center" id="qr-display">
-        <div class="qr-box mb-4" id="qr-canvas-wrap"></div>
+        <div class="qr-box mb-4" id="qr-canvas-wrap" style="cursor:zoom-in" onclick="openFullscreenQR('qr-canvas-wrap')"></div>
         <p class="text-sm font-medium text-white" id="qr-event-title">Seleziona un evento</p>
         <p class="text-xs txt3 mt-1" id="qr-event-subtitle"></p>
         <p class="text-xs txt3 mt-1" id="qr-validity"></p>
         <p class="text-xs txt3 mt-1" id="qr-token-display"></p>
         <div class="flex gap-2 justify-center mt-3">
           <button class="btn btn-sm btn-primary" onclick="downloadQR()">📥 Scarica QR</button>
+          <button class="btn btn-sm btn-secondary" onclick="openFullscreenQR('qr-canvas-wrap')">🔍 Schermo intero</button>
           <button class="btn btn-sm btn-secondary" onclick="copyQRLink()">🔗 Copia link</button>
         </div>
       </div>
@@ -2940,7 +2942,9 @@ function getUniverseStripHtml(ev){
   const names=ids.map(id=>getUniverseName(id));
   const bg=colors.length===1?colors[0]:'linear-gradient(to bottom,'+colors.join(',')+')';
   const label=names.join(' · ');
-  return '<div style="width:26px;flex-shrink:0;background:'+bg+';display:flex;align-items:center;justify-content:center;border-radius:16px 0 0 16px"><span style="writing-mode:vertical-lr;text-orientation:mixed;transform:rotate(180deg);font-size:.55rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,245,.85);white-space:nowrap;user-select:none">'+escHtml(label)+'</span></div>';
+  const fs=ids.length>2?'.4rem':ids.length>1?'.48rem':'.55rem';
+  const ls=ids.length>2?'1.2px':ids.length>1?'1.5px':'2px';
+  return '<div style="width:26px;flex-shrink:0;background:'+bg+';display:flex;align-items:center;justify-content:center;border-radius:16px 0 0 16px"><span style="writing-mode:vertical-lr;text-orientation:mixed;transform:rotate(180deg);font-size:'+fs+';font-weight:700;letter-spacing:'+ls+';text-transform:uppercase;color:rgba(255,255,245,.85);white-space:nowrap;user-select:none">'+escHtml(label)+'</span></div>';
 }
 function getActiveUniverses(){return store.universes.filter(u=>u.status==='active');}
 function getPendingUniverses(){return store.universes.filter(u=>u.status==='pending');}
@@ -3861,7 +3865,7 @@ function generateSubQR(){
   const out=document.getElementById('sub-qr-output');
   if(!out)return;
   out.classList.remove('hidden');
-  out.innerHTML='<div id="sub-qr-canvas" style="display:inline-block;background:#fff;padding:16px;border-radius:12px"></div><p class="text-sm txt2 mt-3">L\'utente deve scansionare questo QR dalla propria app.</p><p class="text-xs txt3 mt-1">Oppure condividi il codice: <strong style="color:var(--brand-l)">'+token+'</strong></p><button class="btn btn-sm btn-secondary mt-3" onclick="redeemSubManually(\''+token+'\')">🔑 Riscatta manualmente</button>';
+  out.innerHTML='<div id="sub-qr-canvas" style="display:inline-block;background:#fff;padding:16px;border-radius:12px;cursor:zoom-in" onclick="openFullscreenQR(\'sub-qr-canvas\')"></div><p class="text-sm txt2 mt-3">L\'utente deve scansionare questo QR dalla propria app.</p><p class="text-xs txt3 mt-1">Oppure condividi il codice: <strong style="color:var(--brand-l)">'+token+'</strong></p><div class="flex gap-2 justify-center mt-3"><button class="btn btn-sm btn-secondary" onclick="openFullscreenQR(\'sub-qr-canvas\')">🔍 Schermo intero</button><button class="btn btn-sm btn-secondary" onclick="redeemSubManually(\''+token+'\')">🔑 Riscatta manualmente</button></div>';
   const qrEl=document.getElementById('sub-qr-canvas');
   if(qrEl){
     qrEl.innerHTML='';
@@ -6045,7 +6049,7 @@ async function saveProfileChanges(){
 }
 
 /* ============================================================
-   UNIFIED IMAGE EDITOR (V2.20.2)
+   UNIFIED IMAGE EDITOR (V2.21.1)
    Full-featured image editor with:
    - Crop with resizable/repositionable area + aspect ratio presets
    - Zoom (pinch + slider)
@@ -6092,10 +6096,10 @@ let _ieMouseMove=null,_ieMouseUp=null;
 
 // Presets for each image destination
 const IE_PRESETS={
-  avatar: {label:'Foto profilo',shape:'circle',aspect:1,maxW:256,maxH:256,maxKB:100},
-  logo:   {label:'Logo organizzazione',shape:'square',aspect:1,maxW:300,maxH:300,maxKB:120},
-  thumb:  {label:'Thumbnail card evento',shape:'square',aspect:1,maxW:400,maxH:400,maxKB:150},
-  header: {label:'Header dettaglio evento',shape:'panoramic',aspect:16/9,maxW:800,maxH:450,maxKB:250}
+  avatar: {label:'Foto profilo',shape:'circle',aspect:1,lockAspect:true,maxW:256,maxH:256,maxKB:100},
+  logo:   {label:'Logo organizzazione',shape:'square',aspect:1,lockAspect:true,maxW:300,maxH:300,maxKB:120},
+  thumb:  {label:'Thumbnail card evento',shape:'rect',aspect:80/68,lockAspect:true,maxW:400,maxH:340,maxKB:150},
+  header: {label:'Header dettaglio evento',shape:'panoramic',aspect:16/9,lockAspect:true,maxW:800,maxH:450,maxKB:250}
 };
 const IE_ASPECTS={
   '1:1':{r:1,label:'1:1'},
@@ -6168,9 +6172,13 @@ function buildEditorUI(){
   // Controls panel
   const controls=document.createElement('div');
   controls.style.cssText='flex-shrink:0;padding:12px 20px 20px;max-width:600px;margin:0 auto;width:100%';
-  // Aspect ratio buttons
+  // Aspect ratio buttons (hidden when preset has lockAspect)
   const arWrap=document.createElement('div');
   arWrap.style.cssText='display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;align-items:center';
+  if(s.preset.lockAspect){
+    const rLabel=s.aspect===1?'1:1':s.aspect===16/9?'16:9':(Math.round(s.aspect*100)/100);
+    arWrap.innerHTML='<span style="color:var(--txt3);font-size:.7rem">🔒 Proporzione fissa: <strong style="color:var(--brand-l)">'+rLabel+'</strong> — sposta e ridimensiona l\'area di ritaglio</span>';
+  } else {
   arWrap.innerHTML='<span style="color:var(--txt3);font-size:.7rem;margin-right:4px">Proporzioni:</span>';
   const presetAspectKey=s.aspect===1?'1:1':s.aspect===16/9?'16:9':s.aspect===4/3?'4:3':s.aspect===3/2?'3:2':'free';
   Object.entries(IE_ASPECTS).forEach(([key,val])=>{
@@ -6183,6 +6191,7 @@ function buildEditorUI(){
     btn.onclick=()=>ieSetAspect(key);
     arWrap.appendChild(btn);
   });
+  } // end else (lockAspect)
   controls.appendChild(arWrap);
   // Filter sliders
   const filtersWrap=document.createElement('div');
@@ -6222,6 +6231,7 @@ function buildEditorUI(){
 
 function ieSetAspect(key){
   const s=_ieState;if(!s)return;
+  if(s.preset.lockAspect)return; // Aspect locked for this preset
   const val=IE_ASPECTS[key];
   if(key==='free'){s.freeAspect=true;s.aspect=0;}
   else{s.freeAspect=false;s.aspect=val.r;
@@ -6364,7 +6374,7 @@ function confirmImageEditor(){
   const filters={brightness:s.brightness,contrast:s.contrast,saturation:s.saturation};
   const cropData={x:s.cropX,y:s.cropY,w:s.cropW,h:s.cropH};
   const maxW=s.preset.maxW;
-  const maxH=Math.round(maxW*(s.cropH/s.cropW));
+  const maxH=s.preset.lockAspect?s.preset.maxH:Math.round(maxW*(s.cropH/s.cropW));
   const base64=processImageToBase64(s.img,cropData,maxW,maxH,filters);
   const metadata={cropX:s.cropX,cropY:s.cropY,cropW:s.cropW,cropH:s.cropH,filters,aspect:s.aspect,outputW:maxW,outputH:maxH};
   closeImageEditor();
@@ -6377,6 +6387,59 @@ function closeImageEditor(){
   if(_ieMouseMove)window.removeEventListener('mousemove',_ieMouseMove);
   if(_ieMouseUp)window.removeEventListener('mouseup',_ieMouseUp);
   _ieMouseMove=null;_ieMouseUp=null;_ieState=null;
+}
+
+/* --- FULLSCREEN IMAGE/QR VIEWER --- */
+function toggleEventDescBlock(expand){
+  const teaser=document.getElementById('ev-detail-desc-teaser');
+  const full=document.getElementById('ev-detail-desc-full');
+  const btn=document.getElementById('ev-detail-read-more');
+  if(!teaser||!full||!btn)return;
+  if(expand){
+    teaser.classList.add('hidden');
+    full.classList.remove('hidden');
+    btn.textContent='Mostra meno ▴';
+    btn.style.color='var(--txt3)';
+    btn.style.fontSize='.75rem';
+    btn.onclick=function(){toggleEventDescBlock(false);};
+  }else{
+    teaser.classList.remove('hidden');
+    full.classList.add('hidden');
+    btn.textContent='Leggi tutto ▾';
+    btn.style.color='var(--brand-l)';
+    btn.style.fontSize='.8rem';
+    btn.onclick=function(){toggleEventDescBlock(true);};
+  }
+}
+
+function openFullscreenImage(src,alt){
+  if(!src)return;
+  const ov=document.createElement('div');
+  ov.id='fullscreen-img-overlay';
+  ov.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.95);z-index:10000;display:flex;align-items:center;justify-content:center;cursor:zoom-out;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)';
+  ov.onclick=()=>ov.remove();
+  const img=document.createElement('img');
+  img.src=src;img.alt=alt||'';
+  img.style.cssText='max-width:92vw;max-height:88vh;object-fit:contain;border-radius:8px;box-shadow:0 0 40px rgba(0,0,0,.5)';
+  ov.appendChild(img);
+  // Close button
+  const closeBtn=document.createElement('button');
+  closeBtn.innerHTML='✕';
+  closeBtn.style.cssText='position:absolute;top:16px;right:20px;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:50%;width:40px;height:40px;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)';
+  closeBtn.onclick=(e)=>{e.stopPropagation();ov.remove();};
+  ov.appendChild(closeBtn);
+  // ESC to close
+  const escHandler=(e)=>{if(e.key==='Escape'){ov.remove();document.removeEventListener('keydown',escHandler);}};
+  document.addEventListener('keydown',escHandler);
+  document.body.appendChild(ov);
+}
+function openFullscreenQR(wrapId){
+  const wrap=document.getElementById(wrapId);if(!wrap)return;
+  const srcCanvas=wrap.querySelector('canvas');
+  const srcImg=wrap.querySelector('img');
+  if(srcCanvas){openFullscreenImage(srcCanvas.toDataURL('image/png'),'QR Code');}
+  else if(srcImg){openFullscreenImage(srcImg.src,'QR Code');}
+  else{showToast('Genera prima un QR code','error');}
 }
 
 // Legacy compatibility wrappers
@@ -8217,7 +8280,7 @@ function renderUserEvents(){
     const _yearStr=dd?dd.getFullYear():'';
     const cardThumb=_thumbData
       ?`<div style="flex-shrink:0;display:flex;flex-direction:column;align-self:stretch">
-          <div style="width:80px;height:68px;border-radius:12px 12px 0 0;overflow:hidden"><img src="${_thumbData.src}" style="width:100%;height:100%;object-fit:cover;${_thumbPos}" alt=""></div>
+          <div style="width:80px;height:68px;border-radius:12px 12px 0 0;overflow:hidden;cursor:zoom-in" onclick="event.stopPropagation();openFullscreenImage('${_thumbData.src.replace(/'/g,"\\'")}','Evento')"><img src="${_thumbData.src}" style="width:100%;height:100%;object-fit:cover;${_thumbPos}" alt=""></div>
           <div style="width:80px;flex:1;min-height:48px;border-radius:0 0 12px 12px;background:linear-gradient(160deg,rgba(217,70,239,.14),rgba(168,85,247,.08));border:1px solid rgba(217,70,239,.15);border-top:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:6px 0">
             <span style="font-size:1.6rem;font-weight:800;color:#fff;line-height:1.1">${dayNum}</span>
             <span style="font-size:.7rem;font-weight:700;color:rgba(240,171,252,.65);text-transform:uppercase;line-height:1;letter-spacing:.5px">${monthStr}</span>
@@ -10225,21 +10288,28 @@ function showEventDetail(evId,recDate){
     ${isAdminPreview?'<div class="badge badge-yellow mb-4" style="padding:6px 12px">👁️ Preview come la vedono gli utenti</div>':''}
     ${alertBanner}
     <div class="card mb-6" ${isDisabledByAlert?'style="opacity:.5;pointer-events:none"':''}>
-      ${(()=>{const hd=(ev.imageHeader||ev.image)?{src:ev.imageHeader?.src||ev.image,zoom:ev.imageHeader?.zoom||100,posX:ev.imageHeader?.posX||0,posY:ev.imageHeader?.posY||0}:null;if(!hd)return '';const s=hd.zoom/100;const denomW=420*s-420;const denomH=300*s-300;const px=denomW>0?Math.round(Math.abs(hd.posX)/denomW*100):50;const py=denomH>0?Math.round(Math.abs(hd.posY)/denomH*100):50;const op=`object-position:${isNaN(px)?50:px}% ${isNaN(py)?50:py}%`;return '<div style="margin:-20px -20px 16px;border-radius:16px 16px 0 0;overflow:hidden"><img src="'+hd.src+'" style="width:100%;max-height:300px;object-fit:cover;'+op+'" alt=""></div>';})()}
+      ${(()=>{const hd=(ev.imageHeader||ev.image)?{src:ev.imageHeader?.src||ev.image,zoom:ev.imageHeader?.zoom||100,posX:ev.imageHeader?.posX||0,posY:ev.imageHeader?.posY||0}:null;if(!hd)return '';const s=hd.zoom/100;const denomW=420*s-420;const denomH=300*s-300;const px=denomW>0?Math.round(Math.abs(hd.posX)/denomW*100):50;const py=denomH>0?Math.round(Math.abs(hd.posY)/denomH*100):50;const op=`object-position:${isNaN(px)?50:px}% ${isNaN(py)?50:py}%`;return '<div style="margin:-20px -20px 16px;border-radius:16px 16px 0 0;overflow:hidden;cursor:zoom-in" onclick="openFullscreenImage(\''+hd.src.replace(/'/g,"\\'")+'\',\'Evento\')"><img src="'+hd.src+'" style="width:100%;max-height:300px;object-fit:cover;'+op+'" alt=""></div>';})()}
       <div class="flex gap-2 mb-3 flex-wrap"><span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>${levelBadges}</div>
       <div style="display:flex;justify-content:space-between;align-items:start;gap:8px">
-        <h1 class="text-2xl font-bold text-white" style="cursor:pointer;display:flex;align-items:center;gap:8px;flex:1" onclick="const _d=document.getElementById('ev-detail-desc-block');_d.classList.toggle('hidden');this.querySelector('.ev-desc-arrow').textContent=_d.classList.contains('hidden')?'▸':'▾'">${escHtml(ev.title)} <span class="ev-desc-arrow" style="font-size:.7rem;color:var(--txt3);flex-shrink:0">▸</span></h1>
+        <h1 class="text-2xl font-bold text-white" style="flex:1">${escHtml(ev.title)}</h1>
         ${ev.status==='pubblicato'?`<button class="btn btn-ghost btn-sm" style="flex-shrink:0;padding:8px 12px;color:var(--brand-l);font-size:.85rem" onclick="event.stopPropagation();openShareModal('${ev.id}')" title="Condividi evento">📤</button>`:''}
       </div>
-      <div class="hidden" id="ev-detail-desc-block">
-        <div class="txt3 mt-2" style="white-space:pre-wrap;line-height:1.6">${escHtml(ev.description).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>')}</div>
-        <div class="flex items-center gap-2 mt-3 text-sm txt3">👤 con ${escHtml(ev.teacher)}</div>
-        <div class="flex items-center gap-2 mt-2 text-sm">${locLink}</div>
-        <div class="text-xs mt-2"><a style="color:var(--brand-l);cursor:pointer;text-decoration:none" onclick="event.stopPropagation();showOrgPublicProfile('${ev.managerId}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${escHtml(ev.orgName)}</a></div>
-        ${(()=>{if(!ev.partnerIds||!ev.partnerIds.length)return '';const pBadges=ev.partnerIds.map(pid=>{const m=store.managers.find(x=>x.id===pid);return m?'<span class="badge" style="background:rgba(168,85,247,.1);color:#a855f7;font-size:.65rem;padding:3px 8px;cursor:pointer" onclick="event.stopPropagation();showOrgPublicProfile(\''+pid+'\')">🤝 '+escHtml(m.orgName)+'</span>':'';}).filter(Boolean).join('');return '<div class="flex gap-2 flex-wrap mt-2">'+pBadges+'</div>';})()}
-        ${payLinks.length?'<div class="flex gap-3 mt-4 flex-wrap" style="padding-top:16px;border-top:1px solid var(--s300)">'+payLinks.join('')+'</div>':''}
-        ${contactHtml}
-      </div>
+      ${(()=>{
+        const _desc=escHtml(ev.description).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
+        const _teacher=ev.teacher?'<div class="flex items-center gap-2 mt-3 text-sm txt3">👤 con '+escHtml(ev.teacher)+'</div>':'';
+        const _loc='<div class="flex items-center gap-2 mt-2 text-sm">'+locLink+'</div>';
+        const _org='<div class="text-xs mt-2"><a style="color:var(--brand-l);cursor:pointer;text-decoration:none" onclick="event.stopPropagation();showOrgPublicProfile(\''+ev.managerId+'\')" onmouseover="this.style.textDecoration=\'underline\'" onmouseout="this.style.textDecoration=\'none\'">'+escHtml(ev.orgName)+'</a></div>';
+        const _partners=(()=>{if(!ev.partnerIds||!ev.partnerIds.length)return '';const pBadges=ev.partnerIds.map(pid=>{const m=store.managers.find(x=>x.id===pid);return m?'<span class="badge" style="background:rgba(168,85,247,.1);color:#a855f7;font-size:.65rem;padding:3px 8px;cursor:pointer" onclick="event.stopPropagation();showOrgPublicProfile(\''+pid+'\')">🤝 '+escHtml(m.orgName)+'</span>':'';}).filter(Boolean).join('');return '<div class="flex gap-2 flex-wrap mt-2">'+pBadges+'</div>';})();
+        const _payHtml=payLinks.length?'<div class="flex gap-3 mt-4 flex-wrap" style="padding-top:16px;border-top:1px solid var(--s300)">'+payLinks.join('')+'</div>':'';
+        const _contactH=contactHtml;
+        return '<div id="ev-detail-desc-block">'
+          +'<div class="txt3 mt-2" id="ev-detail-desc-teaser" style="white-space:pre-wrap;line-height:1.6;max-height:3.2em;overflow:hidden;position:relative;-webkit-mask-image:linear-gradient(to bottom,#000 40%,transparent 100%);mask-image:linear-gradient(to bottom,#000 40%,transparent 100%)">'+_desc+'</div>'
+          +'<div id="ev-detail-desc-full" class="hidden"><div class="txt3 mt-2" style="white-space:pre-wrap;line-height:1.6">'+_desc+'</div>'
+          +_teacher+_loc+_org+_partners+_payHtml+_contactH
+          +'</div>'
+          +'<a id="ev-detail-read-more" style="display:inline-flex;align-items:center;gap:4px;color:var(--brand-l);font-size:.8rem;font-weight:600;cursor:pointer;margin-top:8px;text-decoration:none" onclick="toggleEventDescBlock(true)" onmouseover="this.style.textDecoration=\'underline\'" onmouseout="this.style.textDecoration=\'none\'">Leggi tutto ▾</a>'
+          +'</div>';
+      })()}
     </div>
     ${currentBookingRecDate?`<div class="card mb-4" style="background:rgba(234,179,8,.06);border-color:var(--yellow);padding:12px 16px;text-align:center"><span class="text-sm" style="color:var(--yellow)">🔄 Stai prenotando per la data: <strong>${fmtDate(currentBookingRecDate)}</strong></span></div>`:''}
     ${(()=>{
@@ -12600,6 +12670,12 @@ function prefillEventContacts(){
   const emailEl=document.getElementById('ne-contact-email');
   if(phoneEl&&!phoneEl.value&&mgr.phone)phoneEl.value=mgr.phone;
   if(emailEl&&!emailEl.value&&(mgr.contactEmail||mgr.email))emailEl.value=mgr.contactEmail||mgr.email;
+  // Pre-fill teacher/referente with organizer name
+  const teacherEl=document.getElementById('ne-teacher');
+  if(teacherEl&&!teacherEl.value){
+    const name=mgr.orgName||mgr.username||store.currentUser.username||'';
+    if(name)teacherEl.value=name;
+  }
 }
 function initEventDates(){
   const today=getDefaultDate();
