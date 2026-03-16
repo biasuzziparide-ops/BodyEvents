@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.34.2</title>
+<title>BodyEvents — V2.34.5</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -329,7 +329,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.34.2</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.34.5</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -3332,26 +3332,34 @@ async function toggleUniverseSubscription(univId,subscribe){
 /* Helper: get user's effective preferred role from subscribedUniverses */
 function getUserEffectiveRole(user){
   if(!user)return 'non_so';
-  // Check subscribedUniverses for a role
+  // Helper to map raw role string to internal key
+  function _mapRole(raw){
+    if(!raw)return '';
+    const r=raw.toLowerCase();
+    if(r==='flyer'||r==='🦅 flyer')return 'flyer';
+    if(r==='base'||r==='💪 base')return 'base';
+    if(r==='entrambi'||r==='🔄 entrambi'||r==='non_so'||r==='non lo so ancora')return r==='non lo so ancora'?'non_so':r;
+    if(r.includes('fly'))return 'flyer';
+    if(r.includes('bas'))return 'base';
+    if(r.includes('entramb'))return 'entrambi';
+    return raw;
+  }
+  // Check universeRoles (managers store roles here)
+  const uRoles=user.universeRoles;
+  if(uRoles&&typeof uRoles==='object'){
+    const firstRole=Object.values(uRoles).find(v=>v&&v!=='');
+    if(firstRole){const mapped=_mapRole(firstRole);if(mapped)return mapped;}
+  }
+  // Check subscribedUniverses (regular users)
   const subs=user.subscribedUniverses;
   if(subs&&subs.length){
-    // Find first universe with a non-empty preferredRole
     const withRole=subs.find(s=>s.preferredRole&&s.preferredRole!=='');
-    if(withRole){
-      // Map universe role names to internal role keys
-      const r=withRole.preferredRole.toLowerCase();
-      if(r==='flyer'||r==='🦅 flyer')return 'flyer';
-      if(r==='base'||r==='💪 base')return 'base';
-      if(r==='entrambi'||r==='🔄 entrambi')return 'entrambi';
-      // Universe roles use capitalized names like "Base", "Flyer", "Entrambi"
-      if(r.includes('fly'))return 'flyer';
-      if(r.includes('bas'))return 'base';
-      if(r.includes('entramb'))return 'entrambi';
-      return withRole.preferredRole; // Return raw if no match
-    }
+    if(withRole){const mapped=_mapRole(withRole.preferredRole);if(mapped)return mapped;}
   }
-  // Fallback to top-level role
-  return user.role||'non_so';
+  // Fallback to top-level role (skip 'master' as it's not a booking role)
+  const fallback=user.role;
+  if(fallback&&fallback!=='master'){const mapped=_mapRole(fallback);if(mapped)return mapped;}
+  return 'non_so';
 }
 function getRoleLabelHtml(roleKey){
   if(roleKey==='flyer')return '🦅 Flyer';
@@ -8036,15 +8044,33 @@ function _doBookNormal(){
     // Build initials from user name
     const nameParts=store.currentUser.username.split(' ');
     const initials=nameParts.map(p=>p[0]).join('').toUpperCase().substring(0,2);
-    // Collect session IDs from items
-    const bookedSessionIds=items.filter(it=>it.type==='sessione').map(it=>{
-      const found=[];ev.days.forEach(d=>(d.sessions||[]).forEach(s=>{if(s.name===it.name)found.push(s.id);}));return found;
-    }).flat();
+    // Collect session IDs from items — include ALL sessions covered by the selection
+    const bookedSessionIds=(()=>{
+      const ids=new Set();
+      const hasEventPkg=items.some(it=>it.type==='pacchetto evento'||it.type==='early bird evento');
+      if(hasEventPkg){
+        // Event-level selection → ALL sessions
+        ev.days.forEach(d=>(d.sessions||[]).forEach(s=>ids.add(s.id)));
+      } else {
+        items.forEach(it=>{
+          if(it.type==='sessione'||it.type==='early bird sessione'){
+            // Session-level → match by name
+            ev.days.forEach(d=>(d.sessions||[]).forEach(s=>{if(s.name===it.name||it.name.includes(s.name))ids.add(s.id);}));
+          } else if(it.type==='giornata'||it.type==='early bird giornata'){
+            // Day-level → ALL sessions from that day (match by date)
+            ev.days.forEach(d=>{
+              if(it.date===fmtDateShort(d.date)){(d.sessions||[]).forEach(s=>ids.add(s.id));}
+            });
+          }
+        });
+      }
+      return [...ids];
+    })();
     // Determine primary tier from first item
     const primaryTier=items.length?items[0].tier:'Standard';
     const tierKey=primaryTier==='Sostenitore'?'alto':primaryTier==='Ridotto'?'basso':'medio';
     // Determine scope
-    const scope=items.some(it=>it.type==='pacchetto evento')?'evento':items.some(it=>it.type==='giornata'||it.type.includes('giornata'))?'giornata':'sessione';
+    const scope=items.some(it=>it.type==='pacchetto evento'||it.type==='early bird evento')?'evento':items.some(it=>it.type==='giornata'||it.type.includes('giornata'))?'giornata':'sessione';
     const avatarColors=['avatar-blue','avatar-green','avatar-purple','avatar-pink','avatar-yellow'];
     const newBooking={
       id:genId('bk'),
@@ -8326,9 +8352,12 @@ function renderAttendance(){
       return '<td class="text-xs" title="'+display+'">'+truncated+'</td>';
     }).join('');
   };
+  const _ciSessionMap={};ev.days.forEach(d=>(d.sessions||[]).forEach(s=>{_ciSessionMap[s.id]=s.name;}));
+  const _ciAllSessIds=[];ev.days.forEach(d=>(d.sessions||[]).forEach(s=>_ciAllSessIds.push(s.id)));
   const sessionsLabel=(b)=>{
     if(!b.sessions||!b.sessions.length)return b.scope==='evento'?'Evento intero':'—';
-    return b.sessions.map(s=>s.name||s.sessionId).join(', ');
+    if(_ciAllSessIds.length>0&&_ciAllSessIds.every(id=>b.sessions.includes(id)))return'Evento intero';
+    return b.sessions.map(sid=>_ciSessionMap[sid]||sid).join(', ');
   };
   // Sort: checked-in first, then not arrived
   const sortedBks=[...bks].sort((a,b)=>{
@@ -8400,7 +8429,13 @@ function renderCheckinA(){
   const amount=bk?bk.amount:0;
   const payStatus=bk?(bk.paymentStatus==='gratuito'?'Gratuito':bk.paymentStatus==='pagato'?'Pagato':'In attesa'):'—';
   // Session-agnostic: show all sessions the user is booked for
-  const sessionsInfo=bk&&bk.sessions&&bk.sessions.length?bk.sessions.map(s=>'<div class="text-xs mt-1" style="color:var(--green)">✅ '+s.name+'</div>').join(''):'<div class="text-xs mt-1" style="color:var(--green)">✅ Evento intero</div>';
+  const _ciMap2={};ev.days.forEach(d=>(d.sessions||[]).forEach(s=>{_ciMap2[s.id]=s.name;}));
+  const _ciAll2=[];ev.days.forEach(d=>(d.sessions||[]).forEach(s=>_ciAll2.push(s.id)));
+  const sessionsInfo=(()=>{
+    if(!bk||!bk.sessions||!bk.sessions.length)return'<div class="text-xs mt-1" style="color:var(--green)">✅ Evento intero</div>';
+    if(_ciAll2.length>0&&_ciAll2.every(id=>bk.sessions.includes(id)))return'<div class="text-xs mt-1" style="color:var(--green)">✅ Evento intero</div>';
+    return bk.sessions.map(sid=>'<div class="text-xs mt-1" style="color:var(--green)">✅ '+(_ciMap2[sid]||sid)+'</div>').join('');
+  })();
   c.innerHTML=`
     <div style="font-size:4rem;margin-bottom:16px">✅</div>
     <h1 class="text-2xl font-bold text-white" style="margin-bottom:8px">Benvenuto!</h1>
@@ -10458,7 +10493,10 @@ function buildFullPricingHtml(ev,prefix){
 }
 function collectCheckinBookingData(ev,prefix){
   const isFree=ev.pricingMode==='free';const isManaged=ev.pricingMode==='managed';
-  if(isFree||isManaged)return {items:[],totalAmount:0,scope:'evento',tierKey:'medio',sessions:[]};
+  if(isFree||isManaged){
+    const allSessIds=[];ev.days.forEach(d=>(d.sessions||[]).forEach(s=>allSessIds.push(s.id)));
+    return {items:[],totalAmount:0,scope:'evento',tierKey:'medio',sessions:allSessIds};
+  }
   const tierLabel=t=>t==='alto'?'Sostenitore':t==='medio'?'Standard':'Ridotto';
   const items=[];let totalAmount=0;
   ev.days.forEach((day,di)=>{
@@ -10500,8 +10538,22 @@ function collectCheckinBookingData(ev,prefix){
       totalAmount+=it.price;
     });
   }
-  const sessions=items.filter(i=>i.sessionId).map(i=>i.sessionId);
-  const scope=items.some(i=>i.type==='pacchetto evento')?'evento':items.some(i=>i.type.includes('giornata'))?'giornata':'sessione';
+  const scope=items.some(i=>i.type==='pacchetto evento'||i.type==='early bird evento')?'evento':items.some(i=>i.type.includes('giornata'))?'giornata':'sessione';
+  // Build complete sessions array — include ALL sessions covered by the selection
+  const sessions=(()=>{
+    const ids=new Set();
+    if(scope==='evento'){
+      ev.days.forEach(d=>(d.sessions||[]).forEach(s=>ids.add(s.id)));
+    } else {
+      items.forEach(it=>{
+        if(it.sessionId){ids.add(it.sessionId);}
+        else if(it.type==='giornata'||it.type==='early bird giornata'){
+          ev.days.forEach(d=>{if(it.date===fmtDateShort(d.date)){(d.sessions||[]).forEach(s=>ids.add(s.id));}});
+        }
+      });
+    }
+    return [...ids];
+  })();
   const tierKey=items.length?items[0].tierKey:'medio';
   return {items,totalAmount,scope,tierKey,sessions};
 }
@@ -10897,7 +10949,9 @@ function showEventDetail(evId,recDate){
           // Fallback: show sessions from IDs
           const sessionMap={};
           ev.days.forEach(d=>(d.sessions||[]).forEach(s=>{sessionMap[s.id]=s;}));
-          if(myBooking.sessions&&myBooking.sessions.length){
+          const _allEvSIds=[];ev.days.forEach(d=>(d.sessions||[]).forEach(s=>_allEvSIds.push(s.id)));
+          const _coversAll=myBooking.sessions&&myBooking.sessions.length&&_allEvSIds.length>0&&_allEvSIds.every(id=>myBooking.sessions.includes(id));
+          if(myBooking.sessions&&myBooking.sessions.length&&!_coversAll){
             sessionsHtml='<div class="mb-3"><div class="text-xs txt3 mb-2" style="text-transform:uppercase;letter-spacing:.5px">Sessioni prenotate</div>';
             myBooking.sessions.forEach(sid=>{
               const s=sessionMap[sid];
@@ -10996,7 +11050,7 @@ function showEventDetail(evId,recDate){
           +(_payBtns.length?'<div class="text-xs txt3" style="margin-bottom:4px">Metodi di pagamento</div><div class="flex gap-2 flex-wrap">'+_payBtns.join('')+'</div>':'')
           +'</div>';
       })():'';
-      return '<h2 class="font-semibold text-white mb-3">Programma</h2>'+daysHtml+eventPkgHtml+loyaltyHtml+'<div style="position:sticky;bottom:16px;padding-top:16px">'+_preDepositCard+'<button class="btn btn-primary w-full" style="padding:14px;font-size:1rem" onclick="doBook()">'+(isFreeEvent?'✅ Iscriviti gratuitamente':isManagedByOrg?'📋 Iscriviti!':'Conferma prenotazione')+'</button></div>';
+      return '<h2 class="font-semibold text-white mb-3">Programma</h2>'+daysHtml+eventPkgHtml+loyaltyHtml+'<div style="padding-top:16px">'+_preDepositCard+'<button class="btn btn-primary w-full" style="padding:14px;font-size:1rem" onclick="doBook()">'+(isFreeEvent?'✅ Iscriviti gratuitamente':isManagedByOrg?'📋 Iscriviti!':'Conferma prenotazione')+'</button></div>';
     })()}
   </div>`;
   go('event-detail-dynamic');
@@ -13416,6 +13470,9 @@ function renderAdminBookings(){
   const getSessionNames=(evId,sIds)=>{
     if(!sIds||!sIds.length)return'Intero evento';
     const ev=store.events.find(e=>e.id===evId);if(!ev)return'—';
+    // If sessions covers ALL event sessions → "Intero evento"
+    const allIds=[];ev.days.forEach(d=>(d.sessions||[]).forEach(s=>allIds.push(s.id)));
+    if(allIds.length>0&&allIds.every(id=>sIds.includes(id)))return'Intero evento';
     const names=[];
     ev.days.forEach(d=>d.sessions.forEach(s=>{if(sIds.includes(s.id))names.push(s.name.length>20?s.name.substring(0,18)+'…':s.name);}));
     return names.length?names.join(', '):'Intero evento';
@@ -14271,8 +14328,10 @@ async function downloadExcel(){
   const roleName=r=>r==='base'?'Base':r==='flyer'?'Flyer':r==='non_so'?'Non lo so':r==='entrambi'?'Entrambi':'—';
   const sessionMap={};
   ev.days.forEach(d=>d.sessions.forEach(s=>{sessionMap[s.id]=s.name;}));
+  const allEvSessionIds=[];ev.days.forEach(d=>(d.sessions||[]).forEach(s=>allEvSessionIds.push(s.id)));
   const getSessionLabel=(sIds)=>{
     if(!sIds||!sIds.length)return'Intero evento';
+    if(allEvSessionIds.length>0&&allEvSessionIds.every(id=>sIds.includes(id)))return'Intero evento';
     return sIds.map(sid=>sessionMap[sid]||sid).join(', ');
   };
   const payLabel=b=>b.gift?'Regalo':b.paymentStatus==='pagato'?'Pagato':b.paymentStatus==='gratuito'?'Gratuito':'Non pagato';
@@ -14608,8 +14667,11 @@ function showAdminEventDetail(evId){
   // Session name lookup
   const sessionMap={};
   ev.days.forEach(d=>d.sessions.forEach(s=>{sessionMap[s.id]=s.name;}));
+  const allEventSessionIds=[];ev.days.forEach(d=>(d.sessions||[]).forEach(s=>allEventSessionIds.push(s.id)));
   const getSessionNames=(sIds)=>{
     if(!sIds||!sIds.length)return'<span class="badge" style="background:var(--green-bg);color:var(--green);font-size:.65rem;white-space:nowrap">Intero evento</span>';
+    // If sessions covers ALL event sessions → show "Intero evento"
+    if(allEventSessionIds.length>0&&allEventSessionIds.every(id=>sIds.includes(id)))return'<span class="badge" style="background:var(--green-bg);color:var(--green);font-size:.65rem;white-space:nowrap">Intero evento</span>';
     return'<div class="flex flex-wrap gap-1">'+sIds.map(sid=>{
       const nm=sessionMap[sid]||sid;
       const short=nm.length>22?nm.substring(0,20)+'…':nm;
