@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.21.1</title>
+<title>BodyEvents — V2.22.0</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -314,7 +314,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.21.1</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.22.0</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -6049,7 +6049,7 @@ async function saveProfileChanges(){
 }
 
 /* ============================================================
-   UNIFIED IMAGE EDITOR (V2.21.1)
+   UNIFIED IMAGE EDITOR (V2.22.0)
    Full-featured image editor with:
    - Crop with resizable/repositionable area + aspect ratio presets
    - Zoom (pinch + slider)
@@ -6895,12 +6895,25 @@ function getConfirmationStatus(ev){
   // Legacy: event-level minSubscribers
   if(!hasMin&&ev.minSubscribers&&ev.minSubscribers.count)hasMin=true;
   if(!hasMin)return null;
-  const bookings=(ev.bookings||[]).length;
+  // If organizer manually confirmed despite min not reached
+  if(ev.confirmedByOrganizer)return 'confermato';
+  const bkCount=(store.bookings||[]).filter(b=>b.eventId===ev.id&&b.status!=='cancellata').length;
   // Use max of all session minimums as event threshold
   let maxNeeded=0;
   if(ev.days)ev.days.forEach(d=>{(d.sessions||[]).forEach(s=>{if(s.minSubscribers&&s.minSubscribers>maxNeeded)maxNeeded=s.minSubscribers;});});
   if(ev.minSubscribers&&ev.minSubscribers.count>maxNeeded)maxNeeded=ev.minSubscribers.count;
-  return bookings>=maxNeeded?'confermato':'attesa';
+  if(bkCount>=maxNeeded)return 'confermato';
+  // Check if booking deadline has expired
+  const dl=getEffectiveBookingDeadline(ev,null);
+  const today=localDateStr(new Date());
+  if(dl&&today>dl)return 'deadline_scaduta';
+  return 'attesa';
+}
+function getMinNeeded(ev){
+  let maxNeeded=0;
+  if(ev.days)ev.days.forEach(d=>{(d.sessions||[]).forEach(s=>{if(s.minSubscribers&&s.minSubscribers>maxNeeded)maxNeeded=s.minSubscribers;});});
+  if(ev.minSubscribers&&ev.minSubscribers.count>maxNeeded)maxNeeded=ev.minSubscribers.count;
+  return maxNeeded;
 }
 function getJamConfirmationStatus(jam){
   if(!jam.minSubscribers||!jam.minSubscribers.count)return null;
@@ -8256,7 +8269,7 @@ function renderUserEvents(){
     const _minP=ev.pricingMode==='standard'?minPrice(ev):0;
     const pricingBadge=ev.pricingMode==='free'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🆓 Gratuito</span>':ev.pricingMode==='managed'?'<span class="badge badge-yellow">🤝 Costi con org.</span>':(_minP>0?'<span class="badge" style="background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)">💰 da €'+_minP+'</span>':'');
     const confirmStatus=getConfirmationStatus(ev);
-    const confirmBadge=confirmStatus==='attesa'?'<span class="badge badge-attesa">⏳ Min. non raggiunto</span>':confirmStatus==='confermato'?'<span class="badge badge-confermato">✅ Confermato</span>':'';
+    const confirmBadge=confirmStatus==='attesa'?'<span class="badge badge-attesa">⏳ Min. non raggiunto</span>':confirmStatus==='deadline_scaduta'?'<span class="badge" style="background:var(--red-bg);color:var(--red)">🚫 Deadline scaduta</span>':confirmStatus==='confermato'?'<span class="badge badge-confermato">✅ Confermato</span>':'';
     const _effBkDl=getEffectiveBookingDeadline(ev,ev._recDate||null);
     const _todayStr=localDateStr(new Date());
     const _bookClosed=_effBkDl&&_todayStr>_effBkDl;
@@ -9380,10 +9393,25 @@ function showJamDetail(jamId){
   go('event-detail-dynamic');
 }
 
+let jamStatusFilter='';
+function filterJamStatus(s){jamStatusFilter=s;renderUserJams();}
 function renderUserJams(){
   const c=document.getElementById('user-jams-container');if(!c)return;
   populateJamTypeFilters();
   const uid=store.currentUser.id;
+
+  // Auto-purge cancelled jams older than 10 days
+  const today=new Date();
+  const toDeleteJams=store.communityJams.filter(j=>{
+    if(!j.alert||j.alert.type!=='cancellato')return false;
+    const cd=j.alert.timestamp?new Date(j.alert.timestamp):j.alert.date?new Date(j.alert.date+'T00:00:00'):null;
+    if(!cd)return false;
+    return Math.floor((today-cd)/(1000*60*60*24))>10;
+  });
+  toDeleteJams.forEach(j=>{
+    store.communityJams=store.communityJams.filter(x=>x.id!==j.id);
+    fsDelete('communityJams',j.id).catch(console.error);
+  });
 
   // Get filter values
   const filterText=(document.getElementById('jam-user-filter-text')||{}).value||'';
@@ -9392,13 +9420,31 @@ function renderUserJams(){
   const filterDateTo=(document.getElementById('jam-user-filter-date-to')||{}).value||'';
 
   // Filter jams
-  const allJams=store.communityJams.filter(jam=>{
+  let allJams=store.communityJams.filter(jam=>{
     const matchText=filterText===''||jam.title.toLowerCase().includes(filterText.toLowerCase())||jam.description.toLowerCase().includes(filterText.toLowerCase())||jam.userName.toLowerCase().includes(filterText.toLowerCase());
     const matchType=filterType===''||jam.type===filterType;
     const matchDateFrom=filterDateFrom===''||jam.date>=filterDateFrom;
     const matchDateTo=filterDateTo===''||jam.date<=filterDateTo;
     return matchText&&matchType&&matchDateFrom&&matchDateTo;
   });
+
+  // Status tabs
+  const activeJams=allJams.filter(j=>!j.alert||j.alert.type!=='cancellato');
+  const cancelledJams=allJams.filter(j=>j.alert&&j.alert.type==='cancellato');
+  const _jsf=jamStatusFilter;
+  const _jtStyle=(f)=>'padding:6px 12px;cursor:pointer;border:none;font-size:.8rem;'+(_jsf===f?'outline:2px solid var(--brand);outline-offset:-2px;':'');
+  let tabsHtml=`<div class="flex gap-2 flex-wrap mb-4">
+    <button class="badge" style="${_jtStyle('')}background:var(--brand-d);color:var(--brand-l)" onclick="filterJamStatus('')">Attivi (${activeJams.length})</button>
+    <button class="badge" style="${_jtStyle('cancellato')}background:var(--red-bg);color:var(--red)" onclick="filterJamStatus('cancellato')">Cancellati (${cancelledJams.length})</button>
+  </div>`;
+
+  // Apply status filter
+  if(jamStatusFilter==='cancellato'){
+    allJams=cancelledJams;
+    tabsHtml+='<div class="card mb-4" style="background:rgba(239,68,68,.06);border-color:var(--red);padding:12px"><div class="flex items-center gap-2"><span>🗑️</span><span class="text-xs" style="color:var(--red)"><strong>I community events cancellati vengono eliminati automaticamente dopo 10 giorni.</strong></span></div></div>';
+  } else {
+    allJams=activeJams;
+  }
 
   const myJams=allJams.filter(j=>j.userId===uid).sort((a,b)=>a.date.localeCompare(b.date));
   const otherJams=allJams.filter(j=>j.userId!==uid).sort((a,b)=>a.date.localeCompare(b.date));
@@ -9409,11 +9455,11 @@ function renderUserJams(){
   if(countEl) countEl.textContent=jams.length+(jams.length===1?' risultato':' risultati');
 
   if(!jams.length){
-    c.innerHTML='<div class="card text-center txt3" style="padding:40px">Nessun community event proposto. Crea il primo!</div>';
+    c.innerHTML=tabsHtml+'<div class="card text-center txt3" style="padding:40px">'+(jamStatusFilter==='cancellato'?'Nessun community event cancellato.':'Nessun community event proposto. Crea il primo!')+'</div>';
     return;
   }
 
-  let html='';
+  let html=tabsHtml;
   if(myJams.length) html+='<h3 class="text-sm font-medium mb-3" style="color:var(--brand-l)">I miei Community Events</h3>';
   html+=myJams.map(jam=>renderJamCard(jam,uid,true)).join('');
   if(myJams.length&&otherJams.length) html+='<h3 class="text-sm font-medium mb-3 mt-5 txt3">Community Events degli altri</h3>';
@@ -9586,7 +9632,7 @@ function saveJamEdit(jamId){
 function cancelJam(jamId){
   showConfirm('Cancella community event','Cancellare questo community event? I partecipanti lo vedranno come annullato.',()=>{
     const jam=store.communityJams.find(j=>j.id===jamId);if(!jam)return;
-    jam.alert={type:'cancellato',message:'Community event cancellato dall\'organizzatore.',date:localDateStr(new Date())};
+    jam.alert={type:'cancellato',message:'Community event cancellato dall\'organizzatore.',date:localDateStr(new Date()),timestamp:new Date().toISOString()};
     fsSet('communityJams',jam.id,jam).catch(console.error);
     showJamDetail(jamId);
     showToast('Community event cancellato','error');
@@ -10109,21 +10155,27 @@ function showEventDetail(evId,recDate){
   // Confirmation status banner (V2.13.0: session-level minSubscribers)
   const evConfirmStatus=getConfirmationStatus(ev);
   if(evConfirmStatus==='attesa'){
-    // Find max needed across sessions
-    let _maxNeeded=0;
-    if(ev.days)ev.days.forEach(d=>{(d.sessions||[]).forEach(s=>{if(s.minSubscribers&&s.minSubscribers>_maxNeeded)_maxNeeded=s.minSubscribers;});});
-    if(ev.minSubscribers&&ev.minSubscribers.count>_maxNeeded)_maxNeeded=ev.minSubscribers.count;
-    const current=(ev.bookings||[]).length;
+    const _maxNeeded=getMinNeeded(ev);
+    const current=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata').length;
     daysHtml+=`<div class="card mb-4" style="background:rgba(234,179,8,.08);border-color:var(--yellow);padding:16px">
       <div class="flex items-center gap-3 mb-2"><span style="font-size:1.5rem">⏳</span><h3 class="font-bold" style="color:var(--yellow)">In attesa di conferma</h3></div>
       <p class="text-sm" style="color:var(--txt);line-height:1.6">Questo evento sarà confermato al raggiungimento di <strong style="color:var(--yellow)">${_maxNeeded} iscritti</strong>. Attualmente: <strong>${current}/${_maxNeeded}</strong></p>
       <div class="mt-2" style="background:var(--s200);border-radius:8px;height:8px;overflow:hidden"><div style="height:100%;background:var(--yellow);border-radius:8px;width:${Math.min(100,Math.round(current/_maxNeeded*100))}%;transition:width .3s"></div></div>
     </div>`;
+  } else if(evConfirmStatus==='deadline_scaduta'){
+    const _maxNeeded=getMinNeeded(ev);
+    const current=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata').length;
+    daysHtml+=`<div class="card mb-4" style="background:var(--red-bg);border-color:var(--red);padding:16px">
+      <div class="flex items-center gap-3 mb-2"><span style="font-size:1.5rem">🚫</span><h3 class="font-bold" style="color:var(--red)">Deadline scaduta — numero minimo non raggiunto</h3></div>
+      <p class="text-sm" style="color:var(--txt);line-height:1.6">Servivano <strong style="color:var(--red)">${_maxNeeded} iscritti</strong>. Raggiunti: <strong>${current}/${_maxNeeded}</strong>. In attesa di decisione dell'organizzatore.</p>
+      <div class="mt-2" style="background:var(--s200);border-radius:8px;height:8px;overflow:hidden"><div style="height:100%;background:var(--red);border-radius:8px;width:${Math.min(100,Math.round(current/_maxNeeded*100))}%"></div></div>
+    </div>`;
   } else if(evConfirmStatus==='confermato'){
+    const _confirmedManually=ev.confirmedByOrganizer;
     daysHtml+=`<div class="card mb-4" style="background:rgba(16,185,129,.08);border-color:var(--green);padding:16px;text-align:center">
       <span style="font-size:1.5rem">✅</span>
-      <h3 class="font-bold mt-1" style="color:var(--green)">Evento confermato!</h3>
-      <p class="text-xs txt3 mt-1">Numero minimo di iscritti raggiunto</p>
+      <h3 class="font-bold mt-1" style="color:var(--green)">EVENTO CONFERMATO</h3>
+      <p class="text-xs txt3 mt-1">${_confirmedManually?'L\'organizzatore ha confermato questo evento':'Numero minimo di iscritti raggiunto'}</p>
     </div>`;
   }
 
@@ -10287,6 +10339,7 @@ function showEventDetail(evId,recDate){
     <div class="text-sm txt3 mb-6" style="cursor:pointer" onclick="go('${backView}')">← Torna agli eventi</div>
     ${isAdminPreview?'<div class="badge badge-yellow mb-4" style="padding:6px 12px">👁️ Preview come la vedono gli utenti</div>':''}
     ${alertBanner}
+    ${ev.confirmedByOrganizer&&!isDisabledByAlert?'<div class="card mb-4" style="border:2px solid var(--green);background:rgba(16,185,129,.08);padding:16px;text-align:center"><div style="font-size:1.5rem">✅</div><h3 class="font-bold mt-1" style="color:var(--green)">EVENTO CONFERMATO</h3><p class="text-xs txt3 mt-1">L\'organizzatore ha confermato questo evento</p></div>':''}
     <div class="card mb-6" ${isDisabledByAlert?'style="opacity:.5;pointer-events:none"':''}>
       ${(()=>{const hd=(ev.imageHeader||ev.image)?{src:ev.imageHeader?.src||ev.image,zoom:ev.imageHeader?.zoom||100,posX:ev.imageHeader?.posX||0,posY:ev.imageHeader?.posY||0}:null;if(!hd)return '';const s=hd.zoom/100;const denomW=420*s-420;const denomH=300*s-300;const px=denomW>0?Math.round(Math.abs(hd.posX)/denomW*100):50;const py=denomH>0?Math.round(Math.abs(hd.posY)/denomH*100):50;const op=`object-position:${isNaN(px)?50:px}% ${isNaN(py)?50:py}%`;return '<div style="margin:-20px -20px 16px;border-radius:16px 16px 0 0;overflow:hidden;cursor:zoom-in" onclick="openFullscreenImage(\''+hd.src.replace(/'/g,"\\'")+'\',\'Evento\')"><img src="'+hd.src+'" style="width:100%;max-height:300px;object-fit:cover;'+op+'" alt=""></div>';})()}
       <div class="flex gap-2 mb-3 flex-wrap"><span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>${levelBadges}</div>
@@ -10441,12 +10494,37 @@ function showEventDetail(evId,recDate){
   },300);
 }
 
+/* Auto-purge cancelled events older than 10 days */
+function _autoPurgeCancelledEvents(managerId){
+  const today=new Date();
+  const toDelete=store.events.filter(ev=>{
+    if(ev.status!=='cancellato')return false;
+    if(!isEventVisibleToManager(ev,managerId))return false;
+    const cancelDate=ev.alert&&ev.alert.timestamp?new Date(ev.alert.timestamp):ev.alert&&ev.alert.date?new Date(ev.alert.date+'T00:00:00'):null;
+    if(!cancelDate)return false;
+    const diffDays=Math.floor((today-cancelDate)/(1000*60*60*24));
+    return diffDays>10;
+  });
+  toDelete.forEach(ev=>{
+    store.events=store.events.filter(e=>e.id!==ev.id);
+    fsDelete('events',ev.id).catch(console.error);
+  });
+}
+function _getCancelledDaysLeft(ev){
+  const cancelDate=ev.alert&&ev.alert.timestamp?new Date(ev.alert.timestamp):ev.alert&&ev.alert.date?new Date(ev.alert.date+'T00:00:00'):null;
+  if(!cancelDate)return 10;
+  const diffDays=Math.floor((new Date()-cancelDate)/(1000*60*60*24));
+  return Math.max(0,10-diffDays);
+}
+
 /* ==============================
    RENDER: ADMIN EVENTS LIST
 ============================== */
 function renderAdminEvents(){
   const c=document.getElementById('admin-events-container');if(!c)return;
   const u=store.currentUser;
+  // Auto-purge cancelled events older than 10 days
+  _autoPurgeCancelledEvents(u.id);
   let evts=store.events.filter(e=>isEventVisibleToManager(e,u.id));
   evts.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
   const pub=evts.filter(e=>e.status==='pubblicato').length;
@@ -10456,18 +10534,21 @@ function renderAdminEvents(){
 
   // Update filter counts
   const fc=document.getElementById('admin-filter-counts');
-  let filterHtml=`<button class="badge badge-pubblicato" style="padding:8px 14px;cursor:pointer;border:none" onclick="filterAdminEvts('')">Tutti (${evts.length})</button>
-    <button class="badge" style="padding:8px 14px;cursor:pointer;border:none;background:var(--s200);color:var(--txt3)" onclick="filterAdminEvts('pubblicato')">Pubblicati (${pub})</button>
-    <button class="badge" style="padding:8px 14px;cursor:pointer;border:none;background:var(--s200);color:var(--txt3)" onclick="filterAdminEvts('bozza')">Bozze (${boz})</button>
-    <button class="badge" style="padding:8px 14px;cursor:pointer;border:none;background:var(--s200);color:var(--txt3)" onclick="filterAdminEvts('concluso')">Conclusi (${con})</button>`;
-  if(canc)filterHtml+=`<button class="badge" style="padding:8px 14px;cursor:pointer;border:none;background:var(--red-bg);color:var(--red)" onclick="filterAdminEvts('cancellato')">Cancellati (${canc})</button>`;
+  const _af=adminStatusFilter;
+  const _tabStyle=(f)=>'padding:8px 14px;cursor:pointer;border:none;'+(_af===f?'outline:2px solid var(--brand);outline-offset:-2px;':'');
+  let filterHtml=`<button class="badge badge-pubblicato" style="${_tabStyle('')}" onclick="filterAdminEvts('')">Tutti (${evts.length})</button>
+    <button class="badge" style="${_tabStyle('pubblicato')}background:var(--s200);color:var(--txt3)" onclick="filterAdminEvts('pubblicato')">Pubblicati (${pub})</button>
+    <button class="badge" style="${_tabStyle('bozza')}background:var(--s200);color:var(--txt3)" onclick="filterAdminEvts('bozza')">Bozze (${boz})</button>
+    <button class="badge" style="${_tabStyle('concluso')}background:var(--s200);color:var(--txt3)" onclick="filterAdminEvts('concluso')">Conclusi (${con})</button>
+    <button class="badge" style="${_tabStyle('cancellato')}background:var(--red-bg);color:var(--red)" onclick="filterAdminEvts('cancellato')">Cancellati (${canc})</button>`;
   if(fc)fc.innerHTML=filterHtml;
 
 
   const statusFilter=(document.getElementById('admin-status-filter')||{}).value||'';
   if(statusFilter)evts=evts.filter(e=>e.status===statusFilter);
 
-  c.innerHTML=evts.map(ev=>{
+  const _cancNotice=statusFilter==='cancellato'?'<div class="card mb-4" style="background:rgba(239,68,68,.06);border-color:var(--red);padding:14px"><div class="flex items-center gap-2"><span>🗑️</span><span class="text-sm" style="color:var(--red)"><strong>Gli eventi cancellati vengono eliminati automaticamente dopo 10 giorni</strong> dalla data di cancellazione.</span></div></div>':'';
+  c.innerHTML=_cancNotice+evts.map(ev=>{
     const isCapofila=isEventCapofila(ev,u.id);
     const isPartner=!isCapofila;
     const dateStr=ev.days.length>1?fmtDateShort(ev.days[0]?.date)+' — '+fmtDateShort(ev.days[ev.days.length-1]?.date):fmtDate(ev.days[0]?.date);
@@ -10494,12 +10575,23 @@ function renderAdminEvents(){
         <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteEvent('${ev.id}')">🗑️ Elimina</button>`;
       }
     })():
-    ev.status==='cancellato'?`
-      <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();showEventDetail('${ev.id}')">👁️ Preview</button>
-      <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();hardDeleteEvent('${ev.id}')">🗑️ Elimina</button>`:
+    ev.status==='cancellato'?(()=>{
+      const _dLeft=_getCancelledDaysLeft(ev);
+      return `<div class="flex items-center gap-2 flex-wrap"><span class="text-xs" style="color:var(--red)">🗑️ Eliminato tra ${_dLeft}g</span><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();showEventDetail('${ev.id}')">👁️ Preview</button><button class="btn btn-danger btn-sm" onclick="event.stopPropagation();hardDeleteEvent('${ev.id}')">🗑️ Elimina</button></div>`;
+    })():
       '<span class="text-xs txt3">Concluso</span>';
     const opacity=ev.status==='bozza'?'opacity:.7':ev.status==='cancellato'?'opacity:.6':'';
     const partnerBorder=isPartner?'border-left:4px solid #a855f7;':'';
+    // Min participants not reached + deadline expired banner
+    const _evConfStat=isCapofila?getConfirmationStatus(ev):null;
+    const _minBanner=_evConfStat==='deadline_scaduta'?(()=>{
+      const _needed=getMinNeeded(ev);
+      const _current=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata').length;
+      return `<div style="margin-top:10px;padding:10px 14px;border-radius:10px;background:var(--red-bg);border:1px solid rgba(239,68,68,.3)">
+        <div class="flex items-center gap-2 mb-2"><span>⚠️</span><span class="text-xs font-bold" style="color:var(--red)">Non hai raggiunto il numero minimo di iscritti (${_current}/${_needed}): conferma o cancella l'evento!</span></div>
+        <div class="flex gap-2"><button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="event.stopPropagation();confirmEventDespiteMin('${ev.id}')">✅ Conferma evento</button><button class="btn btn-sm" style="background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.3)" onclick="event.stopPropagation();cancelEventDueToMin('${ev.id}')">🚫 Cancella evento</button></div>
+      </div>`;
+    })():'';
     return `<div class="card mb-3" style="${opacity};${partnerBorder}cursor:pointer" onclick="showAdminEventDetail('${ev.id}')">
       <div class="flex justify-between items-center flex-wrap gap-3">
         <div class="flex-1" style="min-width:200px">
@@ -10516,26 +10608,57 @@ function renderAdminEvents(){
         </div>
         <div class="flex gap-2 flex-wrap">${actions}</div>
       </div>
+      ${_minBanner}
     </div>`;
   }).join('')||'<div class="card text-center txt3">Nessun evento.</div>';
 }
 let adminStatusFilter='';
 function filterAdminEvts(s){adminStatusFilter=s;document.getElementById('admin-status-filter').value=s;renderAdminEvents();}
 
+function _refreshAdminAfterAction(id){
+  renderAdminEvents();
+  if(window._currentAdminDetailEvId===id)showAdminEventDetail(id);
+}
 function resumeRecurring(id){
   const ev=store.events.find(e=>e.id===id);if(!ev||!ev.recurrence)return;
   showConfirm('Riprendi evento','Riprendere questo evento ricorrente? Tornerà visibile agli utenti.',()=>{
     ev.recurrence.active=true;ev.recurrence.pausedUntil=null;
     fsSet('events',ev.id,ev).catch(console.error);
-    renderAdminEvents();showToast('Evento ripreso! Ora è di nuovo visibile.');
+    _refreshAdminAfterAction(id);showToast('Evento ripreso! Ora è di nuovo visibile.');
   });
 }
 function publishEvent(id){showConfirm('Pubblica evento','Pubblicare ora? Sarà visibile a tutti gli utenti.',()=>{
-  const ev=store.events.find(e=>e.id===id);if(ev){ev.status='pubblicato';fsUpdate('events',ev.id,{status:'pubblicato'}).catch(console.error);renderAdminEvents();showToast('Evento pubblicato!');}
+  const ev=store.events.find(e=>e.id===id);if(ev){ev.status='pubblicato';fsUpdate('events',ev.id,{status:'pubblicato'}).catch(console.error);_refreshAdminAfterAction(id);showToast('Evento pubblicato!');}
 })}
 function revertToDraft(id){showConfirm('Torna in bozza','Riportare questo evento in bozza? Non sarà più visibile agli utenti finché non verrà ripubblicato.',()=>{
-  const ev=store.events.find(e=>e.id===id);if(ev){ev.status='bozza';fsUpdate('events',ev.id,{status:'bozza'}).catch(console.error);renderAdminEvents();showToast('Evento riportato in bozza');}
+  const ev=store.events.find(e=>e.id===id);if(ev){ev.status='bozza';fsUpdate('events',ev.id,{status:'bozza'}).catch(console.error);_refreshAdminAfterAction(id);showToast('Evento riportato in bozza');}
 })}
+function confirmEventDespiteMin(id){
+  showConfirm('Conferma evento','Confermi l\'evento nonostante il numero minimo di iscritti non sia stato raggiunto? L\'evento rimarrà in bacheca e gli utenti vedranno un banner di conferma.',()=>{
+    const ev=store.events.find(e=>e.id===id);if(!ev)return;
+    ev.confirmedByOrganizer=true;
+    fsUpdate('events',ev.id,{confirmedByOrganizer:true}).catch(console.error);
+    renderAdminEvents();
+    if(window._currentAdminDetailEvId===id)showAdminEventDetail(id);
+    showToast('Evento confermato! Gli utenti vedranno il banner di conferma.');
+  });
+}
+function cancelEventDueToMin(id){
+  const ev=store.events.find(e=>e.id===id);if(!ev)return;
+  const hasBookings=store.bookings.some(b=>b.eventId===ev.id&&b.status!=='cancellata');
+  if(hasBookings){
+    openAlertModal(id);
+  } else {
+    showConfirm('Cancella evento','Cancellare l\'evento? Non ha iscritti, verrà eliminato dalla bacheca.',()=>{
+      ev.status='cancellato';
+      ev.alert={type:'cancellato',message:'Evento annullato per mancato raggiungimento del numero minimo di partecipanti.',date:localDateStr(new Date()),timestamp:new Date().toISOString()};
+      fsSet('events',ev.id,ev).catch(console.error);
+      renderAdminEvents();
+      if(window._currentAdminDetailEvId===id)showAdminEventDetail(id);
+      showToast('Evento cancellato.');
+    });
+  }
+}
 /* Toggle recurrence button: styled toggle + switch deadline field */
 function toggleRecurrenceBtn(){
   const chk=document.getElementById('ne-recurrence');
@@ -10773,20 +10896,24 @@ function deleteEvent(id){
   const ev=store.events.find(e=>e.id===id);if(!ev)return;
   if(ev.status==='bozza'){
     showConfirm('Elimina bozza','Eliminare definitivamente questa bozza?',()=>{
-      store.events=store.events.filter(e=>e.id!==id);fsDelete('events',id).catch(console.error);renderAdminEvents();showToast('Bozza eliminata','error');
+      store.events=store.events.filter(e=>e.id!==id);fsDelete('events',id).catch(console.error);
+      if(window._currentAdminDetailEvId===id){window._currentAdminDetailEvId=null;go(lastAdminListView||'admin-events');}
+      renderAdminEvents();showToast('Bozza eliminata','error');
     },'danger');
   } else {
     showConfirm('Cancella evento','Cancellare questo evento? Gli utenti prenotati lo vedranno come ANNULLATO.',()=>{
       ev.status='cancellato';
       ev.alert={type:'cancellato',message:'Evento cancellato dall\'organizzatore.',date:localDateStr(new Date()),timestamp:new Date().toISOString()};
       fsSet('events',ev.id,ev).catch(console.error);
-      renderAdminEvents();showToast('Evento cancellato (visibile agli utenti come annullato)','error');
+      _refreshAdminAfterAction(id);showToast('Evento cancellato (visibile agli utenti come annullato)','error');
     },'danger');
   }
 }
 function hardDeleteEvent(id){
   showConfirm('Elimina definitivamente','Eliminare definitivamente questo evento? Non sarà più visibile nemmeno agli utenti prenotati.',()=>{
-    store.events=store.events.filter(e=>e.id!==id);fsDelete('events',id).catch(console.error);renderAdminEvents();showToast('Evento eliminato definitivamente','error');
+    store.events=store.events.filter(e=>e.id!==id);fsDelete('events',id).catch(console.error);
+    if(window._currentAdminDetailEvId===id){window._currentAdminDetailEvId=null;go(lastAdminListView||'admin-events');}
+    renderAdminEvents();showToast('Evento eliminato definitivamente','error');
   },'danger');
 }
 
@@ -10953,7 +11080,7 @@ function executeAlertAction(){
     if(!ev.recurrence.exceptions)ev.recurrence.exceptions={};
     ev.recurrence.exceptions[recDate]={type:'skip',date:localDateStr(new Date())};
     fsSet('events',ev.id,ev).catch(console.error);
-    closeAlertModal();renderAdminEvents();
+    closeAlertModal();_refreshAdminAfterAction(ev.id);
     showToast('Data '+fmtDate(recDate)+' saltata');
     return;
   }
@@ -10964,7 +11091,7 @@ function executeAlertAction(){
     ev.recurrence.exceptions[recDate]={type:action==='cancellato'?'skip':'modificato',message:msg,date:localDateStr(new Date()),changes:action==='rimandato'?{alert:{type:'rimandato',message:msg}}:null};
     if(action==='cancellato')ev.recurrence.exceptions[recDate]={type:'skip',message:msg,date:localDateStr(new Date())};
     fsSet('events',ev.id,ev).catch(console.error);
-    closeAlertModal();renderAdminEvents();
+    closeAlertModal();_refreshAdminAfterAction(ev.id);
     showToast('Modifica applicata al '+fmtDate(recDate));
     return;
   }
@@ -10977,7 +11104,7 @@ function executeAlertAction(){
   }
   fsSet('events',ev.id,ev).catch(console.error);
   closeAlertModal();
-  renderAdminEvents();
+  _refreshAdminAfterAction(ev.id);
   const label=action==='cancellato'?'Evento cancellato':'Evento rimandato';
   showToast(label+' — comunicazione pubblicata agli iscritti');
 }
@@ -12670,10 +12797,10 @@ function prefillEventContacts(){
   const emailEl=document.getElementById('ne-contact-email');
   if(phoneEl&&!phoneEl.value&&mgr.phone)phoneEl.value=mgr.phone;
   if(emailEl&&!emailEl.value&&(mgr.contactEmail||mgr.email))emailEl.value=mgr.contactEmail||mgr.email;
-  // Pre-fill teacher/referente with organizer name
+  // Pre-fill teacher/referente: Username (account) → org name → empty
   const teacherEl=document.getElementById('ne-teacher');
   if(teacherEl&&!teacherEl.value){
-    const name=mgr.orgName||mgr.username||store.currentUser.username||'';
+    const name=mgr.username||store.currentUser.username||mgr.orgName||'';
     if(name)teacherEl.value=name;
   }
 }
@@ -13982,20 +14109,22 @@ function showAdminEventDetail(evId){
   }
 
   /* Build action buttons for top bar */
+  /* Build action buttons — must mirror renderAdminEvents() card buttons exactly */
   const _detailActions=(()=>{
     const _isCapo=isEventCapofila(ev,store.currentUser.id);
     if(!_isCapo)return getPartnerReadOnlyActions(ev);
     const _eyeBtn='<button class="btn btn-ghost btn-sm" onclick="showEventDetail(\''+ev.id+'\')" title="Anteprima vista utente">👁️</button>';
-    if(ev.status==='bozza')return _eyeBtn+'<button class="btn btn-secondary btn-sm" onclick="editEvent(\''+ev.id+'\')">✏️ Modifica</button><button class="btn btn-primary btn-sm" onclick="publishEvent(\''+ev.id+'\')">🚀 Pubblica</button><button class="btn btn-danger btn-sm" onclick="deleteEvent(\''+ev.id+'\')">🗑️</button>';
+    if(ev.status==='bozza')return _eyeBtn+'<button class="btn btn-secondary btn-sm" onclick="editEvent(\''+ev.id+'\')">✏️ Modifica</button><button class="btn btn-primary btn-sm" onclick="publishEvent(\''+ev.id+'\')">🚀 Pubblica</button><button class="btn btn-danger btn-sm" onclick="deleteEvent(\''+ev.id+'\')">🗑️ Elimina</button>';
     if(ev.status==='pubblicato'){
       const _hb=store.bookings.some(b=>b.eventId===ev.id&&b.status!=='cancellata');
       const _isPaused=ev.recurrence&&ev.recurrence.active===false;
       const _resumeBtn=_isPaused?'<button class="btn btn-sm" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="resumeRecurring(\''+ev.id+'\')">▶️ Riprendi</button>':'';
-      if(_hb)return _eyeBtn+_resumeBtn+'<button class="btn btn-sm" style="background:rgba(249,115,22,.12);color:var(--orange);border:1px solid rgba(249,115,22,.3)" onclick="openAlertModal(\''+ev.id+'\')">⚠️ Modifica o Cancella</button>';
-      return _eyeBtn+_resumeBtn+'<button class="btn btn-sm" style="background:rgba(234,179,8,.15);color:var(--yellow);border:1px solid rgba(234,179,8,.3)" onclick="revertToDraft(\''+ev.id+'\')">📝 Bozza</button><button class="btn btn-danger btn-sm" onclick="deleteEvent(\''+ev.id+'\')">🗑️</button>';
+      const _shareBtn='<button class="btn btn-sm" style="background:rgba(59,130,246,.1);color:var(--blue);border:1px solid rgba(59,130,246,.25)" onclick="openShareModal(\''+ev.id+'\')">📤 Condividi</button>';
+      if(_hb)return _eyeBtn+_shareBtn+_resumeBtn+'<button class="btn btn-sm" style="background:rgba(249,115,22,.12);color:var(--orange);border:1px solid rgba(249,115,22,.3)" onclick="openAlertModal(\''+ev.id+'\')">⚠️ Modifica o Cancella</button>';
+      return _eyeBtn+_shareBtn+_resumeBtn+'<button class="btn btn-sm" style="background:rgba(234,179,8,.15);color:var(--yellow);border:1px solid rgba(234,179,8,.3)" onclick="revertToDraft(\''+ev.id+'\')">📝 Torna in bozza</button><button class="btn btn-danger btn-sm" onclick="deleteEvent(\''+ev.id+'\')">🗑️ Elimina</button>';
     }
-    if(ev.status==='cancellato')return '<button class="btn btn-ghost btn-sm" onclick="showEventDetail(\''+ev.id+'\')">👁️</button><button class="btn btn-danger btn-sm" onclick="hardDeleteEvent(\''+ev.id+'\')">🗑️ Elimina</button>';
-    return '';
+    if(ev.status==='cancellato')return '<button class="btn btn-ghost btn-sm" onclick="showEventDetail(\''+ev.id+'\')">👁️ Preview</button><button class="btn btn-danger btn-sm" onclick="hardDeleteEvent(\''+ev.id+'\')">🗑️ Elimina</button>';
+    return '<span class="text-xs txt3">Concluso</span>';
   })();
 
   c.innerHTML=`<div class="container" style="padding-top:32px;padding-bottom:48px;max-width:1100px">
@@ -14003,6 +14132,14 @@ function showAdminEventDetail(evId){
       <div class="text-sm txt3" style="cursor:pointer" onclick="resetAdminDetailView();go(lastAdminListView||'admin-events')">← Torna agli eventi</div>
       <div class="flex gap-2 flex-wrap">${_detailActions}</div>
     </div>
+    ${(()=>{
+      const _isCapo=isEventCapofila(ev,store.currentUser.id);
+      const _cs=_isCapo?getConfirmationStatus(ev):null;
+      if(_cs!=='deadline_scaduta')return '';
+      const _needed=getMinNeeded(ev);
+      const _cur=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata').length;
+      return '<div class="card mb-4" style="background:var(--red-bg);border:2px solid rgba(239,68,68,.4);padding:16px"><div class="flex items-center gap-2 mb-3"><span style="font-size:1.3rem">⚠️</span><span class="font-bold" style="color:var(--red)">Non hai raggiunto il numero minimo di iscritti ('+_cur+'/'+_needed+'): conferma o cancella l\'evento!</span></div><div class="flex gap-3"><button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3);padding:8px 16px" onclick="confirmEventDespiteMin(\''+ev.id+'\')">✅ Conferma evento</button><button class="btn btn-sm" style="background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.3);padding:8px 16px" onclick="cancelEventDueToMin(\''+ev.id+'\')">🚫 Cancella evento</button></div></div>';
+    })()}
 
     <!-- Event header -->
     <div class="card mb-6">
