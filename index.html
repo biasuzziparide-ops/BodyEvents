@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.34.0</title>
+<title>BodyEvents — V2.34.2</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -329,7 +329,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.34.0</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.34.2</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -5704,6 +5704,12 @@ async function loginWithGoogle(){
           subscribedUniverses,
           consents:{privacy:false,privacyDate:null,marketing:false,marketingDate:null}
         };
+        // If user was invited by an organizer, store the reference
+        if(window._inviteOrgId){
+          userData.invitedBy=window._inviteOrgId;
+          userData.invitedAt=now;
+          userData.inviteOrgName=window._inviteOrgName||'';
+        }
         await fbDb.collection('users').doc(user.uid).set(userData);
         userDoc=await fbDb.collection('users').doc(user.uid).get();
       }
@@ -5915,12 +5921,19 @@ async function submitUserRegistration(){
       subscribedUniverses,
       consents:{privacy:privacyCheck,privacyDate:privacyCheck?now:null,marketing:marketingCheck,marketingDate:marketingCheck?now:null}
     };
+    // If user was invited by an organizer, store the reference
+    if(window._inviteOrgId){
+      userData.invitedBy=window._inviteOrgId;
+      userData.invitedAt=now;
+      userData.inviteOrgName=window._inviteOrgName||'';
+    }
     await fbDb.collection('users').doc(cred.user.uid).set(userData);
     _registrationInProgress=false;
     await loadCurrentUser(cred.user.uid);
     document.getElementById('reg-form')?.classList.add('hidden');
     document.getElementById('reg-sent')?.classList.remove('hidden');
-    showToast('Registrazione completata: '+username);
+    showToast(window._inviteOrgName?'Registrazione completata! Benvenuto nella community di '+window._inviteOrgName+'!':'Registrazione completata: '+username);
+    window._inviteOrgId=null;window._inviteOrgName=null;
   }catch(e){
     _registrationInProgress=false;
     if(e.code==='auth/email-already-in-use'){showToast('Questa email è già registrata','error');}
@@ -8155,8 +8168,12 @@ function copyQRLink(){
   } else showToast('Genera prima un QR code','error');
 }
 // === NEW USER REGISTRATION QR ===
+function _getInviteUrl(){
+  const orgId=store.currentUser?.id||'';
+  return window.location.origin+window.location.pathname+'?invite='+orgId;
+}
 function generateNewUserQR(){
-  const url=window.location.origin+window.location.pathname+'#register';
+  const url=_getInviteUrl();
   const wrap=document.getElementById('qr-new-user-wrap');
   const display=document.getElementById('qr-new-user-display');
   if(!wrap)return;
@@ -8170,7 +8187,7 @@ function generateNewUserQR(){
   showToast('QR registrazione generato!');
 }
 function copyNewUserLink(){
-  const url=window.location.origin+window.location.pathname+'#register';
+  const url=_getInviteUrl();
   navigator.clipboard.writeText(url).then(()=>showToast('Link registrazione copiato!')).catch(()=>showToast('Errore copia','error'));
 }
 function downloadNewUserQR(){
@@ -8187,7 +8204,8 @@ function downloadNewUserQR(){
   if(srcCanvas)ctx.drawImage(srcCanvas,padding,padding,qrSize,qrSize);
   else{const img=new Image();img.src=srcImg.src;ctx.drawImage(img,padding,padding,qrSize,qrSize);}
   ctx.fillStyle='#065f46';ctx.font='bold 12px sans-serif';ctx.textAlign='center';
-  ctx.fillText('BodyEvents — Registrazione',totalW/2,qrSize+padding+20);
+  const _orgLabel=store.currentUser?.orgName||store.currentUser?.username||'BodyEvents';
+  ctx.fillText(_orgLabel+' — Registrazione',totalW/2,qrSize+padding+20);
   ctx.font='10px sans-serif';ctx.fillStyle='#666';
   ctx.fillText('Scansiona per registrarti',totalW/2,qrSize+padding+38);
   const a=document.createElement('a');a.download='bodyevents-registrazione.png';a.href=c.toDataURL('image/png');a.click();
@@ -8653,18 +8671,18 @@ function renderUserEvents(){
     // Check if user has entry-based or discount sub for this event
     const _cardSubInfo=(()=>{
       if(!store.currentUser||ev.pricingMode!=='standard')return null;
-      // Check entry-based sub
-      if(ev.subscriptionBookable?.enabled&&ev.subscriptionBookable.typeIds?.length){
-        const _uSubs=getUserActiveSubscriptions(store.currentUser.id);
-        const hasEntry=_uSubs.some(s=>{
-          if(!ev.subscriptionBookable.typeIds.includes(s.typeId))return false;
-          if(!isSubCompatibleWithEvent(s,ev))return false;
-          const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
-          if(sType&&sType.mode==='discount')return false;
-          return true;
-        });
-        if(hasEntry)return {type:'entry'};
-      }
+      // Check entry-based sub (same organizer + compatible, no subscriptionBookable dependency)
+      const _uSubs=getUserActiveSubscriptions(store.currentUser.id);
+      const hasEntry=_uSubs.some(s=>{
+        const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
+        if(!sType||sType.mode==='discount')return false;
+        const isPartner=ev.partnerIds&&ev.partnerIds.includes(sType.managerId);
+        if(sType.managerId!==ev.managerId&&!isPartner)return false;
+        if(isPartner&&!canUsePartnerEntries(ev))return false;
+        if(!isSubCompatibleWithEvent(s,ev))return false;
+        return true;
+      });
+      if(hasEntry)return {type:'entry'};
       // Check discount sub
       const discPct=getEffectiveDiscountPct(ev);
       if(discPct>0&&_minP>0){
@@ -10628,19 +10646,21 @@ function showEventDetail(evId,recDate){
     </div>`;
   }
 
-  // Check if user can book with entry-based subscription (calculated early for price display)
+  // Check if user has an entry-based subscription compatible with this event
+  // Uses same logic as getAutoSubDiscountPct but for entry-mode subs:
+  // checks organizer match + universe/event-type compatibility (NOT subscriptionBookable flag)
   const _userHasEntrySub=(()=>{
     if(!store.currentUser||skipPricing)return false;
-    if(!ev.subscriptionBookable?.enabled||!ev.subscriptionBookable.typeIds?.length)return false;
     const _uSubs=getUserActiveSubscriptions(store.currentUser.id);
     return _uSubs.some(s=>{
-      if(!ev.subscriptionBookable.typeIds.includes(s.typeId))return false;
-      if(!isSubCompatibleWithEvent(s,ev))return false;
       const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
-      if(sType&&sType.mode==='discount')return false;
-      if(sType&&ev.partnerIds&&ev.partnerIds.includes(sType.managerId)){
-        if(!canUsePartnerEntries(ev))return false;
-      }
+      if(!sType||sType.mode==='discount')return false;
+      // Must be same organizer (or partner with entry permission)
+      const isPartner=ev.partnerIds&&ev.partnerIds.includes(sType.managerId);
+      if(sType.managerId!==ev.managerId&&!isPartner)return false;
+      if(isPartner&&!canUsePartnerEntries(ev))return false;
+      // Check universe + event type compatibility
+      if(!isSubCompatibleWithEvent(s,ev))return false;
       return true;
     });
   })();
@@ -10650,11 +10670,12 @@ function showEventDetail(evId,recDate){
     if(!_userHasEntrySub||!store.currentUser)return null;
     const _uSubs=getUserActiveSubscriptions(store.currentUser.id);
     for(const s of _uSubs){
-      if(!ev.subscriptionBookable.typeIds.includes(s.typeId))continue;
-      if(!isSubCompatibleWithEvent(s,ev))continue;
       const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
-      if(sType&&sType.mode==='discount')continue;
-      if(sType&&ev.partnerIds&&ev.partnerIds.includes(sType.managerId)&&!canUsePartnerEntries(ev))continue;
+      if(!sType||sType.mode==='discount')continue;
+      const isPartner=ev.partnerIds&&ev.partnerIds.includes(sType.managerId);
+      if(sType.managerId!==ev.managerId&&!isPartner)continue;
+      if(isPartner&&!canUsePartnerEntries(ev))continue;
+      if(!isSubCompatibleWithEvent(s,ev))continue;
       return {name:sType?.name||'Abbonamento',remaining:s.entriesTotal-s.entriesUsed,total:s.entriesTotal};
     }
     return null;
@@ -15146,6 +15167,21 @@ function checkPrivacyConsent(){
 
 // Deep link handler — process URL params (?event=..., ?checkin=..., ?sub=...)
 let _pendingDeepLink=null;
+/* ── Invite banner for registration page ── */
+function _showInviteBanner(orgName){
+  if(!orgName)return;
+  const regView=document.getElementById('view-register');if(!regView)return;
+  // Remove existing invite banner if any
+  const old=regView.querySelector('.invite-banner');if(old)old.remove();
+  const banner=document.createElement('div');
+  banner.className='invite-banner';
+  banner.style.cssText='max-width:480px;width:100%;margin:0 auto 16px;padding:14px 18px;background:rgba(16,185,129,.08);border:1px solid var(--green);border-radius:12px;text-align:center';
+  banner.innerHTML='<div style="font-size:1.2rem;margin-bottom:4px">🤝</div><div class="font-semibold text-white" style="font-size:.95rem">Invitato da <span style="color:var(--green)">'+escHtml(orgName)+'</span></div><div class="text-xs txt3 mt-1">Registrati per entrare nella piattaforma!</div>';
+  // Insert at top of register form container
+  const formContainer=regView.querySelector('div > div');
+  if(formContainer) formContainer.insertBefore(banner,formContainer.firstChild);
+}
+
 function checkDeepLink(){
   const params=new URLSearchParams(window.location.search);
   const eventId=params.get('event');
@@ -15153,15 +15189,18 @@ function checkDeepLink(){
   const token=params.get('token');
   const recDateParam=params.get('recDate');
   const subToken=params.get('sub');
+  const inviteOrg=params.get('invite');
   if(eventId){
     _pendingDeepLink={type:'event',id:eventId};
   } else if(checkinId&&token){
     _pendingDeepLink={type:'checkin',id:checkinId,token:token,recDate:recDateParam||null};
   } else if(subToken){
     _pendingDeepLink={type:'sub',token:subToken};
+  } else if(inviteOrg){
+    _pendingDeepLink={type:'invite',orgId:inviteOrg};
   }
   // Clean URL params (keep clean address bar) but preserve mode=signIn for magic links
-  if((eventId||checkinId||subToken)&&!params.get('mode')){
+  if((eventId||checkinId||subToken||inviteOrg)&&!params.get('mode')){
     window.history.replaceState(null,'',window.location.pathname);
   }
 }
@@ -15192,6 +15231,9 @@ async function handleDeepLink(){
   } else if(dl.type==='sub'){
     // Redeem subscription token
     await redeemSubToken(dl.token);
+  } else if(dl.type==='invite'){
+    // User already logged in but opened invite link — just show toast
+    showToast('Sei già registrato! Benvenuto nella piattaforma.');
   }
 }
 
@@ -15339,6 +15381,19 @@ fbAuth.onAuthStateChanged(async(user)=>{
   } else {
     // No user logged in — show login page
     dismissAuthSplash();
+    // If invite deep link: auto-navigate to register page and show invite banner
+    if(_pendingDeepLink&&_pendingDeepLink.type==='invite'){
+      window._inviteOrgId=_pendingDeepLink.orgId;
+      go('register');
+      // Fetch organizer name for banner
+      fbDb.collection('managers').doc(_pendingDeepLink.orgId).get().then(doc=>{
+        if(doc.exists){
+          const orgData=doc.data();
+          window._inviteOrgName=orgData.orgName||orgData.username||'';
+          _showInviteBanner(window._inviteOrgName);
+        }
+      }).catch(()=>{});
+    }
   }
 });
 // Safety: dismiss splash after 8s max (in case auth hangs)
