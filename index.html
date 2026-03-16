@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.22.1</title>
+<title>BodyEvents — V2.23.0</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -25,7 +25,8 @@
 --purple:#a855f7;--purple-bg:rgba(168,85,247,.12);
 --txt:#f3f4f6;--txt2:#9ca3af;--txt3:#6b7280;
 }
-body{background:var(--bg);color:var(--txt);font-family:'Inter',system-ui,-apple-system,sans-serif;line-height:1.5;min-height:100vh;overflow-x:hidden}
+html{overflow-x:hidden}
+body{background:var(--bg);color:var(--txt);font-family:'Inter',system-ui,-apple-system,sans-serif;line-height:1.5;min-height:100vh;overflow-x:hidden;word-break:break-word}
 a{color:var(--brand-l);text-decoration:none}
 /* Scrollbar */
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--s50)}::-webkit-scrollbar-thumb{background:var(--s400);border-radius:9px}
@@ -119,7 +120,7 @@ textarea.input{resize:none;font-family:inherit}
 /* === HIDE ADMIN NAVBAR (sidebar only) === */
 @media(min-width:769px){#navbar-admin{display:none!important}}
 /* === ADMIN SIDEBAR === */
-.admin-wrap{display:flex;min-height:calc(100vh - 60px)}
+.admin-wrap{display:flex;min-height:calc(100vh - 60px);max-width:100vw;overflow-x:hidden}
 .sidebar{width:240px;background:var(--s50);border-right:1px solid var(--s300);padding:20px;flex-shrink:0}
 .sidebar-title{display:flex;align-items:center;gap:8px;margin-bottom:24px}
 .sidebar-title.sidebar-org-btn{padding:6px 8px;margin:-6px -8px 18px;border-radius:10px;transition:background .15s}
@@ -129,7 +130,7 @@ textarea.input{resize:none;font-family:inherit}
 .sidebar-link{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;font-size:.875rem;font-weight:500;color:var(--txt3);cursor:pointer;transition:all .15s}
 .sidebar-link:hover{background:var(--s200);color:var(--txt2)}
 .sidebar-link.active{background:var(--brand-bg);color:var(--brand-l)}
-.admin-content{flex:1;padding:32px;max-width:1100px}
+.admin-content{flex:1;padding:32px;max-width:1100px;min-width:0;overflow-x:hidden}
 
 /* === MODAL / DIALOG === */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:24px 16px;overflow-y:auto;-webkit-overflow-scrolling:touch}
@@ -314,7 +315,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.22.1</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.23.0</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -3946,7 +3947,7 @@ function openSubTypeModal(editId){
   let formHtml='<h3 class="text-lg font-semibold text-white mb-4">'+(existing?'✏️ Modifica tipologia':'➕ Nuova tipologia abbonamento')+'</h3>';
   formHtml+='<div style="max-height:70vh;overflow-y:auto;padding-right:8px">';
   formHtml+='<div class="mb-3"><label class="label">Nome tipologia *</label><input class="input" id="st-name" value="'+(existing?.name||'')+'" placeholder="es. Pacchetto 10 lezioni"></div>';
-  formHtml+='<div class="grid grid-2 gap-3 mb-3"><div><label class="label">Numero ingressi *</label><input class="input" id="st-entries" type="number" value="'+(existing?.entries||10)+'" placeholder="10"></div>';
+  formHtml+='<div class="grid grid-2 gap-3 mb-3"><div><label class="label">Numero ingressi *</label><input class="input" id="st-entries" type="number" value="'+(existing?.entries||'')+'" placeholder="Es. 10, 50, 100..."></div>';
   formHtml+='<div><label class="label">Prezzo (€) *</label><input class="input" id="st-price" type="number" value="'+(existing?.price||'')+'" placeholder="es. 80"></div></div>';
   // Expiry mode
   const curExpiryMode=existing?.expiryMode||(existing?.validityDays?'relative':'none');
@@ -4275,6 +4276,12 @@ async function exportSubsExcel(){
 // ======= SUBSCRIPTION TYPE DETAIL PANEL =======
 function openSubTypePanel(typeId){
   const t=store.subscriptionTypes.find(x=>x.id===typeId);if(!t)return;
+  /* Auto-sync: fix any subscription whose entriesTotal doesn't match the type */
+  store.subscriptions.filter(s=>s.typeId===typeId&&s.entriesTotal!==t.entries).forEach(s=>{
+    s.entriesTotal=t.entries;
+    if(s.status==='expired'&&s.entriesUsed<t.entries){s.status='active';}
+    fsUpdate('subscriptions',s.id,{entriesTotal:t.entries,status:s.status}).catch(console.error);
+  });
   const univ=store.universes.find(u=>u.id===t.universeId);
   const allSubs=store.subscriptions.filter(s=>s.typeId===typeId);
   const activeSubs=allSubs.filter(s=>s.status==='active');
@@ -7048,9 +7055,9 @@ function doBook(){
     let subOptsHtml=compatBookSubs.map(s=>{
       const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
       const remaining=s.entriesTotal-s.entriesUsed;
-      return '<button class="btn btn-sm mb-2 w-full" style="border:1px solid var(--green);color:var(--green);background:var(--green-bg);text-align:left;padding:12px 16px" onclick="bookWithSubscription(\''+s.id+'\',\''+ev.id+'\');this.closest(\'.overlay\').remove()"><div class="font-medium">🎟️ '+(sType?.name||'Abbonamento')+' — '+remaining+' ingressi rimasti</div><div class="text-xs" style="color:var(--txt2);margin-top:2px">Usa 1 ingresso per prenotare gratis</div></button>';
+      return '<button class="btn mb-3 w-full" style="border:2px solid var(--green);color:#fff;background:linear-gradient(135deg,rgba(16,185,129,.25),rgba(16,185,129,.15));text-align:left;padding:14px 18px;border-radius:12px;font-size:.95rem;cursor:pointer;transition:transform .1s,box-shadow .1s;box-shadow:0 2px 8px rgba(16,185,129,.2)" onmouseover="this.style.transform=\'scale(1.02)\';this.style.boxShadow=\'0 4px 14px rgba(16,185,129,.35)\'" onmouseout="this.style.transform=\'scale(1)\';this.style.boxShadow=\'0 2px 8px rgba(16,185,129,.2)\'" onclick="bookWithSubscription(\''+s.id+'\',\''+ev.id+'\');this.closest(\'.overlay\').remove()"><div class="font-semibold" style="font-size:.95rem">🎟️ Usa ingresso — '+(sType?.name||'Abbonamento')+'</div><div class="text-xs" style="color:var(--txt2);margin-top:4px">'+remaining+' ingressi rimanenti · Prenota gratis</div></button>';
     }).join('');
-    overlay.innerHTML='<div class="dialog" style="max-width:480px;width:90%"><h3 class="text-lg font-semibold text-white mb-4">💳 Hai un abbonamento!</h3><p class="text-sm txt2 mb-4">Puoi usare un ingresso del tuo abbonamento oppure prenotare normalmente.</p>'+subOptsHtml+'<div style="border-top:1px solid var(--s400);margin:16px 0;padding-top:16px"><button class="btn btn-secondary btn-sm w-full" onclick="this.closest(\'.overlay\').remove();_doBookNormal()">Prenota normalmente '+(hasSubDiscount?'(prezzo scontato disponibile)':'')+'</button></div><button class="btn btn-ghost btn-sm w-full mt-2" onclick="this.closest(\'.overlay\').remove()">Annulla</button></div>';
+    overlay.innerHTML='<div class="dialog" style="max-width:480px;width:90%"><h3 class="text-lg font-semibold text-white mb-4">💳 Hai un abbonamento!</h3><p class="text-sm txt2 mb-4">Scegli come prenotare:</p>'+subOptsHtml+'<div style="border-top:1px solid var(--s400);margin:16px 0;padding-top:16px;text-align:center"><p class="text-xs txt3 mb-2">oppure</p><button class="btn btn-secondary w-full" style="padding:12px 18px;border-radius:12px;font-size:.9rem" onclick="this.closest(\'.overlay\').remove();_doBookNormal()">💰 Prenota normalmente'+(hasSubDiscount?' (sconto disponibile)':'')+'</button></div><button class="btn btn-ghost btn-sm w-full mt-3" onclick="this.closest(\'.overlay\').remove()">Annulla</button></div>';
     document.body.appendChild(overlay);
     overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove()});
     return;
@@ -10603,7 +10610,7 @@ function renderAdminEvents(){
     })():'';
     return `<div class="card mb-3" style="${opacity};${partnerBorder}cursor:pointer" onclick="showAdminEventDetail('${ev.id}')">
       <div class="flex justify-between items-center flex-wrap gap-3">
-        <div class="flex-1" style="min-width:200px">
+        <div class="flex-1" style="min-width:0">
           <div class="flex gap-2 items-center mb-1">
             <span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>
             <span class="badge ${badgeStatus(ev.status)}">${capitalize(ev.status)}</span>
@@ -11274,7 +11281,7 @@ function renderCommunityEvents(){
     const opacity=ev.status==='bozza'?'opacity:.7':'';
     return `<div class="card mb-3" style="${opacity};cursor:pointer" onclick="showAdminEventDetail('${ev.id}')">
       <div class="flex justify-between items-center flex-wrap gap-3">
-        <div class="flex-1" style="min-width:200px">
+        <div class="flex-1" style="min-width:0">
           <div class="flex gap-2 items-center mb-1">
             <span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>
             <span class="badge ${badgeStatus(ev.status)}">${capitalize(ev.status)}</span>
@@ -11321,7 +11328,7 @@ function renderAdminCommunityJams(){
   c.innerHTML=jams.map(jam=>{
     return `<div class="card mb-3">
       <div class="flex justify-between items-center flex-wrap gap-3">
-        <div class="flex-1" style="min-width:200px">
+        <div class="flex-1" style="min-width:0">
           <div class="flex gap-2 items-center mb-1">
             <span class="badge ${badgeType(jam.type||'jam')}" style="${badgeTypeStyle(jam.type||'jam')}">${getJamTypeDisplay(jam.type||'jam')}</span>
           </div>
