@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.29.0</title>
+<title>BodyEvents — V2.29.1</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -315,7 +315,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.29.0</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.29.1</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -10756,21 +10756,17 @@ function renderAdminEvents(){
       </div>`;
     })():'';
     return `<div class="card mb-3" style="${opacity};${partnerBorder}cursor:pointer" onclick="showAdminEventDetail('${ev.id}')">
-      <div class="flex justify-between items-center flex-wrap gap-3">
-        <div class="flex-1" style="min-width:0">
-          <div class="flex gap-2 items-center mb-1">
-            <span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>
-            <span class="badge ${badgeStatus(ev.status)}">${capitalize(ev.status)}</span>
-            ${partnerBadge}
-            ${getRecurrenceBadge(ev)}
-            ${ev.alert?'<span class="badge" style="background:'+(ev.alert.type==='modificato'?'var(--orange-bg)':'var(--red-bg)')+';color:'+(ev.alert.type==='modificato'?'var(--orange)':'var(--red)')+'">⚠️ '+(ev.alert.type==='cancellato'?'Annullato':ev.alert.type==='rimandato'?'Rimandato':'Modificato')+'</span>':''}
-          </div>
-          <h3 class="font-semibold text-white">${escHtml(ev.title)}</h3>
-          <div class="text-xs txt3 mt-1">📅 ${dateStr} · 🕐 ${ev.days[0]?.startTime||''} — ${ev.days[0]?.endTime||''}${orgLabel}</div>
-          <div class="text-xs txt3">📍 ${escHtml(ev.location)}</div>
-        </div>
-        <div class="flex gap-2 flex-wrap">${actions}</div>
+      <div class="flex gap-2 items-center mb-1 flex-wrap">
+        <span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>
+        <span class="badge ${badgeStatus(ev.status)}">${capitalize(ev.status)}</span>
+        ${partnerBadge}
+        ${getRecurrenceBadge(ev)}
+        ${ev.alert?'<span class="badge" style="background:'+(ev.alert.type==='modificato'?'var(--orange-bg)':'var(--red-bg)')+';color:'+(ev.alert.type==='modificato'?'var(--orange)':'var(--red)')+'">⚠️ '+(ev.alert.type==='cancellato'?'Annullato':ev.alert.type==='rimandato'?'Rimandato':'Modificato')+'</span>':''}
       </div>
+      <h3 class="font-semibold text-white">${escHtml(ev.title)}</h3>
+      <div class="text-xs txt3 mt-1">📅 ${dateStr} · 🕐 ${ev.days[0]?.startTime||''} — ${ev.days[0]?.endTime||''}${orgLabel}</div>
+      <div class="text-xs txt3">📍 ${escHtml(ev.location)}</div>
+      <div class="flex gap-2 flex-wrap mt-3" style="border-top:1px solid var(--s300);padding-top:10px">${actions}</div>
       ${_minBanner}
     </div>`;
   }).join('')||'<div class="card text-center txt3">Nessun evento.</div>';
@@ -11634,7 +11630,7 @@ function renderAdminDashboard(){
   if(!dc)return;
   if(pub.length){
     if(dt)dt.style.display='';
-    dc.innerHTML=`<div class="card" style="padding:0;overflow:hidden"><table class="table"><thead><tr><th>Evento</th><th>Data</th><th>Tipo</th><th>Org</th><th>Stato</th></tr></thead><tbody>${pub.slice(0,5).map(ev=>{const isP=!isEventCapofila(ev,u.id);return`<tr style="cursor:pointer${isP?';border-left:3px solid #a855f7':''}" onclick="showAdminEventDetail('${ev.id}')"><td class="font-medium text-white">${escHtml(ev.title)}${isP?' <span style="color:#a855f7;font-size:.7rem">🤝</span>':''}</td><td>${ev.days[0]?fmtDateShort(ev.days[0].date):''}</td><td><span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span></td><td class="text-xs txt3">${escHtml(ev.orgName||'')}</td><td><span class="badge badge-pubblicato">Pubblicato</span></td></tr>`;}).join('')}</tbody></table></div>`;
+    dc.innerHTML=`<div class="card" style="padding:0;overflow:auto;-webkit-overflow-scrolling:touch"><table class="table" style="min-width:520px"><thead><tr><th>Evento</th><th>Data</th><th>Tipo</th><th>Org</th><th>Stato</th></tr></thead><tbody>${pub.slice(0,5).map(ev=>{const isP=!isEventCapofila(ev,u.id);return`<tr style="cursor:pointer${isP?';border-left:3px solid #a855f7':''}" onclick="showAdminEventDetail('${ev.id}')"><td class="font-medium text-white">${escHtml(ev.title)}${isP?' <span style="color:#a855f7;font-size:.7rem">🤝</span>':''}</td><td>${ev.days[0]?fmtDateShort(ev.days[0].date):''}</td><td><span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span></td><td class="text-xs txt3">${escHtml(ev.orgName||'')}</td><td><span class="badge badge-pubblicato">Pubblicato</span></td></tr>`;}).join('')}</tbody></table></div>`;
   } else {if(dt)dt.style.display='none';dc.innerHTML='';}
 }
 
