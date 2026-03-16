@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.27.3</title>
+<title>BodyEvents — V2.28.1</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -315,6 +315,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.28.1</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2535,6 +2536,8 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const fbAuth = firebase.auth();
 const fbDb = firebase.firestore();
+// Ensure auth persistence is LOCAL (survives tab close, browser restart)
+fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(e=>console.warn('setPersistence error:',e));
 
 /* ==============================
    ONBOARDING SYSTEM
@@ -2839,7 +2842,13 @@ async function fsDelete(col,id){
 
 // Load all data from Firestore into local store
 let _dataLoaded=false;
-async function loadAllData(){
+let _dataLoadingPromise=null;
+async function loadAllData(forceReload){
+  // If already loaded and not forcing, skip
+  if(_dataLoaded&&!forceReload)return;
+  // If a load is already in progress, wait for it instead of starting a new one
+  if(_dataLoadingPromise)return _dataLoadingPromise;
+  _dataLoadingPromise=(async()=>{
   try{
     const app=document.getElementById('app');
     if(app&&!_dataLoaded)app.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:60vh;flex-direction:column;gap:16px"><div class="spinner"></div><p class="txt2">Caricamento dati...</p></div>';
@@ -2873,13 +2882,15 @@ async function loadAllData(){
   }catch(e){
     console.error('loadAllData error:',e);
     showToast('Errore caricamento dati: '+e.message,'error');
-  }
+  }finally{_dataLoadingPromise=null;}
+  })();
+  return _dataLoadingPromise;
 }
 
 // Refresh: ricarica dati freschi da Firestore e ricarica la vista corrente
 async function refreshData(){
   showToast('Aggiornamento dati...');
-  _dataLoaded=false;
+  _dataLoaded=false;_dataLoadingPromise=null;
   await loadAllData();
   // Re-render current view
   if(typeof renderCurrentView==='function')renderCurrentView();
@@ -5531,7 +5542,12 @@ async function resetPassword(){
   }
 }
 
+let _loadingUserInProgress=false;
 async function loadCurrentUser(uid){
+  // Guard: prevent concurrent calls (e.g. onAuthStateChanged + loginWithGoogle racing)
+  if(_loadingUserInProgress){console.log('loadCurrentUser already in progress, skipping');return;}
+  _loadingUserInProgress=true;
+  try{
   // Load all data from Firestore first
   await loadAllData();
   let userDoc=await fbDb.collection('users').doc(uid).get();
@@ -5592,6 +5608,7 @@ async function loadCurrentUser(uid){
   }
   showToast('Profilo non trovato. Contatta il supporto.','error');
   fbAuth.signOut();
+  }finally{_loadingUserInProgress=false;}
 }
 
 function showPendingApprovalView(){
@@ -5837,7 +5854,7 @@ function switchMode(mode){
     btnA.style.background='var(--brand-d)';btnA.style.color='#fff';
     btnU.style.background='var(--s300)';btnU.style.color='var(--txt3)';
     document.getElementById('modeLabel').innerHTML='🛡️ Vista Organizzatore';
-    if(ps){ps.style.display='';ps.value=store.currentUser.id;}
+    if(ps){ps.style.display=ps.options.length>1?'':'none';ps.value=store.currentUser.id;}
     updateMasterLinks();
     go('admin-events');
   } else {
@@ -14835,8 +14852,10 @@ function dismissAuthSplash(){
 }
 fbAuth.onAuthStateChanged(async(user)=>{
   if(user){
-    // Skip if loginWithGoogle or registration is handling things (avoids race condition)
-    if(_loginInProgress||_registrationInProgress) return;
+    // Skip if registration is handling things (it manages its own flow)
+    if(_registrationInProgress) return;
+    // loadCurrentUser has its own re-entrancy guard, so if loginWithGoogle
+    // already called it, the second call is safely a no-op
     // Check for magic link sign-in
     if(fbAuth.isSignInWithEmailLink(window.location.href)){
       let email=window.localStorage.getItem('emailForSignIn');
@@ -14854,6 +14873,8 @@ fbAuth.onAuthStateChanged(async(user)=>{
     dismissAuthSplash();
   }
 });
+// Safety: dismiss splash after 8s max (in case auth hangs)
+setTimeout(dismissAuthSplash,8000);
 
 /* Init on load */
 document.addEventListener('DOMContentLoaded',()=>{
