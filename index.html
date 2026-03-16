@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.29.1</title>
+<title>BodyEvents — V2.30.0</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -315,7 +315,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.29.1</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.30.0</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -5873,6 +5873,41 @@ function switchMode(mode){
   }
 }
 
+/* ── History API: browser back/forward button support ── */
+let _isPopState=false;       // true while handling popstate → prevents pushState loop
+let _navHistory=[];          // lightweight stack for back-navigation context
+function _histPush(stateObj){
+  if(_isPopState)return;     // popstate-triggered navigation: do NOT push
+  history.pushState(stateObj,'',' ');
+}
+// Set initial history state so first "back" doesn't leave the app
+history.replaceState({view:'events',mode:'user'},'',' ');
+
+window.addEventListener('popstate',function(e){
+  _isPopState=true;
+  try{
+    const st=e.state;
+    if(!st||!st.view){
+      // No state → user went back beyond the app; show default view
+      if(currentMode==='admin') go('admin-events');
+      else go('events');
+      return;
+    }
+    // Restore detail views with their parameters
+    if(st.view==='event-detail-dynamic'&&st.eventId){
+      const _hEv=store.events.find(e=>e.id===st.eventId);
+      if(_hEv&&(_hEv.type==='jam'||_hEv.type==='social')) showJamDetail(st.eventId);
+      else showEventDetail(st.eventId,st.recDate||null);
+    } else if(st.view==='admin-event-detail'&&st.eventId){
+      showAdminEventDetail(st.eventId);
+    } else {
+      go(st.view);
+    }
+  }finally{
+    _isPopState=false;
+  }
+});
+
 let _privacyReturnView='profile';
 function go(view){
   if(view==='privacy-policy') _privacyReturnView=currentView||'profile';
@@ -5880,6 +5915,11 @@ function go(view){
   const el=document.getElementById('view-'+view);
   if(el) el.classList.add('active');
   currentView=view;
+  // ── History API: push state for browser back/forward ──
+  const _noHistViews=['login','register','register-org','bookings'];
+  if(!_noHistViews.includes(view)){
+    _histPush({view:view,mode:currentMode});
+  }
   document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
   document.querySelectorAll(`.nav-link[data-view="${view}"]`).forEach(l=>l.classList.add('active'));
   // Update mobile quickbar active states
@@ -9526,6 +9566,7 @@ function showJamDetail(jamId){
   </div>`;
 
   go('event-detail-dynamic');
+  if(!_isPopState) history.replaceState({view:'event-detail-dynamic',eventId:jamId,recDate:null,mode:currentMode},'',' ');
 }
 
 let jamStatusFilter='';
@@ -10632,6 +10673,8 @@ function showEventDetail(evId,recDate){
     })()}
   </div>`;
   go('event-detail-dynamic');
+  // Replace history state with detail parameters for browser back support
+  if(!_isPopState) history.replaceState({view:'event-detail-dynamic',eventId:evId,recDate:recDate||null,mode:currentMode},'',' ');
   // Show onboarding info cards for event detail
   setTimeout(()=>{
     if(ev.days&&ev.days.length>1)obShowInfoCard('ic_event_detail_pricing','dynamic-event-detail');
@@ -14468,10 +14511,12 @@ function showAdminEventDetail(evId){
   if(window._adminDetailKeepScroll){
     const scrollY=window.scrollY;
     go('admin-event-detail');
+    if(!_isPopState) history.replaceState({view:'admin-event-detail',eventId:evId,mode:currentMode},'',' ');
     requestAnimationFrame(()=>window.scrollTo(0,scrollY));
     window._adminDetailKeepScroll=false;
   } else {
     go('admin-event-detail');
+    if(!_isPopState) history.replaceState({view:'admin-event-detail',eventId:evId,mode:currentMode},'',' ');
     setTimeout(()=>obShowTour('tour_admin_event_detail'),500);
   }
 }
