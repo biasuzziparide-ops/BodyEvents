@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.23.1</title>
+<title>BodyEvents — V2.27.0</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -315,7 +315,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.23.1</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.27.0</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -7019,6 +7019,66 @@ function doBook(){
   const existingBooking=store.bookings.find(b=>b.eventId===ev.id&&b.userId===store.currentUser.id&&b.status!=='cancellata'&&(b.recurringDate||null)===_bkRecDate);
   if(existingBooking){showToast('Sei già iscritto a questo evento!','error');return;}
 
+  // === ORGANIZER SELF-BOOKING: free with gift flag ===
+  const _isOwnEvent=ev.managerId===store.currentUser.id;
+  if(_isOwnEvent){
+    // Show simplified dialog — role + surveys only, no payment
+    const _ownOverlay=document.createElement('div');_ownOverlay.className='overlay';
+    _ownOverlay.innerHTML=`<div class="dialog" style="max-width:500px;width:90%">
+      <h3 class="text-lg font-semibold text-white mb-4">📋 Iscriviti al tuo evento</h3>
+      <div class="card mb-3" style="background:rgba(16,185,129,.06);border-color:var(--green);padding:12px 16px;text-align:center">
+        <span class="text-sm" style="color:var(--green)">✅ In quanto organizzatore, la tua iscrizione è gratuita</span>
+      </div>
+      <div class="card mb-3">
+        <label class="text-sm font-medium text-white mb-2" style="display:block">🎭 Qual è il tuo ruolo preferito?</label>
+        <div class="flex gap-2 flex-wrap" id="bookRoleSelector">
+          <button class="btn btn-sm book-role-btn" data-role="base" onclick="selectBookRole(this)" style="border:1px solid var(--s400)">💪 Base</button>
+          <button class="btn btn-sm book-role-btn" data-role="flyer" onclick="selectBookRole(this)" style="border:1px solid var(--s400)">🦅 Flyer</button>
+          <button class="btn btn-sm book-role-btn" data-role="non_so" onclick="selectBookRole(this)" style="border:1px solid var(--s400)">🤷 Non lo so ancora</button>
+          <button class="btn btn-sm book-role-btn" data-role="entrambi" onclick="selectBookRole(this)" style="border:1px solid var(--s400)">🔄 Faccio spesso entrambi</button>
+        </div>
+      </div>
+      ${renderSurveyQuestions(ev,'book_')}
+      <div class="flex gap-3 mt-6" style="justify-content:flex-end">
+        <button class="btn btn-ghost btn-sm" id="bookCancel">Annulla</button>
+        <button class="btn btn-primary btn-sm" id="bookConfirm">Iscriviti gratuitamente</button>
+      </div>
+    </div>`;
+    document.body.appendChild(_ownOverlay);
+    const _ownPrefRole=getUserEffectiveRole(store.currentUser);
+    if(_ownPrefRole){const _pb=_ownOverlay.querySelector('.book-role-btn[data-role="'+_ownPrefRole+'"]');if(_pb)selectBookRole(_pb);}
+    _ownOverlay.querySelector('#bookCancel').onclick=()=>_ownOverlay.remove();
+    _ownOverlay.querySelector('#bookConfirm').onclick=async()=>{
+      if(!selectedBookRole){showToast('Seleziona il tuo ruolo preferito!','error');return;}
+      const surveyResponses=collectSurveyResponses(ev,'book_');
+      if(surveyResponses===null)return;
+      const nameParts=store.currentUser.username.split(' ');
+      const initials=nameParts.map(p=>p[0]).join('').toUpperCase().substring(0,2);
+      const avatarColors=['avatar-blue','avatar-green','avatar-purple','avatar-pink','avatar-yellow'];
+      // Build items — full event, price 0
+      const _ownItems=[{type:'iscrizione organizzatore',name:ev.title,date:fmtDateShort(ev.days[0]?.date),time:'',tier:'Organizzatore',price:0}];
+      const _ownSessionIds=[];ev.days.forEach(d=>(d.sessions||[]).forEach(s=>_ownSessionIds.push(s.id)));
+      const newBooking={
+        id:genId('bk'),eventId:ev.id,userId:store.currentUser.id,
+        userName:store.currentUser.username,email:store.currentUser.email,
+        initials,color:avatarColors[Math.floor(Math.random()*avatarColors.length)],
+        items:_ownItems,sessions:_ownSessionIds,scope:'evento',
+        tier:'medio',amount:0,totalAmount:0,
+        role:selectedBookRole,recurringDate:currentBookingRecDate||null,
+        status:'confermata',depositStatus:null,paymentStatus:'gratuito',gift:true,
+        surveyResponses:surveyResponses,
+        bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
+      };
+      store.bookings.push(newBooking);
+      await fsSet('bookings',newBooking.id,newBooking).catch(console.error);
+      _ownOverlay.remove();
+      showToast('Iscrizione confermata!');
+      go('booking-done');
+    };
+    _ownOverlay.addEventListener('click',e=>{if(e.target===_ownOverlay)_ownOverlay.remove()});
+    return;
+  }
+
   // Check for subscription-based booking
   const userSubs=getUserActiveSubscriptions(store.currentUser.id);
   const canBookWithSub=ev.subscriptionBookable?.enabled&&ev.subscriptionBookable.typeIds?.length;
@@ -8344,7 +8404,10 @@ function renderUserEvents(){
             <div style="display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px;font-size:.72rem;color:var(--txt3)">
               <span>📅 ${dateRange}</span><span>🕐 ${d0?.startTime||''} – ${d0?.endTime||''}</span><span>📍 ${escHtml(ev.location)}</span>
             </div>
-            <div style="font-size:.7rem;color:var(--txt3);margin-top:3px">con ${escHtml(ev.teacher)} · <a style="color:var(--brand-l);cursor:pointer;text-decoration:none" onclick="event.stopPropagation();showOrgPublicProfile('${ev.managerId}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${escHtml(ev.orgName)}</a>${ev.partnerIds&&ev.partnerIds.length?' <span style="color:#a855f7">+ '+ev.partnerIds.length+' partner</span>':''}</div>${_deadlineBanner}
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:3px">
+              <div style="font-size:.7rem;color:var(--txt3)">con ${escHtml(ev.teacher)} · <a style="color:var(--brand-l);cursor:pointer;text-decoration:none" onclick="event.stopPropagation();showOrgPublicProfile('${ev.managerId}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${escHtml(ev.orgName)}</a>${ev.partnerIds&&ev.partnerIds.length?' <span style="color:#a855f7">+ '+ev.partnerIds.length+' partner</span>':''}</div>
+              <button class="btn btn-ghost btn-sm" style="flex-shrink:0;padding:4px 8px;font-size:.75rem;color:var(--brand-l);opacity:.7" onclick="event.stopPropagation();openShareModal('${ev.id}')" title="Condividi evento">📤</button>
+            </div>${_deadlineBanner}
           </div>
         </div>
       </div>
@@ -8723,7 +8786,7 @@ function renderUserDashboard(){
     // Session info line
     const _sessInfoLine=_cardSessionLabel?`<div class="text-xs txt3 mt-1">📋 Sessione: "${_cardSessionLabel}"</div>`:((b.scope==='sessioni'||b.scope==='sessione')&&b.items?'<div class="text-xs txt3 mt-1">📋 '+(b.items.filter(it=>it.type==='sessione').length||1)+' sessione/i</div>':'');
 
-    html+=`<div class="card mb-4 card-hover" style="border-color:${borderColor};background:${bgColor};position:relative;overflow:hidden;cursor:pointer" onclick="showEventDetail('${ev.id}'${ev._recDate?`,'${ev._recDate}'`:''})">
+    html+=`<div class="card mb-4 card-hover" style="border-color:${borderColor};background:${bgColor};position:relative;overflow:hidden;cursor:pointer" onclick="showEventDetail('${ev.id}'${b.recurringDate?`,'${b.recurringDate}'`:''})">
       ${alertStamp}
       ${i===0&&!hasAlert?'<div class="text-xs txt3 mb-2" style="text-transform:uppercase;letter-spacing:1px;position:relative;z-index:2">Prossimo evento</div>':''}
       <div class="flex gap-4" style="align-items:flex-start;position:relative;z-index:2">
@@ -8810,8 +8873,18 @@ function cancelUserBooking(bId){
   const ev=store.events.find(e=>e.id===bk.eventId);
   const evName=ev?escHtml(ev.title):'questo evento';
   showConfirm('Cancella prenotazione','Vuoi davvero cancellare la tua prenotazione per <strong>'+evName+'</strong>?',()=>{
-    showConfirm('Conferma definitiva','⚠️ Questa azione è irreversibile. Confermi la cancellazione?',()=>{
+    showConfirm('Conferma definitiva','⚠️ Questa azione è irreversibile. Confermi la cancellazione?',async()=>{
       bk.status='cancellata';
+      await fsUpdate('bookings',bk.id,{status:'cancellata'}).catch(console.error);
+      /* Refund subscription entry if booking was made with a subscription */
+      if(bk.subscriptionId){
+        const sub=store.subscriptions.find(s=>s.id===bk.subscriptionId);
+        if(sub&&sub.entriesUsed>0){
+          sub.entriesUsed--;
+          if(sub.status==='expired'&&sub.entriesUsed<sub.entriesTotal) sub.status='active';
+          await fsUpdate('subscriptions',sub.id,{entriesUsed:sub.entriesUsed,status:sub.status}).catch(console.error);
+        }
+      }
       showToast('Prenotazione cancellata','error');
       renderUserDashboard();
     },'danger');
@@ -9690,6 +9763,14 @@ function openShareModal(eventId){
           <svg width="18" height="18" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492a.5.5 0 00.612.638l4.603-1.208A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-2.237 0-4.308-.724-5.993-1.95l-.42-.307-2.727.715.728-2.66-.337-.453A9.96 9.96 0 012 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"/></svg>
           WhatsApp
         </a>
+        <a href="https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${waText}" target="_blank" rel="noopener" class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;background:rgba(0,136,204,.12);color:#0088cc;border:1px solid rgba(0,136,204,.3);text-decoration:none;font-size:.85rem">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="#0088cc"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+          Telegram
+        </a>
+        <a href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}" target="_blank" rel="noopener" class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;background:rgba(24,119,242,.12);color:#1877f2;border:1px solid rgba(24,119,242,.3);text-decoration:none;font-size:.85rem">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="#1877f2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+          Facebook
+        </a>
         <button class="btn" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;background:rgba(168,85,247,.12);color:#a855f7;border:1px solid rgba(168,85,247,.3);font-size:.85rem" onclick="copyShareLink()">
           📋 Copia link
         </button>
@@ -10361,7 +10442,7 @@ function showEventDetail(evId,recDate){
       <div class="flex gap-2 mb-3 flex-wrap"><span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>${levelBadges}</div>
       <div style="display:flex;justify-content:space-between;align-items:start;gap:8px">
         <h1 class="text-2xl font-bold text-white" style="flex:1">${escHtml(ev.title)}</h1>
-        ${ev.status==='pubblicato'?`<button class="btn btn-ghost btn-sm" style="flex-shrink:0;padding:8px 12px;color:var(--brand-l);font-size:.85rem" onclick="event.stopPropagation();openShareModal('${ev.id}')" title="Condividi evento">📤</button>`:''}
+        ${ev.status==='pubblicato'?`<button class="btn btn-sm" style="flex-shrink:0;padding:6px 14px;background:rgba(59,130,246,.1);color:var(--blue);border:1px solid rgba(59,130,246,.25);font-size:.8rem" onclick="event.stopPropagation();openShareModal('${ev.id}')" title="Condividi evento">📤 Condividi</button>`:''}
       </div>
       ${(()=>{
         const _desc=escHtml(ev.description).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
@@ -10427,6 +10508,25 @@ function showEventDetail(evId,recDate){
           });
           surveyHtml+='</div>';
         }
+        // Participant list for Jam / community-type events
+        let participantsHtml='';
+        if(ev.type==='jam'||ev.type==='social'){
+          const _roleOrder={base:0,flyer:1,entrambi:2,non_so:3};
+          const _roleLblMap={base:'💪 Base',flyer:'🦅 Flyer',entrambi:'🔄 Entrambi',non_so:'🤷 Non definito'};
+          const _pBookings=store.bookings.filter(bk=>bk.eventId===ev.id&&bk.status!=='cancellata'&&(bk.recurringDate||null)===_detRecDate);
+          _pBookings.sort((a,b)=>(_roleOrder[a.role]??99)-(_roleOrder[b.role]??99));
+          if(_pBookings.length){
+            participantsHtml='<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--s200)"><div class="text-xs txt3 mb-3" style="text-transform:uppercase;letter-spacing:.5px">👥 Iscritti ('+_pBookings.length+')</div>';
+            _pBookings.forEach(pb=>{
+              const isMe=pb.userId===store.currentUser.id;
+              participantsHtml+='<div class="flex items-center justify-between py-2" style="border-bottom:1px solid var(--s100);gap:8px">'
+                +'<span class="text-sm'+(isMe?' font-semibold':'')+'" style="color:'+(isMe?'var(--brand-l)':'var(--txt1)')+'">'+escHtml(pb.userName)+(isMe?' (tu)':'')+'</span>'
+                +'<span class="text-xs" style="color:var(--txt3)">'+(_roleLblMap[pb.role]||'—')+'</span>'
+                +'</div>';
+            });
+            participantsHtml+='</div>';
+          }
+        }
         return '<div class="card mb-4" style="border:2px solid var(--green);background:rgba(16,185,129,.04)">'
           +'<div class="flex items-center gap-2 mb-4"><span style="font-size:1.5rem">✅</span><div><h3 class="font-bold" style="color:var(--green)">Sei iscritto!</h3><p class="text-xs txt3">Prenotazione del '+myBooking.bookedAt+'</p></div></div>'
           +'<div class="grid grid-2-resp gap-3 mb-4" style="grid-template-columns:1fr 1fr">'
@@ -10437,6 +10537,7 @@ function showEventDetail(evId,recDate){
           +'</div>'
           +sessionsHtml
           +surveyHtml
+          +participantsHtml
           +'</div>';
       }
       // === CHECK BOOKING DEADLINE (uses getEffectiveBookingDeadline for recurring support) ===
@@ -12949,8 +13050,10 @@ function confirmDeposit(bId){
 }
 function cancelBooking(bId){
   const b=store.bookings.find(x=>x.id===bId);if(!b)return;
-  showConfirm('Cancella prenotazione','Cancellare la prenotazione di '+b.userName+'?',()=>{
-    b.status='cancellata';fsUpdate('bookings',b.id,{status:'cancellata'}).catch(console.error);renderAdminBookings();showToast('Prenotazione cancellata','error');
+  showConfirm('Cancella prenotazione','Cancellare la prenotazione di '+b.userName+'?',async()=>{
+    b.status='cancellata';await fsUpdate('bookings',b.id,{status:'cancellata'}).catch(console.error);
+    if(b.subscriptionId){const sub=store.subscriptions.find(s=>s.id===b.subscriptionId);if(sub&&sub.entriesUsed>0){sub.entriesUsed--;if(sub.status==='expired'&&sub.entriesUsed<sub.entriesTotal)sub.status='active';await fsUpdate('subscriptions',sub.id,{entriesUsed:sub.entriesUsed,status:sub.status}).catch(console.error);}}
+    renderAdminBookings();showToast('Prenotazione cancellata','error');
   },'danger');
 }
 function toggleGift(bId,ctx){
@@ -12982,9 +13085,10 @@ function confirmDepositCtx(bId,ctx){
 }
 function cancelBookingCtx(bId,ctx){
   const b=store.bookings.find(x=>x.id===bId);if(!b)return;
-  showConfirm('Cancella prenotazione','Cancellare la prenotazione di '+b.userName+'?',()=>{
+  showConfirm('Cancella prenotazione','Cancellare la prenotazione di '+b.userName+'?',async()=>{
     b.status='cancellata';
-    fsUpdate('bookings',b.id,{status:'cancellata'}).catch(console.error);
+    await fsUpdate('bookings',b.id,{status:'cancellata'}).catch(console.error);
+    if(b.subscriptionId){const sub=store.subscriptions.find(s=>s.id===b.subscriptionId);if(sub&&sub.entriesUsed>0){sub.entriesUsed--;if(sub.status==='expired'&&sub.entriesUsed<sub.entriesTotal)sub.status='active';await fsUpdate('subscriptions',sub.id,{entriesUsed:sub.entriesUsed,status:sub.status}).catch(console.error);}}
     showToast('Prenotazione cancellata','error');
     if(ctx==='bookings')renderAdminBookings();
     else if(ctx==='detail'){showAdminEventDetail(b.eventId);}
@@ -14029,7 +14133,11 @@ function showAdminEventDetail(evId){
   if(adminDetailSort.field){
     active.sort((a,b)=>{
       let va,vb;
-      if(adminDetailSort.field.startsWith('survey_')){
+      if(adminDetailSort.field==='daIncassare'){
+        const _da=(ev.deposit&&ev.deposit.required&&ev.deposit.amount)||0;
+        const _calc=x=>{if(x.gift)return 0;const ow=x.amount||0;const pd=(x.paymentStatus==='pagato')?ow:0;const dp=(x.depositStatus==='ricevuto')?_da:0;return Math.max(0,ow-pd-dp);};
+        va=_calc(a);vb=_calc(b);
+      } else if(adminDetailSort.field.startsWith('survey_')){
         const sqId=adminDetailSort.field.replace('survey_','');
         va=(a.surveyResponses||{})[sqId]||'';
         vb=(b.surveyResponses||{})[sqId]||'';
@@ -14046,16 +14154,25 @@ function showAdminEventDetail(evId){
       return 0;
     });
   }
+  const depAmount=(ev.deposit&&ev.deposit.required&&ev.deposit.amount)?ev.deposit.amount:0;
   const pendingDep=active.filter(b=>b.depositStatus==='pending');
   const receivedDep=active.filter(b=>b.depositStatus==='ricevuto');
   const gifts=active.filter(b=>b.gift);
   // Revenue (exclude gifts)
   const paying=active.filter(b=>!b.gift);
-  const totalRevenue=paying.reduce((s,b)=>s+b.amount,0);
-  const paidRevenue=paying.filter(b=>b.paymentStatus==='pagato').reduce((s,b)=>s+b.amount,0);
-  const unpaidRevenue=totalRevenue-paidRevenue;
-  const receivedRevenue=receivedDep.filter(b=>!b.gift).reduce((s,b)=>s+b.deposit,0);
-  const pendingRevenue=pendingDep.filter(b=>!b.gift).reduce((s,b)=>s+(b.deposit||0),0);
+  const totalRevenue=paying.reduce((s,b)=>s+(b.amount||0),0);
+  const paidRevenue=paying.filter(b=>b.paymentStatus==='pagato').reduce((s,b)=>s+(b.amount||0),0);
+  // Anticipi ricevuti: somma deposit amount per chi ha anticipo confermato, esclusi regali
+  const receivedRevenue=receivedDep.filter(b=>!b.gift).length*depAmount;
+  // Anticipi in attesa: somma deposit amount per chi ha anticipo pending, esclusi regali
+  const pendingRevenue=pendingDep.filter(b=>!b.gift).length*depAmount;
+  // Da incassare: per ogni utente pagante, totale dovuto - anticipo ricevuto (se confermato)
+  const unpaidRevenue=paying.reduce((s,b)=>{
+    const owed=b.amount||0;
+    const paid=(b.paymentStatus==='pagato')?owed:0;
+    const depReceived=(b.depositStatus==='ricevuto')?depAmount:0;
+    return s+(owed-paid-depReceived);
+  },0);
   // Roles
   const roles={base:0,flyer:0,non_so:0,entrambi:0};
   active.forEach(b=>{if(b.role&&roles[b.role]!==undefined)roles[b.role]++;});
@@ -14253,29 +14370,35 @@ function showAdminEventDetail(evId){
     <h2 class="font-semibold text-white mb-3">👥 Lista Partecipanti (${active.length})${viewSubtitle}</h2>
     ${active.length?`<div class="card" style="padding:0;overflow:auto">
       <table class="table">
-        <thead><tr><th style="cursor:pointer" onclick="sortAdminDetail('userName')">Partecipante ${adminDetailSort.field==='userName'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('role')">Ruolo ${adminDetailSort.field==='role'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('sessions')">Sessioni ${adminDetailSort.field==='sessions'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${(ev.surveys||[]).map(sq=>'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+sq.id+'\')">'+sq.question.substring(0,20)+(sq.question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+sq.id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>').join('')}${ev.pricingMode!=='free'?'<th style="cursor:pointer" onclick="sortAdminDetail(\'amount\')">Importo '+(adminDetailSort.field==='amount'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'paymentStatus\')">Pagato '+(adminDetailSort.field==='paymentStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'depositStatus\')">Anticipo '+(adminDetailSort.field==='depositStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}<th>Azioni</th></tr></thead>
+        <thead><tr><th style="cursor:pointer" onclick="sortAdminDetail('userName')">Partecipante ${adminDetailSort.field==='userName'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('role')">Ruolo ${adminDetailSort.field==='role'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('sessions')">Sessioni ${adminDetailSort.field==='sessions'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${ev.pricingMode!=='free'?'<th style="cursor:pointer" onclick="sortAdminDetail(\'amount\')">Importo '+(adminDetailSort.field==='amount'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'paymentStatus\')">Pagato '+(adminDetailSort.field==='paymentStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'depositStatus\')">Anticipo '+(adminDetailSort.field==='depositStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'daIncassare\')">Da incassare '+(adminDetailSort.field==='daIncassare'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).length?'<th style="border-left:2px solid var(--s400);padding-left:12px;cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+(ev.surveys[0].id)+'\')">'+ev.surveys[0].question.substring(0,20)+(ev.surveys[0].question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+ev.surveys[0].id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).slice(1).map(sq=>'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+sq.id+'\')">'+sq.question.substring(0,20)+(sq.question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+sq.id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>').join('')}<th>Azioni</th></tr></thead>
         <tbody>${active.map(b=>{
           const depositHtml=b.depositStatus==='pending'?'<span class="badge badge-yellow" style="cursor:pointer" onclick="event.stopPropagation();confirmDepositCtx(\''+b.id+'\',\'detail\')">⏳ Pending</span>'
             :b.depositStatus==='ricevuto'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">✅ Ricevuto</span>'
             :'<span class="text-xs txt3">—</span>';
           const giftBtn='<button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:.7rem;margin-left:4px" onclick="event.stopPropagation();toggleGift(\''+b.id+'\',\'detail\')" title="'+(b.gift?'Rimuovi regalo':'Segna come regalo')+'">'+(b.gift?'↩️':'🎁')+'</button>';
-          const amountHtml=b.gift?'<span style="color:var(--purple)">🎁 Regalo</span>':'€'+b.amount;
+          const amountHtml=b.gift?'<span style="color:var(--purple)">🎁 Regalo</span>':'€'+(b.amount||0);
           const payHtml=b.gift?'<span class="text-xs txt3">—</span>'
             :b.paymentStatus==='pagato'?'<span class="badge" style="background:var(--green-bg);color:var(--green);cursor:pointer" onclick="event.stopPropagation();togglePayment(\''+b.id+'\',\'detail\')">💰 Pagato</span>'
             :'<button class="btn btn-sm" style="background:rgba(234,179,8,.12);color:var(--yellow);border:1px solid rgba(234,179,8,.3);font-size:.7rem" onclick="event.stopPropagation();togglePayment(\''+b.id+'\',\'detail\')">💰 Segna pagato</button>';
+          const _bOwed=b.gift?0:(b.amount||0);
+          const _bPaid=(b.gift||b.paymentStatus==='pagato')?_bOwed:0;
+          const _bDep=(!b.gift&&b.depositStatus==='ricevuto')?depAmount:0;
+          const _bDaInc=Math.max(0,_bOwed-_bPaid-_bDep);
+          const daIncHtml=b.gift?'<span class="text-xs txt3">—</span>':(_bDaInc>0?'<span style="color:var(--yellow);font-weight:600">€'+_bDaInc+'</span>':'<span style="color:var(--green)">€0</span>');
           const avatarCls=b.color||'';
           const avatarStyle=!avatarCls?'style="background:var(--s300);color:var(--txt3)"':'';
           return `<tr>
             <td><div class="flex items-center gap-2"><div class="avatar ${avatarCls}" ${avatarStyle}>${b.initials}</div><div><div class="font-medium text-white text-sm">${escHtml(b.userName)}</div><div class="text-xs txt3">${escHtml(b.email)}</div></div></div></td>
             <td><span style="color:${roleColor(b.role)}">${roleName(b.role)}</span></td>
             <td style="min-width:140px">${getSessionNames(b.sessions)}</td>
-            ${(ev.surveys||[]).map(sq=>{
+            ${ev.pricingMode!=='free'?'<td class="font-medium">'+amountHtml+' '+giftBtn+'</td><td>'+payHtml+'</td><td>'+depositHtml+'</td><td>'+daIncHtml+'</td>':''}
+            ${(ev.surveys||[]).length?'<td class="text-sm" style="border-left:2px solid var(--s400);padding-left:12px" title="'+(((arr)=>{const r=(b.surveyResponses||{})[arr[0]?.id];return Array.isArray(r)?r.join(', '):r||'—';})(ev.surveys))+'">'+(((arr)=>{const r=(b.surveyResponses||{})[arr[0]?.id];const d=Array.isArray(r)?r.join(', '):r||'—';return d.length>25?d.substring(0,23)+'…':d;})(ev.surveys))+'</td>':''}
+            ${(ev.surveys||[]).slice(1).map(sq=>{
               const r=(b.surveyResponses||{})[sq.id];
               const display=Array.isArray(r)?r.join(', '):r||'—';
               const truncated=display.length>25?display.substring(0,23)+'…':display;
               return '<td class="text-sm" title="'+display+'">'+truncated+'</td>';
             }).join('')}
-            ${ev.pricingMode!=='free'?'<td class="font-medium">'+amountHtml+' '+giftBtn+'</td><td>'+payHtml+'</td><td>'+depositHtml+'</td>':''}
             <td><button class="btn btn-danger btn-sm" onclick="event.stopPropagation();cancelBookingCtx('${b.id}','detail')">✕</button></td>
           </tr>`;
         }).join('')}</tbody>
