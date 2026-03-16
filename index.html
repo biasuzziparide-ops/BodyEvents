@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.19.3</title>
+<title>BodyEvents — V2.20.1</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -314,7 +314,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.19.3</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.20.1</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -1549,8 +1549,8 @@ textarea.input{resize:none;font-family:inherit}
             🤝 Costi gestiti dall'organizzatore
           </button>
         </div>
-        <input type="checkbox" id="ne-free-event" style="display:none" onchange="onPricingModeChange()">
-        <input type="checkbox" id="ne-costs-managed-by-org" style="display:none" onchange="onPricingModeChange()">
+        <input type="checkbox" id="ne-free-event" style="display:none">
+        <input type="checkbox" id="ne-costs-managed-by-org" style="display:none">
         <p class="text-xs txt3 mt-2" style="line-height:1.4">Evento gratuito: nessun prezzo richiesto. Costi gestiti dall'organizzatore: i costi vengono concordati direttamente. Lascia vuoto per impostare prezzi standard per sessione/giornata.</p>
       </div>
 
@@ -2931,6 +2931,16 @@ function getMultiUniverseBorderStyle(ev,isCommunity){
   });
   const bgStops=colors.map((c,i)=>{const s=Math.round(i/n*100);const e=Math.round((i+1)/n*100);return c+'08 '+s+'%,'+c+'08 '+e+'%';}).join(',');
   return 'border-left:8px '+bType+';border-image:linear-gradient(to bottom,'+stops.join(',')+') 1;border-radius:0;background:linear-gradient(90deg,'+bgStops+',transparent 40%)';
+}
+/* Vertical universe strip HTML for event cards */
+function getUniverseStripHtml(ev){
+  const ids=ev.universeIds||[ev.universeId].filter(Boolean);
+  if(!ids.length)return '';
+  const colors=ids.map(id=>getUniverseColor(id));
+  const names=ids.map(id=>getUniverseName(id));
+  const bg=colors.length===1?colors[0]:'linear-gradient(to bottom,'+colors.join(',')+')';
+  const label=names.join(' · ');
+  return '<div style="width:26px;flex-shrink:0;background:'+bg+';display:flex;align-items:center;justify-content:center;border-radius:16px 0 0 16px"><span style="writing-mode:vertical-lr;text-orientation:mixed;transform:rotate(180deg);font-size:.55rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,245,.85);white-space:nowrap;user-select:none">'+escHtml(label)+'</span></div>';
 }
 function getActiveUniverses(){return store.universes.filter(u=>u.status==='active');}
 function getPendingUniverses(){return store.universes.filter(u=>u.status==='pending');}
@@ -6035,7 +6045,7 @@ async function saveProfileChanges(){
 }
 
 /* ============================================================
-   UNIFIED IMAGE EDITOR (V2.19.3)
+   UNIFIED IMAGE EDITOR (V2.20.1)
    Full-featured image editor with:
    - Crop with resizable/repositionable area + aspect ratio presets
    - Zoom (pinch + slider)
@@ -8204,25 +8214,43 @@ function renderUserEvents(){
     })();
     const _thumbData=(ev.imageThumb||ev.image)?{src:ev.imageThumb?.src||ev.image,zoom:ev.imageThumb?.zoom||100,posX:ev.imageThumb?.posX||0,posY:ev.imageThumb?.posY||0}:null;
     const _thumbPos=_thumbData?(()=>{const s=_thumbData.zoom/100;const denom=72*s-72;const px=denom>0?Math.round(Math.abs(_thumbData.posX)/denom*100):50;const py=denom>0?Math.round(Math.abs(_thumbData.posY)/denom*100):50;return `object-position:${isNaN(px)?50:px}% ${isNaN(py)?50:py}%`})():'';
+    const _yearStr=dd?dd.getFullYear():'';
     const cardThumb=_thumbData
-      ?`<div style="flex-shrink:0;width:72px;height:72px;border-radius:12px;overflow:hidden"><img src="${_thumbData.src}" style="width:100%;height:100%;object-fit:cover;${_thumbPos}" alt=""></div>`
+      ?`<div style="flex-shrink:0;display:flex;flex-direction:column;align-self:stretch">
+          <div style="width:80px;height:68px;border-radius:12px 12px 0 0;overflow:hidden"><img src="${_thumbData.src}" style="width:100%;height:100%;object-fit:cover;${_thumbPos}" alt=""></div>
+          <div style="width:80px;flex:1;min-height:48px;border-radius:0 0 12px 12px;background:linear-gradient(160deg,rgba(217,70,239,.14),rgba(168,85,247,.08));border:1px solid rgba(217,70,239,.15);border-top:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:6px 0">
+            <span style="font-size:1.6rem;font-weight:800;color:#fff;line-height:1.1">${dayNum}</span>
+            <span style="font-size:.7rem;font-weight:700;color:rgba(240,171,252,.65);text-transform:uppercase;line-height:1;letter-spacing:.5px">${monthStr}</span>
+            <span style="font-size:.55rem;font-weight:500;color:rgba(240,171,252,.35);line-height:1;margin-top:2px">${_yearStr}</span>
+          </div>
+        </div>`
       :`<div style="flex-shrink:0;width:60px;height:60px;border-radius:12px;background:var(--brand-bg);border:1px solid rgba(217,70,239,.15);display:flex;flex-direction:column;align-items:center;justify-content:center">
           <span style="font-size:1.4rem;font-weight:700;color:var(--brand-l)">${dayNum}</span>
           <span style="font-size:.65rem;color:rgba(240,171,252,.5);text-transform:uppercase">${monthStr}</span>
         </div>`;
-    /* Badge order: Universe > Type > Organized > Multi-day > Level > Recurring > Price > Confirm > Closed */
-    return `<div class="card-hover mb-4" style="${getMultiUniverseBorderStyle(ev,false)}" onclick="showEventDetail('${ev.id}'${ev._recDate?`,'${ev._recDate}'`:''})">
-      <div class="flex gap-4" style="align-items:flex-start">
-        ${cardThumb}
-        <div class="flex-1" style="min-width:0">
-          <h3 class="font-semibold text-white" style="margin-bottom:2px;font-size:.95rem;line-height:1.3">${escHtml(ev.title)}</h3>
-          <div class="flex gap-2 mt-1 flex-wrap" style="row-gap:4px">
-            ${getMultiUniverseBadgesHtml(ev)}<span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>${daysBadge}${levelBadges}${recBadge}${pricingBadge}${confirmBadge}${bookClosedBadge}
+    /* Org logo (capofila) */
+    const _mgr=store.managers.find(m=>m.id===ev.managerId);
+    const _orgLogoHtml=_mgr&&_mgr.orgLogo?`<div style="width:26px;height:26px;border-radius:50%;overflow:hidden;border:2px solid var(--s300);flex-shrink:0"><img src="${_mgr.orgLogo}" style="width:100%;height:100%;object-fit:cover" alt=""></div>`:'';
+    /* Universe strip */
+    const _uniStrip=getUniverseStripHtml(ev);
+    /* Badge order: Type > Multi-day > Level > Recurring > Price > Confirm > Closed (universe removed — shown in vertical strip) */
+    return `<div class="card-hover mb-4" style="border-radius:16px;overflow:hidden;padding:0" onclick="showEventDetail('${ev.id}'${ev._recDate?`,'${ev._recDate}'`:''})">
+      <div style="display:flex;align-items:stretch">
+        ${_uniStrip}
+        <div style="flex:1;min-width:0;padding:14px 16px;display:flex;gap:14px;align-items:flex-start">
+          ${cardThumb}
+          <div class="flex-1" style="min-width:0">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+              ${_orgLogoHtml}<h3 class="font-semibold text-white" style="margin-bottom:0;font-size:.95rem;line-height:1.3">${escHtml(ev.title)}</h3>
+            </div>
+            <div class="flex gap-2 mt-1 flex-wrap" style="row-gap:4px">
+              <span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>${daysBadge}${levelBadges}${recBadge}${pricingBadge}${confirmBadge}${bookClosedBadge}
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px;font-size:.72rem;color:var(--txt3)">
+              <span>📅 ${dateRange}</span><span>🕐 ${d0?.startTime||''} – ${d0?.endTime||''}</span><span>📍 ${escHtml(ev.location)}</span>
+            </div>
+            <div style="font-size:.7rem;color:var(--txt3);margin-top:3px">con ${escHtml(ev.teacher)} · <a style="color:var(--brand-l);cursor:pointer;text-decoration:none" onclick="event.stopPropagation();showOrgPublicProfile('${ev.managerId}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${escHtml(ev.orgName)}</a>${ev.partnerIds&&ev.partnerIds.length?' <span style="color:#a855f7">+ '+ev.partnerIds.length+' partner</span>':''}</div>${_deadlineBanner}
           </div>
-          <div style="display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px;font-size:.72rem;color:var(--txt3)">
-            <span>📅 ${dateRange}</span><span>🕐 ${d0?.startTime||''} – ${d0?.endTime||''}</span><span>📍 ${escHtml(ev.location)}</span>
-          </div>
-          <div style="font-size:.7rem;color:var(--txt3);margin-top:3px">con ${escHtml(ev.teacher)} · <a style="color:var(--brand-l);cursor:pointer;text-decoration:none" onclick="event.stopPropagation();showOrgPublicProfile('${ev.managerId}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${escHtml(ev.orgName)}</a>${ev.partnerIds&&ev.partnerIds.length?' <span style="color:#a855f7">+ '+ev.partnerIds.length+' partner</span>':''}</div>${_deadlineBanner}
         </div>
       </div>
     </div>`;
@@ -8251,22 +8279,24 @@ function renderUserEvents(){
     const uid=store.currentUser.id;
     const isJoined=(jam.participants||[]).some(p=>p.userId===uid);
     const joinedBadge=isJoined?'<span class="badge" style="background:rgba(16,185,129,.15);color:var(--green)">✅ Iscritto</span>':'';
-    const univBadges=(jam.universeIds||[]).map(id=>getUniverseBadgeHtml(id)).join('');
-    const borderStyle=(jam.universeIds||[]).length?getMultiUniverseBorderStyle({universeIds:jam.universeIds},true):'border-left:8px dashed var(--green);background:linear-gradient(90deg,rgba(16,185,129,.05) 0%,transparent 40%)';
-    return `<div class="card-hover mb-4" style="${borderStyle}" onclick="showJamDetail('${jam.id}')">
-      <div class="flex gap-4" style="align-items:flex-start">
-        <div style="flex-shrink:0;width:56px;height:56px;border-radius:12px;background:rgba(16,185,129,.1);display:flex;flex-direction:column;align-items:center;justify-content:center">
-          <span style="font-size:1.3rem;font-weight:700;color:var(--green)">${dayNum}</span>
-          <span style="font-size:.6rem;color:rgba(16,185,129,.5)">${monthStr}</span>
-        </div>
-        <div class="flex-1">
-          <div class="flex gap-2 flex-wrap mb-1">${univBadges}<span class="badge ${badgeType(jam.type||'jam')}" style="${badgeTypeStyle(jam.type||'jam')}">${getJamTypeDisplay(jam.type||'jam')}</span><span class="badge" style="background:rgba(255,255,255,.04);color:var(--txt2);border:1px dashed rgba(255,255,255,.12);font-size:.6rem">🤝 Community</span>${joinedBadge}</div>
-          <h3 class="font-semibold text-white">${escHtml(jam.title)}</h3>
-          <div class="flex gap-3 mt-1 text-xs txt3">
-            <span>📅 ${fmtDate(jam.date)}</span><span>🕐 ${jam.startTime} — ${jam.endTime}</span>
+    const _jamUniStrip=(jam.universeIds||[]).length?getUniverseStripHtml({universeIds:jam.universeIds}):'<div style="width:26px;flex-shrink:0;background:var(--green);display:flex;align-items:center;justify-content:center;border-radius:16px 0 0 16px"><span style="writing-mode:vertical-lr;text-orientation:mixed;transform:rotate(180deg);font-size:.55rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,245,.85);white-space:nowrap;user-select:none">Community</span></div>';
+    return `<div class="card-hover mb-4" style="border-radius:16px;overflow:hidden;padding:0" onclick="showJamDetail('${jam.id}')">
+      <div style="display:flex;align-items:stretch">
+        ${_jamUniStrip}
+        <div style="flex:1;min-width:0;padding:14px 16px;display:flex;gap:14px;align-items:flex-start">
+          <div style="flex-shrink:0;width:56px;height:56px;border-radius:12px;background:rgba(16,185,129,.1);display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <span style="font-size:1.3rem;font-weight:700;color:var(--green)">${dayNum}</span>
+            <span style="font-size:.6rem;color:rgba(16,185,129,.5)">${monthStr}</span>
           </div>
-          <div class="flex gap-2 mt-1 text-xs txt3"><span>📍 ${escHtml(jam.location)}</span></div>
-          <div class="text-xs txt3 mt-1">proposta da ${escHtml(jam.userName)} · 👥 ${spotsText} partecipanti</div>
+          <div class="flex-1">
+            <div class="flex gap-2 flex-wrap mb-1"><span class="badge ${badgeType(jam.type||'jam')}" style="${badgeTypeStyle(jam.type||'jam')}">${getJamTypeDisplay(jam.type||'jam')}</span><span class="badge" style="background:rgba(255,255,255,.04);color:var(--txt2);border:1px dashed rgba(255,255,255,.12);font-size:.6rem">🤝 Community</span>${joinedBadge}</div>
+            <h3 class="font-semibold text-white">${escHtml(jam.title)}</h3>
+            <div class="flex gap-3 mt-1 text-xs txt3">
+              <span>📅 ${fmtDate(jam.date)}</span><span>🕐 ${jam.startTime} — ${jam.endTime}</span>
+            </div>
+            <div class="flex gap-2 mt-1 text-xs txt3"><span>📍 ${escHtml(jam.location)}</span></div>
+            <div class="text-xs txt3 mt-1">proposta da ${escHtml(jam.userName)} · 👥 ${spotsText} partecipanti</div>
+          </div>
         </div>
       </div>
     </div>`;
@@ -11280,6 +11310,15 @@ function resetForm(){
   togglePartnerEntryConfig(false);
   const defRadio=document.querySelector('input[name="ne-partner-entry-policy"][value="discount_only"]');
   if(defRadio)defRadio.checked=true;
+  // Reset all toggle buttons, checkboxes, and option panels
+  ['ne-free-event','ne-costs-managed-by-org','ne-sub-bookable','ne-sub-discount','ne-loyalty-discount','ne-deposit-required'].forEach(cbId=>{
+    const cb=document.getElementById(cbId);if(cb)cb.checked=false;
+  });
+  ['ne-sub-bookable-opts','ne-sub-discount-opts','ne-loyalty-discount-opts','ne-deposit-opts'].forEach(optsId=>{
+    const el=document.getElementById(optsId);if(el&&!el.classList.contains('hidden'))el.classList.add('hidden');
+  });
+  syncToggleBtns();
+  onPricingModeChange();
   // Reset collapsible sections to default state (V2.13.0)
   const univPartnerColl=document.getElementById('ne-univ-partner-collapsible');
   if(univPartnerColl&&!univPartnerColl.classList.contains('hidden')){univPartnerColl.classList.add('hidden');const arrow=univPartnerColl.parentElement?.querySelector('.coll-arrow');if(arrow)arrow.textContent='▸';}
@@ -11392,12 +11431,18 @@ function _setToggleBtnActive(btn,active){
 }
 function togglePricingBtn(checkboxId,btn){
   const cb=document.getElementById(checkboxId);if(!cb)return;
-  cb.checked=!cb.checked;
-  cb.dispatchEvent(new Event('change'));
-  _setToggleBtnActive(btn,cb.checked);
-  // Mutual exclusion: deactivate the other button
-  if(checkboxId==='ne-free-event'){const otherBtn=document.getElementById('ne-costs-managed-btn');const otherCb=document.getElementById('ne-costs-managed-by-org');if(cb.checked&&otherCb?.checked){otherCb.checked=false;if(otherBtn)_setToggleBtnActive(otherBtn,false);}}
-  if(checkboxId==='ne-costs-managed-by-org'){const otherBtn=document.getElementById('ne-free-event-btn');const otherCb=document.getElementById('ne-free-event');if(cb.checked&&otherCb?.checked){otherCb.checked=false;if(otherBtn)_setToggleBtnActive(otherBtn,false);}}
+  const newState=!cb.checked;
+  cb.checked=newState;
+  _setToggleBtnActive(btn,newState);
+  // Mutual exclusion: deactivate the other button when activating this one
+  if(newState){
+    const otherId=checkboxId==='ne-free-event'?'ne-costs-managed-by-org':'ne-free-event';
+    const otherBtnId=checkboxId==='ne-free-event'?'ne-costs-managed-btn':'ne-free-event-btn';
+    const otherCb=document.getElementById(otherId);
+    const otherBtn=document.getElementById(otherBtnId);
+    if(otherCb?.checked){otherCb.checked=false;if(otherBtn)_setToggleBtnActive(otherBtn,false);}
+  }
+  onPricingModeChange();
 }
 function toggleOptionBtn(checkboxId,btn,optsId){
   const cb=document.getElementById(checkboxId);if(!cb)return;
@@ -11421,13 +11466,6 @@ function syncToggleBtns(){
   });
 }
 function onPricingModeChange(){
-  const isFree=document.getElementById('ne-free-event')?.checked;
-  const isManagedByOrg=document.getElementById('ne-costs-managed-by-org')?.checked;
-  // Mutual exclusion: uncheck the other if one is checked
-  if(isFree&&isManagedByOrg){
-    if(event&&event.target.id==='ne-free-event')document.getElementById('ne-costs-managed-by-org').checked=false;
-    else document.getElementById('ne-free-event').checked=false;
-  }
   const hidden=isPricingHidden();
   const actuallyFree=!!document.getElementById('ne-free-event')?.checked;
   const actuallyManaged=!!document.getElementById('ne-costs-managed-by-org')?.checked;
