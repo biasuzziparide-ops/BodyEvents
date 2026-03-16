@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.30.0</title>
+<title>BodyEvents — V2.31.0</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -244,6 +244,7 @@ textarea.input{resize:none;font-family:inherit}
 /* === PAGE VIEWS (SPA) === */
 .view{display:none;animation:fadeIn .25s ease}
 .view.active{display:block}
+@keyframes slideDown{from{opacity:0;transform:translateY(-100%)}to{opacity:1;transform:translateY(0)}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes bounceIn{0%{transform:scale(0);opacity:0}50%{transform:scale(1.2)}100%{transform:scale(1);opacity:1}}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
@@ -315,7 +316,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.30.0</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.31.0</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -3868,25 +3869,49 @@ function filterSubUsers(){
   }).join('');
 }
 
-function generateSubQR(){
+async function generateSubQR(){
   const typeId=document.getElementById('qr-sub-type')?.value;
   if(!typeId){showToast('Seleziona una tipologia','error');return;}
+  const sType=store.subscriptionTypes.find(t=>t.id===typeId);
   const payment=document.getElementById('qr-sub-payment')?.value||'da_pagare';
   const amount=parseFloat(document.getElementById('qr-sub-amount')?.value)||0;
   const notes=document.getElementById('qr-sub-notes')?.value||'';
   const token=genId('sqr');
-  const payload=JSON.stringify({t:'sub',token,typeId,mgr:store.currentUser.id,pay:payment,amt:amount,notes});
-  // Store pending assignment
-  window._pendingSubAssign={token,typeId,managerId:store.currentUser.id,payment,amount,notes,createdAt:new Date().toISOString()};
+  // Save pending subscription to Firestore so ANY device can redeem it
+  const pendingData={
+    id:token,typeId,typeName:sType?sType.name:'',managerId:store.currentUser.id,
+    orgName:store.currentUser.orgName||'',payment,amount,notes,
+    status:'pending',createdAt:new Date().toISOString(),redeemedBy:null,redeemedAt:null
+  };
+  try{
+    await fsSet('pendingSubTokens',token,pendingData);
+  }catch(e){showToast('Errore salvataggio token: '+e.message,'error');return;}
+  // Also keep local reference for manual redeem
+  window._pendingSubAssign={token,typeId,managerId:store.currentUser.id,payment,amount,notes,createdAt:pendingData.createdAt};
+  // Build shareable URL (user scans with phone camera → opens browser → app handles it)
+  const subUrl=window.location.origin+window.location.pathname+'?sub='+token;
   const out=document.getElementById('sub-qr-output');
   if(!out)return;
   out.classList.remove('hidden');
-  out.innerHTML='<div id="sub-qr-canvas" style="display:inline-block;background:#fff;padding:16px;border-radius:12px;cursor:zoom-in" onclick="openFullscreenQR(\'sub-qr-canvas\')"></div><p class="text-sm txt2 mt-3">L\'utente deve scansionare questo QR dalla propria app.</p><p class="text-xs txt3 mt-1">Oppure condividi il codice: <strong style="color:var(--brand-l)">'+token+'</strong></p><div class="flex gap-2 justify-center mt-3"><button class="btn btn-sm btn-secondary" onclick="openFullscreenQR(\'sub-qr-canvas\')">🔍 Schermo intero</button><button class="btn btn-sm btn-secondary" onclick="redeemSubManually(\''+token+'\')">🔑 Riscatta manualmente</button></div>';
+  out.innerHTML='<div id="sub-qr-canvas" style="display:inline-block;background:#fff;padding:16px;border-radius:12px;cursor:zoom-in" onclick="openFullscreenQR(\'sub-qr-canvas\')"></div>'
+    +'<p class="text-sm txt2 mt-3">L\'utente scansiona il QR con la fotocamera → si apre l\'app → riceve l\'abbonamento.</p>'
+    +'<p class="text-xs txt3 mt-1">Link diretto: <a href="'+subUrl+'" style="color:var(--brand-l);word-break:break-all">'+subUrl+'</a></p>'
+    +'<div class="flex gap-2 flex-wrap justify-center mt-3">'
+    +'<button class="btn btn-sm btn-secondary" onclick="openFullscreenQR(\'sub-qr-canvas\')">🔍 Schermo intero</button>'
+    +'<button class="btn btn-sm btn-secondary" onclick="copySubLink(\''+subUrl+'\')">📋 Copia link</button>'
+    +'<button class="btn btn-sm btn-secondary" onclick="redeemSubManually(\''+token+'\')">🔑 Riscatta manualmente</button>'
+    +'</div>';
   const qrEl=document.getElementById('sub-qr-canvas');
   if(qrEl){
     qrEl.innerHTML='';
-    new QRCode(qrEl,{text:payload,width:200,height:200,colorDark:'#1e1e27',colorLight:'#ffffff'});
+    new QRCode(qrEl,{text:subUrl,width:200,height:200,colorDark:'#1e1e27',colorLight:'#ffffff'});
   }
+  showToast('QR code generato! L\'utente può scansionarlo con la fotocamera.');
+}
+function copySubLink(url){
+  navigator.clipboard.writeText(url).then(()=>showToast('Link copiato!')).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=url;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();showToast('Link copiato!');
+  });
 }
 
 async function manualAssignSub(userId,userName,userEmail){
@@ -3894,6 +3919,11 @@ async function manualAssignSub(userId,userName,userEmail){
   if(!typeId){showToast('Seleziona una tipologia','error');return;}
   const sType=store.subscriptionTypes.find(t=>t.id===typeId);
   if(!sType){showToast('Tipologia non trovata','error');return;}
+  // Check duplicate: does user already have an active sub of the same type?
+  const existingSub=store.subscriptions.find(s=>s.userId===userId&&s.typeId===typeId&&s.status==='active');
+  if(existingSub){
+    if(!confirm('⚠️ '+userName+' ha già un abbonamento attivo "'+sType.name+'" con '+(existingSub.entriesTotal-existingSub.entriesUsed)+' ingressi rimanenti.\n\nVuoi assegnarne un altro?'))return;
+  }
   await createSubscription(typeId,userId,userName,userEmail,store.currentUser.id,'da_pagare',0,'','Assegnazione manuale');
   showToast('Abbonamento assegnato a '+userName+'!');
   document.getElementById('manual-sub-user-search').value='';
@@ -3944,7 +3974,15 @@ async function executeRedeem(){
   if(!user){showToast('Utente non trovato con questa email','error');return;}
   const p=window._pendingSubAssign;
   if(!p){showToast('Nessun abbonamento da riscattare','error');return;}
+  // Check duplicate
+  const existingSub=store.subscriptions.find(s=>s.userId===user.id&&s.typeId===p.typeId&&s.status==='active');
+  if(existingSub){
+    const sType=store.subscriptionTypes.find(t=>t.id===p.typeId);
+    if(!confirm('⚠️ '+(user.username||email)+' ha già un abbonamento attivo "'+(sType?sType.name:'')+'" con '+(existingSub.entriesTotal-existingSub.entriesUsed)+' ingressi rimanenti.\n\nVuoi assegnarne un altro?'))return;
+  }
   await createSubscription(p.typeId,user.id,user.username,user.email,p.managerId,p.payment,p.amount,'',p.notes);
+  // Also mark Firestore token as redeemed if it exists
+  if(p.token){fsUpdate('pendingSubTokens',p.token,{status:'redeemed',redeemedBy:user.id,redeemedAt:new Date().toISOString()}).catch(()=>{});}
   document.querySelector('.overlay')?.remove();
   showToast('Abbonamento assegnato a '+(user.username||email)+'!');
   window._pendingSubAssign=null;
@@ -5604,8 +5642,10 @@ async function loadCurrentUser(uid){
     updateSidebarOrgInfo();
     // Show mode banner only for managers/masters
     document.getElementById('modeBanner').style.display='';
-    if(_pendingDeepLink){switchMode('user');handleDeepLink();}
-    else{switchMode('admin');}
+    if(_pendingDeepLink){
+      if(_pendingDeepLink.type==='sub'){switchMode('user');go('events');handleDeepLink();}
+      else{switchMode('user');handleDeepLink();}
+    } else{switchMode('admin');}
     // Show welcome tour for new organizers (first login)
     setTimeout(()=>obShowTour('tour_welcome_org'),600);
     checkPrivacyConsent();
@@ -14833,7 +14873,7 @@ function checkPrivacyConsent(){
   return false; // consent already given
 }
 
-// Deep link handler — process URL params (?event=..., ?checkin=...)
+// Deep link handler — process URL params (?event=..., ?checkin=..., ?sub=...)
 let _pendingDeepLink=null;
 function checkDeepLink(){
   const params=new URLSearchParams(window.location.search);
@@ -14841,13 +14881,16 @@ function checkDeepLink(){
   const checkinId=params.get('checkin');
   const token=params.get('token');
   const recDateParam=params.get('recDate');
+  const subToken=params.get('sub');
   if(eventId){
     _pendingDeepLink={type:'event',id:eventId};
   } else if(checkinId&&token){
     _pendingDeepLink={type:'checkin',id:checkinId,token:token,recDate:recDateParam||null};
+  } else if(subToken){
+    _pendingDeepLink={type:'sub',token:subToken};
   }
   // Clean URL params (keep clean address bar) but preserve mode=signIn for magic links
-  if((eventId||checkinId)&&!params.get('mode')){
+  if((eventId||checkinId||subToken)&&!params.get('mode')){
     window.history.replaceState(null,'',window.location.pathname);
   }
 }
@@ -14875,8 +14918,91 @@ function handleDeepLink(){
     } else {
       showToast('Evento non trovato per il check-in','error');
     }
+  } else if(dl.type==='sub'){
+    // Redeem subscription token
+    redeemSubToken(dl.token);
   }
 }
+
+/* ── Redeem subscription via deep link token ── */
+async function redeemSubToken(token){
+  if(!token)return;
+  const u=store.currentUser;
+  if(!u||u.id==='guest'){showToast('Errore: utente non autenticato','error');return;}
+  try{
+    // Fetch pending token from Firestore
+    const doc=await fbDb.collection('pendingSubTokens').doc(token).get();
+    if(!doc.exists){showToast('Link abbonamento non valido o scaduto.','error');return;}
+    const pend=doc.data();
+    if(pend.status!=='pending'){
+      showToast('Questo abbonamento è già stato riscattato.','error');return;
+    }
+    // Check duplicate: does user already have an active sub of the same type?
+    const existingSub=store.subscriptions.find(s=>s.userId===u.id&&s.typeId===pend.typeId&&s.status==='active');
+    if(existingSub){
+      // Show warning dialog and let user decide
+      const overlay=document.createElement('div');overlay.className='overlay';
+      overlay.innerHTML=`<div class="dialog" style="max-width:420px;width:90%">
+        <h3 class="text-lg font-semibold text-white mb-3">⚠️ Abbonamento già attivo</h3>
+        <p class="text-sm txt2 mb-4">Hai già un abbonamento attivo di tipo <strong style="color:var(--brand-l)">${escHtml(pend.typeName||'')}</strong> con ${existingSub.entriesTotal-existingSub.entriesUsed} ingressi rimanenti.<br><br>Vuoi riceverne un altro?</p>
+        <div class="flex gap-3" style="justify-content:flex-end">
+          <button class="btn btn-ghost btn-sm" onclick="this.closest('.overlay').remove()">Annulla</button>
+          <button class="btn btn-primary btn-sm" onclick="this.closest('.overlay').remove();executeSubRedeem('${token}')">Sì, assegna</button>
+        </div>
+      </div>`;
+      document.body.appendChild(overlay);
+      overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.remove();});
+      return;
+    }
+    // No duplicate → assign directly
+    await executeSubRedeem(token);
+  }catch(e){
+    console.error('redeemSubToken error:',e);
+    showToast('Errore durante il riscatto: '+e.message,'error');
+  }
+}
+
+async function executeSubRedeem(token){
+  const u=store.currentUser;
+  if(!u||u.id==='guest')return;
+  try{
+    const doc=await fbDb.collection('pendingSubTokens').doc(token).get();
+    if(!doc.exists){showToast('Token non valido','error');return;}
+    const pend=doc.data();
+    if(pend.status!=='pending'){showToast('Già riscattato','error');return;}
+    // Create subscription
+    const sub=await createSubscription(pend.typeId,u.id,u.username||'',u.email||'',pend.managerId,pend.payment,pend.amount,'','Assegnato via QR link'+(pend.notes?' — '+pend.notes:''));
+    if(!sub){showToast('Errore creazione abbonamento','error');return;}
+    // Mark token as redeemed
+    await fsUpdate('pendingSubTokens',token,{status:'redeemed',redeemedBy:u.id,redeemedAt:new Date().toISOString()});
+    // Show success banner
+    const sType=store.subscriptionTypes.find(t=>t.id===pend.typeId);
+    const typeName=sType?sType.name:(pend.typeName||'Abbonamento');
+    const entries=sType?sType.entries:'';
+    showSubSuccessBanner(typeName,entries);
+  }catch(e){
+    console.error('executeSubRedeem error:',e);
+    showToast('Errore assegnazione abbonamento: '+e.message,'error');
+  }
+}
+
+function showSubSuccessBanner(typeName,entries){
+  // Green success banner at top of page
+  const banner=document.createElement('div');
+  banner.id='sub-success-banner';
+  banner.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(135deg,#059669,#10b981);color:#fff;padding:16px 20px;text-align:center;box-shadow:0 4px 20px rgba(16,185,129,.4);animation:slideDown .4s ease';
+  banner.innerHTML=`
+    <div style="max-width:500px;margin:0 auto">
+      <div style="font-size:1.3rem;margin-bottom:4px">🎉 Abbonamento assegnato!</div>
+      <div style="font-size:.9rem;opacity:.95"><strong>${escHtml(typeName)}</strong>${entries?' — '+entries+' ingressi':''}</div>
+      <button onclick="this.closest('#sub-success-banner').remove();go('dashboard')" style="margin-top:10px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff;padding:8px 20px;border-radius:8px;cursor:pointer;font-size:.85rem">📋 Vai alle prenotazioni</button>
+      <button onclick="this.closest('#sub-success-banner').remove()" style="margin-top:10px;margin-left:8px;background:transparent;border:1px solid rgba(255,255,255,.3);color:rgba(255,255,255,.8);padding:8px 14px;border-radius:8px;cursor:pointer;font-size:.85rem">✕ Chiudi</button>
+    </div>`;
+  document.body.appendChild(banner);
+  // Auto-dismiss after 15s
+  setTimeout(()=>{const b=document.getElementById('sub-success-banner');if(b)b.remove();},15000);
+}
+
 // Parse deep link immediately (before auth resolves)
 checkDeepLink();
 
