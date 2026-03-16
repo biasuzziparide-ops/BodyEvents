@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.19.2</title>
+<title>BodyEvents — V2.19.3</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -314,7 +314,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.19.2</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.19.3</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -4253,7 +4253,7 @@ async function exportSubsExcel(){
 
   const buf=await wb.xlsx.writeBuffer();
   const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='abbonamenti_'+new Date().toISOString().split('T')[0]+'.xlsx';
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='abbonamenti_'+localDateStr(new Date())+'.xlsx';
   document.body.appendChild(a);a.click();document.body.removeChild(a);
   showToast('Excel scaricato!');
 }
@@ -4462,7 +4462,7 @@ async function exportSubTypeExcel(typeId){
 
   const buf=await wb.xlsx.writeBuffer();
   const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Abbonamento_'+t.name.replace(/[^a-zA-Z0-9àèéìòùÀÈÉÌÒÙ ]/g,'_')+'_'+new Date().toISOString().split('T')[0]+'.xlsx';
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Abbonamento_'+t.name.replace(/[^a-zA-Z0-9àèéìòùÀÈÉÌÒÙ ]/g,'_')+'_'+localDateStr(new Date())+'.xlsx';
   document.body.appendChild(a);a.click();document.body.removeChild(a);
   showToast('Excel scaricato!');
 }
@@ -4582,7 +4582,7 @@ function getNowTime(){
   return String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
 }
 function getTodayDate(){
-  return new Date().toISOString().split('T')[0];
+  return localDateStr(new Date());
 }
 
 /* ==============================
@@ -4644,7 +4644,7 @@ function buildRegistryFromBookings(){
     const fullName=b.userName||b.name||'';
     const exists=reg.entries.find(e=>e.uid===uid||e.email===b.email);
     if(!exists){
-      reg.entries.push({uid:uid,name:fullName||b.initials||'?',email:b.email||'',addedAt:new Date().toISOString().split('T')[0],customData:{}});
+      reg.entries.push({uid:uid,name:fullName||b.initials||'?',email:b.email||'',addedAt:localDateStr(new Date()),customData:{}});
       changed=true;
     } else {
       // Always update to longer/better name (covers user renaming)
@@ -6035,7 +6035,7 @@ async function saveProfileChanges(){
 }
 
 /* ============================================================
-   UNIFIED IMAGE EDITOR (V2.19.2)
+   UNIFIED IMAGE EDITOR (V2.19.3)
    Full-featured image editor with:
    - Crop with resizable/repositionable area + aspect ratio presets
    - Zoom (pinch + slider)
@@ -6781,6 +6781,8 @@ function showConfirm(title,msg,onOk,variant='warn'){
 const DAYS_IT=['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
 const MONTHS_IT=['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
 const MONTHS_IT_FULL=['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+// Extract YYYY-MM-DD in LOCAL timezone (avoids toISOString UTC shift bug)
+function localDateStr(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function fmtDate(ds){if(!ds)return'';const d=new Date(ds+'T00:00:00');return DAYS_IT[d.getDay()].substring(0,3)+' '+d.getDate()+' '+MONTHS_IT[d.getMonth()]+' '+d.getFullYear();}
 function fmtDateShort(ds){if(!ds)return'';const d=new Date(ds+'T00:00:00');return d.getDate()+' '+MONTHS_IT[d.getMonth()];}
 function fmtDateFull(ds){if(!ds)return'';const d=new Date(ds+'T00:00:00');return d.getDate()+' '+MONTHS_IT_FULL[d.getMonth()]+' '+d.getFullYear();}
@@ -6915,7 +6917,7 @@ function doBook(){
 
   // Block booking after deadline (uses getEffectiveBookingDeadline for recurring support)
   const _effDeadline=getEffectiveBookingDeadline(ev,currentBookingRecDate);
-  if(_effDeadline&&new Date().toISOString().split('T')[0]>_effDeadline){
+  if(_effDeadline&&localDateStr(new Date())>_effDeadline){
     showToast('Le prenotazioni per questo evento sono chiuse (dal '+fmtDateShort(_effDeadline)+')','error');return;
   }
 
@@ -7047,7 +7049,7 @@ async function bookWithSubscription(subId,eventId){
         status:'confermata',
         depositStatus:null,paymentStatus:'abbonamento',gift:false,subscriptionId:subId,
         surveyResponses:surveyResponses,
-        bookedAt:new Date().toISOString().split('T')[0],createdAt:new Date().toISOString()
+        bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
       };
       store.bookings.push(newBooking);
       await fsSet('bookings',newBooking.id,newBooking).catch(console.error);
@@ -7074,7 +7076,7 @@ async function bookWithSubscription(subId,eventId){
     status:'confermata',
     depositStatus:null,paymentStatus:'abbonamento',gift:false,subscriptionId:subId,
     surveyResponses:{},
-    bookedAt:new Date().toISOString().split('T')[0],createdAt:new Date().toISOString()
+    bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
   };
   store.bookings.push(newBooking);
   await fsSet('bookings',newBooking.id,newBooking).catch(console.error);
@@ -7226,7 +7228,7 @@ function _doBookNormal(){
         paymentStatus:evIsFree?'gratuito':null,gift:false,
         surveyResponses:surveyResponses,
         recurringDate:currentBookingRecDate||null,
-        bookedAt:new Date().toISOString().split('T')[0],createdAt:new Date().toISOString()
+        bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
       };
       store.bookings.push(newBooking);
       fsSet('bookings',newBooking.id,newBooking).catch(console.error);
@@ -7592,7 +7594,7 @@ function _doBookNormal(){
       paymentStatus:null,
       gift:false,
       surveyResponses:surveyResponses,
-      bookedAt:new Date().toISOString().split('T')[0],createdAt:new Date().toISOString()
+      bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
     };
     store.bookings.push(newBooking);
     fsSet('bookings',newBooking.id,newBooking).catch(console.error);
@@ -8017,7 +8019,7 @@ function confirmWalkinCheckin(evId){
     role:selectedBookRole,recurringDate:checkinRecDate||null,status:needsDep?'in_attesa_anticipo':'confermata',
     depositStatus:needsDep?'pending':null,paymentStatus:isFree?'gratuito':null,gift:false,walkIn:true,
     surveyResponses:surveyResponses,
-    bookedAt:new Date().toISOString().split('T')[0],createdAt:new Date().toISOString()
+    bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
   };
   store.bookings.push(bk);
   fsSet('bookings',bk.id,bk).catch(console.error);
@@ -8151,7 +8153,7 @@ function confirmNewCheckin(evId){
     role:userRole,recurringDate:checkinRecDate||null,status:needsDep?'in_attesa_anticipo':'confermata',
     depositStatus:needsDep?'pending':null,paymentStatus:isFree?'gratuito':null,gift:false,walkIn:true,newUser:true,
     surveyResponses:surveyResponses,
-    bookedAt:new Date().toISOString().split('T')[0],createdAt:new Date().toISOString()
+    bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
   };
   store.bookings.push(bk);
   fsSet('bookings',bk.id,bk).catch(console.error);
@@ -8183,7 +8185,7 @@ function renderUserEvents(){
     const confirmStatus=getConfirmationStatus(ev);
     const confirmBadge=confirmStatus==='attesa'?'<span class="badge badge-attesa">⏳ Min. non raggiunto</span>':confirmStatus==='confermato'?'<span class="badge badge-confermato">✅ Confermato</span>':'';
     const _effBkDl=getEffectiveBookingDeadline(ev,ev._recDate||null);
-    const _todayStr=new Date().toISOString().split('T')[0];
+    const _todayStr=localDateStr(new Date());
     const _bookClosed=_effBkDl&&_todayStr>_effBkDl;
     const bookClosedBadge=_bookClosed?'<span class="badge" style="background:var(--red-bg);color:var(--red)">🔒 Prenotazioni chiuse</span>':'';
     /* Deadline banner: show when deadline exists and bookings are still open */
@@ -8229,7 +8231,7 @@ function renderUserEvents(){
   // Add community events (jams) to the main events list
   const showCommunity=document.getElementById('filter-community-toggle');
   const communityOn=showCommunity?showCommunity.checked:true;
-  const today=new Date().toISOString().split('T')[0];
+  const today=localDateStr(new Date());
   const univFilter=(document.getElementById('filter-universe')||{}).value||'';
   const qFilter=(document.getElementById('filter-text')||{}).value||'';
   let communityEvts=communityOn?store.communityJams.filter(j=>j.status!=='cancellato'&&!(j.alert&&j.alert.type==='cancellato')&&j.date>=today):[];
@@ -8276,7 +8278,7 @@ function renderUserEvents(){
   // Update count
   const rc2=document.getElementById('filter-results-count');
   if(rc2){
-    const totalAll=store.events.filter(e=>e.status==='pubblicato'&&!(e.alert&&e.alert.type==='cancellato')).length+store.communityJams.filter(j=>j.status!=='cancellato'&&!(j.alert&&j.alert.type==='cancellato')&&j.date>=new Date().toISOString().split('T')[0]).length;
+    const totalAll=store.events.filter(e=>e.status==='pubblicato'&&!(e.alert&&e.alert.type==='cancellato')).length+store.communityJams.filter(j=>j.status!=='cancellato'&&!(j.alert&&j.alert.type==='cancellato')&&j.date>=localDateStr(new Date())).length;
     rc2.textContent=allCards.length===totalAll?totalAll+' eventi disponibili':allCards.length+' di '+totalAll+' eventi';
   }
 
@@ -8285,7 +8287,7 @@ function renderUserEvents(){
 }
 
 function resetFilters(){
-  const today=new Date().toISOString().split('T')[0];
+  const today=localDateStr(new Date());
   ['filter-text','filter-maestro','filter-date-to','filter-price-max'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const dfEl=document.getElementById('filter-date-from');if(dfEl)dfEl.value=today;
   ['filter-type','filter-zona','filter-universe'].forEach(id=>{const el=document.getElementById(id);if(el)el.selectedIndex=0;});
@@ -8780,7 +8782,7 @@ async function geocodeAndRenderMap(){
   }
   const evts=getFilteredEvents();
   // Also include community jams (normalize shape for map)
-  const today=new Date().toISOString().split('T')[0];
+  const today=localDateStr(new Date());
   const cJams=(store.communityJams||[]).filter(j=>j.status!=='cancellato'&&!(j.alert&&j.alert.type==='cancellato')&&j.date>=today).map(j=>({...j,days:[{date:j.date,startTime:j.startTime,endTime:j.endTime,sessions:[]}],teacher:j.userName||'Community',type:j.type||'jam',orgName:j.userName||'Community',_isCommunity:true}));
   const allEvts=[...evts,...cJams];
   if(!allEvts.length){
@@ -9093,7 +9095,7 @@ function updateJamMinSubsDeadline(){
   if(!jd)return;
   const d=new Date(jd+'T12:00:00');d.setDate(d.getDate()-5);
   const dl=document.getElementById('jam-min-subs-deadline');
-  if(dl)dl.value=d.toISOString().split('T')[0];
+  if(dl)dl.value=localDateStr(d);
 }
 
 function closeJamModal(){
@@ -9156,7 +9158,7 @@ function submitJam(){
       deadline:document.getElementById('jam-min-subs-deadline')?.value||null
     }:null,
     coords:extractCoordsFromUrl(locationUrl.trim()),
-    createdAt:new Date().toISOString().split('T')[0]
+    createdAt:localDateStr(new Date())
   };
   // Async geocode if no coords from URL
   if(!jam.coords&&jam.location){
@@ -9182,7 +9184,7 @@ function showJamDetail(jamId){
   const spotsInfo=jam.maxSpots?`<span class="text-sm" style="color:${isFull?'var(--red)':'var(--green)'}">👥 ${parts.length}/${jam.maxSpots} partecipanti${isFull?' — COMPLETO':''}</span>`:`<span class="text-sm txt3">👥 ${parts.length} partecipanti</span>`;
 
   const jamConfirm=getJamConfirmationStatus(jam);
-  const jamDeadlineExpired=jam.minSubscribers&&jam.minSubscribers.deadline&&new Date().toISOString().split('T')[0]>jam.minSubscribers.deadline;
+  const jamDeadlineExpired=jam.minSubscribers&&jam.minSubscribers.deadline&&localDateStr(new Date())>jam.minSubscribers.deadline;
   let confirmBanner='';
   if(jamConfirm==='attesa'&&jamDeadlineExpired){
     const needed=jam.minSubscribers.count;
@@ -9335,7 +9337,7 @@ function renderJamCard(jam,uid,isMine){
   const mineBadge=isMine?'<span class="badge" style="background:var(--brand-d);color:var(--brand-l);font-size:.65rem">\u2605 Tua</span>':'';
   const alertBadge=jam.alert?`<span class="badge" style="background:var(--red-bg);color:var(--red);font-size:.65rem">${jam.alert.type==='cancellato'?'ANNULLATO':'MODIFICATO'}</span>`:'';
   const jConfirm=getJamConfirmationStatus(jam);
-  const jDeadlineExp=jam.minSubscribers&&jam.minSubscribers.deadline&&new Date().toISOString().split('T')[0]>jam.minSubscribers.deadline;
+  const jDeadlineExp=jam.minSubscribers&&jam.minSubscribers.deadline&&localDateStr(new Date())>jam.minSubscribers.deadline;
   const jConfirmBadge=jConfirm==='attesa'&&jDeadlineExp?'<span class="badge" style="background:var(--red-bg);color:var(--red)">🚫 Deadline scaduta — min. non raggiunto</span>':jConfirm==='attesa'?'<span class="badge badge-attesa">⏳ In attesa raggiungimento numero minimo</span>':jConfirm==='confermato'?'<span class="badge badge-confermato">✅ Confermato</span>':'';
   const borderColor=isMine?'var(--brand)':'var(--s400)';
   const dateBg=isMine?'var(--brand-d)':'var(--green-bg)';
@@ -9374,7 +9376,7 @@ function joinJam(jamId){
   const uid=store.currentUser.id;
   if(jam.participants.some(p=>p.userId===uid)){showToast('Sei già iscritto','error');return;}
   if(jam.maxSpots&&jam.participants.length>=jam.maxSpots){showToast('Posti esauriti','error');return;}
-  jam.participants.push({userId:uid,userName:store.currentUser.username,joinedAt:new Date().toISOString().split('T')[0]});
+  jam.participants.push({userId:uid,userName:store.currentUser.username,joinedAt:localDateStr(new Date())});
   fsUpdate('communityJams',jam.id,{participants:jam.participants}).catch(console.error);
   showToast('Ti sei iscritto al community event!','success');
   showJamDetail(jamId);
@@ -9476,7 +9478,7 @@ function saveJamEdit(jamId){
 
   // If has participants and something changed, mark as modified
   if(changed&&jam.participants&&jam.participants.length>0){
-    jam.alert={type:'modificato',message:'Community event modificato dall\'organizzatore.',date:new Date().toISOString().split('T')[0]};
+    jam.alert={type:'modificato',message:'Community event modificato dall\'organizzatore.',date:localDateStr(new Date())};
   }
 
   fsSet('communityJams',jam.id,jam).catch(console.error);
@@ -9488,7 +9490,7 @@ function saveJamEdit(jamId){
 function cancelJam(jamId){
   showConfirm('Cancella community event','Cancellare questo community event? I partecipanti lo vedranno come annullato.',()=>{
     const jam=store.communityJams.find(j=>j.id===jamId);if(!jam)return;
-    jam.alert={type:'cancellato',message:'Community event cancellato dall\'organizzatore.',date:new Date().toISOString().split('T')[0]};
+    jam.alert={type:'cancellato',message:'Community event cancellato dall\'organizzatore.',date:localDateStr(new Date())};
     fsSet('communityJams',jam.id,jam).catch(console.error);
     showJamDetail(jamId);
     showToast('Community event cancellato','error');
@@ -9579,7 +9581,7 @@ function nativeShareEvent(eventId){
 ============================== */
 function isEarlyBirdActive(eb,evId){
   if(!eb||(!eb.alto&&!eb.medio&&!eb.basso))return false;
-  if(eb.type==='date'&&eb.deadline){return new Date().toISOString().split('T')[0]<=eb.deadline;}
+  if(eb.type==='date'&&eb.deadline){return localDateStr(new Date())<=eb.deadline;}
   if(eb.type==='count'&&eb.maxCount){const bookCount=store.bookings.filter(b=>b.eventId===evId&&b.status!=='cancellata').length;return bookCount<eb.maxCount;}
   return true;
 }
@@ -10267,7 +10269,7 @@ function showEventDetail(evId,recDate){
       }
       // === CHECK BOOKING DEADLINE (uses getEffectiveBookingDeadline for recurring support) ===
       const _detEffDl=getEffectiveBookingDeadline(ev,_detRecDate);
-      const _bookingClosed=_detEffDl&&new Date().toISOString().split('T')[0]>_detEffDl;
+      const _bookingClosed=_detEffDl&&localDateStr(new Date())>_detEffDl;
       if(_bookingClosed){
         return '<h2 class="font-semibold text-white mb-3">Programma</h2>'+daysHtml+eventPkgHtml+loyaltyHtml
           +'<div class="card text-center mt-4" style="border:2px solid var(--red);background:var(--red-bg);padding:20px">'
@@ -10512,7 +10514,7 @@ function getEffectiveBookingDeadline(ev,recDate){
     if(ev.bookingDeadlineDaysBefore!=null&&ev.bookingDeadlineDaysBefore!==''){
       const d=new Date(recDate+'T00:00:00');
       d.setDate(d.getDate()-parseInt(ev.bookingDeadlineDaysBefore));
-      return d.toISOString().split('T')[0];
+      return localDateStr(d);
     }
     // Otherwise deadline = the recurrence date itself (open until event day)
     return recDate;
@@ -10524,7 +10526,7 @@ function getEffectiveBookingDeadline(ev,recDate){
   return null;
 }
 function autoConcludeEvents(){
-  const today=new Date().toISOString().split('T')[0];
+  const today=localDateStr(new Date());
   store.events.forEach(ev=>{
     if(ev.status!=='pubblicato')return;
     if(!ev.days||!ev.days.length)return;
@@ -10536,7 +10538,7 @@ function autoConcludeEvents(){
     if(ev.recurrence&&ev.recurrence.weeks){
       const startDate=new Date(lastDay.date+'T23:59:59');
       const endDate=new Date(startDate.getTime()+(ev.recurrence.weeks*7*24*60*60*1000));
-      if(endDate.toISOString().split('T')[0]<today)ev.status='concluso';
+      if(localDateStr(endDate)<today)ev.status='concluso';
       return;
     }
     if(lastDay.date<today)ev.status='concluso';
@@ -10569,12 +10571,12 @@ function getNextRecurringDates(ev,count){
     if(d.getTime()===today.getTime()){
       const lastSession=ev.days&&ev.days[0]?ev.days[0].endTime:'23:59';
       const now=new Date();const [h,m]=(lastSession||'23:59').split(':').map(Number);
-      const ds=d.toISOString().split('T')[0];
+      const ds=localDateStr(d);
       if((now.getHours()<h||(now.getHours()===h&&now.getMinutes()<=m))&&!isExcluded(ds)){dates.push(ds);}
       d.setDate(d.getDate()+7);
     }
     while(dates.length<count){
-      const dateStr=d.toISOString().split('T')[0];
+      const dateStr=localDateStr(d);
       if(!isExcluded(dateStr))dates.push(dateStr);
       d.setDate(d.getDate()+7);
       if(d-today>90*24*60*60*1000)break;
@@ -10594,7 +10596,7 @@ function getNextRecurringDates(ev,count){
       const actualDay=Math.min(targetDom,tempD.getDate());
       d.setDate(actualDay);
       if(d>=startFrom){
-        const dateStr=d.toISOString().split('T')[0];
+        const dateStr=localDateStr(d);
         if(!isExcluded(dateStr))dates.push(dateStr);
       }
       d.setMonth(d.getMonth()+1);d.setDate(1);
@@ -10609,7 +10611,7 @@ function getNextRecurringDates(ev,count){
     while(dates.length<count&&safety<10){
       const d=new Date(year,targetMonth,targetDom);
       if(d>=startFrom){
-        const dateStr=d.toISOString().split('T')[0];
+        const dateStr=localDateStr(d);
         if(!isExcluded(dateStr))dates.push(dateStr);
       }
       year++;safety++;
@@ -10619,7 +10621,7 @@ function getNextRecurringDates(ev,count){
 }
 
 function expandRecurringForList(events){
-  const today=new Date().toISOString().split('T')[0];
+  const today=localDateStr(new Date());
   const result=[];
   events.forEach(ev=>{
     if(!ev.recurrence||!ev.recurrence.day){
@@ -10673,7 +10675,7 @@ function deleteEvent(id){
   } else {
     showConfirm('Cancella evento','Cancellare questo evento? Gli utenti prenotati lo vedranno come ANNULLATO.',()=>{
       ev.status='cancellato';
-      ev.alert={type:'cancellato',message:'Evento cancellato dall\'organizzatore.',date:new Date().toISOString().split('T')[0],timestamp:new Date().toISOString()};
+      ev.alert={type:'cancellato',message:'Evento cancellato dall\'organizzatore.',date:localDateStr(new Date()),timestamp:new Date().toISOString()};
       fsSet('events',ev.id,ev).catch(console.error);
       renderAdminEvents();showToast('Evento cancellato (visibile agli utenti come annullato)','error');
     },'danger');
@@ -10846,7 +10848,7 @@ function executeAlertAction(){
   // Handle "skip" for recurring events (per-date)
   if(action==='skip'&&isRecurring&&recDate&&recDate!=='all'&&recDate!=='pause'){
     if(!ev.recurrence.exceptions)ev.recurrence.exceptions={};
-    ev.recurrence.exceptions[recDate]={type:'skip',date:new Date().toISOString().split('T')[0]};
+    ev.recurrence.exceptions[recDate]={type:'skip',date:localDateStr(new Date())};
     fsSet('events',ev.id,ev).catch(console.error);
     closeAlertModal();renderAdminEvents();
     showToast('Data '+fmtDate(recDate)+' saltata');
@@ -10856,8 +10858,8 @@ function executeAlertAction(){
   // For recurring per-date modification (not "all")
   if(isRecurring&&recDate&&recDate!=='all'&&recDate!=='pause'&&(action==='cancellato'||action==='rimandato')){
     if(!ev.recurrence.exceptions)ev.recurrence.exceptions={};
-    ev.recurrence.exceptions[recDate]={type:action==='cancellato'?'skip':'modificato',message:msg,date:new Date().toISOString().split('T')[0],changes:action==='rimandato'?{alert:{type:'rimandato',message:msg}}:null};
-    if(action==='cancellato')ev.recurrence.exceptions[recDate]={type:'skip',message:msg,date:new Date().toISOString().split('T')[0]};
+    ev.recurrence.exceptions[recDate]={type:action==='cancellato'?'skip':'modificato',message:msg,date:localDateStr(new Date()),changes:action==='rimandato'?{alert:{type:'rimandato',message:msg}}:null};
+    if(action==='cancellato')ev.recurrence.exceptions[recDate]={type:'skip',message:msg,date:localDateStr(new Date())};
     fsSet('events',ev.id,ev).catch(console.error);
     closeAlertModal();renderAdminEvents();
     showToast('Modifica applicata al '+fmtDate(recDate));
@@ -10865,7 +10867,7 @@ function executeAlertAction(){
   }
 
   // Normal (non-recurring or "all" dates) execution
-  ev.alert={type:action,message:msg,date:new Date().toISOString().split('T')[0],timestamp:new Date().toISOString()};
+  ev.alert={type:action,message:msg,date:localDateStr(new Date()),timestamp:new Date().toISOString()};
   if(action==='cancellato'){
     ev.status='cancellato';
     if(isRecurring)ev.recurrence.active=false;
@@ -10978,7 +10980,7 @@ function confirmAlertEdit(){
   formEv.alert={
     type:'modificato',
     message:'Evento modificato dall\'organizzatore',
-    date:new Date().toISOString().split('T')[0],
+    date:localDateStr(new Date()),
     timestamp:new Date().toISOString(),
     previousValues:snapshot
   };
@@ -11095,7 +11097,7 @@ function renderAdminCommunityJams(){
             if(jcs==='attesa'){
               const n=jam.minSubscribers.count;const ct=(jam.participants||[]).length;
               const dlStr=jam.minSubscribers.deadline?' · Entro '+fmtDateShort(jam.minSubscribers.deadline):'';
-              const isExpired=jam.minSubscribers.deadline&&new Date().toISOString().split('T')[0]>jam.minSubscribers.deadline;
+              const isExpired=jam.minSubscribers.deadline&&localDateStr(new Date())>jam.minSubscribers.deadline;
               if(isExpired)return '<div class="mt-2"><span class="badge" style="background:var(--red-bg);color:var(--red)">🚫 Deadline scaduta — min. non raggiunto ('+ct+'/'+n+')</span></div>';
               return '<div class="mt-2"><span class="badge badge-attesa">⏳ In attesa: '+ct+'/'+n+' partecipanti'+dlStr+'</span></div>';
             }
@@ -11163,7 +11165,7 @@ async function exportFullBackup(){
     const blob=new Blob([json],{type:'application/json'});
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');
-    const date=new Date().toISOString().split('T')[0];
+    const date=localDateStr(new Date());
     a.href=url;a.download='bodyevents_backup_'+date+'.json';
     document.body.appendChild(a);a.click();document.body.removeChild(a);
     URL.revokeObjectURL(url);
@@ -11370,7 +11372,7 @@ function getDayDate(di){
   // For additional days, compute startDate + di days
   const d=new Date(startDate);
   d.setDate(d.getDate()+di);
-  return d.toISOString().split('T')[0];
+  return localDateStr(d);
 }
 function syncEventDates(which){
   const sd=document.getElementById('ne-event-start-date');
@@ -11475,7 +11477,7 @@ function renderFormDays(){
     const ebHasAlto=ebBaseTiers?.alto!=null&&ebBaseTiers.alto>0;
     const ebHasMedio=ebBaseTiers?.medio!=null&&ebBaseTiers.medio>0;
     const ebHasBasso=ebBaseTiers?.basso!=null&&ebBaseTiers.basso>0;
-    const ebDefaultDeadline=(()=>{if(day.earlyBird?.deadline)return day.earlyBird.deadline;const dd=dayDate||document.getElementById('ne-event-start-date')?.value;if(!dd)return '';const d=new Date(dd+'T12:00:00');d.setDate(d.getDate()-10);return d.toISOString().split('T')[0];})();
+    const ebDefaultDeadline=(()=>{if(day.earlyBird?.deadline)return day.earlyBird.deadline;const dd=dayDate||document.getElementById('ne-event-start-date')?.value;if(!dd)return '';const d=new Date(dd+'T12:00:00');d.setDate(d.getDate()-10);return localDateStr(d);})();
     const ebColCount=(ebHasAlto?1:0)+(ebHasMedio?1:0)+(ebHasBasso?1:0)||1;
     return `
     <div class="card mb-3" style="background:var(--s100);border-color:var(--s400)">
@@ -11671,7 +11673,7 @@ function renderFormSession(di,si,s,hidePricing){
             </div>
           </div>
           <div class="grid grid-2 gap-3">
-            <div class="ne-seb-date-wrap" ${s.earlyBird?.type==='count'?'style="display:none"':''}><label class="label text-xs">📅 Scadenza</label><input class="input ne-s-ebd" type="date" data-di="${di}" data-si="${si}" value="${s.earlyBird?.deadline||(()=>{const dd=getDayDate(di)||document.getElementById('ne-event-start-date')?.value;if(!dd)return'';const d=new Date(dd+'T12:00:00');d.setDate(d.getDate()-10);return d.toISOString().split('T')[0];})()}" onchange="syncEBDeadline(this)"></div>
+            <div class="ne-seb-date-wrap" ${s.earlyBird?.type==='count'?'style="display:none"':''}><label class="label text-xs">📅 Scadenza</label><input class="input ne-s-ebd" type="date" data-di="${di}" data-si="${si}" value="${s.earlyBird?.deadline||(()=>{const dd=getDayDate(di)||document.getElementById('ne-event-start-date')?.value;if(!dd)return'';const d=new Date(dd+'T12:00:00');d.setDate(d.getDate()-10);return localDateStr(d);})()}" onchange="syncEBDeadline(this)"></div>
             <div class="ne-seb-count-wrap" ${s.earlyBird?.type!=='count'?'style="display:none"':''}><label class="label text-xs">👥 Primi N</label><input class="input ne-s-ebc" type="number" data-di="${di}" data-si="${si}" min="1" value="${s.earlyBird?.maxCount||''}" placeholder="es. 10"></div>
           </div>
         </div>
@@ -11753,7 +11755,7 @@ function toggleLoyaltyEventPicker(wrapEl){
   if(isOpen)return;
   const u=store.currentUser;
   // Only show PAST events with confirmed attendance data
-  const today=new Date().toISOString().split('T')[0];
+  const today=localDateStr(new Date());
   const isPastEvent=ev=>{
     if(!ev.days||!ev.days.length)return false;
     const lastDay=ev.days[ev.days.length-1].date;
@@ -11818,7 +11820,7 @@ function addFormDay(){
   if(ed&&sd&&sd.value){
     const d=new Date(sd.value);
     d.setDate(d.getDate()+formDays.length-1);
-    ed.value=d.toISOString().split('T')[0];
+    ed.value=localDateStr(d);
   }
   renderFormDays();
   showToast('Giornata aggiunta');
@@ -11831,7 +11833,7 @@ function removeFormDay(di){
   if(ed&&sd&&sd.value){
     const d=new Date(sd.value);
     d.setDate(d.getDate()+formDays.length-1);
-    ed.value=d.toISOString().split('T')[0];
+    ed.value=localDateStr(d);
   }
   if(formDays.length===1&&sd&&ed)ed.value=sd.value;
   renderFormDays();
@@ -12115,7 +12117,7 @@ function collectFormData(){
     surveys:collectSurveysFromForm(),
     bookingDeadline:recChk?null:(document.getElementById('ne-booking-deadline')?.value||null),
     bookingDeadlineDaysBefore:recChk?(document.getElementById('ne-booking-deadline-days')?.value!==''?parseInt(document.getElementById('ne-booking-deadline-days')?.value):null):null,
-    status:'bozza',recurrence:recChk?(()=>{const _startDate=document.getElementById('ne-event-start-date')?.value||'';const _startDow=_startDate?new Date(_startDate+'T00:00:00').getDay():-1;const _dayNames=['domenica','lunedi','martedi','mercoledi','giovedi','venerdi','sabato'];const _day=_startDow>=0?_dayNames[_startDow]:'lunedi';const _exc={};_recExclusions.forEach(d=>{_exc[d]={type:'skip'};});return{day:_day,freq:recFreq,active:true,exceptions:_exc,exclusionDates:[..._recExclusions],pausedUntil:null}})():null,createdAt:new Date().toISOString().split('T')[0],
+    status:'bozza',recurrence:recChk?(()=>{const _startDate=document.getElementById('ne-event-start-date')?.value||'';const _startDow=_startDate?new Date(_startDate+'T00:00:00').getDay():-1;const _dayNames=['domenica','lunedi','martedi','mercoledi','giovedi','venerdi','sabato'];const _day=_startDow>=0?_dayNames[_startDow]:'lunedi';const _exc={};_recExclusions.forEach(d=>{_exc[d]={type:'skip'};});return{day:_day,freq:recFreq,active:true,exceptions:_exc,exclusionDates:[..._recExclusions],pausedUntil:null}})():null,createdAt:localDateStr(new Date()),
     allowDayPurchase:document.getElementById('ne-allow-day-purchase')?.checked!==false,
     partnerIds:getPartnerIdsFromForm(),
     partnerEntryPolicy:getPartnerIdsFromForm().length?(document.querySelector('input[name="ne-partner-entry-policy"]:checked')?.value||'discount_only'):null,
@@ -12761,7 +12763,7 @@ function handlePricingModeChange(evId,oldPricingMode,newPricingMode){
     const ev=store.events.find(e=>e.id===evId);
     if(ev){
       ev.refunds=refundList;
-      ev.refundsCreatedAt=new Date().toISOString().split('T')[0];
+      ev.refundsCreatedAt=localDateStr(new Date());
     }
   }
   return refundList;
@@ -12770,7 +12772,7 @@ function markRefund(evId,bookingId){
   const ev=store.events.find(e=>e.id===evId);if(!ev||!ev.refunds)return;
   const r=ev.refunds.find(x=>x.bookingId===bookingId);if(!r)return;
   r.refunded=!r.refunded;
-  r.refundedAt=r.refunded?new Date().toISOString().split('T')[0]:null;
+  r.refundedAt=r.refunded?localDateStr(new Date()):null;
   if(r.refunded)showToast('✅ Rimborso segnato come erogato');
   else showToast('Rimborso riaperto');
   showAdminEventDetail(evId);
@@ -13702,18 +13704,18 @@ function getRecurringDateTabs(ev){
   if(freq==='settimanale'){
     const dp=new Date(today);dp.setDate(dp.getDate()-1);
     let s=0;while(dp.getDay()!==targetDay&&s<7){dp.setDate(dp.getDate()-1);s++;}
-    const dpStr=dp.toISOString().split('T')[0];
+    const dpStr=localDateStr(dp);
     if(!isExcl(dpStr)){pastDates.push(dpStr);}
-    else{dp.setDate(dp.getDate()-7);const d2=dp.toISOString().split('T')[0];if(!isExcl(d2))pastDates.push(d2);}
+    else{dp.setDate(dp.getDate()-7);const d2=localDateStr(dp);if(!isExcl(d2))pastDates.push(d2);}
   }else if(freq==='mensile'){
     const evStart=ev.days&&ev.days[0]?new Date(ev.days[0].date+'T00:00:00'):today;
     const dom=evStart.getDate();
     const dp=new Date(today);dp.setMonth(dp.getMonth()-1);dp.setDate(Math.min(dom,new Date(dp.getFullYear(),dp.getMonth()+1,0).getDate()));
-    if(dp<today){const dpStr=dp.toISOString().split('T')[0];if(!isExcl(dpStr))pastDates.push(dpStr);}
+    if(dp<today){const dpStr=localDateStr(dp);if(!isExcl(dpStr))pastDates.push(dpStr);}
   }else if(freq==='annuale'){
     const evStart=ev.days&&ev.days[0]?new Date(ev.days[0].date+'T00:00:00'):today;
     const dp=new Date(today.getFullYear()-1,evStart.getMonth(),evStart.getDate());
-    const dpStr=dp.toISOString().split('T')[0];if(!isExcl(dpStr))pastDates.push(dpStr);
+    const dpStr=localDateStr(dp);if(!isExcl(dpStr))pastDates.push(dpStr);
   }
   // Future dates (next 2)
   const futureDates=getNextRecurringDates(ev,2);
@@ -14127,7 +14129,7 @@ function exportMyData(){
   const blob=new Blob([JSON.stringify(exportData,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=url;a.download='bodyevents_my_data_'+new Date().toISOString().split('T')[0]+'.json';
+  a.href=url;a.download='bodyevents_my_data_'+localDateStr(new Date())+'.json';
   document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
   showToast('Dati esportati con successo!');
 }
@@ -14463,7 +14465,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   initEventDates();renderFormDays();renderUserEvents();
 
   // Set default "Dal" date to today in all filter date fields
-  const today=new Date().toISOString().split('T')[0];
+  const today=localDateStr(new Date());
   ['filter-date-from','jam-admin-filter-date-from','jam-user-filter-date-from'].forEach(id=>{
     const el=document.getElementById(id);
     if(el&&!el.value) el.value=today;
