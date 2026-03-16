@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.31.0</title>
+<title>BodyEvents — V2.33.1</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -25,8 +25,8 @@
 --purple:#a855f7;--purple-bg:rgba(168,85,247,.12);
 --txt:#f3f4f6;--txt2:#9ca3af;--txt3:#6b7280;
 }
-html{overflow-x:hidden}
-body{background:var(--bg);color:var(--txt);font-family:'Inter',system-ui,-apple-system,sans-serif;line-height:1.5;min-height:100vh;overflow-x:hidden}
+html{overscroll-behavior-x:none;overflow-x:clip}
+body{background:var(--bg);color:var(--txt);font-family:'Inter',system-ui,-apple-system,sans-serif;line-height:1.5;min-height:100vh;max-width:100vw;overflow-x:clip;overscroll-behavior-x:none}
 a{color:var(--brand-l);text-decoration:none}
 /* Scrollbar */
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--s50)}::-webkit-scrollbar-thumb{background:var(--s400);border-radius:9px}
@@ -208,14 +208,14 @@ textarea.input{resize:none;font-family:inherit}
   .mobile-quickbar{display:none!important}
   .logo{display:none!important}
   .sidebar{display:none}
-  .admin-content{padding:16px}
-  .admin-wrap{min-height:auto}
+  .admin-content{padding:12px;max-width:100vw;box-sizing:border-box}
+  .admin-wrap{min-height:auto;max-width:100vw;overflow-x:hidden}
   .tier-grid{grid-template-columns:1fr}
   .logo-text{display:none}
   .table{font-size:.8rem}
   .table th,.table td{padding:6px 8px}
-  .container{padding-left:12px;padding-right:12px}
-  .card{padding:16px}
+  .container{padding-left:12px;padding-right:12px;max-width:100vw;box-sizing:border-box}
+  .card{padding:16px;max-width:100%;box-sizing:border-box}
   .flex.gap-3{gap:8px}
   .stat-card{padding:12px}
   .stat-card .value{font-size:1.2rem}
@@ -224,18 +224,31 @@ textarea.input{resize:none;font-family:inherit}
   #filter-panel #desktop-search-wrap{display:none!important}
   #filter-panel.mf-collapsed{max-height:0!important;overflow:hidden!important;border:none!important;margin:0!important;opacity:0;transition:max-height .4s ease,opacity .3s ease,margin .3s ease}
   #filter-panel.mf-expanded{max-height:900px!important;opacity:1;transition:max-height .45s ease,opacity .3s ease,margin .3s ease;margin-bottom:24px!important}
+  /* Force ALL inline 2-column grids to stack on mobile */
+  [style*="grid-template-columns:1fr 1fr"],[style*="grid-template-columns: 1fr 1fr"]{grid-template-columns:1fr!important}
+  [style*="grid-template-columns:repeat(2"]{grid-template-columns:1fr!important}
+  [style*="grid-template-columns:repeat(3"]{grid-template-columns:1fr!important}
+  [style*="grid-template-columns:repeat(5"]{grid-template-columns:repeat(3,1fr)!important}
+  /* Dialog safe sizing */
+  .dialog{max-width:calc(100vw - 32px)!important;box-sizing:border-box}
+  .overlay{padding:12px 8px}
+  /* Prevent any child from overflowing viewport */
+  .view{max-width:100vw;overflow-x:hidden}
 }
 @media(max-width:480px){
   .grid-4{grid-template-columns:1fr}
   .page-title{font-size:1.3rem}
   .page-sub{font-size:.8rem}
   .toast{right:12px;left:12px;bottom:16px;max-width:none}
-  .dialog{padding:16px;max-width:calc(100vw - 32px)}
-  .overlay{padding:16px 8px}
+  .dialog{padding:14px;max-width:calc(100vw - 24px)!important}
+  .overlay{padding:10px 6px}
   .table th,.table td{padding:5px 6px;font-size:.75rem}
   .card{padding:14px;overflow-x:hidden}
   .tier-suggest-banner-inner{padding:10px 32px 10px 10px}
   .container{padding-left:10px;padding-right:10px}
+  .admin-content{padding:10px}
+  /* Stack any remaining multi-column inline grids */
+  [style*="grid-template-columns"]{grid-template-columns:1fr!important}
 }
 @media(min-width:769px) and (max-width:1024px){
   .grid-4{grid-template-columns:repeat(2,1fr)}
@@ -316,7 +329,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.31.0</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.33.1</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -3747,8 +3760,13 @@ function renderSubTypes(c){
     html+='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="font-semibold text-white text-lg">'+t.name+'</span>'+univBadge;
     if(t.status==='inactive') html+='<span class="badge" style="background:var(--red-bg);color:var(--red)">Disattivato</span>';
     html+='</div>';
+    const isDiscountMode=(t.mode||'entries')==='discount';
     html+='<div class="text-sm txt2 mt-2" style="display:flex;gap:16px;flex-wrap:wrap">';
-    html+='<span>🎟️ '+t.entries+' ingressi</span>';
+    if(isDiscountMode){
+      html+='<span>📉 Sconto '+(t.discountPercent||0)+'%</span>';
+    }else{
+      html+='<span>🎟️ '+t.entries+' ingressi</span>';
+    }
     html+='<span>'+expiryLabel+'</span>';
     html+='<span>💰 €'+(t.price||0).toFixed(2)+'</span>';
     html+='</div>';
@@ -4000,8 +4018,33 @@ function openSubTypeModal(editId){
   let formHtml='<h3 class="text-lg font-semibold text-white mb-4">'+(existing?'✏️ Modifica tipologia':'➕ Nuova tipologia abbonamento')+'</h3>';
   formHtml+='<div style="max-height:70vh;overflow-y:auto;padding-right:8px">';
   formHtml+='<div class="mb-3"><label class="label">Nome tipologia *</label><input class="input" id="st-name" value="'+(existing?.name||'')+'" placeholder="es. Pacchetto 10 lezioni"></div>';
+  // Subscription mode: entries (free entries) or discount (fixed % off)
+  const curMode=existing?.mode||'entries';
+  const isEdit=!!existing;
+  formHtml+='<div class="mb-3"><label class="label">Modalità abbonamento'+(isEdit?' <span style="font-size:.75rem;color:var(--txt3)">(non modificabile)</span>':'')+'</label>';
+  if(isEdit){
+    // Locked: show current mode as non-clickable badge
+    if(curMode==='entries') formHtml+='<div style="border:2px solid var(--green);background:rgba(16,185,129,.15);color:var(--green);padding:10px 16px;font-size:.85rem;border-radius:8px;display:inline-block">🎟️ Ingressi gratuiti</div>';
+    else formHtml+='<div style="border:2px solid var(--brand);background:var(--brand-bg);color:var(--brand-l);padding:10px 16px;font-size:.85rem;border-radius:8px;display:inline-block">📉 Sconto percentuale</div>';
+  }else{
+    formHtml+='<div class="flex gap-2 flex-wrap" id="st-mode-btns">';
+    formHtml+='<button type="button" class="btn btn-sm st-mode-btn'+(curMode==='entries'?' selected':'')+'" data-mode="entries" onclick="selectSubMode(this)" style="border:2px solid '+(curMode==='entries'?'var(--green)':'var(--s400)')+';background:'+(curMode==='entries'?'rgba(16,185,129,.15)':'var(--s200)')+';color:'+(curMode==='entries'?'var(--green)':'var(--txt2)')+';padding:10px 16px;font-size:.85rem">🎟️ Ingressi gratuiti</button>';
+    formHtml+='<button type="button" class="btn btn-sm st-mode-btn'+(curMode==='discount'?' selected':'')+'" data-mode="discount" onclick="selectSubMode(this)" style="border:2px solid '+(curMode==='discount'?'var(--brand)':'var(--s400)')+';background:'+(curMode==='discount'?'var(--brand-bg)':'var(--s200)')+';color:'+(curMode==='discount'?'var(--brand-l)':'var(--txt2)')+';padding:10px 16px;font-size:.85rem">📉 Sconto percentuale</button>';
+    formHtml+='</div>';
+  }
+  formHtml+='</div>';
+  formHtml+='<input type="hidden" id="st-mode" value="'+curMode+'">';
+  // Entries fields (shown when mode=entries)
+  formHtml+='<div id="st-entries-fields" '+(curMode==='discount'?'style="display:none"':'')+'>';
   formHtml+='<div class="grid grid-2 gap-3 mb-3"><div><label class="label">Numero ingressi *</label><input class="input" id="st-entries" type="number" value="'+(existing?.entries||'')+'" placeholder="Es. 10, 50, 100..."></div>';
   formHtml+='<div><label class="label">Prezzo (€) *</label><input class="input" id="st-price" type="number" value="'+(existing?.price||'')+'" placeholder="es. 80"></div></div>';
+  formHtml+='</div>';
+  // Discount fields (shown when mode=discount)
+  formHtml+='<div id="st-discount-fields" '+(curMode==='entries'?'style="display:none"':'')+'>';
+  formHtml+='<div class="grid grid-2 gap-3 mb-3"><div><label class="label">Percentuale sconto *</label><div class="flex items-center gap-2"><input class="input" id="st-discount-pct" type="number" min="1" max="100" value="'+(existing?.discountPercent||20)+'" placeholder="20" style="text-align:center;font-weight:700;font-size:1.1rem"><span class="font-bold text-white" style="font-size:1.2rem">%</span></div></div>';
+  formHtml+='<div><label class="label">Prezzo abbonamento (€)</label><input class="input" id="st-discount-price" type="number" value="'+(curMode==='discount'?(existing?.price||0):'0')+'" placeholder="0"></div></div>';
+  formHtml+='<p class="text-xs txt3 mb-3" style="line-height:1.5">Lo sconto si applica <strong>automaticamente</strong> a tutti gli eventi delle tipologie compatibili organizzati da te. Non consuma ingressi: resta attivo finché l\'abbonamento non scade.</p>';
+  formHtml+='</div>';
   // Expiry mode
   const curExpiryMode=existing?.expiryMode||(existing?.validityDays?'relative':'none');
   formHtml+='<div class="mb-3"><label class="label">Modalità scadenza</label>';
@@ -4031,6 +4074,24 @@ function openSubTypeModal(editId){
   o.querySelector('#st-cancel').onclick=()=>o.remove();
   o.querySelector('#st-save').onclick=()=>saveSubType(o,existing?.id||null);
   o.addEventListener('click',e=>{if(e.target===o)o.remove()});
+}
+function selectSubMode(btn){
+  document.querySelectorAll('.st-mode-btn').forEach(b=>{
+    b.classList.remove('selected');
+    b.style.border='2px solid var(--s400)';b.style.background='var(--s200)';b.style.color='var(--txt2)';
+  });
+  btn.classList.add('selected');
+  const mode=btn.dataset.mode;
+  document.getElementById('st-mode').value=mode;
+  if(mode==='entries'){
+    btn.style.border='2px solid var(--green)';btn.style.background='rgba(16,185,129,.15)';btn.style.color='var(--green)';
+    document.getElementById('st-entries-fields').style.display='';
+    document.getElementById('st-discount-fields').style.display='none';
+  }else{
+    btn.style.border='2px solid var(--brand)';btn.style.background='var(--brand-bg)';btn.style.color='var(--brand-l)';
+    document.getElementById('st-entries-fields').style.display='none';
+    document.getElementById('st-discount-fields').style.display='';
+  }
 }
 function updateSubTypeCompatTypes(){
   const univId=document.getElementById('st-universe')?.value||'univ_acro';
@@ -4064,9 +4125,18 @@ async function addCustomTypeFromSubForm(){
 async function saveSubType(overlay,editId){
   const name=(document.getElementById('st-name')?.value||'').trim();
   if(!name){showToast('Inserisci un nome','error');return;}
-  const entries=parseInt(document.getElementById('st-entries')?.value)||0;
-  if(!entries){showToast('Inserisci il numero di ingressi','error');return;}
-  const price=parseFloat(document.getElementById('st-price')?.value)||0;
+  const mode=document.getElementById('st-mode')?.value||'entries';
+  let entries=0,price=0,discountPercent=0;
+  if(mode==='entries'){
+    entries=parseInt(document.getElementById('st-entries')?.value)||0;
+    if(!entries){showToast('Inserisci il numero di ingressi','error');return;}
+    price=parseFloat(document.getElementById('st-price')?.value)||0;
+  }else{
+    discountPercent=parseInt(document.getElementById('st-discount-pct')?.value)||0;
+    if(!discountPercent||discountPercent<1||discountPercent>100){showToast('Inserisci una percentuale valida (1-100)','error');return;}
+    price=parseFloat(document.getElementById('st-discount-price')?.value)||0;
+    entries=0; // discount subs don't use entries
+  }
   const validityDays=parseInt(document.getElementById('st-validity')?.value)||null;
   const expiryMode=document.getElementById('st-expiry-mode')?.value||'relative';
   const absoluteExpiry=document.getElementById('st-absolute-expiry')?.value||null;
@@ -4080,6 +4150,10 @@ async function saveSubType(overlay,editId){
     const assignedSubs=store.subscriptions.filter(s=>s.typeId===editId);
     if(assignedSubs.length>0){
       // --- DOUBLE CONFIRMATION for edit with assigned subs ---
+      // BLOCK mode change on edit — mode is immutable once created
+      if((existing.mode||'entries')!==mode){
+        showToast('Non è possibile cambiare la modalità di un abbonamento esistente. Crea una nuova tipologia.','error');return;
+      }
       const priceChanged=existing.price!==price;
       const entriesChanged=existing.entries!==entries;
       const changesDesc=[];
@@ -4135,13 +4209,13 @@ async function saveSubType(overlay,editId){
       await Promise.all(updatePromises);
     }
     // Update the template itself
-    Object.assign(existing,{name,entries,validityDays,price,universeId,compatibleEventTypes,notes,expiryMode,absoluteExpiry});
-    await fsUpdate('subscriptionTypes',editId,{name,entries,validityDays,price,universeId,compatibleEventTypes,notes,expiryMode,absoluteExpiry}).catch(console.error);
+    Object.assign(existing,{name,mode,entries,discountPercent,validityDays,price,universeId,compatibleEventTypes,notes,expiryMode,absoluteExpiry});
+    await fsUpdate('subscriptionTypes',editId,{name,mode,entries,discountPercent,validityDays,price,universeId,compatibleEventTypes,notes,expiryMode,absoluteExpiry}).catch(console.error);
     overlay.remove();
     showToast('Tipologia aggiornata'+(assignedSubs.length>0?' e propagata a '+assignedSubs.length+' abbonamenti':'')+'!');
   }else{
     const newType={
-      id:genId('stype'),managerId:store.currentUser.id,name,entries,validityDays,expiryMode,absoluteExpiry,
+      id:genId('stype'),managerId:store.currentUser.id,name,mode,entries,discountPercent,validityDays,expiryMode,absoluteExpiry,
       universeId,compatibleEventTypes,price,notes,status:'active',createdAt:new Date().toISOString()
     };
     store.subscriptionTypes.push(newType);
@@ -4576,7 +4650,31 @@ function populateSubTypeCheckboxes(){
 // Get active subscriptions for a user
 function getUserActiveSubscriptions(userId){
   const now=new Date().toISOString();
-  return store.subscriptions.filter(s=>s.userId===userId&&s.status==='active'&&(s.entriesTotal-s.entriesUsed)>0&&(!s.expiresAt||s.expiresAt>now));
+  return store.subscriptions.filter(s=>{
+    if(s.userId!==userId||s.status!=='active')return false;
+    if(s.expiresAt&&s.expiresAt<=now)return false;
+    // Discount-mode subs don't consume entries — always active while not expired
+    const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
+    if(sType&&sType.mode==='discount')return true;
+    // Entry-mode subs need remaining entries
+    return (s.entriesTotal-s.entriesUsed)>0;
+  });
+}
+// Get automatic discount % from user's discount-mode subscriptions (NOT event-level subscriptionDiscount)
+function getAutoSubDiscountPct(ev){
+  if(!store.currentUser)return 0;
+  const userSubs=getUserActiveSubscriptions(store.currentUser.id);
+  let bestPct=0;
+  for(const s of userSubs){
+    const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
+    if(!sType||sType.mode!=='discount'||!sType.discountPercent)continue;
+    // Check that the subscription's organizer matches the event's organizer
+    if(sType.managerId!==ev.managerId)continue;
+    // Check event type compatibility
+    if(!isSubCompatibleWithEvent(s,ev))continue;
+    bestPct=Math.max(bestPct,sType.discountPercent);
+  }
+  return bestPct;
 }
 
 // Check if a subscription is compatible with an event
@@ -4608,6 +4706,9 @@ function canUsePartnerDiscount(ev){
 // Use a subscription entry for booking
 async function useSubscriptionEntry(subId,eventId,eventTitle){
   const s=store.subscriptions.find(x=>x.id===subId);if(!s)return false;
+  // Discount-mode subs don't consume entries
+  const _sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
+  if(_sType&&_sType.mode==='discount')return false;
   if(s.entriesUsed>=s.entriesTotal){showToast('Ingressi esauriti','error');return false;}
   s.entriesUsed++;
   const usage={date:new Date().toISOString(),eventId,eventTitle:eventTitle||'',type:'ingresso'};
@@ -4637,8 +4738,15 @@ function renderUserSubscriptions(){
     html+='<div style="display:flex;justify-content:space-between;align-items:center;gap:12px">';
     html+='<div style="flex:1"><div class="font-semibold text-white">'+(sType?.name||'Abbonamento')+'</div>';
     if(univ) html+='<div class="text-xs mt-1"><span style="color:'+univ.color+'">'+univ.emoji+' '+univ.name+'</span></div>';
-    html+='<div class="text-sm txt2 mt-2">🎟️ <strong style="color:'+(remaining<=2?'var(--yellow)':'var(--green)')+'">'+remaining+'</strong>/'+s.entriesTotal+' ingressi</div>';
-    html+='<div style="background:var(--s400);border-radius:4px;height:5px;width:120px;margin-top:4px"><div style="background:'+(remaining<=2?'var(--yellow)':'var(--green)')+';border-radius:4px;height:5px;width:'+pctUsed+'%"></div></div>';
+    const _isDiscMode=sType&&sType.mode==='discount';
+    if(_isDiscMode){
+      html+='<div class="text-sm txt2 mt-2">📉 <strong style="color:var(--brand-l)">'+(sType.discountPercent||0)+'% di sconto</strong> sugli eventi compatibili</div>';
+      const _compatLabels=(sType.compatibleEventTypes||[]).map(et=>getEventTypeLabel(et)).join(', ');
+      if(_compatLabels) html+='<div class="text-xs txt3 mt-1">Tipologie: '+_compatLabels+'</div>';
+    }else{
+      html+='<div class="text-sm txt2 mt-2">🎟️ <strong style="color:'+(remaining<=2?'var(--yellow)':'var(--green)')+'">'+remaining+'</strong>/'+s.entriesTotal+' ingressi</div>';
+      html+='<div style="background:var(--s400);border-radius:4px;height:5px;width:120px;margin-top:4px"><div style="background:'+(remaining<=2?'var(--yellow)':'var(--green)')+';border-radius:4px;height:5px;width:'+pctUsed+'%"></div></div>';
+    }
     html+='<div class="text-xs txt3 mt-2">Scadenza: '+expiryStr+(isExpiring?' <span style="color:var(--yellow)">⚠️ In scadenza!</span>':'')+'</div>';
     html+='</div>';
     const statusBadge=s.status==='active'?'<span class="badge badge-pubblicato">Attivo</span>':s.status==='expired'?'<span class="badge badge-red">Scaduto</span>':'<span class="badge badge-yellow">Sospeso</span>';
@@ -5611,7 +5719,7 @@ async function loadCurrentUser(uid){
     // Hide mode banner for regular users
     document.getElementById('modeBanner').style.display='none';
     document.getElementById('navbar-user').classList.remove('hidden');
-    if(_pendingDeepLink){go('events');handleDeepLink();}
+    if(_pendingDeepLink){go('events');await handleDeepLink();}
     else{go('events');}
     // Show welcome tour for new users (first login)
     setTimeout(()=>obShowTour('tour_welcome'),600);
@@ -5643,8 +5751,8 @@ async function loadCurrentUser(uid){
     // Show mode banner only for managers/masters
     document.getElementById('modeBanner').style.display='';
     if(_pendingDeepLink){
-      if(_pendingDeepLink.type==='sub'){switchMode('user');go('events');handleDeepLink();}
-      else{switchMode('user');handleDeepLink();}
+      if(_pendingDeepLink.type==='sub'){switchMode('user');go('events');await handleDeepLink();}
+      else{switchMode('user');await handleDeepLink();}
     } else{switchMode('admin');}
     // Show welcome tour for new organizers (first login)
     setTimeout(()=>obShowTour('tour_welcome_org'),600);
@@ -5729,8 +5837,9 @@ async function submitUserRegistration(){
     };
     await fbDb.collection('users').doc(cred.user.uid).set(userData);
     _registrationInProgress=false;
-    document.getElementById('reg-form').classList.add('hidden');
-    document.getElementById('reg-sent').classList.remove('hidden');
+    await loadCurrentUser(cred.user.uid);
+    document.getElementById('reg-form')?.classList.add('hidden');
+    document.getElementById('reg-sent')?.classList.remove('hidden');
     showToast('Registrazione completata: '+username);
   }catch(e){
     _registrationInProgress=false;
@@ -5872,8 +5981,9 @@ async function submitOrgRegistration(){
     };
     await fbDb.collection('managers').doc(cred.user.uid).set(mgrData);
     _registrationInProgress=false;
-    document.getElementById('reg-org-form').classList.add('hidden');
-    document.getElementById('reg-org-sent').classList.remove('hidden');
+    await loadCurrentUser(cred.user.uid);
+    document.getElementById('reg-org-form')?.classList.add('hidden');
+    document.getElementById('reg-org-sent')?.classList.remove('hidden');
     showToast('Richiesta organizzatore inviata per: '+orgName);
   }catch(e){
     _registrationInProgress=false;
@@ -7204,8 +7314,9 @@ async function doBook(){
     compatBookSubs=userSubs.filter(s=>{
       if(!ev.subscriptionBookable.typeIds.includes(s.typeId))return false;
       if(!isSubCompatibleWithEvent(s,ev))return false;
-      // If it's a partner subscription, check if entry usage is allowed
+      // Discount-mode subs cannot be used for entry-based booking
       const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
+      if(sType&&sType.mode==='discount')return false;
       if(sType&&ev.partnerIds&&ev.partnerIds.includes(sType.managerId)){
         if(!canUsePartnerEntries(ev))return false;
       }
@@ -8459,7 +8570,30 @@ function renderUserEvents(){
     const daysBadge=ev.days.length>1?'<span class="badge badge-purple">'+ev.days.length+' giorni</span>':'';
     const recBadge=getRecurrenceBadge(ev);
     const _minP=ev.pricingMode==='standard'?minPrice(ev):0;
-    const pricingBadge=ev.pricingMode==='free'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🆓 Gratuito</span>':ev.pricingMode==='managed'?'<span class="badge badge-yellow">🤝 Costi con org.</span>':(_minP>0?'<span class="badge" style="background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)">💰 da €'+_minP+'</span>':'');
+    // Check if user has entry-based or discount sub for this event
+    const _cardSubInfo=(()=>{
+      if(!store.currentUser||ev.pricingMode!=='standard')return null;
+      // Check entry-based sub
+      if(ev.subscriptionBookable?.enabled&&ev.subscriptionBookable.typeIds?.length){
+        const _uSubs=getUserActiveSubscriptions(store.currentUser.id);
+        const hasEntry=_uSubs.some(s=>{
+          if(!ev.subscriptionBookable.typeIds.includes(s.typeId))return false;
+          if(!isSubCompatibleWithEvent(s,ev))return false;
+          const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
+          if(sType&&sType.mode==='discount')return false;
+          return true;
+        });
+        if(hasEntry)return {type:'entry'};
+      }
+      // Check discount sub
+      const discPct=getEffectiveDiscountPct(ev);
+      if(discPct>0&&_minP>0){
+        const scontato=Math.round(_minP*(1-discPct/100)*100)/100;
+        return {type:'discount',pct:discPct,price:scontato};
+      }
+      return null;
+    })();
+    const pricingBadge=ev.pricingMode==='free'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🆓 Gratuito</span>':ev.pricingMode==='managed'?'<span class="badge badge-yellow">🤝 Costi con org.</span>':(_cardSubInfo&&_cardSubInfo.type==='entry'?'<span class="badge" style="background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)">🎟️ Gratis con abb.</span>':_cardSubInfo&&_cardSubInfo.type==='discount'?'<span class="badge" style="background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)">💰 da €'+_cardSubInfo.price+' <span style="text-decoration:line-through;font-size:.6rem;opacity:.6">€'+_minP+'</span></span>':(_minP>0?'<span class="badge" style="background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)">💰 da €'+_minP+'</span>':''));
     const confirmStatus=getConfirmationStatus(ev);
     const confirmBadge=confirmStatus==='attesa'?'<span class="badge badge-attesa">⏳ Min. non raggiunto</span>':confirmStatus==='deadline_scaduta'?'<span class="badge" style="background:var(--red-bg);color:var(--red)">🚫 Deadline scaduta</span>':confirmStatus==='confermato'?'<span class="badge badge-confermato">✅ Confermato</span>':'';
     const _effBkDl=getEffectiveBookingDeadline(ev,ev._recDate||null);
@@ -9006,9 +9140,12 @@ function cancelUserBooking(bId){
       if(bk.subscriptionId){
         const sub=store.subscriptions.find(s=>s.id===bk.subscriptionId);
         if(sub&&sub.entriesUsed>0){
-          sub.entriesUsed--;
-          if(sub.status==='expired'&&sub.entriesUsed<sub.entriesTotal) sub.status='active';
-          await fsUpdate('subscriptions',sub.id,{entriesUsed:sub.entriesUsed,status:sub.status}).catch(console.error);
+          const _sType=store.subscriptionTypes.find(t=>t.id===sub.typeId);
+          if(!_sType||_sType.mode!=='discount'){
+            sub.entriesUsed--;
+            if(sub.status==='expired'&&sub.entriesUsed<sub.entriesTotal) sub.status='active';
+            await fsUpdate('subscriptions',sub.id,{entriesUsed:sub.entriesUsed,status:sub.status}).catch(console.error);
+          }
         }
       }
       showToast('Prenotazione cancellata','error');
@@ -9951,7 +10088,7 @@ function isEarlyBirdActive(eb,evId){
   if(eb.type==='count'&&eb.maxCount){const bookCount=store.bookings.filter(b=>b.eventId===evId&&b.status!=='cancellata').length;return bookCount<eb.maxCount;}
   return true;
 }
-function buildTierBtns(tiers, gridId, activeEB, evId, subDiscPct){
+function buildTierBtns(tiers, gridId, activeEB, evId, subDiscPct, freeWithSub){
   if(!tiers)return '';
   const ebActive=activeEB&&isEarlyBirdActive(activeEB,evId);
   const disc=subDiscPct>0?subDiscPct:0;
@@ -9965,7 +10102,9 @@ function buildTierBtns(tiers, gridId, activeEB, evId, subDiscPct){
     if(tiers[key]==null||tiers[key]===''||tiers[key]===0)return;
     if(ebActive&&activeEB[key])return;// skip — shown inside EB card
     const orig=parseFloat(tiers[key]);
-    if(disc>0){
+    if(freeWithSub){
+      btns+=`<div class="tier-btn" onclick="selectTier('${gridId}',this,'${key}')" style="border-color:rgba(16,185,129,.45);background:rgba(16,185,129,.06)"><span class="tier-icon">${icon}</span><span class="tier-label">${label}</span><span style="font-size:.55rem;color:var(--txt3);text-decoration:line-through">€${orig}</span><span class="tier-price" style="color:var(--green)">€0</span><span style="background:var(--green);color:#000;font-size:.45rem;padding:1px 3px;border-radius:3px;font-weight:700">🎟️ ABB</span></div>`;
+    } else if(disc>0){
       const scontato=Math.round(orig*(1-disc/100)*100)/100;
       btns+=`<div class="tier-btn" onclick="selectTier('${gridId}',this,'${key}')" style="border-color:rgba(16,185,129,.45);background:rgba(16,185,129,.06)"><span class="tier-icon">${icon}</span><span class="tier-label">${label}</span><span style="font-size:.55rem;color:var(--txt3);text-decoration:line-through">€${orig}</span><span class="tier-price" style="color:var(--green)">€${scontato}</span><span style="background:var(--green);color:#000;font-size:.45rem;padding:1px 3px;border-radius:3px;font-weight:700">-${disc}%</span></div>`;
     } else {
@@ -9974,8 +10113,9 @@ function buildTierBtns(tiers, gridId, activeEB, evId, subDiscPct){
   });
   return btns;
 }
-function renderEarlyBirdGrid(eb,gridId,evId,stdTiers,subDiscPct){
+function renderEarlyBirdGrid(eb,gridId,evId,stdTiers,subDiscPct,freeWithSub){
   if(!isEarlyBirdActive(eb,evId))return '';
+  if(freeWithSub)return ''; // Entry-based sub = free, no need for early bird display
   const deadlineText=eb.type==='date'&&eb.deadline?`Entro il ${fmtDateShort(eb.deadline)}`
     :eb.type==='count'&&eb.maxCount?`Per i primi ${eb.maxCount} iscritti`:'';
   let tierBtns='';
@@ -10122,15 +10262,20 @@ function getLoyaltyDiscountPct(ev){
   return (attendedByTitle||attendedByBooking)?(ev.loyaltyDiscount.percentage||15):0;
 }
 function getEffectiveDiscountPct(ev){
-  // Returns the best applicable discount — subscription and loyalty NEVER stack
-  const subPct=getSubDiscountPct(ev);
+  // Returns the best applicable discount — subscription, auto-sub-discount, and loyalty NEVER stack
+  const subPct=getSubDiscountPct(ev);        // Event-level subscriptionDiscount (per-event config)
+  const autoSubPct=getAutoSubDiscountPct(ev); // Subscription-type-level discount (auto, from sub mode=discount)
   const loyPct=getLoyaltyDiscountPct(ev);
-  return Math.max(subPct,loyPct);
+  return Math.max(subPct,autoSubPct,loyPct);
 }
 function getEffectiveDiscountInfo(ev){
   // Returns {pct, source} for banner display
   const subPct=getSubDiscountPct(ev);
+  const autoSubPct=getAutoSubDiscountPct(ev);
   const loyPct=getLoyaltyDiscountPct(ev);
+  const best=Math.max(subPct,autoSubPct,loyPct);
+  if(best===0)return {pct:0,source:null};
+  if(autoSubPct>=subPct&&autoSubPct>=loyPct&&autoSubPct>0)return {pct:autoSubPct,source:'subscription'};
   if(subPct>=loyPct&&subPct>0)return {pct:subPct,source:'subscription'};
   if(loyPct>0)return {pct:loyPct,source:'loyalty'};
   return {pct:0,source:null};
@@ -10403,10 +10548,50 @@ function showEventDetail(evId,recDate){
     </div>`;
   }
 
+  // Check if user can book with entry-based subscription (calculated early for price display)
+  const _userHasEntrySub=(()=>{
+    if(!store.currentUser||skipPricing)return false;
+    if(!ev.subscriptionBookable?.enabled||!ev.subscriptionBookable.typeIds?.length)return false;
+    const _uSubs=getUserActiveSubscriptions(store.currentUser.id);
+    return _uSubs.some(s=>{
+      if(!ev.subscriptionBookable.typeIds.includes(s.typeId))return false;
+      if(!isSubCompatibleWithEvent(s,ev))return false;
+      const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
+      if(sType&&sType.mode==='discount')return false;
+      if(sType&&ev.partnerIds&&ev.partnerIds.includes(sType.managerId)){
+        if(!canUsePartnerEntries(ev))return false;
+      }
+      return true;
+    });
+  })();
+
+  // Find the matching entry sub for banner info
+  const _entrySubInfo=(()=>{
+    if(!_userHasEntrySub||!store.currentUser)return null;
+    const _uSubs=getUserActiveSubscriptions(store.currentUser.id);
+    for(const s of _uSubs){
+      if(!ev.subscriptionBookable.typeIds.includes(s.typeId))continue;
+      if(!isSubCompatibleWithEvent(s,ev))continue;
+      const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
+      if(sType&&sType.mode==='discount')continue;
+      if(sType&&ev.partnerIds&&ev.partnerIds.includes(sType.managerId)&&!canUsePartnerEntries(ev))continue;
+      return {name:sType?.name||'Abbonamento',remaining:s.entriesTotal-s.entriesUsed,total:s.entriesTotal};
+    }
+    return null;
+  })();
+
   // Effective discount for showEventDetail (subscription or loyalty, non-cumulative)
   const _discInfoDet=getEffectiveDiscountInfo(ev);
   const _sdPct=_discInfoDet.pct;
-  if(_sdPct>0&&!skipPricing){
+
+  // Entry-based subscription banner: user books for FREE
+  if(_userHasEntrySub&&_entrySubInfo&&!skipPricing){
+    daysHtml+=`<div class="card mb-4" style="background:rgba(16,185,129,.06);border-color:var(--green);padding:14px">
+      <div class="flex items-center gap-2"><span style="font-size:1.3rem">🎟️</span><span class="font-semibold" style="color:var(--green)">Abbonamento attivo: ${escHtml(_entrySubInfo.name)}</span></div>
+      <p class="text-xs txt3 mt-1">Hai <strong style="color:var(--green)">${_entrySubInfo.remaining} ingress${_entrySubInfo.remaining===1?'o':'i'}</strong> rimanent${_entrySubInfo.remaining===1?'e':'i'} — prenotazione gratuita per questo evento!</p></div>`;
+  }
+  // Discount-based subscription/loyalty banner
+  else if(_sdPct>0&&!skipPricing){
     const _dIcon=_discInfoDet.source==='loyalty'?'🎁':'🎟️';
     const _dLabel=_discInfoDet.source==='loyalty'?'Sconto fedeltà eventi':'Sconto abbonato';
     const _dDesc=_discInfoDet.source==='loyalty'?'Hai partecipato a un evento prerequisito: sconto applicato su ogni prezzo.':'Il tuo abbonamento ti dà diritto a uno sconto su ogni prezzo mostrato.';
@@ -10429,7 +10614,7 @@ function showEventDetail(evId,recDate){
       day.sessions.forEach(s=>{
         const sLoc=s.location?`<div class="text-xs txt3 mt-1">${s.locationUrl?'<a href="'+s.locationUrl+'" target="_blank" style="color:var(--brand-l)">📍 '+escHtml(s.location)+' ↗</a>':'📍 '+escHtml(s.location)}</div>`:'';
         if(!skipPricing){
-          const sBtns=buildTierBtns(s.tiers,'tiers-'+s.id,s.earlyBird,ev.id,_sdPct);
+          const sBtns=buildTierBtns(s.tiers,'tiers-'+s.id,s.earlyBird,ev.id,_sdPct,_userHasEntrySub);
           daysHtml+=`<div class="check-item mb-2" onclick="toggleCheck(this,'${s.id}')" style="padding:8px 10px">
             <div class="checkbox"><span style="display:none;color:#fff;font-size:.6rem">✓</span></div>
             <div class="flex-1">
@@ -10438,7 +10623,7 @@ function showEventDetail(evId,recDate){
               ${s.description?'<div class="text-xs txt3 mt-1" style="line-height:1.3">'+escHtml(s.description)+'</div>':''}${sLoc}
             </div></div>`;
           if(sBtns) daysHtml+=`<div class="tier-grid mb-2 hidden" id="tiers-${s.id}">${sBtns}</div>`;
-          daysHtml+=renderEarlyBirdGrid(s.earlyBird,'tier-ebs-'+s.id,ev.id,s.tiers,_sdPct);
+          daysHtml+=renderEarlyBirdGrid(s.earlyBird,'tier-ebs-'+s.id,ev.id,s.tiers,_sdPct,_userHasEntrySub);
         } else {
           // Free/managed: show selectable check-items for sessions
           daysHtml+=`<div class="check-item mb-2" onclick="toggleFreeSession(this,'${s.id}')" style="padding:8px 10px;cursor:pointer">
@@ -10457,13 +10642,13 @@ function showEventDetail(evId,recDate){
       if(!skipPricing){
         if(day.tiers){
           daysHtml+=`<p class="text-sm txt3 mt-4 mb-2">Seleziona la giornata:</p>`;
-          const dayBtns=buildTierBtns(day.tiers,'tier-day-'+ev.id+'-'+di,day.earlyBird,ev.id,_sdPct);
+          const dayBtns=buildTierBtns(day.tiers,'tier-day-'+ev.id+'-'+di,day.earlyBird,ev.id,_sdPct,_userHasEntrySub);
           if(dayBtns) daysHtml+=`<div class="card mt-1 mb-2" style="background:rgba(16,185,129,.05);border-color:var(--green);padding:4px 10px">
             <div style="font-size:.65rem;font-weight:500;margin-bottom:2px;color:var(--green)">💰 Prezzo giornata intera (pacchetto)</div>
             <div class="tier-grid" id="tier-day-${ev.id}-${di}">${dayBtns}</div>
           </div>`;
         }
-        daysHtml+=renderEarlyBirdGrid(day.earlyBird,'tier-ebday-'+ev.id+'-'+di,ev.id,day.tiers,_sdPct);
+        daysHtml+=renderEarlyBirdGrid(day.earlyBird,'tier-ebday-'+ev.id+'-'+di,ev.id,day.tiers,_sdPct,_userHasEntrySub);
       } else if(day.sessions.length>1){
         // Free/managed: offer "Giornata intera" as alternative to individual sessions
         daysHtml+=`<div class="check-item mt-3 mb-2" onclick="toggleFreeDay(this,${di})" style="padding:8px 12px;cursor:pointer;background:rgba(16,185,129,.04);border:1px solid rgba(16,185,129,.2);border-radius:10px">
@@ -10486,10 +10671,10 @@ function showEventDetail(evId,recDate){
           ${s.description?'<div class="text-xs txt3 mt-1">'+escHtml(s.description)+'</div>':''}${sLoc}
         </div>`:''}`;
       if(!skipPricing){
-        const stdBtns=buildTierBtns(useTiers,'tier-day-'+ev.id+'-'+di,day.earlyBird,ev.id,_sdPct);
+        const stdBtns=buildTierBtns(useTiers,'tier-day-'+ev.id+'-'+di,day.earlyBird,ev.id,_sdPct,_userHasEntrySub);
         daysHtml+=`<p class="text-xs txt3 mb-2" style="font-style:italic">Scegli in base alle tue possibilità</p>`;
         if(stdBtns) daysHtml+=`<div class="tier-grid mb-3" id="tier-day-${ev.id}-${di}">${stdBtns}</div>`;
-        daysHtml+=renderEarlyBirdGrid(day.earlyBird,'tier-ebday-'+ev.id+'-'+di,ev.id,useTiers,_sdPct);
+        daysHtml+=renderEarlyBirdGrid(day.earlyBird,'tier-ebday-'+ev.id+'-'+di,ev.id,useTiers,_sdPct,_userHasEntrySub);
       }
       daysHtml+='</div>';
 
@@ -10497,10 +10682,10 @@ function showEventDetail(evId,recDate){
       const useTiers=day.tiers||ev.tiers;
       daysHtml+=`<div style="margin-left:16px;padding-left:16px;border-left:2px solid rgba(217,70,239,.2);margin-top:12px">`;
       if(!skipPricing){
-        const stdBtns2=buildTierBtns(useTiers,'tier-day-'+ev.id+'-'+di,day.earlyBird,ev.id,_sdPct);
+        const stdBtns2=buildTierBtns(useTiers,'tier-day-'+ev.id+'-'+di,day.earlyBird,ev.id,_sdPct,_userHasEntrySub);
         daysHtml+=`<p class="text-xs txt3 mb-3" style="font-style:italic">Scegli in base alle tue possibilità</p>`;
         if(stdBtns2) daysHtml+=`<div class="tier-grid" id="tier-day-${ev.id}-${di}">${stdBtns2}</div>`;
-        daysHtml+=renderEarlyBirdGrid(day.earlyBird,'tier-ebday-'+ev.id+'-'+di,ev.id,useTiers,_sdPct);
+        daysHtml+=renderEarlyBirdGrid(day.earlyBird,'tier-ebday-'+ev.id+'-'+di,ev.id,useTiers,_sdPct,_userHasEntrySub);
       }
       daysHtml+='</div>';
     }
@@ -10508,12 +10693,12 @@ function showEventDetail(evId,recDate){
   const loyaltyHtml=''; // Loyalty is now percentage-based, applied via effective discount banner
   let eventPkgHtml='';
   if(ev.days.length>1&&!skipPricing){
-    const evPkgBtns=buildTierBtns(ev.tiers,'tier-evfull-'+ev.id,ev.earlyBird,ev.id,_sdPct);
+    const evPkgBtns=buildTierBtns(ev.tiers,'tier-evfull-'+ev.id,ev.earlyBird,ev.id,_sdPct,_userHasEntrySub);
     if(evPkgBtns) eventPkgHtml+=`<div class="card mb-4" style="background:rgba(16,185,129,.05);border-color:var(--green);padding:4px 10px">
       <div style="font-size:.65rem;font-weight:500;margin-bottom:2px;color:var(--green)">💰 Prezzo evento completo (tutte le giornate)</div>
       <div class="tier-grid" id="tier-evfull-${ev.id}">${evPkgBtns}</div>
     </div>`;
-    eventPkgHtml+=renderEarlyBirdGrid(ev.earlyBird,'tier-ebev-'+ev.id,ev.id,ev.tiers,_sdPct);
+    eventPkgHtml+=renderEarlyBirdGrid(ev.earlyBird,'tier-ebev-'+ev.id,ev.id,ev.tiers,_sdPct,_userHasEntrySub);
   }
 
   const backView=currentView==='dashboard'?'dashboard':currentMode==='admin'?'admin-events':'events';
@@ -10687,6 +10872,7 @@ function showEventDetail(evId,recDate){
           if(!ev.subscriptionBookable.typeIds.includes(s.typeId))return false;
           if(!isSubCompatibleWithEvent(s,ev))return false;
           const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
+          if(sType&&sType.mode==='discount')return false; // discount subs can't use entries
           if(sType&&ev.partnerIds&&ev.partnerIds.includes(sType.managerId)){
             if(!canUsePartnerEntries(ev))return false;
           }
@@ -13177,7 +13363,7 @@ function cancelBooking(bId){
   const b=store.bookings.find(x=>x.id===bId);if(!b)return;
   showConfirm('Cancella prenotazione','Cancellare la prenotazione di '+b.userName+'?',async()=>{
     b.status='cancellata';await fsUpdate('bookings',b.id,{status:'cancellata'}).catch(console.error);
-    if(b.subscriptionId){const sub=store.subscriptions.find(s=>s.id===b.subscriptionId);if(sub&&sub.entriesUsed>0){sub.entriesUsed--;if(sub.status==='expired'&&sub.entriesUsed<sub.entriesTotal)sub.status='active';await fsUpdate('subscriptions',sub.id,{entriesUsed:sub.entriesUsed,status:sub.status}).catch(console.error);}}
+    if(b.subscriptionId){const sub=store.subscriptions.find(s=>s.id===b.subscriptionId);if(sub&&sub.entriesUsed>0){const _sType=store.subscriptionTypes.find(t=>t.id===sub.typeId);if(!_sType||_sType.mode!=='discount'){sub.entriesUsed--;if(sub.status==='expired'&&sub.entriesUsed<sub.entriesTotal)sub.status='active';await fsUpdate('subscriptions',sub.id,{entriesUsed:sub.entriesUsed,status:sub.status}).catch(console.error);}}}
     renderAdminBookings();showToast('Prenotazione cancellata','error');
   },'danger');
 }
@@ -13221,7 +13407,7 @@ function cancelBookingCtx(bId,ctx){
   showConfirm('Cancella prenotazione','Cancellare la prenotazione di '+b.userName+'?',async()=>{
     b.status='cancellata';
     await fsUpdate('bookings',b.id,{status:'cancellata'}).catch(console.error);
-    if(b.subscriptionId){const sub=store.subscriptions.find(s=>s.id===b.subscriptionId);if(sub&&sub.entriesUsed>0){sub.entriesUsed--;if(sub.status==='expired'&&sub.entriesUsed<sub.entriesTotal)sub.status='active';await fsUpdate('subscriptions',sub.id,{entriesUsed:sub.entriesUsed,status:sub.status}).catch(console.error);}}
+    if(b.subscriptionId){const sub=store.subscriptions.find(s=>s.id===b.subscriptionId);if(sub&&sub.entriesUsed>0){const _sType=store.subscriptionTypes.find(t=>t.id===sub.typeId);if(!_sType||_sType.mode!=='discount'){sub.entriesUsed--;if(sub.status==='expired'&&sub.entriesUsed<sub.entriesTotal)sub.status='active';await fsUpdate('subscriptions',sub.id,{entriesUsed:sub.entriesUsed,status:sub.status}).catch(console.error);}}}
     showToast('Prenotazione cancellata','error');
     if(ctx==='bookings')renderAdminBookings();
     else if(ctx==='detail'){showAdminEventDetail(b.eventId);}
@@ -14894,7 +15080,7 @@ function checkDeepLink(){
     window.history.replaceState(null,'',window.location.pathname);
   }
 }
-function handleDeepLink(){
+async function handleDeepLink(){
   if(!_pendingDeepLink)return;
   const dl=_pendingDeepLink;
   _pendingDeepLink=null;
@@ -14920,7 +15106,7 @@ function handleDeepLink(){
     }
   } else if(dl.type==='sub'){
     // Redeem subscription token
-    redeemSubToken(dl.token);
+    await redeemSubToken(dl.token);
   }
 }
 
