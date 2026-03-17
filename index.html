@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.35.6</title>
+<title>BodyEvents — V2.35.8</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -30,6 +30,16 @@ body{background:var(--bg);color:var(--txt);font-family:'Inter',system-ui,-apple-
 a{color:var(--brand-l);text-decoration:none}
 /* Scrollbar */
 ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--s50)}::-webkit-scrollbar-thumb{background:var(--s400);border-radius:9px}
+
+/* === PULL-TO-REFRESH (standalone PWA) === */
+#ptr-indicator{position:fixed;top:0;left:50%;transform:translateX(-50%) translateY(-60px);z-index:99999;
+  width:44px;height:44px;border-radius:50%;background:var(--s200);border:2px solid var(--s400);
+  display:flex;align-items:center;justify-content:center;font-size:1.2rem;
+  transition:transform .2s ease,opacity .2s ease;opacity:0;pointer-events:none}
+#ptr-indicator.ptr-pulling{opacity:1}
+#ptr-indicator.ptr-ready{opacity:1;border-color:var(--brand)}
+#ptr-indicator.ptr-refreshing{opacity:1;animation:ptr-spin .8s linear infinite;border-color:var(--brand)}
+@keyframes ptr-spin{from{transform:translateX(-50%) translateY(16px) rotate(0deg)}to{transform:translateX(-50%) translateY(16px) rotate(360deg)}}
 
 /* === UTILITY === */
 .container{max-width:1100px;margin:0 auto;padding:0 16px}
@@ -324,12 +334,13 @@ textarea.input{resize:none;font-family:inherit}
 </style>
 </head>
 <body>
+<div id="ptr-indicator">↓</div>
 
 <!-- ============ MODE SWITCHER (top banner) ============ -->
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.35.6</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.35.8</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -1780,7 +1791,9 @@ textarea.input{resize:none;font-family:inherit}
       </div>
       <div class="flex gap-2 flex-wrap">
         <button class="btn btn-sm btn-primary" onclick="generateNewUserQR()">📲 Genera QR Registrazione</button>
-        <button class="btn btn-sm btn-secondary" onclick="copyNewUserLink()">🔗 Copia link registrazione</button>
+        <button class="btn btn-sm btn-secondary" onclick="copyNewUserLink()">🔗 Copia link</button>
+        <button class="btn btn-sm" style="background:rgba(37,211,102,.12);color:#25d366;border:1px solid rgba(37,211,102,.3)" onclick="shareInviteWhatsApp()">💬 WhatsApp</button>
+        <button class="btn btn-sm" style="background:rgba(0,136,204,.1);color:#0088cc;border:1px solid rgba(0,136,204,.3)" onclick="shareInviteTelegram()">✈️ Telegram</button>
       </div>
       <div id="qr-new-user-display" class="hidden mt-4 text-center">
         <div class="qr-box mb-3" id="qr-new-user-wrap" style="cursor:zoom-in" onclick="openFullscreenQR('qr-new-user-wrap')"></div>
@@ -5811,6 +5824,7 @@ async function loginWithGoogle(){
     }
     await loadCurrentUser(user.uid);
     _loginInProgress=false;
+    try{localStorage.removeItem('_inviteOrgId');localStorage.removeItem('_inviteOrgName');}catch(ex){}
     showToast('Login effettuato!');
   }catch(e){
     _loginInProgress=false;
@@ -6029,6 +6043,7 @@ async function submitUserRegistration(){
     document.getElementById('reg-sent')?.classList.remove('hidden');
     showToast(window._inviteOrgName?'Registrazione completata! Benvenuto nella community di '+window._inviteOrgName+'!':'Registrazione completata: '+username);
     window._inviteOrgId=null;window._inviteOrgName=null;
+    try{localStorage.removeItem('_inviteOrgId');localStorage.removeItem('_inviteOrgName');}catch(ex){}
   }catch(e){
     _registrationInProgress=false;
     if(e.code==='auth/email-already-in-use'){showToast('Questa email è già registrata','error');}
@@ -8334,6 +8349,18 @@ function generateNewUserQR(){
 function copyNewUserLink(){
   const url=_getInviteUrl();
   navigator.clipboard.writeText(url).then(()=>showToast('Link registrazione copiato!')).catch(()=>showToast('Errore copia','error'));
+}
+function shareInviteWhatsApp(){
+  const url=_getInviteUrl();
+  const orgName=store.currentUser?.orgName||store.currentUser?.username||'BodyEvents';
+  const text='Ciao! 👋 Ti invito a registrarti su BodyEvents, la piattaforma di '+orgName+'. Clicca qui per iscriverti:\n'+url;
+  window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank');
+}
+function shareInviteTelegram(){
+  const url=_getInviteUrl();
+  const orgName=store.currentUser?.orgName||store.currentUser?.username||'BodyEvents';
+  const text='Ciao! 👋 Ti invito a registrarti su BodyEvents, la piattaforma di '+orgName+'.';
+  window.open('https://t.me/share/url?url='+encodeURIComponent(url)+'&text='+encodeURIComponent(text),'_blank');
 }
 function downloadNewUserQR(){
   const wrap=document.getElementById('qr-new-user-wrap');if(!wrap)return;
@@ -15773,6 +15800,16 @@ fbAuth.getRedirectResult().then(async(result)=>{
           color:'avatar-brand',subscribedUniverses,
           consents:{privacy:false,privacyDate:null,marketing:false,marketingDate:null}
         };
+        // Recover invite data from localStorage (survives Google redirect page reload)
+        try{
+          const _savedInviteOrgId=localStorage.getItem('_inviteOrgId');
+          if(_savedInviteOrgId){
+            userData.invitedBy=_savedInviteOrgId;
+            userData.invitedAt=now;
+            userData.inviteOrgName=localStorage.getItem('_inviteOrgName')||'';
+            localStorage.removeItem('_inviteOrgId');localStorage.removeItem('_inviteOrgName');
+          }
+        }catch(e){}
         await fbDb.collection('users').doc(user.uid).set(userData);
       }
     }
@@ -15819,20 +15856,70 @@ fbAuth.onAuthStateChanged(async(user)=>{
     // If invite deep link: auto-navigate to register page and show invite banner
     if(_pendingDeepLink&&_pendingDeepLink.type==='invite'){
       window._inviteOrgId=_pendingDeepLink.orgId;
+      // Persist invite data in localStorage so it survives Google redirect
+      try{localStorage.setItem('_inviteOrgId',_pendingDeepLink.orgId);}catch(e){}
       go('register');
       // Fetch organizer name for banner
       fbDb.collection('managers').doc(_pendingDeepLink.orgId).get().then(doc=>{
         if(doc.exists){
           const orgData=doc.data();
           window._inviteOrgName=orgData.orgName||orgData.username||'';
+          try{localStorage.setItem('_inviteOrgName',window._inviteOrgName);}catch(e){}
           _showInviteBanner(window._inviteOrgName);
+        }else{
+          showToast('L\'organizzatore di questo invito non è più attivo','error');
         }
-      }).catch(()=>{});
+      }).catch(()=>{showToast('Errore nel recupero dati organizzatore','error');});
     }
   }
 });
 // Safety: dismiss splash after 8s max (in case auth hangs)
 setTimeout(dismissAuthSplash,8000);
+
+/* ===== PULL-TO-REFRESH for standalone / home-screen mode ===== */
+(function(){
+  const isStandalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
+  if(!isStandalone)return; // In normal browser, native pull-to-refresh works fine
+  const ptrEl=document.getElementById('ptr-indicator');
+  if(!ptrEl)return;
+  let _ptrStartY=0,_ptrDist=0,_ptrActive=false,_ptrTriggered=false;
+  const THRESHOLD=80; // px to pull before triggering refresh
+  function isAtTop(){return(document.scrollingElement||document.documentElement).scrollTop<=0;}
+  document.addEventListener('touchstart',function(e){
+    if(!isAtTop()||e.touches.length!==1)return;
+    _ptrStartY=e.touches[0].clientY;_ptrDist=0;_ptrActive=true;_ptrTriggered=false;
+    ptrEl.textContent='↓';ptrEl.className='';
+  },{passive:true});
+  document.addEventListener('touchmove',function(e){
+    if(!_ptrActive||_ptrTriggered)return;
+    _ptrDist=e.touches[0].clientY-_ptrStartY;
+    if(_ptrDist<0){_ptrDist=0;ptrEl.className='';return;}
+    // Only engage if we're clearly pulling down (not sideways)
+    if(_ptrDist>10){
+      const progress=Math.min(_ptrDist/THRESHOLD,1);
+      const translateY=-60+progress*76; // from -60 to +16
+      ptrEl.style.transform='translateX(-50%) translateY('+translateY+'px)';
+      if(_ptrDist>=THRESHOLD){
+        ptrEl.className='ptr-ready';ptrEl.textContent='↑';
+      }else{
+        ptrEl.className='ptr-pulling';ptrEl.textContent='↓';
+      }
+    }
+  },{passive:true});
+  document.addEventListener('touchend',function(){
+    if(!_ptrActive)return;
+    _ptrActive=false;
+    if(_ptrDist>=THRESHOLD&&!_ptrTriggered){
+      _ptrTriggered=true;
+      ptrEl.className='ptr-refreshing';ptrEl.textContent='⟳';
+      ptrEl.style.transform='translateX(-50%) translateY(16px)';
+      setTimeout(()=>location.reload(),300);
+    }else{
+      ptrEl.className='';ptrEl.style.transform='translateX(-50%) translateY(-60px)';
+    }
+    _ptrDist=0;
+  },{passive:true});
+})();
 
 /* Init on load */
 document.addEventListener('DOMContentLoaded',()=>{
