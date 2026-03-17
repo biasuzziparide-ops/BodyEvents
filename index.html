@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.35.0</title>
+<title>BodyEvents — V2.35.2</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -329,7 +329,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.35.0</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.35.2</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -3935,7 +3935,7 @@ function renderSubAssigned(c){
     html+='<td style="padding:10px 12px" class="text-sm">'+expDate+'</td>';
     html+='<td style="padding:10px 12px">'+payBadge+'</td>';
     html+='<td style="padding:10px 12px">'+statusBadge+'</td>';
-    html+='<td style="padding:10px 12px"><button class="btn btn-sm btn-ghost" onclick="showSubDetail(\''+s.id+'\')">👁️</button></td>';
+    html+='<td style="padding:10px 12px"><button class="btn btn-sm btn-ghost" onclick="showSubDetail(\''+s.id+'\')">👁️</button> <button class="btn btn-sm btn-ghost" style="color:var(--red);font-size:.7rem" onclick="event.stopPropagation();confirmDeleteSubscription(\''+s.id+'\')">🗑️</button></td>';
     html+='</tr>';
   });
   html+='</tbody></table></div>';
@@ -4425,6 +4425,7 @@ function showSubDetail(subId){
   if(s.paymentStatus!=='pagato') html+='<button class="btn btn-sm btn-primary" onclick="updateSubPayment(\''+s.id+'\',\'pagato\');this.closest(\'.overlay\').remove()">✅ Segna come pagato</button>';
   if(s.status==='active') html+='<button class="btn btn-sm" style="background:var(--yellow-bg);color:var(--yellow)" onclick="updateSubStatus(\''+s.id+'\',\'suspended\');this.closest(\'.overlay\').remove()">⏸️ Sospendi</button>';
   if(s.status==='suspended') html+='<button class="btn btn-sm btn-primary" onclick="updateSubStatus(\''+s.id+'\',\'active\');this.closest(\'.overlay\').remove()">▶️ Riattiva</button>';
+  html+='<button class="btn btn-sm" style="background:var(--red-bg);color:var(--red);border:1px solid rgba(239,68,68,.3)" onclick="confirmDeleteSubscription(\''+s.id+'\')">🗑️ Cancella</button>';
   html+='<button class="btn btn-sm btn-ghost" onclick="this.closest(\'.overlay\').remove()">Chiudi</button>';
   html+='</div>';
 
@@ -4448,6 +4449,30 @@ async function updateSubStatus(subId,status){
   await fsUpdate('subscriptions',subId,{status}).catch(console.error);
   showToast('Stato abbonamento aggiornato');
   if(_subTab==='assigned') renderSubAssigned(document.getElementById('admin-sub-content'));
+}
+
+function confirmDeleteSubscription(subId){
+  const s=store.subscriptions.find(x=>x.id===subId);if(!s)return;
+  const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
+  const typeName=sType?sType.name:'Abbonamento';
+  const usedInfo=s.entriesUsed>0?' ('+s.entriesUsed+'/'+s.entriesTotal+' ingressi utilizzati)':'';
+  showConfirm('Cancella abbonamento','⚠️ Sei sicuro di voler cancellare l\'abbonamento <strong>'+escHtml(typeName)+'</strong> di <strong>'+escHtml(s.userName||s.userEmail)+'</strong>?'+usedInfo+'<br><br>L\'utente perderà tutti gli ingressi rimanenti. Questa azione è irreversibile.',async()=>{
+    try{
+      // Remove from Firestore
+      await fsDelete('subscriptions',subId);
+      // Remove from local store
+      const idx=store.subscriptions.findIndex(x=>x.id===subId);
+      if(idx>-1)store.subscriptions.splice(idx,1);
+      showToast('Abbonamento eliminato con successo');
+      // Refresh admin view
+      if(_subTab==='assigned') renderSubAssigned(document.getElementById('admin-sub-content'));
+      // Close any open overlay
+      document.querySelectorAll('.overlay').forEach(o=>o.remove());
+    }catch(e){
+      console.error('Error deleting subscription:',e);
+      showToast('Errore durante la cancellazione: '+e.message,'error');
+    }
+  },'danger');
 }
 
 async function exportSubsExcel(){
@@ -4590,7 +4615,7 @@ function _renderStpUserList(subs,sType){
     html+='<td style="padding:8px 10px" class="text-sm txt2">'+expDate+'</td>';
     html+='<td style="padding:8px 10px">'+payBadge+'</td>';
     html+='<td style="padding:8px 10px">'+statusBadge+'</td>';
-    html+='<td style="padding:8px 10px"><button class="btn btn-sm btn-ghost" style="font-size:.7rem" onclick="event.stopPropagation();showSubDetail(\''+s.id+'\')">👁️</button></td>';
+    html+='<td style="padding:8px 10px"><button class="btn btn-sm btn-ghost" style="font-size:.7rem" onclick="event.stopPropagation();showSubDetail(\''+s.id+'\')">👁️</button> <button class="btn btn-sm btn-ghost" style="color:var(--red);font-size:.6rem" onclick="event.stopPropagation();confirmDeleteSubscription(\''+s.id+'\')">🗑️</button></td>';
     html+='</tr>';
   });
   html+='</tbody></table></div>';
@@ -14344,12 +14369,64 @@ function executeRemoveUser(){
     const idx=store.users.findIndex(u=>u.id===removeTarget.id);
     if(idx>-1){
       const userId=removeTarget.id;
+      const userEmail=removeTarget.email;
+
+      // ── 1. SUBSCRIPTIONS: delete ALL active subscriptions ──
+      const userSubs=store.subscriptions.filter(s=>s.userId===userId);
+      userSubs.forEach(s=>{
+        fsDelete('subscriptions',s.id).catch(console.error);
+      });
+      store.subscriptions=store.subscriptions.filter(s=>s.userId!==userId);
+
+      // ── 2. BOOKINGS: differentiate FUTURE vs PAST events ──
+      const userBookings=store.bookings.filter(b=>b.userId===userId||b.email===userEmail);
+      const today=localDateStr(new Date());
+      const futureBookings=[];  // events not yet concluded → delete booking + metrics
+      const pastBookings=[];    // events concluded → preserve booking + metrics
+
+      userBookings.forEach(b=>{
+        const ev=store.events.find(e=>e.id===b.eventId);
+        if(!ev){
+          // Event not found → safe to delete orphaned booking
+          futureBookings.push(b);
+          return;
+        }
+        // Event is "past" if status is 'concluso' OR if all days are before today
+        const isConcluded=ev.status==='concluso';
+        const lastDay=ev.days&&ev.days.length?ev.days[ev.days.length-1]:null;
+        const allDaysPast=lastDay&&lastDay.date<today;
+        if(isConcluded||allDaysPast){
+          pastBookings.push(b);
+        } else {
+          futureBookings.push(b);
+        }
+      });
+
+      // Delete FUTURE bookings (event hasn't happened → refund scenario)
+      futureBookings.forEach(b=>{
+        fsDelete('bookings',b.id).catch(console.error);
+      });
+      // Keep PAST bookings but mark user as removed (preserves metrics/attendance)
+      pastBookings.forEach(b=>{
+        b.userRemoved=true;
+        b.userRemovedAt=new Date().toISOString();
+        fsUpdate('bookings',b.id,{userRemoved:true,userRemovedAt:new Date().toISOString()}).catch(console.error);
+      });
+      // Remove future bookings from local store (past ones stay)
+      const futureIds=new Set(futureBookings.map(b=>b.id));
+      store.bookings=store.bookings.filter(b=>!futureIds.has(b.id));
+
+      // ── 3. DELETE USER DOCUMENT ──
       store.users.splice(idx,1);
       fsDelete('users',userId).catch(console.error);
-      // Remove associated bookings
-      const bksToDelete=store.bookings.filter(b=>b.userId===userId);
-      bksToDelete.forEach(b=>fsDelete('bookings',b.id).catch(console.error));
-      store.bookings=store.bookings.filter(b=>b.userId!==userId);
+
+      // ── 4. ATTENDANCES: keep (historical record) ──
+      // store.attendances[userId] is preserved for concluded events
+
+      const nFuture=futureBookings.length;
+      const nPast=pastBookings.length;
+      const nSubs=userSubs.length;
+      console.log('User removed:',removeTarget.username,'| Future bookings deleted:',nFuture,'| Past bookings preserved:',nPast,'| Subscriptions deleted:',nSubs);
     }
     showToast('Utente '+removeTarget.username+' rimosso definitivamente','error');
   } else {
