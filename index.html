@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.34.6</title>
+<title>BodyEvents — V2.35.0</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -329,7 +329,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.34.6</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.35.0</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2089,6 +2089,7 @@ textarea.input{resize:none;font-family:inherit}
     </div>
     <div class="flex gap-2 mt-4 flex-wrap">
       <a class="btn btn-sm btn-secondary" onclick="go('privacy-policy')" style="cursor:pointer">📄 Informativa Privacy</a>
+      <a class="btn btn-sm btn-secondary" onclick="go('privacy-policy');setTimeout(()=>{const el=document.getElementById('cookie-policy');if(el)el.scrollIntoView({behavior:'smooth'})},200)" style="cursor:pointer">🍪 Cookie Policy</a>
       <button class="btn btn-sm btn-secondary" onclick="exportMyData()">📥 Scarica i miei dati</button>
       <button class="btn btn-sm" style="background:var(--red-bg);color:var(--red);border:1px solid var(--red)" onclick="confirmAccountDeletion()">🗑️ Cancella account</button>
     </div>
@@ -2517,11 +2518,24 @@ textarea.input{resize:none;font-family:inherit}
         <h2 class="text-lg font-semibold text-white mt-6 mb-3">Periodo di conservazione</h2>
         <p class="mb-4">I dati del profilo sono conservati per tutta la durata dell'account. Le prenotazioni e i dati di partecipazione sono conservati per 24 mesi dall'evento. In caso di cancellazione dell'account, tutti i dati personali vengono eliminati immediatamente, ad eccezione dei dati anonimizzati necessari per statistiche aggregate.</p>
 
+        <h2 class="text-lg font-semibold text-white mt-6 mb-3">Diritto di reclamo</h2>
+        <p class="mb-4">Ai sensi dell'Art. 77 GDPR, l'utente ha il diritto di proporre reclamo all'<strong>Autorità Garante per la Protezione dei Dati Personali</strong> (Piazza Venezia 11, 00187 Roma — <a href="https://www.garanteprivacy.it" target="_blank" rel="noopener" style="color:var(--brand-l);text-decoration:underline">www.garanteprivacy.it</a>) qualora ritenga che il trattamento dei propri dati personali avvenga in violazione del Regolamento (UE) 2016/679.</p>
+
+        <h2 class="text-lg font-semibold text-white mt-6 mb-3" id="cookie-policy">Informativa Cookie</h2>
+        <p class="mb-4">Ai sensi dell'Art. 122 del D.Lgs. 196/2003 e delle Linee Guida del Garante Privacy del 10 giugno 2021, si informa che:</p>
+        <ul style="margin-left:20px;margin-bottom:16px;list-style:disc">
+          <li><strong>Cookie tecnici (necessari):</strong> L'applicazione utilizza esclusivamente cookie tecnici strettamente necessari per l'autenticazione tramite Firebase Authentication e per il corretto funzionamento del servizio. Questi cookie non richiedono il consenso dell'utente ai sensi dell'Art. 122 comma 1.</li>
+          <li><strong>Cookie di profilazione:</strong> Non vengono utilizzati cookie di profilazione, analytics di terze parti, pixel di tracciamento o tecnologie di advertising.</li>
+          <li><strong>Local Storage:</strong> L'applicazione utilizza il Local Storage del browser per memorizzare preferenze tecniche non personali (stato dei tutorial, stato del banner cookie). Nessun dato personale viene conservato nel Local Storage.</li>
+          <li><strong>Terze parti:</strong> L'unico servizio terzo utilizzato è Google Firebase, che può impostare cookie tecnici per l'autenticazione. Google agisce come Responsabile del trattamento ai sensi dell'Art. 28 GDPR.</li>
+        </ul>
+        <p class="mb-4">Per la gestione dei cookie nel browser, l'utente può consultare le impostazioni del proprio browser. La disabilitazione dei cookie tecnici potrebbe impedire il corretto funzionamento dell'autenticazione.</p>
+
         <h2 class="text-lg font-semibold text-white mt-6 mb-3">Contatti</h2>
         <p class="mb-4">Per domande sulla privacy o per esercitare i tuoi diritti, contattaci a: <strong><span class="privacy-contact-email">info@bodyevents.app</span></strong></p>
 
         <div style="border-top:1px solid var(--s400);margin-top:24px;padding-top:16px">
-          <p class="text-xs txt3">Data di ultimo aggiornamento: 11 marzo 2026</p>
+          <p class="text-xs txt3">Data di ultimo aggiornamento: 17 marzo 2026</p>
         </div>
 
       </div>
@@ -2853,9 +2867,21 @@ async function fsDelete(col,id){
   try{await fbDb.collection(col).doc(id).delete();}
   catch(e){console.error('fsDelete error:',col,id,e);showToast('Errore eliminazione dati','error');}
 }
-/* Safe push: add booking to store only if not already present (prevents in-memory duplicates) */
+/* Safe push: add booking to store only if not already present (prevents in-memory duplicates).
+   Checks BOTH by booking ID and by (eventId, userId, recurringDate) tuple for idempotency. */
 function pushBookingSafe(newBooking){
   if(store.bookings.find(b=>b.id===newBooking.id))return;
+  // Also check for semantic duplicate: same event + user + recurringDate (non-cancelled)
+  const semanticDup=store.bookings.find(b=>
+    b.eventId===newBooking.eventId&&
+    b.userId===newBooking.userId&&
+    b.status!=='cancellata'&&
+    (b.recurringDate||null)===(newBooking.recurringDate||null)
+  );
+  if(semanticDup){
+    console.warn('pushBookingSafe: semantic duplicate blocked',{existing:semanticDup.id,new:newBooking.id});
+    return;
+  }
   store.bookings.push(newBooking);
 }
 
@@ -5696,7 +5722,10 @@ async function loginWithGoogle(){
     if(!userDoc.exists){
       let mgrDoc=await fbDb.collection('managers').doc(user.uid).get();
       if(!mgrDoc.exists){
-        // New Google user — create user doc in Firestore
+        // New Google user — create minimal doc in Firestore (privacy:false).
+        // GDPR note: doc is created with privacy=false; the user CANNOT access
+        // any functionality until checkPrivacyConsent() forces acceptance via modal.
+        // This "privacy gate" pattern ensures no data processing before consent.
         const now=new Date().toISOString();
         // Auto-subscribe to all active universes (load from Firestore if store empty)
         if(!store.universes.length){try{const snap=await fbDb.collection('universes').get();store.universes=[];snap.forEach(doc=>{store.universes.push(doc.data());});}catch(e){}}
@@ -7331,13 +7360,21 @@ async function doBook(){
 
   // Block duplicate booking — check LOCAL store first
   const _bkRecDate=currentBookingRecDate||null;
-  const existingBooking=store.bookings.find(b=>b.eventId===ev.id&&b.userId===store.currentUser.id&&b.status!=='cancellata'&&(b.recurringDate||null)===_bkRecDate);
+  let existingBooking=store.bookings.find(b=>b.eventId===ev.id&&b.userId===store.currentUser.id&&b.status!=='cancellata'&&(b.recurringDate||null)===_bkRecDate);
+  // Fallback: if recDate is null but event is recurring, catch any booking for this event
+  if(!existingBooking&&!_bkRecDate&&ev.recurring){
+    existingBooking=store.bookings.find(b=>b.eventId===ev.id&&b.userId===store.currentUser.id&&b.status!=='cancellata');
+  }
   if(existingBooking){showToast('Sei già iscritto a questo evento!','error');return;}
 
   // ALSO verify on Firestore directly (guards against stale local cache)
   try{
     const _fbDupSnap=await fbDb.collection('bookings').where('eventId','==',ev.id).where('userId','==',store.currentUser.id).get();
-    const _fbDup=_fbDupSnap.docs.find(d=>{const b=d.data();return b.status!=='cancellata'&&(b.recurringDate||null)===_bkRecDate;});
+    let _fbDup=_fbDupSnap.docs.find(d=>{const b=d.data();return b.status!=='cancellata'&&(b.recurringDate||null)===_bkRecDate;});
+    // Fallback: if recDate is null but event is recurring, catch any booking
+    if(!_fbDup&&!_bkRecDate&&ev.recurring){
+      _fbDup=_fbDupSnap.docs.find(d=>{const b=d.data();return b.status!=='cancellata';});
+    }
     if(_fbDup){
       // Sync to local store if missing
       const _fbBkData=_fbDup.data();
@@ -7399,6 +7436,7 @@ async function doBook(){
       pushBookingSafe(newBooking);
       await fsSet('bookings',newBooking.id,newBooking).catch(console.error);
       _ownOverlay.remove();
+      _maybeAutoCheckin(newBooking);
       showToast('Iscrizione confermata!');
       go('booking-done');
     };
@@ -7456,6 +7494,25 @@ async function doBook(){
 
 async function bookWithSubscription(subId,eventId){
   const ev=store.events.find(e=>e.id===eventId);if(!ev)return;
+  // ── GUARD: Block duplicate booking (same event + user + recurringDate) ──
+  const _bkRecDate=currentBookingRecDate||null;
+  let _existBk=store.bookings.find(b=>b.eventId===ev.id&&b.userId===store.currentUser.id&&b.status!=='cancellata'&&(b.recurringDate||null)===_bkRecDate);
+  if(!_existBk&&!_bkRecDate&&ev.recurring){
+    _existBk=store.bookings.find(b=>b.eventId===ev.id&&b.userId===store.currentUser.id&&b.status!=='cancellata');
+  }
+  if(_existBk){showToast('Sei già iscritto a questo evento!','error');return;}
+  // Also verify on Firestore (guards against stale local cache)
+  try{
+    const _fbSnap=await fbDb.collection('bookings').where('eventId','==',ev.id).where('userId','==',store.currentUser.id).get();
+    let _fbDup=_fbSnap.docs.find(d=>{const b=d.data();return b.status!=='cancellata'&&(b.recurringDate||null)===_bkRecDate;});
+    if(!_fbDup&&!_bkRecDate&&ev.recurring){
+      _fbDup=_fbSnap.docs.find(d=>{const b=d.data();return b.status!=='cancellata';});
+    }
+    if(_fbDup){
+      const _fbBk=_fbDup.data();if(!store.bookings.find(b=>b.id===_fbBk.id))store.bookings.push(_fbBk);
+      showToast('Sei già iscritto a questo evento!','error');return;
+    }
+  }catch(e){console.warn('Duplicate check Firestore error:',e);}
   // Collect session selections for events with multiple sessions
   const hasMultipleSessions=ev.days.some(d=>d.sessions&&d.sessions.length>1);
   const hasSelections=freeSelectedSessions.size>0||freeSelectedDays.size>0;
@@ -7535,6 +7592,7 @@ async function bookWithSubscription(subId,eventId){
       pushBookingSafe(newBooking);
       await fsSet('bookings',newBooking.id,newBooking).catch(console.error);
       o.remove();
+      _maybeAutoCheckin(newBooking);
       showToast('Prenotazione confermata con abbonamento! 🎟️');
       go('booking-done');
     };
@@ -7561,6 +7619,7 @@ async function bookWithSubscription(subId,eventId){
   };
   pushBookingSafe(newBooking);
   await fsSet('bookings',newBooking.id,newBooking).catch(console.error);
+  _maybeAutoCheckin(newBooking);
   showToast('Prenotazione confermata con abbonamento! 🎟️');
   go('booking-done');
 }
@@ -7714,6 +7773,7 @@ function _doBookNormal(){
       pushBookingSafe(newBooking);
       fsSet('bookings',newBooking.id,newBooking).catch(console.error);
       o.remove();
+      _maybeAutoCheckin(newBooking);
       showToast(evIsFree?'Iscrizione confermata!':(managedNeedsDeposit?'Prenotazione registrata — invia l\'anticipo per confermare!':'Interesse registrato — l\'organizzatore ti contatterà!'));
       go('booking-done');
     };
@@ -8097,6 +8157,7 @@ function _doBookNormal(){
     };
     pushBookingSafe(newBooking);
     fsSet('bookings',newBooking.id,newBooking).catch(console.error);
+    _maybeAutoCheckin(newBooking);
     o.remove();
     showToast(needsDeposit?'Prenotazione registrata! Ricorda di versare l\'anticipo.':'Prenotazione confermata!');
     go('booking-done');
@@ -8276,6 +8337,50 @@ function populateQRSelect(){
 ============================== */
 let checkinEventId=null;
 let checkinRecDate=null;
+// Flag: when user arrives via check-in QR but has no booking yet, auto-mark as present after booking
+let _pendingCheckinAutoMark=null; // {eventId, recDate} or null
+
+/**
+ * Called after any booking is successfully created.
+ * If user arrived via check-in QR, auto-marks the booking as checked-in and shows success overlay.
+ */
+function _maybeAutoCheckin(booking){
+  if(!_pendingCheckinAutoMark)return;
+  if(booking.eventId!==_pendingCheckinAutoMark.eventId)return;
+  if((booking.recurringDate||null)!==(_pendingCheckinAutoMark.recDate||null))return;
+  // Match! Auto mark as checked in
+  const flag=_pendingCheckinAutoMark;
+  _pendingCheckinAutoMark=null; // consume flag
+  booking.checkedIn=true;
+  booking.checkinTime=new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+  fsSet('bookings',booking.id,booking).catch(console.error);
+  // Show success overlay
+  const ev=store.events.find(e=>e.id===booking.eventId);
+  if(!ev)return;
+  const _d0=ev.days[0];
+  const _pay=booking.paymentStatus==='gratuito'?'Gratuito':booking.paymentStatus==='pagato'?'Pagato':'In attesa';
+  const _sess=buildSessionBadges(booking.sessions,ev,'text');
+  const _ov=document.createElement('div');_ov.className='overlay';
+  _ov.innerHTML=`<div class="dialog" style="max-width:450px;width:90%;text-align:center">
+    <div style="font-size:4rem;margin-bottom:16px">✅</div>
+    <h2 class="text-xl font-bold text-white mb-2">Benvenuto!</h2>
+    <p class="txt3 mb-4">Iscrizione e check-in completati. La tua presenza è registrata!</p>
+    <div class="card mb-4" style="text-align:left;border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.05)">
+      <div class="flex gap-2 mb-2"><span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span><span class="badge" style="background:var(--green-bg);color:var(--green)">✅ Check-in OK</span></div>
+      <h3 class="font-semibold text-white">${escHtml(ev.title)}</h3>
+      <div class="text-xs txt3 mt-2">📅 ${_d0?fmtDate(_d0.date)+' · '+_d0.startTime+' — '+_d0.endTime:''}</div>
+      <div class="text-xs txt3 mt-1">👤 ${escHtml(booking.userName)}</div>
+      <div class="text-xs txt3 mt-1">💳 Pagamento: ${_pay}</div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(16,185,129,.2)">
+        <div class="text-xs font-medium" style="color:var(--green)">Presenze registrate:</div>
+        <div class="text-xs mt-1" style="color:var(--green)">✅ ${_sess}</div>
+      </div>
+    </div>
+    <button class="btn btn-primary w-full" onclick="this.closest('.overlay').remove()">OK — Buona pratica!</button>
+  </div>`;
+  document.body.appendChild(_ov);
+  _ov.addEventListener('click',e=>{if(e.target===_ov)_ov.remove();});
+}
 
 function getCheckinEvent(){
   // Use the last QR-selected event or fallback to first published event
@@ -8515,7 +8620,9 @@ function confirmWalkinCheckin(evId){
   const isFree=ev.pricingMode==='free';const isManaged=ev.pricingMode==='managed';
   let items,totalAmount,scope,tierKey,sessions;
   if(isFree||isManaged){
-    items=[];totalAmount=0;scope='evento';tierKey='medio';sessions=[];
+    // Free/managed: book entire event, all sessions
+    const allSessIds=[];ev.days.forEach(d=>(d.sessions||[]).forEach(s=>allSessIds.push(s.id)));
+    items=[];totalAmount=0;scope='evento';tierKey='medio';sessions=allSessIds;
   } else {
     const data=collectCheckinBookingData(ev,'wi_');
     items=data.items;totalAmount=data.totalAmount;scope=data.scope;tierKey=data.tierKey;sessions=data.sessions;
@@ -8531,10 +8638,11 @@ function confirmWalkinCheckin(evId){
     sessions,scope,tier:tierKey,amount:totalAmount,totalAmount,
     role:selectedBookRole,recurringDate:checkinRecDate||null,status:needsDep?'in_attesa_anticipo':'confermata',
     depositStatus:needsDep?'pending':null,paymentStatus:isFree?'gratuito':null,gift:false,walkIn:true,
+    checkedIn:true,checkinTime:new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}),
     surveyResponses:surveyResponses,
     bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
   };
-  store.bookings.push(bk);
+  pushBookingSafe(bk);
   fsSet('bookings',bk.id,bk).catch(console.error);
   const info=document.getElementById('walkin-result-info');
   if(info)info.textContent='Walk-in · '+tierLbl+(totalAmount>0?' — €'+totalAmount:'');
@@ -8573,6 +8681,10 @@ function renderCheckinC(){
           <input type="checkbox" id="ci-privacy-check" style="margin-top:2px">
           <span>Accetto l'<a onclick="go('privacy-policy')" style="color:var(--brand-l);cursor:pointer;text-decoration:underline">Informativa sulla Privacy</a> *</span>
         </label>
+        <label class="flex items-center gap-2 text-sm mb-3" style="cursor:pointer;align-items:flex-start">
+          <input type="checkbox" id="ci-marketing-check" style="margin-top:2px">
+          <span style="color:var(--txt3)">Acconsento a ricevere comunicazioni su nuovi eventi e aggiornamenti della community (facoltativo)</span>
+        </label>
       </div>
       <button class="btn btn-primary w-full" style="padding:14px" onclick="checkinNewStep2()">Continua →</button>
     </div>
@@ -8610,6 +8722,7 @@ function checkinNewStep2(){
   const username=(document.getElementById('ci-username')?.value||'').trim();
   const email=(document.getElementById('ci-email')?.value||'').trim();
   const privacyCheck=document.getElementById('ci-privacy-check')?.checked||false;
+  const marketingCheck=document.getElementById('ci-marketing-check')?.checked||false;
   const role='non_so';
 
   if(!username||!email){showToast('Compila tutti i campi obbligatori','error');return;}
@@ -8623,7 +8736,7 @@ function checkinNewStep2(){
   const newId='u'+Date.now();
   const newUser={
     id:newId,username,email,role,status:'attivo',registeredAt:now.split('T')[0],authMethod:'magic_link',
-    consents:{privacy:true,privacyDate:now,marketing:false,marketingDate:null}
+    consents:{privacy:true,privacyDate:now,marketing:marketingCheck,marketingDate:marketingCheck?now:null}
   };
   store.users.push(newUser);
   fsSet('users',newId,newUser).catch(console.error);
@@ -8649,7 +8762,8 @@ function confirmNewCheckin(evId){
   const isFree=ev.pricingMode==='free';const isManaged=ev.pricingMode==='managed';
   let items,totalAmount,scope,tierKey,sessions;
   if(isFree||isManaged){
-    items=[];totalAmount=0;scope='evento';tierKey='medio';sessions=[];
+    const allSessIds=[];ev.days.forEach(d=>(d.sessions||[]).forEach(s=>allSessIds.push(s.id)));
+    items=[];totalAmount=0;scope='evento';tierKey='medio';sessions=allSessIds;
   } else {
     const data=collectCheckinBookingData(ev,'np_');
     items=data.items;totalAmount=data.totalAmount;scope=data.scope;tierKey=data.tierKey;sessions=data.sessions;
@@ -8665,10 +8779,11 @@ function confirmNewCheckin(evId){
     sessions,scope,tier:tierKey,amount:totalAmount,totalAmount,
     role:userRole,recurringDate:checkinRecDate||null,status:needsDep?'in_attesa_anticipo':'confermata',
     depositStatus:needsDep?'pending':null,paymentStatus:isFree?'gratuito':null,gift:false,walkIn:true,newUser:true,
+    checkedIn:true,checkinTime:new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}),
     surveyResponses:surveyResponses,
     bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
   };
-  store.bookings.push(bk);
+  pushBookingSafe(bk);
   fsSet('bookings',bk.id,bk).catch(console.error);
   const info=document.getElementById('newp-result-info');
   if(info)info.textContent='Walk-in (nuovo) · '+tierLbl+(totalAmount>0?' — €'+totalAmount:'');
@@ -10122,7 +10237,9 @@ function cancelJam(jamId){
 function openShareModal(eventId){
   const ev=store.events.find(e=>e.id===eventId);
   if(!ev)return;
-  const shareUrl=window.location.origin+window.location.pathname+'?event='+eventId;
+  // Include recDate for recurring events so the link opens the correct instance
+  let shareUrl=window.location.origin+window.location.pathname+'?event='+eventId;
+  if(currentBookingRecDate)shareUrl+='&recDate='+currentBookingRecDate;
   const overlay=document.createElement('div');
   overlay.className='overlay';
   overlay.id='share-modal-overlay';
@@ -10198,7 +10315,8 @@ function copyShareLink(){
 
 function nativeShareEvent(eventId){
   const ev=store.events.find(e=>e.id===eventId);if(!ev)return;
-  const shareUrl=window.location.origin+window.location.pathname+'?event='+eventId;
+  let shareUrl=window.location.origin+window.location.pathname+'?event='+eventId;
+  if(currentBookingRecDate)shareUrl+='&recDate='+currentBookingRecDate;
   const dateStr=ev.days&&ev.days.length?fmtDate(ev.days[0].date):'';
   navigator.share({title:ev.title,text:ev.title+' — '+dateStr+' — '+(ev.location||''),url:shareUrl}).catch(()=>{});
 }
@@ -10224,7 +10342,7 @@ function buildTierBtns(tiers, gridId, activeEB, evId, subDiscPct, freeWithSub){
   ];
   tierDefs.forEach(({key,icon,label})=>{
     if(tiers[key]==null||tiers[key]===''||tiers[key]===0)return;
-    if(ebActive&&activeEB[key])return;// skip — shown inside EB card
+    if(ebActive&&activeEB[key]&&!freeWithSub)return;// skip — shown inside EB card (but when freeWithSub, show all as €0 here)
     const orig=parseFloat(tiers[key]);
     if(freeWithSub){
       btns+=`<div class="tier-btn" onclick="selectTier('${gridId}',this,'${key}')" style="border-color:rgba(16,185,129,.45);background:rgba(16,185,129,.06)"><span class="tier-icon">${icon}</span><span class="tier-label">${label}</span><span style="font-size:.55rem;color:var(--txt3);text-decoration:line-through">€${orig}</span><span class="tier-price" style="color:var(--green)">€0</span><span style="background:var(--green);color:#000;font-size:.45rem;padding:1px 3px;border-radius:3px;font-weight:700">🎟️ ABB</span></div>`;
@@ -10239,7 +10357,22 @@ function buildTierBtns(tiers, gridId, activeEB, evId, subDiscPct, freeWithSub){
 }
 function renderEarlyBirdGrid(eb,gridId,evId,stdTiers,subDiscPct,freeWithSub){
   if(!isEarlyBirdActive(eb,evId))return '';
-  if(freeWithSub)return ''; // Entry-based sub = free, no need for early bird display
+  if(freeWithSub){
+    // Entry-based sub: show EB tiers as €0 only if standard tiers are missing (fallback)
+    const _hasStdTiers=stdTiers&&Object.values(stdTiers).some(v=>v!=null&&v!==''&&v!==0);
+    if(_hasStdTiers)return ''; // Standard tiers already shown as €0 in buildTierBtns
+    // No standard tiers → show EB tiers as €0
+    let _fsBtns='';
+    [{key:'alto',icon:'✦',label:'Sostenitore'},{key:'medio',icon:'●',label:'Standard'},{key:'basso',icon:'○',label:'Ridotto'}].forEach(({key,icon,label})=>{
+      if(!eb[key])return;
+      const origEb=parseFloat(eb[key]);
+      _fsBtns+=`<div class="tier-btn" onclick="selectTier('${gridId}',this,'${key}')" style="border-color:rgba(16,185,129,.45);background:rgba(16,185,129,.06)"><span class="tier-icon">${icon}</span><span class="tier-label">${label}</span><span style="font-size:.55rem;color:var(--txt3);text-decoration:line-through">€${origEb}</span><span class="tier-price" style="color:var(--green)">€0</span><span style="background:var(--green);color:#000;font-size:.45rem;padding:1px 3px;border-radius:3px;font-weight:700">🎟️ ABB</span></div>`;
+    });
+    if(!_fsBtns)return '';
+    return `<div class="card mb-1" style="background:rgba(16,185,129,.05);border-color:var(--green);padding:3px 8px">
+      <div style="font-size:.65rem;font-weight:500;margin-bottom:2px;color:var(--green)">🎟️ Prenotazione gratuita con abbonamento</div>
+      <div class="tier-grid" id="${gridId}">${_fsBtns}</div></div>`;
+  }
   const deadlineText=eb.type==='date'&&eb.deadline?`Entro il ${fmtDateShort(eb.deadline)}`
     :eb.type==='count'&&eb.maxCount?`Per i primi ${eb.maxCount} iscritti`:'';
   let tierBtns='';
@@ -10921,7 +11054,12 @@ function showEventDetail(evId,recDate){
     ${(()=>{
       if(isDisabledByAlert)return '<h2 class="font-semibold text-white mb-3">Programma</h2>'+daysHtml+eventPkgHtml+loyaltyHtml+'<div class="card text-center" style="border:2px solid var(--red);background:var(--red-bg);padding:20px"><p class="font-bold" style="color:var(--red)">🚫 Questo evento è stato annullato</p><p class="text-sm txt3 mt-2">La prenotazione non è disponibile.</p></div>';
       const _detRecDate=currentBookingRecDate||null;
-      const myBooking=store.bookings.find(b=>b.eventId===ev.id&&b.userId===store.currentUser.id&&b.status!=='cancellata'&&(b.recurringDate||null)===_detRecDate);
+      let myBooking=store.bookings.find(b=>b.eventId===ev.id&&b.userId===store.currentUser.id&&b.status!=='cancellata'&&(b.recurringDate||null)===_detRecDate);
+      // Fallback for recurring events: if no exact match but recDate is null, find any non-cancelled booking
+      // This prevents showing the booking form when user arrived via link without recDate
+      if(!myBooking&&!_detRecDate&&ev.recurring){
+        myBooking=store.bookings.find(b=>b.eventId===ev.id&&b.userId===store.currentUser.id&&b.status!=='cancellata');
+      }
       if(myBooking){
         // === BOOKING SUMMARY VIEW ===
         const tierLbl=myBooking.tier==='alto'?'Sostenitore':myBooking.tier==='medio'?'Standard':'Ridotto';
@@ -15290,7 +15428,7 @@ function checkDeepLink(){
   const subToken=params.get('sub');
   const inviteOrg=params.get('invite');
   if(eventId){
-    _pendingDeepLink={type:'event',id:eventId};
+    _pendingDeepLink={type:'event',id:eventId,recDate:recDateParam||null};
   } else if(checkinId&&token){
     _pendingDeepLink={type:'checkin',id:checkinId,token:token,recDate:recDateParam||null};
   } else if(subToken){
@@ -15312,7 +15450,8 @@ async function handleDeepLink(){
     const ev=store.events.find(e=>e.id===dl.id)||store.communityJams?.find(j=>j.id===dl.id);
     if(ev){
       go('events');
-      setTimeout(()=>showEventDetail(dl.id),300);
+      // Pass recDate for recurring events so currentBookingRecDate is set correctly
+      setTimeout(()=>showEventDetail(dl.id,dl.recDate||undefined),300);
     } else {
       showToast('Evento non trovato','error');
     }
@@ -15321,9 +15460,52 @@ async function handleDeepLink(){
     const ev=store.events.find(e=>e.id===dl.id);
     if(ev){
       checkinRecDate=dl.recDate||null;
-      go('events');
-      setTimeout(()=>showEventDetail(dl.id,dl.recDate||undefined),300);
-      showToast('Check-in: '+ev.title+(dl.recDate?' — '+fmtDate(dl.recDate):''));
+      const _ciRecDate=dl.recDate||null;
+      // Check if user has an existing booking for this event+recDate
+      const _ciBooking=store.bookings.find(b=>b.eventId===ev.id&&b.userId===store.currentUser.id&&b.status!=='cancellata'&&(b.recurringDate||null)===_ciRecDate);
+      if(_ciBooking){
+        // AUTO CHECK-IN: mark as checked in
+        if(!_ciBooking.checkedIn){
+          _ciBooking.checkedIn=true;
+          _ciBooking.checkinTime=new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+          fsSet('bookings',_ciBooking.id,_ciBooking).catch(console.error);
+        }
+        // Show check-in success page
+        go('events');
+        setTimeout(()=>{
+          showEventDetail(dl.id,dl.recDate||undefined);
+          // Show success overlay
+          const _ciOv=document.createElement('div');_ciOv.className='overlay';
+          const _ciD0=ev.days[0];
+          const _ciPay=_ciBooking.paymentStatus==='gratuito'?'Gratuito':_ciBooking.paymentStatus==='pagato'?'Pagato':'In attesa';
+          const _ciSess=buildSessionBadges(_ciBooking.sessions,ev,'text');
+          _ciOv.innerHTML=`<div class="dialog" style="max-width:450px;width:90%;text-align:center">
+            <div style="font-size:4rem;margin-bottom:16px">✅</div>
+            <h2 class="text-xl font-bold text-white mb-2">Check-in completato!</h2>
+            <p class="txt3 mb-4">La tua presenza è stata registrata per tutte le sessioni prenotate</p>
+            <div class="card mb-4" style="text-align:left;border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.05)">
+              <div class="flex gap-2 mb-2"><span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span><span class="badge" style="background:var(--green-bg);color:var(--green)">✅ Check-in OK</span></div>
+              <h3 class="font-semibold text-white">${escHtml(ev.title)}</h3>
+              <div class="text-xs txt3 mt-2">📅 ${_ciD0?fmtDate(_ciD0.date)+' · '+_ciD0.startTime+' — '+_ciD0.endTime:''}</div>
+              <div class="text-xs txt3 mt-1">👤 ${escHtml(_ciBooking.userName)}</div>
+              <div class="text-xs txt3 mt-1">💳 Pagamento: ${_ciPay}</div>
+              <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(16,185,129,.2)">
+                <div class="text-xs font-medium" style="color:var(--green)">Presenze registrate:</div>
+                <div class="text-xs mt-1" style="color:var(--green)">✅ ${_ciSess}</div>
+              </div>
+            </div>
+            <button class="btn btn-primary w-full" onclick="this.closest('.overlay').remove()">OK — Buona pratica!</button>
+          </div>`;
+          document.body.appendChild(_ciOv);
+          _ciOv.addEventListener('click',e=>{if(e.target===_ciOv)_ciOv.remove();});
+        },300);
+      } else {
+        // No booking found → set auto-checkin flag, then open event detail so user can register
+        _pendingCheckinAutoMark={eventId:ev.id,recDate:_ciRecDate};
+        go('events');
+        setTimeout(()=>showEventDetail(dl.id,dl.recDate||undefined),300);
+        showToast('Registrati all\'evento per completare il check-in!','info');
+      }
     } else {
       showToast('Evento non trovato per il check-in','error');
     }
@@ -15415,6 +15597,19 @@ function showSubSuccessBanner(typeName,entries){
   setTimeout(()=>{const b=document.getElementById('sub-success-banner');if(b)b.remove();},15000);
 }
 
+// Cookie banner — show once per browser (localStorage flag, no personal data)
+function showCookieBannerIfNeeded(){
+  if(localStorage.getItem('cookieBannerAccepted'))return;
+  const b=document.getElementById('cookie-banner');
+  if(b)b.style.display='block';
+}
+function acceptCookieBanner(){
+  localStorage.setItem('cookieBannerAccepted','1');
+  const b=document.getElementById('cookie-banner');
+  if(b){b.style.transition='transform .3s ease,opacity .3s ease';b.style.transform='translateY(100%)';b.style.opacity='0';setTimeout(()=>b.style.display='none',350);}
+}
+setTimeout(showCookieBannerIfNeeded,800);
+
 // Parse deep link immediately (before auth resolves)
 checkDeepLink();
 
@@ -15442,6 +15637,8 @@ fbAuth.getRedirectResult().then(async(result)=>{
         await fbDb.collection('users').doc(user.uid).set(userData);
       }
     }
+    // Ensure loadCurrentUser is called so checkPrivacyConsent fires for redirect users too
+    await loadCurrentUser(user.uid);
     showToast('Login effettuato!');
   }
 }).catch(e=>{
@@ -15616,6 +15813,19 @@ document.addEventListener('DOMContentLoaded',()=>{
     </div>
     <button id="privacy-accept-btn" class="btn btn-primary w-full" disabled style="opacity:.5" onclick="acceptPrivacyConsent()">Accetta e continua</button>
     <button class="btn btn-secondary w-full mt-2" onclick="rejectPrivacyAndLogout()">Rifiuta e esci</button>
+  </div>
+</div>
+
+<!-- Cookie Banner (solo informativo — cookie tecnici) -->
+<div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9998;background:var(--s100);border-top:1px solid var(--s300);padding:16px 20px;box-shadow:0 -4px 20px rgba(0,0,0,.4);backdrop-filter:blur(8px)">
+  <div style="max-width:700px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between">
+    <div style="flex:1;min-width:200px">
+      <p style="font-size:.82rem;color:var(--txt2);line-height:1.5;margin:0">🍪 Questo sito utilizza esclusivamente <strong style="color:var(--txt1)">cookie tecnici</strong> necessari per l'autenticazione e il funzionamento del servizio. Non utilizziamo cookie di profilazione o analytics di terze parti.
+        <a onclick="go('privacy-policy');setTimeout(()=>{const el=document.getElementById('cookie-policy');if(el)el.scrollIntoView({behavior:'smooth'})},200)" style="color:var(--brand-l);cursor:pointer;text-decoration:underline;margin-left:4px">Informativa Cookie</a> ·
+        <a onclick="go('privacy-policy')" style="color:var(--brand-l);cursor:pointer;text-decoration:underline">Privacy Policy</a>
+      </p>
+    </div>
+    <button onclick="acceptCookieBanner()" class="btn btn-primary" style="padding:10px 24px;font-size:.82rem;white-space:nowrap;border-radius:10px">Ho capito</button>
   </div>
 </div>
 
