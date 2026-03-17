@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.35.3</title>
+<title>BodyEvents — V2.35.5</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -329,7 +329,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.35.3</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.35.5</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -10847,15 +10847,23 @@ function showEventDetail(evId,recDate){
     </div>`;
   }
 
-  // Check if user has an entry-based subscription compatible with this event
-  // Uses same logic as getAutoSubDiscountPct but for entry-mode subs:
-  // checks organizer match + universe/event-type compatibility (NOT subscriptionBookable flag)
+  // Check if user has an entry-based subscription compatible with this event.
+  // DEFAULT: event IS available for compatible subscriptions (no config needed).
+  // subscriptionBookable is an OPTIONAL restriction:
+  //   - enabled===false  → explicitly block all subscription booking
+  //   - enabled+typeIds  → restrict to those specific subscription typeIds
+  //   - null/undefined   → allow all compatible subscriptions (default)
   const _userHasEntrySub=(()=>{
     if(!store.currentUser||skipPricing)return false;
+    // If organizer explicitly disabled subscription booking, respect that
+    if(ev.subscriptionBookable&&ev.subscriptionBookable.enabled===false)return false;
+    const _sbTypeIds=(ev.subscriptionBookable?.enabled&&ev.subscriptionBookable.typeIds?.length)?ev.subscriptionBookable.typeIds:null;
     const _uSubs=getUserActiveSubscriptions(store.currentUser.id);
     return _uSubs.some(s=>{
       const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
       if(!sType||sType.mode==='discount')return false;
+      // If event restricts to specific typeIds, check membership
+      if(_sbTypeIds&&!_sbTypeIds.includes(s.typeId))return false;
       // Must be same organizer (or partner with entry permission)
       const isPartner=ev.partnerIds&&ev.partnerIds.includes(sType.managerId);
       if(sType.managerId!==ev.managerId&&!isPartner)return false;
@@ -11202,17 +11210,19 @@ function showEventDetail(evId,recDate){
       }
       // === NORMAL BOOKING VIEW ===
       // Check if user can book with subscription (no deposit needed)
+      // DEFAULT: allow compatible subscriptions. subscriptionBookable is optional restriction.
       const _userCanBookWithSub=(()=>{
-        if(!ev.subscriptionBookable?.enabled||!ev.subscriptionBookable.typeIds?.length)return false;
+        if(ev.subscriptionBookable&&ev.subscriptionBookable.enabled===false)return false;
+        const _sbTypeIds=(ev.subscriptionBookable?.enabled&&ev.subscriptionBookable.typeIds?.length)?ev.subscriptionBookable.typeIds:null;
         const _uSubs=getUserActiveSubscriptions(store.currentUser.id);
         return _uSubs.some(s=>{
-          if(!ev.subscriptionBookable.typeIds.includes(s.typeId))return false;
-          if(!isSubCompatibleWithEvent(s,ev))return false;
           const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
-          if(sType&&sType.mode==='discount')return false; // discount subs can't use entries
-          if(sType&&ev.partnerIds&&ev.partnerIds.includes(sType.managerId)){
-            if(!canUsePartnerEntries(ev))return false;
-          }
+          if(!sType||sType.mode==='discount')return false;
+          if(_sbTypeIds&&!_sbTypeIds.includes(s.typeId))return false;
+          if(!isSubCompatibleWithEvent(s,ev))return false;
+          const isPartner=ev.partnerIds&&ev.partnerIds.includes(sType.managerId);
+          if(sType.managerId!==ev.managerId&&!isPartner)return false;
+          if(isPartner&&!canUsePartnerEntries(ev))return false;
           return true;
         });
       })();
