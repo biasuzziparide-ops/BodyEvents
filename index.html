@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.35.2</title>
+<title>BodyEvents — V2.35.3</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -329,7 +329,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.35.2</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.35.3</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -11077,8 +11077,27 @@ function showEventDetail(evId,recDate){
     </div>
     ${currentBookingRecDate?`<div class="card mb-4" style="background:rgba(234,179,8,.06);border-color:var(--yellow);padding:12px 16px;text-align:center"><span class="text-sm" style="color:var(--yellow)">🔄 Stai prenotando per la data: <strong>${fmtDate(currentBookingRecDate)}</strong></span></div>`:''}
     ${(()=>{
-      if(isDisabledByAlert)return '<h2 class="font-semibold text-white mb-3">Programma</h2>'+daysHtml+eventPkgHtml+loyaltyHtml+'<div class="card text-center" style="border:2px solid var(--red);background:var(--red-bg);padding:20px"><p class="font-bold" style="color:var(--red)">🚫 Questo evento è stato annullato</p><p class="text-sm txt3 mt-2">La prenotazione non è disponibile.</p></div>';
       const _detRecDate=currentBookingRecDate||null;
+      // ── PRE-REGISTRATION participant list (Jam / Community events) ──
+      let _preRegParticipants='';
+      if(ev.type==='jam'||ev.type==='social'){
+        const _prRoleOrder={base:0,flyer:1,entrambi:2,non_so:3};
+        const _prRoleLblMap={base:'💪 Base',flyer:'🦅 Flyer',entrambi:'🔄 Entrambi',non_so:'🤷 Non definito'};
+        const _prBookings=store.bookings.filter(bk=>bk.eventId===ev.id&&bk.status!=='cancellata'&&(bk.recurringDate||null)===_detRecDate);
+        _prBookings.sort((a,b)=>(_prRoleOrder[a.role]??99)-(_prRoleOrder[b.role]??99));
+        if(_prBookings.length){
+          _preRegParticipants='<div class="card mb-4" style="border:1px solid var(--s300);padding:16px"><div class="text-xs txt3 mb-3" style="text-transform:uppercase;letter-spacing:.5px">👥 Già iscritti ('+_prBookings.length+')</div>';
+          _prBookings.forEach(pb=>{
+            const _isMe=store.currentUser&&pb.userId===store.currentUser.id;
+            _preRegParticipants+='<div class="flex items-center justify-between py-2" style="border-bottom:1px solid var(--s100);gap:8px">'
+              +'<span class="text-sm'+(_isMe?' font-semibold':'')+'" style="color:'+(_isMe?'var(--brand-l)':'var(--txt1)')+'">'+escHtml(pb.userName)+(_isMe?' (tu)':'')+'</span>'
+              +'<span class="text-xs" style="color:var(--txt3)">'+(_prRoleLblMap[pb.role]||'—')+'</span>'
+              +'</div>';
+          });
+          _preRegParticipants+='</div>';
+        }
+      }
+      if(isDisabledByAlert)return _preRegParticipants+'<h2 class="font-semibold text-white mb-3">Programma</h2>'+daysHtml+eventPkgHtml+loyaltyHtml+'<div class="card text-center" style="border:2px solid var(--red);background:var(--red-bg);padding:20px"><p class="font-bold" style="color:var(--red)">🚫 Questo evento è stato annullato</p><p class="text-sm txt3 mt-2">La prenotazione non è disponibile.</p></div>';
       let myBooking=store.bookings.find(b=>b.eventId===ev.id&&b.userId===store.currentUser.id&&b.status!=='cancellata'&&(b.recurringDate||null)===_detRecDate);
       // Fallback for recurring events: if no exact match but recDate is null, find any non-cancelled booking
       // This prevents showing the booking form when user arrived via link without recDate
@@ -11174,7 +11193,7 @@ function showEventDetail(evId,recDate){
       const _detEffDl=getEffectiveBookingDeadline(ev,_detRecDate);
       const _bookingClosed=_detEffDl&&localDateStr(new Date())>_detEffDl;
       if(_bookingClosed){
-        return '<h2 class="font-semibold text-white mb-3">Programma</h2>'+daysHtml+eventPkgHtml+loyaltyHtml
+        return _preRegParticipants+'<h2 class="font-semibold text-white mb-3">Programma</h2>'+daysHtml+eventPkgHtml+loyaltyHtml
           +'<div class="card text-center mt-4" style="border:2px solid var(--red);background:var(--red-bg);padding:20px">'
           +'<span style="font-size:2rem">🔒</span>'
           +'<p class="font-bold mt-2" style="color:var(--red)">Prenotazioni chiuse</p>'
@@ -11213,7 +11232,7 @@ function showEventDetail(evId,recDate){
           +(_payBtns.length?'<div class="text-xs txt3" style="margin-bottom:4px">Metodi di pagamento</div><div class="flex gap-2 flex-wrap">'+_payBtns.join('')+'</div>':'')
           +'</div>';
       })():'';
-      return '<h2 class="font-semibold text-white mb-3">Programma</h2>'+daysHtml+eventPkgHtml+loyaltyHtml+'<div style="padding-top:16px">'+_preDepositCard+'<button class="btn btn-primary w-full" style="padding:14px;font-size:1rem" onclick="doBook()">'+(isFreeEvent?'✅ Iscriviti gratuitamente':isManagedByOrg?'📋 Iscriviti!':'Conferma prenotazione')+'</button></div>';
+      return _preRegParticipants+'<h2 class="font-semibold text-white mb-3">Programma</h2>'+daysHtml+eventPkgHtml+loyaltyHtml+'<div style="padding-top:16px">'+_preDepositCard+'<button class="btn btn-primary w-full" style="padding:14px;font-size:1rem" onclick="doBook()">'+(isFreeEvent?'✅ Iscriviti gratuitamente':isManagedByOrg?'📋 Iscriviti!':'Conferma prenotazione')+'</button></div>';
     })()}
   </div>`;
   go('event-detail-dynamic');
