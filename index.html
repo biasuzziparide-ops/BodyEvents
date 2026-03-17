@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.36.0</title>
+<title>BodyEvents — V2.36.5</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -340,7 +340,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.36.0</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.36.5</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -3019,8 +3019,8 @@ function getActiveUniverses(){return store.universes.filter(u=>u.status==='activ
 function getPendingUniverses(){return store.universes.filter(u=>u.status==='pending');}
 
 /* === EVENT TYPES PER-UNIVERSE CATALOG === */
-const DEFAULT_EVENT_TYPES=['jam','lezione','workshop'];
-const EVENT_TYPE_LABELS={jam:'Jam',lezione:'Lezione',workshop:'Workshop',ritiro:'Ritiro',pratica:'Pratica',social:'Social'};
+const DEFAULT_EVENT_TYPES=['jam','lezione','workshop','social'];
+const EVENT_TYPE_LABELS={jam:'Jam',lezione:'Lezione',workshop:'Workshop',ritiro:'Ritiro',pratica:'Pratica',social:'Community event'};
 const EVENT_TYPE_ICONS={jam:'🤝',lezione:'📚',workshop:'🛠️',ritiro:'🏕️',pratica:'🧘',social:'🎉'};
 function normalizeTypeName(name){return(name||'').trim().toLowerCase().replace(/\s+/g,' ');}
 function getEventTypesForUniverse(univId){
@@ -3170,6 +3170,14 @@ function confirmPartnerSelection(){
   if(!wrap.children.length)wrap.innerHTML='<span class="text-xs txt3">Nessun partner selezionato</span>';
   togglePartnerEntryConfig(wrap.querySelectorAll('.ne-partner-chip').length>0);
   document.getElementById('partner-search-overlay')?.remove();
+  // Auto-activate universes of selected partners
+  checks.forEach(cb=>{
+    const mgr=store.managers.find(m=>m.id===cb.value);if(!mgr)return;
+    (mgr.universes||[]).forEach(uid=>{
+      const btn=document.querySelector('.ne-univ-btn[data-univ="'+uid+'"]');
+      if(btn&&!btn.classList.contains('ne-univ-selected'))toggleUnivBtn(btn);
+    });
+  });
   refreshPartnerAwareSections();
 }
 function refreshPartnerAwareSections(){
@@ -3661,7 +3669,7 @@ function populateEventUniverseDropdown(){
   const c=document.getElementById('ne-universes-list');
   if(!c)return;
   const mgrUnivs=store.currentUser.universes||['univ_acro'];
-  const activeUnivs=getActiveUniverses().filter(u=>mgrUnivs.includes(u.id));
+  const activeUnivs=getActiveUniverses();
   /* Auto-select: always pre-select the first (default) universe of the org */
   const defaultUnivId=mgrUnivs[0]||null;
   activeUnivs.forEach(u=>ensureUniverseHasEventTypes(u));
@@ -4486,7 +4494,8 @@ async function updateSubPayment(subId,status){
   if(status==='pagato') s.paymentDate=new Date().toISOString();
   await fsUpdate('subscriptions',subId,{paymentStatus:s.paymentStatus,paymentDate:s.paymentDate}).catch(console.error);
   showToast('Pagamento aggiornato');
-  if(_subTab==='assigned') renderSubAssigned(document.getElementById('admin-sub-content'));
+  const _subC=document.getElementById('admin-sub-content');
+  if(_subC){if(_subTab==='assigned')renderSubAssigned(_subC);else renderSubTypes(_subC);}
 }
 
 async function updateSubStatus(subId,status){
@@ -4494,7 +4503,8 @@ async function updateSubStatus(subId,status){
   s.status=status;
   await fsUpdate('subscriptions',subId,{status}).catch(console.error);
   showToast('Stato abbonamento aggiornato');
-  if(_subTab==='assigned') renderSubAssigned(document.getElementById('admin-sub-content'));
+  const _subC=document.getElementById('admin-sub-content');
+  if(_subC){if(_subTab==='assigned')renderSubAssigned(_subC);else renderSubTypes(_subC);}
 }
 
 function confirmDeleteSubscription(subId){
@@ -4510,10 +4520,16 @@ function confirmDeleteSubscription(subId){
       const idx=store.subscriptions.findIndex(x=>x.id===subId);
       if(idx>-1)store.subscriptions.splice(idx,1);
       showToast('Abbonamento eliminato con successo');
-      // Refresh admin view
-      if(_subTab==='assigned') renderSubAssigned(document.getElementById('admin-sub-content'));
-      // Close any open overlay
+      // Close any open overlay/panel FIRST
       document.querySelectorAll('.overlay').forEach(o=>o.remove());
+      const _stpPanel=document.getElementById('sub-type-panel');
+      if(_stpPanel)_stpPanel.style.display='none';
+      // Refresh whichever admin view is active
+      const _subContent=document.getElementById('admin-sub-content');
+      if(_subContent){
+        if(_subTab==='assigned') renderSubAssigned(_subContent);
+        else renderSubTypes(_subContent);
+      }
     }catch(e){
       console.error('Error deleting subscription:',e);
       showToast('Errore durante la cancellazione: '+e.message,'error');
@@ -9467,8 +9483,8 @@ function cancelUserBooking(bId){
   const bk=store.bookings.find(x=>x.id===bId);if(!bk)return;
   const ev=store.events.find(e=>e.id===bk.eventId);
   const evName=ev?escHtml(ev.title):'questo evento';
-  showConfirm('Cancella prenotazione','Vuoi davvero cancellare la tua prenotazione per <strong>'+evName+'</strong>?',()=>{
-    showConfirm('Conferma definitiva','⚠️ Questa azione è irreversibile. Confermi la cancellazione?',async()=>{
+  showConfirm('Cancella prenotazione','Vuoi davvero cancellare la tua prenotazione per <strong>'+evName+'</strong>?<br><br><span class="text-xs txt3">Potrai iscriverti di nuovo in qualsiasi momento, se ci sono ancora posti disponibili.</span>',()=>{
+    showConfirm('Conferma definitiva','⚠️ Sei sicuro? La tua prenotazione verrà cancellata.<br><br><span class="text-xs txt3">Potrai comunque iscriverti nuovamente.</span>',async()=>{
       bk.status='cancellata';
       await fsUpdate('bookings',bk.id,{status:'cancellata'}).catch(console.error);
       /* Refund subscription entry if booking was made with a subscription */
@@ -11132,11 +11148,11 @@ function showEventDetail(evId,recDate){
     ${ev.confirmedByOrganizer&&!isDisabledByAlert?'<div class="card mb-4" style="border:2px solid var(--green);background:rgba(16,185,129,.08);padding:16px;text-align:center"><div style="font-size:1.5rem">✅</div><h3 class="font-bold mt-1" style="color:var(--green)">EVENTO CONFERMATO</h3><p class="text-xs txt3 mt-1">L\'organizzatore ha confermato questo evento</p></div>':''}
     <div class="card mb-6" ${isDisabledByAlert?'style="opacity:.5;pointer-events:none"':''}>
       ${(()=>{const hd=(ev.imageHeader||ev.image)?{src:ev.imageHeader?.src||ev.image,zoom:ev.imageHeader?.zoom||100,posX:ev.imageHeader?.posX||0,posY:ev.imageHeader?.posY||0}:null;if(!hd)return '';const s=hd.zoom/100;const denomW=420*s-420;const denomH=300*s-300;const px=denomW>0?Math.round(Math.abs(hd.posX)/denomW*100):50;const py=denomH>0?Math.round(Math.abs(hd.posY)/denomH*100):50;const op=`object-position:${isNaN(px)?50:px}% ${isNaN(py)?50:py}%`;return '<div style="margin:-20px -20px 16px;border-radius:16px 16px 0 0;overflow:hidden;cursor:zoom-in" onclick="openFullscreenImage(\''+hd.src.replace(/'/g,"\\'")+'\',\'Evento\')"><img src="'+hd.src+'" style="width:100%;max-height:300px;object-fit:cover;'+op+'" alt=""></div>';})()}
-      <div class="flex gap-2 mb-3 flex-wrap"><span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>${levelBadges}</div>
-      <div style="display:flex;justify-content:space-between;align-items:start;gap:8px">
-        <h1 class="text-2xl font-bold text-white" style="flex:1">${escHtml(ev.title)}</h1>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+        <div class="flex gap-2 flex-wrap"><span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>${levelBadges}</div>
         ${ev.status==='pubblicato'?`<button class="btn btn-sm" style="flex-shrink:0;padding:6px 14px;background:rgba(59,130,246,.1);color:var(--blue);border:1px solid rgba(59,130,246,.25);font-size:.8rem" onclick="event.stopPropagation();openShareModal('${ev.id}')" title="Condividi evento">📤 Condividi</button>`:''}
       </div>
+      <h1 class="text-2xl font-bold text-white">${escHtml(ev.title)}</h1>
       ${(()=>{
         const _desc=escHtml(ev.description).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
         const _teacher=ev.teacher?'<div class="flex items-center gap-2 mt-3 text-sm txt3">👤 con '+escHtml(ev.teacher)+'</div>':'';
