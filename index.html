@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.37.0</title>
+<title>BodyEvents — V2.37.1</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -340,7 +340,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.37.0</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.37.1</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2926,6 +2926,8 @@ async function loadAllData(forceReload){
     store.communityJams=[];jamsSnap.forEach(doc=>{store.communityJams.push(doc.data());});
     store.attendances={};attendancesSnap.forEach(doc=>{store.attendances[doc.id]=doc.data().events||[];});
     store.universes=[];universesSnap.forEach(doc=>{store.universes.push(doc.data());});
+    // Ensure all universes have the 4 default event types
+    store.universes.forEach(u=>ensureUniverseHasEventTypes(u));
     // Load subscription collections separately (fault-tolerant: won't block if Firestore rules don't include them yet)
     try{const subTypesSnap=await fbDb.collection('subscriptionTypes').get();store.subscriptionTypes=[];subTypesSnap.forEach(doc=>{store.subscriptionTypes.push(doc.data());});}catch(e){console.warn('subscriptionTypes load skipped:',e.message);store.subscriptionTypes=[];}
     try{const subsSnap=await fbDb.collection('subscriptions').get();store.subscriptions=[];subsSnap.forEach(doc=>{store.subscriptions.push(doc.data());});}catch(e){console.warn('subscriptions load skipped:',e.message);store.subscriptions=[];}
@@ -3064,10 +3066,13 @@ async function addCustomEventType(univId,typeName){
   return norm;
 }
 function ensureUniverseHasEventTypes(univ){
-  if(!univ.eventTypes||!univ.eventTypes.length){
-    univ.eventTypes=DEFAULT_EVENT_TYPES.slice();
-    fsUpdate('universes',univ.id,{eventTypes:univ.eventTypes}).catch(console.error);
+  let changed=false;
+  if(!univ.eventTypes){univ.eventTypes=[];changed=true;}
+  // Ensure ALL default types are always present
+  for(const dt of DEFAULT_EVENT_TYPES){
+    if(!univ.eventTypes.includes(dt)){univ.eventTypes.push(dt);changed=true;}
   }
+  if(changed)fsUpdate('universes',univ.id,{eventTypes:univ.eventTypes}).catch(console.error);
 }
 /* === PARTNER ORGANIZATIONS SYSTEM (V2.7.0) === */
 /* --- V2.7.1: Capofila & Partner Visibility Helpers --- */
@@ -3710,7 +3715,7 @@ function saveUniverseEdit(overlay,univId){
   });
 }
 
-/* === UNIVERSE ROLE & EVENT TYPE INLINE CRUD (V2.37.0) === */
+/* === UNIVERSE ROLE & EVENT TYPE INLINE CRUD (V2.37.1) === */
 
 // --- ROLE EDIT/DELETE ---
 function editUniverseRole(univId,oldRole){
@@ -3758,26 +3763,27 @@ function deleteUniverseRole(univId,roleName){
 function editUniverseEventType(univId,oldType){
   const u=store.universes.find(x=>x.id===univId);if(!u)return;
   const decoded=oldType.replace(/&#39;/g,"'");
+  const isDef=DEFAULT_EVENT_TYPES.includes(decoded);
   const oldLabel=getEventTypeLabel(decoded);
-  const newLabel=prompt('Rinomina la tipologia "'+oldLabel+'":', oldLabel);
-  if(!newLabel||!newLabel.trim())return;
+  const newLabel=prompt('Rinomina la tipologia "'+oldLabel+'":'+(isDef?' (cambio nome visualizzato, il tipo resta lo stesso per tutti gli universi)':''), oldLabel);
+  if(!newLabel||!newLabel.trim()||newLabel.trim()===oldLabel)return;
   const trimmed=newLabel.trim();
   const newKey=normalizeTypeName(trimmed);
-  if(newKey===decoded){
-    // Only label changed, not key
+  // For default types: only change the display label, never the key — propagate label to all universes
+  if(isDef||newKey===decoded){
     EVENT_TYPE_LABELS[decoded]=trimmed;
-    showToast('Label aggiornata a "'+trimmed+'"');
+    showToast('Tipologia rinominata in "'+trimmed+'" su tutti gli universi');
     renderAdminUniversesView();
     return;
   }
-  // Key changed — need propagation
+  // Custom type — key changed — need propagation
   if((u.eventTypes||[]).includes(newKey)){showToast('La tipologia "'+trimmed+'" esiste già','error');return;}
-  const affectedEvents=store.events.filter(e=>e.type===decoded&&(e.universeIds||[e.universeId]).includes(univId));
+  const affectedEvents=store.events.filter(e=>e.type===decoded);
   const affectedSubs=store.subscriptionTypes.filter(t=>t.compatibleEventTypes&&t.compatibleEventTypes.includes(decoded));
   let warnHtml='';
   if(affectedEvents.length)warnHtml+='<br>📅 <strong>'+affectedEvents.length+'</strong> event'+(affectedEvents.length===1?'o':'i')+' verranno aggiornati.';
   if(affectedSubs.length)warnHtml+='<br>🎟️ <strong>'+affectedSubs.length+'</strong> tipologi'+(affectedSubs.length===1?'a':'e')+' di abbonamento verranno aggiornate.';
-  showConfirm('Rinomina tipologia evento','Rinominare <strong>'+escHtml(oldLabel)+'</strong> in <strong>'+escHtml(trimmed)+'</strong>?'+warnHtml,async()=>{
+  showConfirm('Rinomina tipologia evento','Rinominare <strong>'+escHtml(oldLabel)+'</strong> in <strong>'+escHtml(trimmed)+'</strong>?<br>La modifica si applicherà a tutti gli universi.'+warnHtml,async()=>{
     // Update universe eventTypes array
     if(!u.eventTypes)u.eventTypes=DEFAULT_EVENT_TYPES.slice();
     const idx=u.eventTypes.indexOf(decoded);
@@ -3793,12 +3799,7 @@ function editUniverseEventType(univId,oldType){
         fsUpdate('universes',ou.id,{eventTypes:ou.eventTypes}).catch(console.error);
       }
     }
-    // Propagate to events
-    for(const ev of affectedEvents){
-      ev.type=newKey;
-      fsUpdate('events',ev.id,{type:newKey}).catch(console.error);
-    }
-    // Also update events in other universes with same old type
+    // Propagate to ALL events with this type (not just current universe)
     for(const ev of store.events){
       if(ev.type===decoded){ev.type=newKey;fsUpdate('events',ev.id,{type:newKey}).catch(console.error);}
     }
