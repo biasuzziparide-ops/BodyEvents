@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.36.5</title>
+<title>BodyEvents — V2.37.0</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -340,7 +340,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.36.5</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.37.0</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -3028,10 +3028,17 @@ function getEventTypesForUniverse(univId){
   return univ?.eventTypes||DEFAULT_EVENT_TYPES.slice();
 }
 function getEventTypesForUniverses(univIds){
-  if(!univIds||!univIds.length) return DEFAULT_EVENT_TYPES.slice();
+  if(!univIds||!univIds.length) return getAllEventTypes();
   const merged=new Set();
   univIds.forEach(uid=>{getEventTypesForUniverse(uid).forEach(t=>merged.add(t));});
   return Array.from(merged);
+}
+function getAllEventTypes(){
+  const all=new Set(DEFAULT_EVENT_TYPES);
+  getActiveUniverses().forEach(u=>{(u.eventTypes||DEFAULT_EVENT_TYPES).forEach(t=>all.add(t));});
+  store.events.forEach(ev=>{if(ev.type)all.add(ev.type);});
+  store.communityJams.forEach(j=>{if(j.type)all.add(j.type);});
+  return Array.from(all);
 }
 function getEventTypeLabel(t){return EVENT_TYPE_LABELS[t]||t.charAt(0).toUpperCase()+t.slice(1);}
 function getEventTypeIcon(t){return EVENT_TYPE_ICONS[t]||'📌';}
@@ -3524,7 +3531,21 @@ function renderAdminUniversesView(){
   const aList=document.getElementById('active-universes-list');
   if(aList){
     aList.innerHTML=active.map(u=>{
-      let rolesHtml=u.roles.map(r=>'<span class="badge" style="background:'+u.color+'22;color:'+u.color+'">'+r+'</span>').join(' ');
+      ensureUniverseHasEventTypes(u);
+      const isDefault=DEFAULT_EVENT_TYPES;
+      // --- ROLES section with edit/delete ---
+      let rolesHtml='<div class="text-xs txt3 mb-1" style="font-weight:600">🎭 Ruoli</div><div style="display:flex;gap:4px;flex-wrap:wrap">';
+      rolesHtml+=u.roles.map(r=>{
+        const esc=escHtml(r).replace(/'/g,'&#39;');
+        let actions='';
+        if(isMaster){
+          actions='<span style="margin-left:4px;cursor:pointer;opacity:.6;font-size:.65rem" onclick="event.stopPropagation();editUniverseRole(\''+u.id+'\',\''+esc+'\')" title="Rinomina">✏️</span>'
+            +'<span style="margin-left:2px;cursor:pointer;opacity:.6;font-size:.65rem" onclick="event.stopPropagation();deleteUniverseRole(\''+u.id+'\',\''+esc+'\')" title="Elimina">🗑️</span>';
+        }
+        return '<span class="badge" style="background:'+u.color+'22;color:'+u.color+';display:inline-flex;align-items:center;gap:2px">'+escHtml(r)+actions+'</span>';
+      }).join(' ');
+      rolesHtml+='</div>';
+      // Pending roles
       let pendingRolesHtml='';
       if(u.pendingRoles&&u.pendingRoles.length){
         pendingRolesHtml='<div class="mt-2"><div class="text-xs txt3 mb-1">Ruoli proposti:</div>'+u.pendingRoles.map(pr=>{
@@ -3536,17 +3557,42 @@ function renderAdminUniversesView(){
           }
         }).join('')+'</div>';
       }
-      // Propose role input (visible to all managers for universes they belong to)
+      // Propose role input
       let proposeRoleHtml='';
       const mgrUnivs=store.currentUser.universes||[];
       if(mgrUnivs.includes(u.id)||isMaster){
-        proposeRoleHtml='<div style="display:flex;gap:8px;margin-top:8px;align-items:center"><input class="input" style="flex:1;font-size:.8rem;padding:6px 10px" id="propose-role-'+u.id+'" placeholder="Nuovo ruolo..."><button class="btn btn-sm btn-secondary" style="font-size:.75rem" onclick="proposeRoleForUniverse(\''+u.id+'\',document.getElementById(\'propose-role-'+u.id+'\').value);document.getElementById(\'propose-role-'+u.id+'\').value=\'\';renderAdminUniversesView();">+ Proponi ruolo</button></div>';
+        proposeRoleHtml='<div style="display:flex;gap:8px;margin-top:6px;align-items:center"><input class="input" style="flex:1;font-size:.8rem;padding:6px 10px" id="propose-role-'+u.id+'" placeholder="Nuovo ruolo..."><button class="btn btn-sm btn-secondary" style="font-size:.75rem" onclick="proposeRoleForUniverse(\''+u.id+'\',document.getElementById(\'propose-role-'+u.id+'\').value);document.getElementById(\'propose-role-'+u.id+'\').value=\'\';renderAdminUniversesView();">+ Aggiungi</button></div>';
       }
+      // --- EVENT TYPES section with edit/delete ---
+      const evTypes=u.eventTypes||DEFAULT_EVENT_TYPES.slice();
+      let evTypesHtml='<div class="text-xs txt3 mb-1" style="font-weight:600;margin-top:12px">📋 Tipologie evento</div><div style="display:flex;gap:4px;flex-wrap:wrap">';
+      evTypesHtml+=evTypes.map(t=>{
+        const isDef=DEFAULT_EVENT_TYPES.includes(t);
+        const icon=getEventTypeIcon(t);
+        const label=getEventTypeLabel(t);
+        const esc=escHtml(t).replace(/'/g,'&#39;');
+        let actions='';
+        if(isMaster){
+          actions='<span style="margin-left:4px;cursor:pointer;opacity:.6;font-size:.65rem" onclick="event.stopPropagation();editUniverseEventType(\''+u.id+'\',\''+esc+'\')" title="Rinomina">✏️</span>';
+          if(!isDef){
+            actions+='<span style="margin-left:2px;cursor:pointer;opacity:.6;font-size:.65rem" onclick="event.stopPropagation();deleteUniverseEventType(\''+u.id+'\',\''+esc+'\')" title="Elimina">🗑️</span>';
+          }
+        }
+        const defMark=isDef?'<span style="font-size:.55rem;opacity:.5;margin-left:2px">●</span>':'';
+        return '<span class="badge" style="background:var(--brand-bg);color:var(--brand-l);display:inline-flex;align-items:center;gap:2px">'+icon+' '+escHtml(label)+defMark+actions+'</span>';
+      }).join(' ');
+      evTypesHtml+='</div>';
+      // Add event type input (master only)
+      let addEvTypeHtml='';
+      if(isMaster){
+        addEvTypeHtml='<div style="display:flex;gap:8px;margin-top:6px;align-items:center"><input class="input" style="flex:1;font-size:.8rem;padding:6px 10px" id="add-evtype-'+u.id+'" placeholder="Nuova tipologia..."><button class="btn btn-sm btn-secondary" style="font-size:.75rem" onclick="addEventTypeFromUnivAdmin(\''+u.id+'\')">+ Aggiungi</button></div>';
+      }
+      // Edit button
       let editBtnHtml='';
       if(isMaster){
         editBtnHtml='<button class="btn btn-sm btn-secondary" style="flex-shrink:0;font-size:.75rem" onclick="openEditUniverseModal(\''+u.id+'\')">✏️ Modifica</button>';
       }
-      return '<div class="card mb-3" style="border-left:4px solid '+u.color+'"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><div style="flex:1"><div class="font-semibold text-white">'+u.emoji+' '+u.name+'</div><div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">'+rolesHtml+'</div>'+pendingRolesHtml+proposeRoleHtml+'</div>'+editBtnHtml+'</div></div>';
+      return '<div class="card mb-3" style="border-left:4px solid '+u.color+'"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><div style="flex:1"><div class="font-semibold text-white">'+u.emoji+' '+u.name+'</div>'+rolesHtml+pendingRolesHtml+proposeRoleHtml+evTypesHtml+addEvTypeHtml+'</div>'+editBtnHtml+'</div></div>';
     }).join('');
   }
   // Universe association requests from managers (master only)
@@ -3662,6 +3708,144 @@ function saveUniverseEdit(overlay,univId){
     showToast('Universo "'+name+'" aggiornato!');
     renderAdminUniversesView();
   });
+}
+
+/* === UNIVERSE ROLE & EVENT TYPE INLINE CRUD (V2.37.0) === */
+
+// --- ROLE EDIT/DELETE ---
+function editUniverseRole(univId,oldRole){
+  const u=store.universes.find(x=>x.id===univId);if(!u)return;
+  const decoded=oldRole.replace(/&#39;/g,"'");
+  const newName=prompt('Rinomina il ruolo "'+decoded+'":', decoded);
+  if(!newName||!newName.trim()||newName.trim()===decoded)return;
+  const trimmed=newName.trim();
+  if(u.roles.includes(trimmed)){showToast('Il ruolo "'+trimmed+'" esiste già','error');return;}
+  showConfirm('Rinomina ruolo','Rinominare il ruolo <strong>'+escHtml(decoded)+'</strong> in <strong>'+escHtml(trimmed)+'</strong>?<br><br>Verrà aggiornato anche in tutti gli utenti e le prenotazioni.',async()=>{
+    const idx=u.roles.indexOf(decoded);
+    if(idx>-1)u.roles[idx]=trimmed;
+    await fsUpdate('universes',univId,{roles:u.roles}).catch(console.error);
+    // Propagate to users' subscribedUniverses
+    let uCount=0;
+    for(const usr of store.users){
+      if(!usr.subscribedUniverses)continue;
+      const sub=usr.subscribedUniverses.find(s=>s.universeId===univId&&s.preferredRole===decoded);
+      if(sub){sub.preferredRole=trimmed;fsUpdate('users',usr.id,{subscribedUniverses:usr.subscribedUniverses}).catch(console.error);uCount++;}
+    }
+    // Propagate to bookings with this role
+    let bCount=0;
+    for(const b of store.bookings){
+      if(b.role===decoded){b.role=trimmed;fsUpdate('bookings',b.id,{role:trimmed}).catch(console.error);bCount++;}
+    }
+    showToast('Ruolo rinominato! ('+uCount+' utenti, '+bCount+' prenotazioni aggiornate)');
+    renderAdminUniversesView();
+  });
+}
+function deleteUniverseRole(univId,roleName){
+  const u=store.universes.find(x=>x.id===univId);if(!u)return;
+  const decoded=roleName.replace(/&#39;/g,"'");
+  if(u.roles.length<=1){showToast('Un universo deve avere almeno un ruolo','error');return;}
+  const usersWithRole=store.users.filter(usr=>usr.subscribedUniverses&&usr.subscribedUniverses.some(s=>s.universeId===univId&&s.preferredRole===decoded));
+  const warn=usersWithRole.length?'<br><br>⚠️ <strong>'+usersWithRole.length+' utent'+(usersWithRole.length===1?'e':'i')+'</strong> ha questo ruolo selezionato.':'';
+  showConfirm('Elimina ruolo','Eliminare il ruolo <strong>'+escHtml(decoded)+'</strong> dall\'universo <strong>'+escHtml(u.name)+'</strong>?'+warn,async()=>{
+    u.roles=u.roles.filter(r=>r!==decoded);
+    await fsUpdate('universes',univId,{roles:u.roles}).catch(console.error);
+    showToast('Ruolo "'+decoded+'" eliminato');
+    renderAdminUniversesView();
+  },'danger');
+}
+
+// --- EVENT TYPE EDIT/DELETE/ADD ---
+function editUniverseEventType(univId,oldType){
+  const u=store.universes.find(x=>x.id===univId);if(!u)return;
+  const decoded=oldType.replace(/&#39;/g,"'");
+  const oldLabel=getEventTypeLabel(decoded);
+  const newLabel=prompt('Rinomina la tipologia "'+oldLabel+'":', oldLabel);
+  if(!newLabel||!newLabel.trim())return;
+  const trimmed=newLabel.trim();
+  const newKey=normalizeTypeName(trimmed);
+  if(newKey===decoded){
+    // Only label changed, not key
+    EVENT_TYPE_LABELS[decoded]=trimmed;
+    showToast('Label aggiornata a "'+trimmed+'"');
+    renderAdminUniversesView();
+    return;
+  }
+  // Key changed — need propagation
+  if((u.eventTypes||[]).includes(newKey)){showToast('La tipologia "'+trimmed+'" esiste già','error');return;}
+  const affectedEvents=store.events.filter(e=>e.type===decoded&&(e.universeIds||[e.universeId]).includes(univId));
+  const affectedSubs=store.subscriptionTypes.filter(t=>t.compatibleEventTypes&&t.compatibleEventTypes.includes(decoded));
+  let warnHtml='';
+  if(affectedEvents.length)warnHtml+='<br>📅 <strong>'+affectedEvents.length+'</strong> event'+(affectedEvents.length===1?'o':'i')+' verranno aggiornati.';
+  if(affectedSubs.length)warnHtml+='<br>🎟️ <strong>'+affectedSubs.length+'</strong> tipologi'+(affectedSubs.length===1?'a':'e')+' di abbonamento verranno aggiornate.';
+  showConfirm('Rinomina tipologia evento','Rinominare <strong>'+escHtml(oldLabel)+'</strong> in <strong>'+escHtml(trimmed)+'</strong>?'+warnHtml,async()=>{
+    // Update universe eventTypes array
+    if(!u.eventTypes)u.eventTypes=DEFAULT_EVENT_TYPES.slice();
+    const idx=u.eventTypes.indexOf(decoded);
+    if(idx>-1)u.eventTypes[idx]=newKey;
+    await fsUpdate('universes',univId,{eventTypes:u.eventTypes}).catch(console.error);
+    // Update label
+    EVENT_TYPE_LABELS[newKey]=trimmed;
+    // Propagate to ALL universes that have this type
+    for(const ou of store.universes){
+      if(ou.id===univId)continue;
+      if(ou.eventTypes&&ou.eventTypes.includes(decoded)){
+        ou.eventTypes[ou.eventTypes.indexOf(decoded)]=newKey;
+        fsUpdate('universes',ou.id,{eventTypes:ou.eventTypes}).catch(console.error);
+      }
+    }
+    // Propagate to events
+    for(const ev of affectedEvents){
+      ev.type=newKey;
+      fsUpdate('events',ev.id,{type:newKey}).catch(console.error);
+    }
+    // Also update events in other universes with same old type
+    for(const ev of store.events){
+      if(ev.type===decoded){ev.type=newKey;fsUpdate('events',ev.id,{type:newKey}).catch(console.error);}
+    }
+    // Propagate to subscription types
+    for(const st of store.subscriptionTypes){
+      if(st.compatibleEventTypes&&st.compatibleEventTypes.includes(decoded)){
+        st.compatibleEventTypes=st.compatibleEventTypes.map(t=>t===decoded?newKey:t);
+        fsUpdate('subscriptionTypes',st.id,{compatibleEventTypes:st.compatibleEventTypes}).catch(console.error);
+      }
+    }
+    // Propagate to community jams
+    for(const j of store.communityJams){
+      if(j.type===decoded){j.type=newKey;fsUpdate('communityJams',j.id,{type:newKey}).catch(console.error);}
+    }
+    showToast('Tipologia rinominata!');
+    renderAdminUniversesView();
+  });
+}
+function deleteUniverseEventType(univId,typeKey){
+  const u=store.universes.find(x=>x.id===univId);if(!u)return;
+  const decoded=typeKey.replace(/&#39;/g,"'");
+  if(DEFAULT_EVENT_TYPES.includes(decoded)){showToast('Le tipologie predefinite non possono essere eliminate','error');return;}
+  const label=getEventTypeLabel(decoded);
+  const eventsUsing=store.events.filter(e=>e.type===decoded);
+  const subsUsing=store.subscriptionTypes.filter(t=>t.compatibleEventTypes&&t.compatibleEventTypes.includes(decoded));
+  let warnHtml='';
+  if(eventsUsing.length)warnHtml+='<br><br>⚠️ <strong>'+eventsUsing.length+'</strong> event'+(eventsUsing.length===1?'o usa':'i usano')+' questa tipologia.';
+  if(subsUsing.length)warnHtml+='<br>🎟️ <strong>'+subsUsing.length+'</strong> abbonament'+(subsUsing.length===1?'o è associato':'i sono associati')+' a questa tipologia.';
+  showConfirm('Elimina tipologia evento','Eliminare la tipologia <strong>'+escHtml(label)+'</strong> dall\'universo <strong>'+escHtml(u.name)+'</strong>?'+warnHtml+'<br><br>Gli eventi esistenti manterranno il tipo attuale ma non sarà più selezionabile per nuovi eventi.',async()=>{
+    u.eventTypes=(u.eventTypes||[]).filter(t=>t!==decoded);
+    await fsUpdate('universes',univId,{eventTypes:u.eventTypes}).catch(console.error);
+    // Remove from subscription type compatibility lists
+    for(const st of subsUsing){
+      st.compatibleEventTypes=st.compatibleEventTypes.filter(t=>t!==decoded);
+      fsUpdate('subscriptionTypes',st.id,{compatibleEventTypes:st.compatibleEventTypes}).catch(console.error);
+    }
+    showToast('Tipologia "'+label+'" eliminata');
+    renderAdminUniversesView();
+  },'danger');
+}
+async function addEventTypeFromUnivAdmin(univId){
+  const input=document.getElementById('add-evtype-'+univId);
+  const typeName=(input?.value||'').trim();
+  if(!typeName){showToast('Scrivi il nome della tipologia','error');return;}
+  const result=await addCustomEventType(univId,typeName);
+  if(result&&input)input.value='';
+  renderAdminUniversesView();
 }
 
 // Populate universe dropdown for event creation form (toggle buttons)
@@ -4576,7 +4760,10 @@ async function exportSubsExcel(){
   mySubs.forEach((s,ri)=>{
     const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
     const row=ws.getRow(5+ri);
-    [s.userName||'',s.userEmail||'',sType?.name||s.typeId,s.entriesTotal,s.entriesUsed,s.entriesTotal-s.entriesUsed,
+    [s.userName||'',s.userEmail||'',sType?.name||s.typeId,
+     sType?.mode==='discount'?'—':(s.entriesTotal||0),
+     sType?.mode==='discount'?'—':(s.entriesUsed||0),
+     sType?.mode==='discount'?'—':((s.entriesTotal||0)-(s.entriesUsed||0)),
      s.assignedAt?.split('T')[0]||'',s.expiresAt?.split('T')[0]||'Illimitata',
      {pagato:'Pagato',da_pagare:'Da pagare',parziale:'Parziale',omaggiato:'Omaggio',prezzo_modificato:'Prezzo modificato'}[s.paymentStatus]||'',
      s.paymentAmount||0,{active:'Attivo',expired:'Scaduto',suspended:'Sospeso'}[s.status]||'',s.notes||''
@@ -4592,8 +4779,9 @@ async function exportSubsExcel(){
 
   const buf=await wb.xlsx.writeBuffer();
   const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='abbonamenti_'+localDateStr(new Date())+'.xlsx';
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='abbonamenti_'+localDateStr(new Date())+'.xlsx';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
   showToast('Excel scaricato!');
 }
 
@@ -4775,8 +4963,8 @@ async function exportSubTypeExcel(typeId){
     row.getCell(2).value=s.userEmail||'';
     row.getCell(3).value=s.assignedAt?.split('T')[0]||'';
     row.getCell(4).value={pagato:'Pagato',da_pagare:'Da pagare',parziale:'Parziale',omaggiato:'Omaggio',prezzo_modificato:'Prezzo modificato'}[s.paymentStatus]||s.paymentStatus;
-    row.getCell(5).value=s.entriesUsed;row.getCell(5).alignment={horizontal:'center'};
-    row.getCell(6).value=s.entriesTotal;row.getCell(6).alignment={horizontal:'center'};
+    row.getCell(5).value=t.mode==='discount'?'—':(s.entriesUsed||0);row.getCell(5).alignment={horizontal:'center'};
+    row.getCell(6).value=t.mode==='discount'?'—':(s.entriesTotal||0);row.getCell(6).alignment={horizontal:'center'};
     row.getCell(7).value=s.expiresAt?s.expiresAt.split('T')[0]:'Illimitata';
     row.getCell(8).value={active:'Attivo',expired:'Scaduto',suspended:'Sospeso'}[s.status]||s.status;
     const bgColor=ri%2===0?'FFF8F8FC':'FFFFFFFF';
@@ -4797,8 +4985,8 @@ async function exportSubTypeExcel(typeId){
   // Summary row
   const sumRow=ws.getRow(5+subs.length);
   sumRow.getCell(1).value='TOTALI';sumRow.getCell(1).font={name:'Calibri',size:11,bold:true,color:{argb:'FF10B981'}};
-  sumRow.getCell(5).value=subs.reduce((s,x)=>s+x.entriesUsed,0);sumRow.getCell(5).font={name:'Calibri',size:11,bold:true};sumRow.getCell(5).alignment={horizontal:'center'};
-  sumRow.getCell(6).value=subs.reduce((s,x)=>s+x.entriesTotal,0);sumRow.getCell(6).font={name:'Calibri',size:11,bold:true};sumRow.getCell(6).alignment={horizontal:'center'};
+  sumRow.getCell(5).value=t.mode==='discount'?'—':subs.reduce((s,x)=>s+(x.entriesUsed||0),0);sumRow.getCell(5).font={name:'Calibri',size:11,bold:true};sumRow.getCell(5).alignment={horizontal:'center'};
+  sumRow.getCell(6).value=t.mode==='discount'?'—':subs.reduce((s,x)=>s+(x.entriesTotal||0),0);sumRow.getCell(6).font={name:'Calibri',size:11,bold:true};sumRow.getCell(6).alignment={horizontal:'center'};
   for(let ci=1;ci<=totalCols;ci++){
     sumRow.getCell(ci).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF0FDF4'}};
     sumRow.getCell(ci).border={top:{style:'medium',color:{argb:'FF10B981'}},bottom:{style:'medium',color:{argb:'FF10B981'}}};
@@ -4811,8 +4999,9 @@ async function exportSubTypeExcel(typeId){
 
   const buf=await wb.xlsx.writeBuffer();
   const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Abbonamento_'+t.name.replace(/[^a-zA-Z0-9àèéìòùÀÈÉÌÒÙ ]/g,'_')+'_'+localDateStr(new Date())+'.xlsx';
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='Abbonamento_'+t.name.replace(/[^a-zA-Z0-9àèéìòùÀÈÉÌÒÙ ]/g,'_')+'_'+localDateStr(new Date())+'.xlsx';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
   showToast('Excel scaricato!');
 }
 
@@ -9890,8 +10079,8 @@ function toggleJamUnivBtn(btn){
 }
 function populateJamTypeButtons(){
   const btnsWrap=document.getElementById('jam-type-btns');if(!btnsWrap)return;
-  const selectedUnivIds=Array.from(document.querySelectorAll('#jam-universes-list .ne-univ-selected')).map(b=>b.dataset.univ);
-  const types=getEventTypesForUniverses(selectedUnivIds);
+  // Show ALL event types from ALL universes (user requirement)
+  const types=getAllEventTypes();
   let html=types.map((t,i)=>{
     const isFirst=i===0;
     const style=isFirst?'background:var(--green-bg);color:var(--green);border:1px solid var(--green)':'border:1px solid var(--s400)';
@@ -12958,7 +13147,8 @@ function onEventTypeChange(){
 }
 function populateEventTypeDropdown(selectedUnivIds,currentValue){
   const sel=document.getElementById('ne-type');if(!sel)return;
-  const types=getEventTypesForUniverses(selectedUnivIds||[]);
+  // Always show ALL event types from ALL universes (user requirement)
+  const types=getAllEventTypes();
   let html='';
   types.forEach(t=>{html+='<option value="'+t+'">'+getEventTypeLabel(t)+'</option>';});
   html+='<option value="__custom__">✏️ Altro (crea nuova tipologia)</option>';
@@ -14923,7 +15113,7 @@ async function downloadExcel(){
   const a=document.createElement('a');
   const safeName=ev.title.replace(/[^a-zA-Z0-9àèéìòù ]/g,'').replace(/ +/g,'_');
   a.download=safeName+'_presenze.xlsx';
-  a.href=url;a.click();
+  a.href=url;document.body.appendChild(a);a.click();document.body.removeChild(a);
   URL.revokeObjectURL(url);
   showToast('Excel scaricato!');
 }
