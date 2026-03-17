@@ -3022,7 +3022,7 @@ function getPendingUniverses(){return store.universes.filter(u=>u.status==='pend
 
 /* === EVENT TYPES PER-UNIVERSE CATALOG === */
 const DEFAULT_EVENT_TYPES=['jam','lezione','workshop','social'];
-const EVENT_TYPE_LABELS={jam:'Jam',lezione:'Lezione',workshop:'Workshop',ritiro:'Ritiro',pratica:'Pratica',social:'Community event'};
+const EVENT_TYPE_LABELS={jam:'Jam',lezione:'Lezione',workshop:'Workshop',ritiro:'Ritiro',pratica:'Pratica',social:'Community Event'};
 const EVENT_TYPE_ICONS={jam:'🤝',lezione:'📚',workshop:'🛠️',ritiro:'🏕️',pratica:'🧘',social:'🎉'};
 function normalizeTypeName(name){return(name||'').trim().toLowerCase().replace(/\s+/g,' ');}
 function getEventTypesForUniverse(univId){
