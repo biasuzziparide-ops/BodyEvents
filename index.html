@@ -9584,7 +9584,12 @@ function toggleAttendance(bookingId,checkedIn){
   b.checkedIn=checkedIn;
   b.checkinTime=checkedIn?new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}):'';
   fsSet('bookings',b.id,b).catch(console.error);
-  renderAttendance();
+  // Refresh whichever view is active
+  if(currentView==='admin-checkin')renderAttendance();
+  if(currentView==='admin-event-detail'&&window._currentAdminDetailEvId){
+    window._adminDetailKeepScroll=true;
+    showAdminEventDetail(window._currentAdminDetailEvId);
+  }
   showToast(checkedIn?'✅ Presenza registrata per '+b.userName:'Presenza rimossa per '+b.userName);
 }
 // Set booking payment status (only capofila)
@@ -12711,10 +12716,14 @@ function autoConcludeEvents(){
     if(ev.recurrence&&ev.recurrence.weeks){
       const startDate=new Date(lastDay.date+'T23:59:59');
       const endDate=new Date(startDate.getTime()+(ev.recurrence.weeks*7*24*60*60*1000));
-      if(localDateStr(endDate)<today)ev.status='concluso';
+      if(localDateStr(endDate)<today){ev.status='concluso';fsUpdate('events',ev.id,{status:'concluso'}).catch(console.error);}
       return;
     }
-    if(lastDay.date<today)ev.status='concluso';
+    if(lastDay.date<today){
+      ev.status='concluso';
+      fsUpdate('events',ev.id,{status:'concluso'}).catch(console.error);
+      console.info('autoConcludeEvents: event '+ev.id+' ('+ev.title+') → concluso');
+    }
   });
 }
 
@@ -16037,14 +16046,26 @@ function getRecurringDateTabs(ev){
   const exc=(ev.recurrence.exceptions||{});
   const exclDates=ev.recurrence.exclusionDates||[];
   function isExcl(ds){return(exc[ds]&&(exc[ds].type==='skip'||exc[ds].type==='cancellato'))||exclDates.includes(ds);}
+  // Check if today's session has ended (today is target day but session is over)
+  const _todayStr=localDateStr(today);
+  const _nowFull=new Date();
+  const _endT=ev.days?.[0]?.endTime||'23:59';
+  const _endParts=_endT.split(':');
+  const _sessionEndToday=new Date(today);_sessionEndToday.setHours(parseInt(_endParts[0])||23,parseInt(_endParts[1])||59,0,0);
+  const _todayIsTargetDay=today.getDay()===targetDay;
+  const _todaySessionEnded=_todayIsTargetDay&&_nowFull>_sessionEndToday;
   // Find last completed date (most recent past occurrence)
+  // Include today if it's the target day AND the session has ended
   const pastDates=[];
   if(freq==='settimanale'){
-    const dp=new Date(today);dp.setDate(dp.getDate()-1);
+    if(_todaySessionEnded&&!isExcl(_todayStr)){
+      pastDates.push(_todayStr);
+    }
+    const dp=new Date(today);dp.setDate(dp.getDate()-(_todaySessionEnded?7:1));
     let s=0;while(dp.getDay()!==targetDay&&s<7){dp.setDate(dp.getDate()-1);s++;}
     const dpStr=localDateStr(dp);
-    if(!isExcl(dpStr)){pastDates.push(dpStr);}
-    else{dp.setDate(dp.getDate()-7);const d2=localDateStr(dp);if(!isExcl(d2))pastDates.push(d2);}
+    if(!isExcl(dpStr)&&dpStr!==_todayStr){pastDates.push(dpStr);}
+    else if(dpStr!==_todayStr){dp.setDate(dp.getDate()-7);const d2=localDateStr(dp);if(!isExcl(d2)&&d2!==_todayStr)pastDates.push(d2);}
   }else if(freq==='mensile'){
     const evStart=ev.days&&ev.days[0]?new Date(ev.days[0].date+'T00:00:00'):today;
     const dom=evStart.getDate();
@@ -16059,7 +16080,9 @@ function getRecurringDateTabs(ev){
   const futureDates=getNextRecurringDates(ev,2);
   const allDates=[...pastDates,...futureDates];
   if(!allDates.length)return null;
-  const defaultDate=futureDates.length?futureDates[0]:(pastDates.length?pastDates[pastDates.length-1]:allDates[0]);
+  // Default: if today's session just ended, default to today so organizer sees tonight's list
+  // Otherwise: first future date, or most recent past date
+  const defaultDate=(_todaySessionEnded&&pastDates.includes(_todayStr))?_todayStr:(futureDates.length?futureDates[0]:(pastDates.length?pastDates[0]:allDates[0]));
   return {dates:allDates,defaultDate,pastDates,futureDates};
 }
 
@@ -16363,7 +16386,7 @@ function showAdminEventDetail(evId){
           const _pUser=store.users.find(x=>x.id===b.userId)||store.managers.find(x=>x.id===b.userId);
           const _pLogo=_pUser?.profileLogo||null;
           const avatarInner=_pLogo?'<img src="'+_pLogo+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':b.initials;
-          const checkedInHtml=b.checkedIn?'<span class="badge" style="background:rgba(16,185,129,.2);color:var(--green)">✅ Presente</span>':!isArchived?'<button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:.7rem" onclick="event.stopPropagation();toggleAttendance(\''+b.id+'\',true)">⬜ Segna presente</button>':'<span class="text-xs txt3">Assente</span>';
+          const checkedInHtml=b.checkedIn?(!isArchived?'<button class="btn btn-sm" style="padding:2px 8px;font-size:.7rem;background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="event.stopPropagation();toggleAttendance(\''+b.id+'\',false)">✅ Presente'+(b.checkinTime?' '+b.checkinTime:'')+'</button>':'<span class="badge" style="background:rgba(16,185,129,.2);color:var(--green)">✅ Presente</span>'):(!isArchived?'<button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:.7rem" onclick="event.stopPropagation();toggleAttendance(\''+b.id+'\',true)">⬜ Segna presente</button>':'<span class="text-xs txt3">Assente</span>');
           return `<tr>
             <td><div class="flex items-center gap-2"><div class="avatar ${avatarCls}" ${avatarStyle} style="${!avatarCls?'background:var(--s300);color:var(--txt3)':''}${_pLogo?';overflow:hidden':''}">${avatarInner}</div><div><div class="font-medium text-white text-sm">${escHtml(b.userName)}</div><div class="text-xs txt3">${escHtml(b.email)}</div></div></div></td>
             <td><span style="color:${roleColor(b.role)}">${roleName(b.role)}</span></td>
