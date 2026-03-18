@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.37.4</title>
+<title>BodyEvents — V2.37.5</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -349,7 +349,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.37.4</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.37.5</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -476,7 +476,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="nav-link master-only" style="display:none" onclick="go('admin-community-jams');closeMobileAdmin()">🤝 Community Events</div>
       <div class="nav-link master-only" style="display:none" onclick="go('admin-users');closeMobileAdmin()">👥 Gestione Utenti</div>
       <div class="nav-link master-only" style="display:none" onclick="go('admin-universes');closeMobileAdmin()">🌌 Universi</div>
-      <div class="nav-link" onclick="go('info-page');closeMobileAdmin()">ℹ️ Come funziona</div>
+      <div class="nav-link" onclick="go('info-page-organizer');closeMobileAdmin()">ℹ️ Guida organizzatore</div>
     </div>
     <div class="mm-group">
       <div class="mm-group-label">Impostazioni</div>
@@ -2161,6 +2161,14 @@ textarea.input{resize:none;font-family:inherit}
 </div>
 </div>
 <!-- ============================================================ -->
+<!-- VIEW: INFO PAGE ORGANIZER — Guida Organizzatore -->
+<!-- ============================================================ -->
+<div class="view" id="view-info-page-organizer">
+<div class="container" style="padding-top:32px;padding-bottom:48px;max-width:600px">
+  <div id="info-page-organizer-content"></div>
+</div>
+</div>
+<!-- ============================================================ -->
 <!-- VIEW: CHECK-IN SCENARIO A — Prenotato + loggato (1 tap!) -->
 <!-- ============================================================ -->
 <div class="view" id="view-checkin-booked">
@@ -2857,33 +2865,50 @@ function obDismissCard(key,btn){
 // === HELP BUTTON (removed in V2.8.9) ===
 function obShowHelpBtn(){}
 
-// === FAB INFO BUTTON (V2.37.4) ===
+// === FAB INFO BUTTON (V2.37.5) ===
 const FAB_SEEN_KEY='bodyevents_fab_tooltip_seen';
 function showInfoFab(){
   const fab=document.getElementById('info-fab');if(!fab)return;
-  // Show FAB on user-facing views only (not login/register/checkin)
-  const userViews=['events','event-detail-1','event-detail-2','event-detail-3','event-detail-dynamic','jams','dashboard','bookings','profile','info-page'];
-  if(!userViews.includes(currentView)){fab.style.display='none';return;}
-  // Hide on info-page itself
-  if(currentView==='info-page'){fab.style.display='none';return;}
+  // Show FAB on user-facing views and admin views
+  const userViews=['events','event-detail-1','event-detail-2','event-detail-3','event-detail-dynamic','jams','dashboard','bookings','profile'];
+  const adminViews=['admin','admin-events','admin-new-event','admin-checkin','admin-subscriptions','admin-registry','admin-event-detail','admin-bookings','admin-community-events','admin-community-jams','admin-users','admin-universes','admin-org-profile'];
+  const isUser=userViews.includes(currentView);
+  const isAdmin=adminViews.includes(currentView);
+  // Hide on info pages themselves
+  if(currentView==='info-page'||currentView==='info-page-organizer'){fab.style.display='none';return;}
+  if(!isUser&&!isAdmin){fab.style.display='none';return;}
   fab.style.display='flex';
-  // Tooltip: show only once
-  if(!localStorage.getItem(FAB_SEEN_KEY)){
+  // Set correct target based on context
+  fab.onclick=function(){dismissInfoFabTooltip();go(isAdmin?'info-page-organizer':'info-page');};
+  // Tooltip: show only once (separate keys for user/admin)
+  const seenKey=isAdmin?'bodyevents_fab_org_tooltip_seen':FAB_SEEN_KEY;
+  if(!localStorage.getItem(seenKey)){
     const tt=document.getElementById('info-fab-tooltip');
-    if(tt)tt.style.display='block';
+    if(tt){
+      tt.style.display='block';
+      tt.querySelector('.tt-text').innerHTML=isAdmin
+        ?'<strong style="color:var(--brand-l)">Guida organizzatore</strong><br>Scopri tutti gli strumenti per gestire i tuoi eventi!'
+        :'<strong style="color:var(--brand-l)">Nuovo su BodyEvents?</strong><br>Scopri come funziona la piattaforma!';
+    }
     fab.classList.add('fab-pulse');
   }
+}
+function dismissInfoFabTooltipForContext(){
+  const isAdmin=currentView.startsWith('admin');
+  localStorage.setItem(isAdmin?'bodyevents_fab_org_tooltip_seen':FAB_SEEN_KEY,'1');
 }
 function dismissInfoFabTooltip(){
   const tt=document.getElementById('info-fab-tooltip');
   if(tt)tt.style.display='none';
   const fab=document.getElementById('info-fab');
   if(fab)fab.classList.remove('fab-pulse');
-  localStorage.setItem(FAB_SEEN_KEY,'1');
+  // Set seen key for both user and admin context
+  const isAdmin=currentView.startsWith('admin');
+  localStorage.setItem(isAdmin?'bodyevents_fab_org_tooltip_seen':FAB_SEEN_KEY,'1');
 }
 function _obShowTourForCurrentView(force){
   const v=currentView;
-  // User-side tours removed in V2.37.4 — replaced by FAB info button + info page
+  // User-side tours removed in V2.37.5 — replaced by FAB info button + info page
   // Admin-side tours kept (complex interface needs guidance)
   if(v==='admin')obShowTour('tour_admin_intro',force);
   else if(v==='admin-events')obShowTour('tour_admin_events',force);
@@ -3185,7 +3210,7 @@ function _migrateLegacyEventTypes(){
     if(stChanged||st.compatibleEventTypes.length!==before)fsUpdate('subscriptionTypes',st.id,{compatibleEventTypes:st.compatibleEventTypes}).catch(console.error);
   });
 }
-/* === INFO PAGE — Come funziona BodyEvents (V2.37.4) === */
+/* === INFO PAGE — Come funziona BodyEvents (V2.37.5) === */
 function renderInfoPage(){
   const c=document.getElementById('info-page-content');if(!c)return;
   const active=getActiveUniverses();
@@ -3283,6 +3308,232 @@ function renderInfoPage(){
     usersSec+=tip('💡','<strong style="color:#6366f1">Vuoi diventare organizzatore?</strong> Scrivi a <strong style="color:#6366f1">'+escHtml(masterEmail)+'</strong> per richiedere l\'approvazione.');
   }
   html+=sec(usersSec);
+
+  // === FEEDBACK ===
+  let feedbackSec='<div style="font-size:1.05rem;font-weight:700;color:var(--txt1);margin-bottom:4px;display:flex;align-items:center;gap:8px">💬 Aiutaci a migliorare</div>';
+  feedbackSec+='<div style="font-size:.8rem;color:var(--brand-l);margin-bottom:12px;font-weight:500">La piattaforma cresce con il contributo di chi la usa</div>';
+  feedbackSec+=p('Hai feedback, suggerimenti, o trovi che qualcosa non funzioni come vorresti? Hai un\'idea per una nuova funzionalità?');
+  if(masterEmail){
+    feedbackSec+=p('Scrivici o contatta direttamente l\'amministratore all\'indirizzo <strong style="color:var(--brand-l)">'+escHtml(masterEmail)+'</strong> — ogni segnalazione viene letta e valutata per provare a realizzarla nelle prossime versioni.');
+  }
+  html+='<div style="background:linear-gradient(135deg, rgba(99,102,241,.08), rgba(217,70,239,.08));border:1px solid rgba(99,102,241,.2);border-radius:16px;padding:20px;margin-bottom:16px">'+feedbackSec+'</div>';
+
+  c.innerHTML=html;
+}
+/* === INFO PAGE ORGANIZER — Guida Organizzatore (V2.37.5) === */
+function renderInfoPageOrganizer(){
+  const c=document.getElementById('info-page-organizer-content');if(!c)return;
+  const master=store.managers.find(m=>m.role==='master');
+  const masterEmail=master?(master.contactEmail||master.email):'';
+  const active=getActiveUniverses();
+  // Style helpers (same as user info page)
+  const sec=(inner)=>'<div style="background:var(--s50);border-radius:16px;padding:20px;margin-bottom:16px;border:1px solid var(--s200)">'+inner+'</div>';
+  const h2=(icon,text)=>'<div style="font-size:1.05rem;font-weight:700;color:var(--txt1);margin-bottom:4px;display:flex;align-items:center;gap:8px">'+icon+' '+text+'</div>';
+  const tagline=(text)=>'<div style="font-size:.8rem;color:var(--brand-l);margin-bottom:12px;font-weight:500">'+text+'</div>';
+  const h3=(text)=>'<div style="font-size:.9rem;font-weight:600;color:var(--brand-l);margin:14px 0 6px">'+text+'</div>';
+  const p=(text)=>'<p style="font-size:.86rem;color:var(--txt2);margin-bottom:8px;line-height:1.55">'+text+'</p>';
+  const tip=(icon,text)=>'<div style="background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.2);border-radius:12px;padding:14px 16px;margin:12px 0 4px;font-size:.82rem;color:#6366f1;line-height:1.5">'+icon+' '+text+'</div>';
+  const valueBox=(icon,text)=>'<div style="background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.2);border-radius:12px;padding:14px 16px;margin:12px 0 4px;font-size:.82rem;color:#10b981;line-height:1.5">'+icon+' '+text+'</div>';
+  const warnBox=(icon,text)=>'<div style="background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.2);border-radius:12px;padding:14px 16px;margin:12px 0 4px;font-size:.82rem;color:#eab308;line-height:1.5">'+icon+' '+text+'</div>';
+  const featItem=(icon,text)=>'<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--s200)"><span style="font-size:1rem;flex-shrink:0;margin-top:1px">'+icon+'</span><div style="font-size:.84rem;color:var(--txt2);line-height:1.45">'+text+'</div></div>';
+  const featList=(items)=>'<div style="margin:10px 0 6px">'+items+'</div>';
+  const card2=(icon,title,desc)=>'<div style="background:var(--s100);border-radius:12px;padding:14px;border:1px solid var(--s300)"><div style="font-size:1.3rem;margin-bottom:6px">'+icon+'</div><div style="font-size:.82rem;font-weight:700;color:var(--txt1);margin-bottom:4px">'+title+'</div><div style="font-size:.76rem;color:var(--txt3);line-height:1.45">'+desc+'</div></div>';
+  const valueCard=(icon,title,desc)=>'<div style="background:var(--s100);border-radius:12px;padding:14px;border:1px solid var(--s300);position:relative;overflow:hidden"><div style="position:absolute;top:0;left:0;right:0;height:3px;background:var(--brand);opacity:.4;border-radius:12px 12px 0 0"></div><div style="font-size:1.3rem;margin-bottom:6px">'+icon+'</div><div style="font-size:.82rem;font-weight:700;color:var(--txt1);margin-bottom:4px">'+title+'</div><div style="font-size:.76rem;color:var(--txt3);line-height:1.45">'+desc+'</div></div>';
+  const grid2=(inner)=>'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 4px">'+inner+'</div>';
+  const flowStep=(num,text)=>'<div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:10px"><div style="width:28px;height:28px;border-radius:50%;background:var(--brand-bg);color:var(--brand-l);font-size:.8rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1.5px solid var(--brand)">'+num+'</div><div style="font-size:.84rem;color:var(--txt2);line-height:1.5;padding-top:3px">'+text+'</div></div>';
+
+  let html='';
+
+  // === HERO ===
+  html+='<div style="background:linear-gradient(135deg, rgba(217,70,239,.15), rgba(99,102,241,.12));border:1px solid rgba(217,70,239,.25);border-radius:20px;padding:28px 22px;margin-bottom:20px;text-align:center"><div style="font-size:2.4rem;margin-bottom:8px">🏢</div><div style="font-size:1.35rem;font-weight:800;color:var(--txt1);margin-bottom:6px;letter-spacing:-.02em">Il tuo Centro di Gestione</div><p style="font-size:.84rem;color:var(--txt2);line-height:1.55;max-width:440px;margin:0 auto">Strumenti pensati per organizzatori che vogliono concentrarsi sulla propria comunità, non sulla burocrazia. Tutto in un unico posto, a portata di tap.</p></div>';
+
+  // === NAV INDEX ===
+  const navItems=[
+    {id:'org-universi',icon:'🌌',label:'Universi e partner'},
+    {id:'org-tipologie',icon:'📋',label:'Tipologie evento'},
+    {id:'org-struttura',icon:'🏗️',label:'Struttura evento'},
+    {id:'org-prezzi',icon:'💰',label:'Costi e prezzi'},
+    {id:'org-abbonamenti',icon:'🎟️',label:'Abbonamenti'},
+    {id:'org-anagrafica',icon:'📇',label:'Anagrafica'},
+    {id:'org-iscritti',icon:'📊',label:'Lista iscritti'},
+    {id:'org-checkin',icon:'📱',label:'Check-in e presenze'},
+    {id:'org-comunicazioni',icon:'📢',label:'Comunicazioni'},
+    {id:'org-inviti',icon:'🔗',label:'Inviti e crescita'}
+  ];
+  let navHtml='<div style="font-size:.78rem;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">In questa guida</div><div style="display:flex;flex-wrap:wrap;gap:6px">';
+  navItems.forEach(n=>{
+    navHtml+='<a href="#" onclick="event.preventDefault();document.getElementById(\''+n.id+'\')?.scrollIntoView({behavior:\'smooth\',block:\'start\'})" style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:10px;font-size:.78rem;font-weight:600;background:var(--s100);border:1px solid var(--s300);color:var(--txt2);text-decoration:none">'+n.icon+' '+n.label+'</a>';
+  });
+  navHtml+='</div>';
+  html+='<div style="background:var(--s50);border:1px solid var(--s200);border-radius:16px;padding:16px 18px;margin-bottom:20px">'+navHtml+'</div>';
+
+  // === 1. UNIVERSI E PARTNERSHIP ===
+  let s1=h2('🌌','Universi e Partnership');
+  s1+=tagline('Raggiungi più comunità con meno sforzo');
+  s1+=p('Ogni organizzatore opera all\'interno di uno o più <strong style="color:var(--txt1)">universi</strong> (aree tematiche). I tuoi eventi saranno visibili a tutti gli utenti iscritti a quegli universi, senza promozione aggiuntiva.');
+  s1+=h3('Eventi multi-universo');
+  s1+=p('Associa un evento a <strong style="color:var(--txt1)">più universi contemporaneamente</strong> per moltiplicare la visibilità. Un workshop di danza-acrobatica può apparire sia in AcroWorld che in BodySoul, raggiungendo entrambe le community con una sola pubblicazione.');
+  s1+=h3('Partnership tra organizzatori');
+  s1+=p('Invita <strong style="color:var(--txt1)">altri organizzatori come partner</strong> del tuo evento. I partner vedranno l\'evento nel loro pannello e i loro iscritti potranno usufruire degli abbonamenti compatibili. Tu (capofila) mantieni il <strong style="color:var(--txt1)">controllo completo</strong>.');
+  html+='<div id="org-universi" style="scroll-margin-top:16px">'+sec(s1)+'</div>';
+
+  // === 2. TIPOLOGIE DI EVENTO ===
+  let s2=h2('📋','Tipologie di evento');
+  s2+=tagline('Ogni formato ha le sue regole, tutte gestibili in automatico');
+  s2+=p('Come organizzatore puoi creare <strong style="color:var(--txt1)">tutte e 4 le tipologie</strong> di evento:');
+  s2+=grid2(
+    card2('🤝','Jam','Pratica libera informale. Lista iscritti visibile a tutti. Ideale per sessioni aperte.')
+    +card2('📚','Lezione','Lezione strutturata. Supporta sessioni multiple, ruoli e pricing avanzato.')
+    +card2('🛠️','Workshop','Sessione intensiva su più ore o giorni. Supporta multi-giornata e anticipo.')
+    +card2('🎉','Community Event','Evento sociale. Lista iscritti visibile. Creabile anche dagli utenti.')
+  );
+  s2+=p('<span style="margin-top:10px;display:block">Puoi anche definire <strong style="color:var(--txt1)">tipologie personalizzate</strong> dalla sezione Universi. Saranno disponibili per tutti gli eventi di quell\'universo.</span>');
+  s2+=tip('💡','<strong style="color:#6366f1">Suggerimento:</strong> le tipologie personalizzate permettono di segmentare la tua offerta (es. "Intensivo", "Open Level", "Avanzato") senza creare eventi separati.');
+  html+='<div id="org-tipologie" style="scroll-margin-top:16px">'+sec(s2)+'</div>';
+
+  // === 3. STRUTTURA EVENTO ===
+  let s3=h2('🏗️','Struttura di un evento');
+  s3+=tagline('Flessibilità totale: da una singola sessione a un festival multi-giornata');
+  s3+=p('Ogni evento ha una struttura a <strong style="color:var(--txt1)">3 livelli</strong> che si adatta a qualsiasi formato:');
+  s3+=flowStep('1','<strong style="color:var(--txt1)">Evento</strong> — il contenitore principale con titolo, descrizione, luogo, insegnante, universi e tipologia.');
+  s3+=flowStep('2','<strong style="color:var(--txt1)">Giornate</strong> — una o più date. Ogni giornata è indipendente e ha la propria lista iscritti.');
+  s3+=flowStep('3','<strong style="color:var(--txt1)">Sessioni</strong> — ogni giornata può contenere più sessioni con orari, insegnanti e prezzi separati.');
+  s3+=p('L\'utente può prenotarsi per l\'<strong style="color:var(--txt1)">intero evento</strong>, una <strong style="color:var(--txt1)">singola giornata</strong> o una <strong style="color:var(--txt1)">singola sessione</strong>, a seconda della struttura e dei prezzi che imposti.');
+  s3+=h3('Eventi ricorrenti');
+  s3+=p('Attiva la <strong style="color:var(--txt1)">ricorrenza</strong> per generare automaticamente più date (es. ogni martedì per 8 settimane). Ogni data ha la propria lista iscritti. Puoi <strong style="color:var(--txt1)">saltare singole date</strong> senza toccare le altre.');
+  s3+=h3('Sondaggi personalizzati');
+  s3+=p('Aggiungi <strong style="color:var(--txt1)">domande personalizzate</strong> al flusso di iscrizione (testo libero, scelta singola o multipla). Le risposte appaiono nella scheda partecipante e nell\'export Excel.');
+  s3+=valueBox('⚡','<strong style="color:#10b981">Efficienza:</strong> crea un evento una volta, genera automaticamente tutte le date ricorrenti, e gestisci ogni sessione con la sua lista iscritti separata. Zero duplicazioni.');
+  html+='<div id="org-struttura" style="scroll-margin-top:16px">'+sec(s3)+'</div>';
+
+  // === 4. PREZZI ===
+  let s4=h2('💰','Preferenze costi e struttura prezzi');
+  s4+=tagline('Pricing flessibile che si adatta alla tua filosofia');
+  s4+=p('Ogni evento può avere una politica di prezzo diversa. Scegli la modalità più adatta:');
+  s4+=featList(
+    featItem('🆓','<strong style="color:var(--txt1)">Gratuito</strong> — nessun costo. L\'utente si iscrive liberamente.')
+    +featItem('🤝','<strong style="color:var(--txt1)">Gestione organizzatore</strong> — i costi sono gestiti esternamente alla piattaforma. Perfetto per pagamenti in contanti o con fattura.')
+    +featItem('💳','<strong style="color:var(--txt1)">Prezzo standard</strong> — un singolo prezzo uguale per tutti.')
+    +featItem('📊','<strong style="color:var(--txt1)">3 fasce di prezzo</strong> — <strong style="color:var(--txt1)">Sostenitore</strong>, <strong style="color:var(--txt1)">Standard</strong> e <strong style="color:var(--txt1)">Ridotto</strong>. La scelta è libera, privata e basata sulla fiducia. Chi può contribuisce di più, rendendo l\'evento accessibile a tutti.')
+  );
+  s4+=h3('Prezzi granulari');
+  s4+=p('Per eventi multi-giornata o multi-sessione, puoi impostare <strong style="color:var(--txt1)">prezzi diversi per ogni sessione o giornata</strong>.');
+  s4+=h3('Sconti e promozioni');
+  s4+=featList(
+    featItem('🐦','<strong style="color:var(--txt1)">Early Bird</strong> — sconto automatico per chi prenota entro una data o un numero massimo di posti.')
+    +featItem('🎁','<strong style="color:var(--txt1)">Sconto fedeltà</strong> — sconto per chi ha partecipato a un evento specifico che indichi tu.')
+    +featItem('🔒','<strong style="color:var(--txt1)">Anticipo</strong> — richiedi un deposito al momento dell\'iscrizione per garantire la prenotazione.')
+  );
+  s4+=warnBox('⚠️','<strong style="color:#eab308">Nota:</strong> la fascia di prezzo scelta da ciascun utente è <strong style="color:#eab308">privata</strong>. Nessun partecipante può vedere la scelta degli altri.');
+  s4+=h3('Come funzionano i pagamenti');
+  s4+=p('La piattaforma <strong style="color:var(--txt1)">non gestisce direttamente i pagamenti</strong> in app. Quello che fa è tracciare tutto: tiene conto di prezzi, sconti, anticipi e stati di pagamento per ogni partecipante, fornendoti <strong style="color:var(--txt1)">metriche precise</strong> su totali previsti, incassati e da incassare.');
+  s4+=p('Se vuoi offrire il pagamento online, puoi inserire il tuo <strong style="color:var(--txt1)">link di pagamento</strong> (PayPal, Satispay, o altri) nella configurazione dell\'evento. Gli utenti vedranno il link al momento della prenotazione e potranno pagare direttamente sul tuo conto. Tu poi confermi la ricezione dalla lista iscritti.');
+  s4+=tip('💡','<strong style="color:#6366f1">In pratica:</strong> la piattaforma è il tuo gestionale contabile per gli eventi. I soldi passano direttamente tra te e i partecipanti, senza intermediari e senza commissioni.');
+  s4+=valueBox('📈','<strong style="color:#10b981">Valore:</strong> hai sempre il quadro finanziario completo — chi deve pagare, chi ha pagato, quanto manca — senza fogli di calcolo manuali. Apri l\'export e hai tutto pronto.');
+  html+='<div id="org-prezzi" style="scroll-margin-top:16px">'+sec(s4)+'</div>';
+
+  // === 5. ABBONAMENTI ===
+  let s5=h2('🎟️','Abbonamenti');
+  s5+=tagline('Fidelizza la tua community con pacchetti su misura');
+  s5+=p('Crea <strong style="color:var(--txt1)">tipologie di abbonamento</strong> legate ai tuoi universi. Due modalità disponibili:');
+  s5+=grid2(
+    card2('🎫','A ingressi','Numero fisso di ingressi. Ogni prenotazione ne scala uno. Esauriti gli ingressi, l\'abbonamento termina.')
+    +card2('📉','A sconto','Sconto percentuale sul prezzo di ogni evento compatibile. L\'abbonamento non si esaurisce a ingressi.')
+  );
+  s5+=h3('Compatibilità intelligente');
+  s5+=p('Ogni abbonamento ha <strong style="color:var(--txt1)">tipologie di evento compatibili</strong> (es. solo Jam + Workshop). Di default è compatibile con tutto il tuo universo; puoi restringerlo dalla configurazione.');
+  s5+=h3('Assegnazione e tracciamento');
+  s5+=p('Assegna gli abbonamenti tramite <strong style="color:var(--txt1)">QR code</strong> o direttamente dall\'anagrafica. Per ogni abbonamento puoi tracciare lo <strong style="color:var(--txt1)">stato del pagamento</strong> (pagato, da pagare, omaggio, parziale) e aggiungere note.');
+  s5+=valueBox('🔄','<strong style="color:#10b981">Valore:</strong> gli abbonamenti si applicano automaticamente in fase di prenotazione. L\'utente vede subito lo sconto o l\'ingresso incluso, senza intervento manuale da parte tua.');
+  html+='<div id="org-abbonamenti" style="scroll-margin-top:16px">'+sec(s5)+'</div>';
+
+  // === 6. ANAGRAFICA ===
+  let s6=h2('📇','Anagrafica');
+  s6+=tagline('Il tuo database contatti, sempre aggiornato, sempre esportabile');
+  s6+=p('L\'anagrafica raccoglie <strong style="color:var(--txt1)">automaticamente</strong> tutti gli utenti che hanno interagito con i tuoi eventi. Nessun inserimento manuale: ogni iscrizione, prenotazione o check-in alimenta il database.');
+  s6+=h3('Colonne personalizzate');
+  s6+=p('Aggiungi <strong style="color:var(--txt1)">colonne custom</strong> (testo, numeri, checkbox, colori) per tracciare ciò che serve a te: livello, note personali, scadenze, preferenze alimentari, qualsiasi cosa.');
+  s6+=h3('Sottoliste e segmentazione');
+  s6+=p('Crea <strong style="color:var(--txt1)">sottoliste</strong> con filtri personalizzati per segmentare i tuoi iscritti (es. "Principianti", "Pagamenti in sospeso", "Iscritti attivi nell\'ultimo mese"). Ogni sottolista è esportabile separatamente.');
+  s6+=h3('Export Excel');
+  s6+=p('Tutta l\'anagrafica (o singole sottoliste) è esportabile in <strong style="color:var(--txt1)">file Excel formattato</strong> con intestazioni, zebra-striping e totali automatici. Un tap e hai il file pronto.');
+  s6+=valueBox('📊','<strong style="color:#10b981">Valore:</strong> un CRM integrato nella piattaforma. Non serve nessun tool esterno per gestire i tuoi contatti, segmentarli o esportarli.');
+  html+='<div id="org-anagrafica" style="scroll-margin-top:16px">'+sec(s6)+'</div>';
+
+  // === 7. LISTA ISCRITTI ===
+  let s7=h2('📊','Lista iscritti e gestione prenotazioni');
+  s7+=tagline('Ogni evento, ogni partecipante, ogni dettaglio sotto controllo');
+  s7+=p('Dalla <strong style="color:var(--txt1)">scheda dettaglio evento</strong> accedi alla lista completa dei partecipanti con tutte le metriche in tempo reale.');
+  s7+=p('Per ogni partecipante visualizzi: <strong style="color:var(--txt1)">ruolo</strong>, <strong style="color:var(--txt1)">sessioni prenotate</strong>, <strong style="color:var(--txt1)">fascia di prezzo</strong>, <strong style="color:var(--txt1)">stato pagamento</strong>, <strong style="color:var(--txt1)">anticipo</strong> e le <strong style="color:var(--txt1)">risposte al sondaggio</strong>.');
+  s7+=h3('Azioni rapide');
+  s7+=featList(
+    featItem('✅','<strong style="color:var(--txt1)">Conferma pagamento</strong> — segna un partecipante come pagato con un tap.')
+    +featItem('💰','<strong style="color:var(--txt1)">Registra anticipo</strong> — traccia la ricezione del deposito.')
+    +featItem('🎁','<strong style="color:var(--txt1)">Omaggio</strong> — imposta un ingresso come gratuito.')
+    +featItem('❌','<strong style="color:var(--txt1)">Cancella prenotazione</strong> — rimuove la prenotazione. L\'utente può re-iscriversi.')
+  );
+  s7+=h3('Vista per sessione');
+  s7+=p('Per eventi multi-sessione, filtra la vista per <strong style="color:var(--txt1)">singola sessione</strong>: vedi solo i partecipanti di quella specifica attività.');
+  s7+=h3('Export Excel avanzato');
+  s7+=p('L\'export include: <strong style="color:var(--txt1)">riepilogo metriche con formule</strong> (totale previsto, incassato, da incassare), distribuzione ruoli, lista completa con sondaggi, e sezione cancellati. Per eventi multi-sessione, un <strong style="color:var(--txt1)">foglio separato per ogni sessione</strong>.');
+  s7+=valueBox('⚡','<strong style="color:#10b981">Efficienza:</strong> tutte le operazioni di gestione partecipanti avvengono inline, senza navigare altrove. Conferma pagamenti, registra anticipi, esporta — tutto dalla stessa schermata.');
+  html+='<div id="org-iscritti" style="scroll-margin-top:16px">'+sec(s7)+'</div>';
+
+  // === 8. CHECK-IN E PRESENZE ===
+  let s8=h2('📱','Check-in e presenze');
+  s8+=tagline('Dal QR code al registro presenze in zero passaggi');
+  s8+=p('Il check-in digitale elimina le liste cartacee e riduce a zero il tempo di ingresso.');
+  s8+=h3('Come funziona');
+  s8+=flowStep('1','<strong style="color:var(--txt1)">Genera il QR code</strong> dalla scheda evento. Stampalo o mostralo dal telefono.');
+  s8+=flowStep('2','<strong style="color:var(--txt1)">Il partecipante scansiona</strong> il QR all\'ingresso.');
+  s8+=flowStep('3','<strong style="color:var(--txt1)">Check-in automatico</strong> — se è prenotato, un tap e ha fatto. Se non lo è, si prenota e fa check-in in un unico flusso.');
+  s8+=h3('Scenari gestiti');
+  s8+=grid2(
+    valueCard('⚡','Prenotato','Check-in istantaneo con un singolo tap. Zero attesa.')
+    +valueCard('🆕','Nuovo utente','Si registra al volo con email e nome, senza account completo.')
+    +valueCard('🎫','Abbonato','L\'abbonamento viene scalato automaticamente al check-in.')
+    +valueCard('📲','Non prenotato','Può prenotarsi e fare check-in in un unico flusso dal QR.')
+  );
+  s8+=h3('Registro presenze');
+  s8+=p('Nella sezione <strong style="color:var(--txt1)">📊 Presenze</strong> trovi il registro completo: chi era presente, a quale sessione, con dettaglio per data. Tutto esportabile in Excel.');
+  s8+=valueBox('🕐','<strong style="color:#10b981">Tempo risparmiato:</strong> niente più liste cartacee, spunte manuali o conteggi a fine giornata. Il sistema traccia tutto in tempo reale.');
+  html+='<div id="org-checkin" style="scroll-margin-top:16px">'+sec(s8)+'</div>';
+
+  // === 9. COMUNICAZIONI ===
+  let s9=h2('📢','Comunicazioni e modifiche');
+  s9+=tagline('Aggiorna gli iscritti con un tap, senza messaggi individuali');
+  s9+=p('Dopo la pubblicazione, puoi comunicare <strong style="color:var(--txt1)">modifiche importanti</strong> a tutti gli iscritti in automatico:');
+  s9+=featList(
+    featItem('📝','<strong style="color:var(--txt1)">Modifica</strong> — cambiamenti a orario, luogo o programma. Gli iscritti vedranno un banner arancione con i dettagli.')
+    +featItem('⏰','<strong style="color:var(--txt1)">Rimandato</strong> — l\'evento viene spostato a nuova data. Banner giallo visibile a tutti.')
+    +featItem('🚫','<strong style="color:var(--txt1)">Cancellato</strong> — evento annullato. Banner rosso. Le prenotazioni restano come riferimento.')
+  );
+  s9+=tip('💡','<strong style="color:#6366f1">Ricalcolo automatico:</strong> se modifichi i prezzi, le prenotazioni esistenti vengono ricalcolate. Sconti early bird e fedeltà vengono preservati quando possibile.');
+  s9+=valueBox('📣','<strong style="color:#10b981">Efficienza:</strong> un unico aggiornamento raggiunge tutti i partecipanti. Nessun messaggio WhatsApp da inoltrare uno a uno.');
+  html+='<div id="org-comunicazioni" style="scroll-margin-top:16px">'+sec(s9)+'</div>';
+
+  // === 10. INVITI E CRESCITA ===
+  let s10=h2('🔗','Inviti e crescita');
+  s10+=tagline('Fai crescere la tua community in modo organico e tracciato');
+  s10+=featList(
+    featItem('📲','<strong style="color:var(--txt1)">QR code invito</strong> — genera un QR che porta alla registrazione. Chi si registra viene associato al tuo account.')
+    +featItem('📤','<strong style="color:var(--txt1)">Condivisione multi-canale</strong> — condividi via WhatsApp, Telegram, email o copia-incolla. Funziona anche con reindirizzamento Google.')
+    +featItem('📈','<strong style="color:var(--txt1)">Tracciamento</strong> — nell\'anagrafica vedi chi si è registrato tramite il tuo invito (campo "invitato da").')
+  );
+  s10+=valueBox('🌱','<strong style="color:#10b981">Valore:</strong> ogni invito è tracciato. Puoi misurare la crescita organica della tua community e capire quali canali funzionano meglio.');
+  html+='<div id="org-inviti" style="scroll-margin-top:16px">'+sec(s10)+'</div>';
+
+  // === 11. FEEDBACK ===
+  let feedSec=h2('💬','Aiutaci a migliorare');
+  feedSec+=tagline('La piattaforma cresce con il contributo di chi la usa');
+  feedSec+=p('Hai feedback, suggerimenti, o trovi che alcune meccaniche siano poco efficienti? Hai un\'idea per una nuova funzionalità che renderebbe la gestione dei tuoi eventi più semplice?');
+  if(masterEmail){
+    feedSec+=p('Scrivici o contatta direttamente l\'amministratore all\'indirizzo <strong style="color:var(--brand-l)">'+escHtml(masterEmail)+'</strong> — ogni segnalazione viene letta e valutata per provare a realizzarla nelle prossime versioni.');
+  }
+  html+='<div style="background:linear-gradient(135deg, rgba(99,102,241,.08), rgba(217,70,239,.08));border:1px solid rgba(99,102,241,.2);border-radius:16px;padding:20px;margin-bottom:16px">'+feedSec+'</div>';
+
+  // === FOOTER ===
+  html+='<div style="text-align:center;padding:24px 0 8px;border-top:1px solid var(--s200);margin-top:8px"><p style="font-size:.78rem;color:var(--txt3);margin-bottom:4px">BodyEvents — Strumenti per organizzatori</p></div>';
 
   c.innerHTML=html;
 }
@@ -3931,7 +4182,7 @@ function saveUniverseEdit(overlay,univId){
   });
 }
 
-/* === UNIVERSE ROLE & EVENT TYPE INLINE CRUD (V2.37.4) === */
+/* === UNIVERSE ROLE & EVENT TYPE INLINE CRUD (V2.37.5) === */
 
 // --- ROLE EDIT/DELETE ---
 function editUniverseRole(univId,oldRole){
@@ -6771,6 +7022,7 @@ function go(view){
   if(view==='admin-registry'){renderAdminRegistry();}
   if(view==='admin-universes'){renderAdminUniversesView();setTimeout(()=>obShowTour('tour_admin_universes'),400);}
   if(view==='info-page'){renderInfoPage();}
+  if(view==='info-page-organizer'){renderInfoPageOrganizer();}
   if(view==='admin-org-profile'){populateOrgProfile();renderAssistenzaBox();}
   if(view==='register-org'){populateRegoUniverses();}
   if(view==='privacy-policy'){
@@ -16517,10 +16769,10 @@ document.addEventListener('DOMContentLoaded',()=>{
 </div>
 
 <!-- FAB Info Button -->
-<div id="info-fab" style="display:none" onclick="dismissInfoFabTooltip();go('info-page')">ℹ️</div>
+<div id="info-fab" style="display:none">ℹ️</div>
 <div id="info-fab-tooltip" style="display:none">
   <span style="position:absolute;top:6px;right:8px;font-size:.7rem;color:var(--txt3);cursor:pointer;padding:2px 4px" onclick="event.stopPropagation();dismissInfoFabTooltip()">✕</span>
-  <div style="font-size:.78rem;color:var(--txt2);line-height:1.4"><strong style="color:var(--brand-l)">Nuovo su BodyEvents?</strong><br>Scopri come funziona!</div>
+  <div class="tt-text" style="font-size:.78rem;color:var(--txt2);line-height:1.4"><strong style="color:var(--brand-l)">Nuovo su BodyEvents?</strong><br>Scopri come funziona!</div>
 </div>
 
 </body>
