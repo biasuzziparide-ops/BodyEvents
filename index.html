@@ -5777,8 +5777,12 @@ function renderRegistryTable(reg,entries,theadId,tbodyId,listId){
   if(!sorted.length){tbody.innerHTML='<tr><td colspan="'+(2+cols.length)+'" style="padding:24px;text-align:center;color:var(--txt3)">Nessun partecipante.</td></tr>';return;}
   let bh='';
   sorted.forEach(entry=>{
-    bh+='<tr style="border-top:1px solid var(--s300)">';
-    bh+='<td style="padding:8px 10px;white-space:nowrap;color:var(--txt1);font-weight:500;font-size:.82rem">'+escHtml(entry.name)+'</td>';
+    bh+='<tr style="border-top:1px solid var(--s300);cursor:pointer;transition:background .15s" onmouseover="this.style.background=\'var(--s200)\'" onmouseout="this.style.background=\'\'" onclick="openRegistryUserDetail(\''+entry.uid+'\')">';
+    const _rusr=store.users.find(x=>x.id===entry.uid)||store.managers.find(x=>x.id===entry.uid);
+    const _rlogo=_rusr?.profileLogo||null;
+    const _rinitials=(entry.name||'?').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+    const _avatarInner=_rlogo?'<img src="'+_rlogo+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':'<span style="font-size:.65rem;font-weight:700">'+_rinitials+'</span>';
+    bh+='<td style="padding:8px 10px;white-space:nowrap"><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:var(--s300);display:flex;align-items:center;justify-content:center;color:var(--txt2);flex-shrink:0;overflow:hidden;font-size:.7rem">'+_avatarInner+'</div><span style="color:var(--txt1);font-weight:500;font-size:.82rem">'+escHtml(entry.name)+'</span></div></td>';
     bh+='<td style="padding:8px 10px;white-space:nowrap;color:var(--txt2);font-size:.78rem">'+escHtml(entry.email)+'</td>';
     cols.forEach(c=>{
       const val=entry.customData?.[c.id];
@@ -5832,6 +5836,129 @@ function renderRegistryTable(reg,entries,theadId,tbodyId,listId){
     const tfoot=table?.querySelector('tfoot');
     if(tfoot)tfoot.remove();
   }
+}
+
+// === Registry User Detail Modal ===
+function openRegistryUserDetail(uid){
+  const user=store.users.find(x=>x.id===uid)||store.managers.find(x=>x.id===uid);
+  if(!user)return;
+  const name=user.username||user.name||'Utente';
+  const email=user.email||'';
+  const logo=user.profileLogo||null;
+  const initials=name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+  // Find active bookings (non-cancelled) for this user, for events visible to current manager
+  const mgr=store.currentUser;
+  const isMaster=mgr.role==='master';
+  const activeBookings=store.bookings.filter(b=>{
+    if(b.userId!==uid||b.status==='cancellata')return false;
+    const ev=store.events.find(e=>e.id===b.eventId);
+    if(!ev)return false;
+    // Only show events visible to current organizer (or all if master)
+    if(!isMaster&&!isEventVisibleToManager(ev,mgr.id))return false;
+    // Only show events that are currently active (published or concluded)
+    if(ev.status!=='pubblicato'&&ev.status!=='concluso')return false;
+    return true;
+  });
+  // Group by event
+  const byEvent={};
+  activeBookings.forEach(b=>{
+    if(!byEvent[b.eventId])byEvent[b.eventId]=[];
+    byEvent[b.eventId].push(b);
+  });
+
+  // Find active subscriptions
+  const activeSubs=store.subscriptions.filter(s=>{
+    if(s.userId!==uid)return false;
+    if(!isMaster&&s.managerId!==mgr.id)return false;
+    // Check if subscription is active
+    if(s.type==='ingressi'&&(s.remainingEntries||0)<=0)return false;
+    return true;
+  });
+
+  // Build modal
+  const overlay=document.createElement('div');overlay.className='overlay';
+  let h='<div class="dialog" style="max-width:560px;width:92%;max-height:85vh;overflow-y:auto">';
+  // Header
+  h+='<div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">';
+  h+='<div style="width:52px;height:52px;border-radius:50%;background:var(--s300);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;font-size:1.2rem;font-weight:700;color:var(--txt2)">';
+  h+=logo?'<img src="'+logo+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':initials;
+  h+='</div>';
+  h+='<div><div style="font-size:1.1rem;font-weight:700;color:var(--txt1)">'+escHtml(name)+'</div>';
+  h+='<div style="font-size:.82rem;color:var(--txt3)">'+escHtml(email)+'</div></div></div>';
+
+  // Active bookings section
+  h+='<div style="margin-bottom:16px">';
+  h+='<div style="font-size:.85rem;font-weight:700;color:var(--txt1);margin-bottom:10px;display:flex;align-items:center;gap:6px">📅 Eventi con iscrizione attiva ('+activeBookings.length+')</div>';
+  if(activeBookings.length===0){
+    h+='<div style="background:var(--s100);border:1px solid var(--s300);border-radius:12px;padding:16px;text-align:center;color:var(--txt3);font-size:.84rem">Nessuna iscrizione attiva al momento</div>';
+  } else {
+    Object.keys(byEvent).forEach(evId=>{
+      const ev=store.events.find(e=>e.id===evId);if(!ev)return;
+      const bks=byEvent[evId];
+      bks.forEach(b=>{
+        const evType=ev.eventType||ev.type||'';
+        const typeIcon=evType==='jam'?'🤝':evType==='lezione'?'📚':evType==='workshop'?'🛠️':evType==='social'?'🎉':'📋';
+        const dateStr=ev.days&&ev.days[0]?fmtDateShort(ev.days[0].date):'';
+        const recLabel=b.recurringDate?' <span style="font-size:.7rem;color:var(--txt3)">('+fmtDateShort(b.recurringDate)+')</span>':'';
+        const statusBg=ev.status==='pubblicato'?'rgba(16,185,129,.1)':'rgba(99,102,241,.1)';
+        const statusColor=ev.status==='pubblicato'?'var(--green)':'#6366f1';
+        const statusLabel=ev.status==='pubblicato'?'In corso':'Concluso';
+        // Payment info
+        let payInfo='';
+        if(ev.pricingMode!=='free'){
+          if(b.gift)payInfo='<span style="color:var(--purple);font-size:.72rem">🎁 Regalo</span>';
+          else if(b.paymentStatus==='pagato')payInfo='<span style="color:var(--green);font-size:.72rem">💰 Pagato €'+(b.amount||0)+'</span>';
+          else if(b.paymentStatus==='gratuito'||b.paymentStatus==='abbonamento')payInfo='<span style="color:var(--green);font-size:.72rem">🎟️ '+(b.paymentStatus==='abbonamento'?'Abbonamento':'Gratuito')+'</span>';
+          else payInfo='<span style="color:var(--yellow);font-size:.72rem">⏳ Da pagare €'+(b.amount||0)+'</span>';
+        }
+        // Role
+        const roleStr=b.role?'<span style="font-size:.72rem;color:'+roleColor(b.role)+'">'+roleName(b.role)+'</span>':'';
+
+        h+='<div style="background:var(--s100);border:1px solid var(--s300);border-radius:12px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor=\'var(--brand)\'" onmouseout="this.style.borderColor=\'var(--s300)\'" onclick="event.stopPropagation();this.closest(\'.overlay\').remove();showAdminEventDetail(\''+evId+'\')">';
+        h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">';
+        h+='<span style="font-size:1rem">'+typeIcon+'</span>';
+        h+='<span style="font-size:.88rem;font-weight:600;color:var(--txt1);flex:1">'+escHtml(ev.title)+'</span>';
+        h+='<span style="font-size:.68rem;padding:2px 8px;border-radius:6px;background:'+statusBg+';color:'+statusColor+';font-weight:600">'+statusLabel+'</span>';
+        h+='</div>';
+        h+='<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:.78rem;color:var(--txt3)">';
+        h+='<span>📅 '+dateStr+'</span>'+recLabel;
+        if(roleStr)h+='<span>'+roleStr+'</span>';
+        if(payInfo)h+='<span>'+payInfo+'</span>';
+        h+='</div>';
+        h+='</div>';
+      });
+    });
+  }
+  h+='</div>';
+
+  // Active subscriptions
+  if(activeSubs.length>0){
+    h+='<div style="margin-bottom:16px">';
+    h+='<div style="font-size:.85rem;font-weight:700;color:var(--txt1);margin-bottom:10px;display:flex;align-items:center;gap:6px">🎟️ Abbonamenti attivi ('+activeSubs.length+')</div>';
+    activeSubs.forEach(s=>{
+      const st=store.subscriptionTypes.find(t=>t.id===s.typeId);
+      const stName=st?st.name:'Abbonamento';
+      const isIngressi=s.type==='ingressi';
+      h+='<div style="background:var(--s100);border:1px solid var(--s300);border-radius:12px;padding:10px 14px;margin-bottom:6px;display:flex;align-items:center;gap:10px">';
+      h+='<span style="font-size:1rem">'+(isIngressi?'🎫':'📉')+'</span>';
+      h+='<div style="flex:1"><div style="font-size:.84rem;font-weight:600;color:var(--txt1)">'+escHtml(stName)+'</div>';
+      if(isIngressi)h+='<div style="font-size:.72rem;color:var(--txt3)">Ingressi rimasti: <strong style="color:var(--green)">'+(s.remainingEntries||0)+'</strong>/'+(s.totalEntries||0)+'</div>';
+      else h+='<div style="font-size:.72rem;color:var(--txt3)">Sconto: <strong style="color:var(--green)">'+(s.discountPercent||0)+'%</strong></div>';
+      h+='</div>';
+      const payColor=s.paymentStatus==='pagato'?'var(--green)':s.paymentStatus==='omaggio'?'var(--purple)':'var(--yellow)';
+      const payLabel=s.paymentStatus==='pagato'?'Pagato':s.paymentStatus==='omaggio'?'Omaggio':s.paymentStatus==='parziale'?'Parziale':'Da pagare';
+      h+='<span style="font-size:.7rem;padding:2px 8px;border-radius:6px;background:'+payColor+'18;color:'+payColor+';font-weight:600">'+payLabel+'</span>';
+      h+='</div>';
+    });
+    h+='</div>';
+  }
+
+  // Close button
+  h+='<div style="text-align:right;margin-top:8px"><button class="btn btn-secondary btn-sm" onclick="this.closest(\'.overlay\').remove()">Chiudi</button></div>';
+  h+='</div>';
+  overlay.innerHTML=h;
+  overlay.onclick=e=>{if(e.target===overlay)overlay.remove()};
+  document.body.appendChild(overlay);
 }
 
 // Drag & drop column reordering
