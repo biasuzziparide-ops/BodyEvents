@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.37.5</title>
+<title>BodyEvents — V2.38.0</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -73,7 +73,7 @@ a{color:var(--brand-l);text-decoration:none}
 .badge{display:inline-flex;align-items:center;border-radius:9999px;padding:2px 10px;font-size:.75rem;font-weight:500;gap:4px}
 .badge-jam{background:var(--green-bg);color:var(--green)}.badge-lezione{background:var(--blue-bg);color:var(--blue)}.badge-workshop{background:var(--brand-bg);color:var(--brand)}.badge-type-dynamic{background:rgba(168,85,247,.15);color:#a855f7}
 .badge-open{background:rgba(107,114,128,.15);color:#d1d5db}.badge-base{background:var(--green-bg);color:var(--green)}.badge-intermedio{background:var(--yellow-bg);color:var(--yellow)}.badge-avanzato{background:var(--red-bg);color:var(--red)}
-.badge-bozza{background:rgba(107,114,128,.15);color:var(--txt2)}.badge-pubblicato{background:var(--green-bg);color:var(--green)}.badge-concluso{background:var(--blue-bg);color:var(--blue)}.badge-cancellato{background:var(--red-bg);color:var(--red)}.badge-attesa{background:rgba(234,179,8,.15);color:var(--yellow)}.badge-confermato{background:var(--green-bg);color:var(--green)}
+.badge-bozza{background:rgba(107,114,128,.15);color:var(--txt2)}.badge-pubblicato{background:var(--green-bg);color:var(--green)}.badge-concluso{background:var(--blue-bg);color:var(--blue)}.badge-cancellato{background:var(--red-bg);color:var(--red)}.badge-attesa{background:rgba(234,179,8,.15);color:var(--yellow)}.badge-confermato{background:var(--green-bg);color:var(--green)}.badge-archiviato{background:rgba(99,102,241,.12);color:#6366f1}
 .badge-purple{background:var(--purple-bg);color:var(--purple)}
 .badge-yellow{background:var(--yellow-bg);color:var(--yellow)}
 
@@ -349,7 +349,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.37.5</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.38.0</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2865,7 +2865,7 @@ function obDismissCard(key,btn){
 // === HELP BUTTON (removed in V2.8.9) ===
 function obShowHelpBtn(){}
 
-// === FAB INFO BUTTON (V2.37.5) ===
+// === FAB INFO BUTTON (V2.38.0) ===
 const FAB_SEEN_KEY='bodyevents_fab_tooltip_seen';
 function showInfoFab(){
   const fab=document.getElementById('info-fab');if(!fab)return;
@@ -2912,7 +2912,7 @@ function dismissInfoFabTooltip(){
 }
 function _obShowTourForCurrentView(force){
   const v=currentView;
-  // User-side tours removed in V2.37.5 — replaced by FAB info button + info page
+  // User-side tours removed in V2.38.0 — replaced by FAB info button + info page
   // Admin-side tours kept (complex interface needs guidance)
   if(v==='admin')obShowTour('tour_admin_intro',force);
   else if(v==='admin-events')obShowTour('tour_admin_events',force);
@@ -3241,7 +3241,7 @@ function _migrateOrphanRecurringBookings(){
     fsUpdate('bookings',b.id,{recurringDate:bestDate}).catch(e=>console.error('Failed to update booking '+b.id,e));
   });
 }
-/* === INFO PAGE — Come funziona BodyEvents (V2.37.5) === */
+/* === INFO PAGE — Come funziona BodyEvents (V2.38.0) === */
 function renderInfoPage(){
   const c=document.getElementById('info-page-content');if(!c)return;
   const active=getActiveUniverses();
@@ -3365,7 +3365,7 @@ function renderInfoPage(){
 
   c.innerHTML=html;
 }
-/* === INFO PAGE ORGANIZER — Guida Organizzatore (V2.37.5) === */
+/* === INFO PAGE ORGANIZER — Guida Organizzatore (V2.38.0) === */
 function renderInfoPageOrganizer(){
   const c=document.getElementById('info-page-organizer-content');if(!c)return;
   const master=store.managers.find(m=>m.role==='master');
@@ -4247,7 +4247,7 @@ function saveUniverseEdit(overlay,univId){
   });
 }
 
-/* === UNIVERSE ROLE & EVENT TYPE INLINE CRUD (V2.37.5) === */
+/* === UNIVERSE ROLE & EVENT TYPE INLINE CRUD (V2.38.0) === */
 
 // --- ROLE EDIT/DELETE ---
 function editUniverseRole(univId,oldRole){
@@ -8288,7 +8288,7 @@ function getEventLevelBadges(ev){
   if(lvl==='multi')return '<span class="badge badge-purple">Multi-livello</span>';
   return '<span class="badge '+badgeLevel(lvl)+'">'+capitalize(lvl)+'</span>';
 }
-function badgeStatus(s){return s==='pubblicato'?'badge-pubblicato':s==='bozza'?'badge-bozza':s==='cancellato'?'badge-cancellato':'badge-concluso';}
+function badgeStatus(s){return s==='pubblicato'?'badge-pubblicato':s==='bozza'?'badge-bozza':s==='cancellato'?'badge-cancellato':s==='archiviato'?'badge-archiviato':'badge-concluso';}
 function getConfirmationStatus(ev){
   // V2.13.0: minSubscribers is now at session level
   // Check if any session has minSubscribers > 0
@@ -10145,6 +10145,30 @@ function renderUserDashboard(){
   // Get community events user has joined
   const joinedJams=store.communityJams.filter(j=>j.status!=='cancellato'&&!(j.alert&&j.alert.type==='cancellato')&&(j.participants||[]).some(p=>p.userId===uid));
 
+  // Sort active bookings by event date
+  active.sort((a,b)=>{
+    const evA=store.events.find(e=>e.id===a.eventId);
+    const evB=store.events.find(e=>e.id===b.eventId);
+    const dateA=a.recurringDate||evA?.days?.[0]?.date||'';
+    const dateB=b.recurringDate||evB?.days?.[0]?.date||'';
+    return dateA.localeCompare(dateB);
+  });
+
+  // Split into upcoming and past bookings
+  const today=localDateStr(new Date());
+  const upcomingBookings=active.filter(b=>{
+    const ev=store.events.find(e=>e.id===b.eventId);
+    if(!ev)return false;
+    const evDate=b.recurringDate||ev.days?.[ev.days.length-1]?.date||'';
+    return evDate>=today&&ev.status!=='concluso'&&ev.status!=='archiviato';
+  });
+  const pastBookings=active.filter(b=>{
+    const ev=store.events.find(e=>e.id===b.eventId);
+    if(!ev)return true;
+    const evDate=b.recurringDate||ev.days?.[ev.days.length-1]?.date||'';
+    return evDate<today||ev.status==='concluso'||ev.status==='archiviato';
+  });
+
   const userSubsHtml=renderUserSubscriptions();
   if(!active.length&&!cancelled.length&&!joinedJams.length){
     c.innerHTML=userSubsHtml+'<div class="card text-center txt3" style="padding:40px">Non hai ancora prenotazioni. <a href="#" onclick="go(\'events\');return false" style="color:var(--brand-l)">Esplora gli eventi →</a></div>';
@@ -10152,7 +10176,7 @@ function renderUserDashboard(){
   }
 
   let html=userSubsHtml;
-  active.forEach((b,i)=>{
+  upcomingBookings.forEach((b,i)=>{
     const ev=store.events.find(e=>e.id===b.eventId);
     if(!ev)return;
     const d0=ev.days[0];
@@ -10365,6 +10389,26 @@ function renderUserDashboard(){
     // Session info line
     const _sessInfoLine=_cardSessionLabel?`<div class="text-xs txt3 mt-1">📋 Sessione: "${_cardSessionLabel}"</div>`:((b.scope==='sessioni'||b.scope==='sessione')&&b.items?'<div class="text-xs txt3 mt-1">📋 '+(b.items.filter(it=>it.type==='sessione').length||1)+' sessione/i</div>':'');
 
+    // Payment info and links
+    let paymentInfoLine='';
+    if(b.paymentStatus!=='pagato'&&b.paymentStatus!=='gratuito'&&!b.gift){
+      let depInfoLine='';
+      if(ev.deposit&&ev.deposit.required&&b.depositStatus==='pending'){
+        depInfoLine=`<div class="text-xs txt3 mt-1">⏳ Anticipo: €${ev.deposit.amount}</div>`;
+      }
+      const remaining=b.amount-(ev.deposit&&ev.deposit.required&&b.depositStatus==='ricevuto'?ev.deposit.amount:0);
+      let remInfoLine='';
+      if(remaining>0){
+        remInfoLine=`<div class="text-xs txt3 mt-1">💳 Saldo dovuto: €${remaining}</div>`;
+      }
+      const payLinks=[];
+      if(ev.paymentMethods.paypal)payLinks.push(`<a class="badge" style="background:rgba(59,130,246,.08);color:var(--blue);padding:4px 8px;font-size:.7rem;text-decoration:none" href="${ev.paymentMethods.paypal}" target="_blank">💳 PayPal ↗</a>`);
+      if(ev.paymentMethods.revolut)payLinks.push(`<a class="badge" style="background:rgba(6,182,212,.08);color:#22d3ee;padding:4px 8px;font-size:.7rem;text-decoration:none" href="${ev.paymentMethods.revolut}" target="_blank">💳 Revolut ↗</a>`);
+      if(ev.paymentMethods.cash)payLinks.push('<span class="badge" style="background:var(--green-bg);color:var(--green);padding:4px 8px;font-size:.7rem">💵 Cash</span>');
+      const payLinksHtml=payLinks.length?'<div class="flex gap-2 flex-wrap mt-1">'+payLinks.join('')+'</div>':'';
+      paymentInfoLine=depInfoLine+remInfoLine+payLinksHtml;
+    }
+
     html+=`<div class="card mb-4 card-hover" style="border-color:${borderColor};background:${bgColor};position:relative;overflow:hidden;cursor:pointer" onclick="showEventDetail('${ev.id}'${b.recurringDate?`,'${b.recurringDate}'`:''})">
       ${alertStamp}
       ${i===0&&!hasAlert?'<div class="text-xs txt3 mb-2" style="text-transform:uppercase;letter-spacing:1px;position:relative;z-index:2">Prossimo evento</div>':''}
@@ -10377,6 +10421,7 @@ function renderUserDashboard(){
           <h3 class="font-semibold text-white">${escHtml(ev.title)}</h3>
           ${cardDateTimeLine}
           ${cardPriceLine}
+          ${paymentInfoLine}
           ${b.recurringDate?'<div class="text-xs mt-1" style="color:var(--yellow)">🔄 Evento ricorrente</div>':''}
           ${_sessInfoLine}
           <div class="flex gap-2 mt-2">
@@ -10389,6 +10434,36 @@ function renderUserDashboard(){
       ${!hasAlert||alertType!=='cancellato'?'<div class="flex gap-2 mt-4" style="border-top:1px solid var(--s300);padding-top:12px;position:relative;z-index:2"><button class="btn btn-danger btn-sm" onclick="event.stopPropagation();cancelUserBooking(\''+b.id+'\')">Cancella prenotazione</button></div>':''}
     </div>`;
   });
+
+  // Archivio (past bookings)
+  if(pastBookings.length){
+    html+='<h2 class="font-semibold text-white mb-3 mt-6">📦 Archivio</h2>';
+    pastBookings.forEach((b,i)=>{
+      const ev=store.events.find(e=>e.id===b.eventId);
+      if(!ev)return;
+      const d0=ev.days[0];
+      const _dashDate=b.recurringDate||d0?.date;
+      const dd=_dashDate?new Date(_dashDate+'T00:00:00'):null;
+      const dayNum=dd?dd.getDate():'';
+      const monthStr=dd?MONTHS_IT[dd.getMonth()]:'';
+      const tierLabel=b.tier==='alto'?'Sostenitore':b.tier==='medio'?'Standard':'Ridotto';
+      const _dispDate=fmtDate(_dashDate||d0?.date);
+      const _dispTime=(d0?.startTime||'')+' — '+(d0?.endTime||'');
+      html+=`<div class="card mb-4" style="border-color:var(--s300);background:rgba(0,0,0,.2);opacity:.7;cursor:pointer" onclick="showEventDetail('${ev.id}'${b.recurringDate?`,'${b.recurringDate}'`:''})">
+        <div class="flex gap-4" style="align-items:flex-start">
+          <div style="flex-shrink:0;width:48px;height:48px;border-radius:10px;background:var(--s200);display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <span style="font-size:1.1rem;font-weight:700;color:var(--txt3)">${dayNum}</span>
+            <span style="font-size:.55rem;color:var(--txt3)">${monthStr}</span>
+          </div>
+          <div class="flex-1">
+            <h4 class="font-semibold text-white" style="text-decoration:line-through">${escHtml(ev.title)}</h4>
+            <div class="text-xs txt3 mt-1">📅 ${_dispDate} · ${_dispTime}</div>
+            <div class="text-xs txt3 mt-1">💰 ${tierLabel} — €${b.amount}</div>
+          </div>
+        </div>
+      </div>`;
+    });
+  }
 
   // Storico
   if(cancelled.length){
@@ -12373,6 +12448,7 @@ function renderAdminEvents(){
   const boz=evts.filter(e=>e.status==='bozza').length;
   const con=evts.filter(e=>e.status==='concluso').length;
   const canc=evts.filter(e=>e.status==='cancellato').length;
+  const arch=evts.filter(e=>e.status==='archiviato').length;
 
   // Update filter counts
   const fc=document.getElementById('admin-filter-counts');
@@ -12386,6 +12462,7 @@ function renderAdminEvents(){
     +_ftab('pubblicato','Pubblicati',pub)
     +_ftab('bozza','Bozze',boz)
     +_ftab('concluso','Conclusi',con)
+    +(arch?_ftab('archiviato','Archiviati',arch):'')
     +(canc?_ftab('cancellato','Cancellati',canc):'')
     +_ftab('','Tutti',evts.length);
   if(fc)fc.innerHTML=filterHtml;
@@ -12441,12 +12518,14 @@ function renderAdminEvents(){
         <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteEvent('${ev.id}')">🗑️ Elimina</button>`;
       }
     })():
+    ev.status==='archiviato'?`${eyeBtn}<button class="btn btn-sm" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3);font-size:.75rem" onclick="event.stopPropagation();showAdminEventDetail('${ev.id}')">📊 Gestisci</button>`:
+    ev.status==='concluso'?`${eyeBtn}<button class="btn btn-sm" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3);font-size:.75rem" onclick="event.stopPropagation();showAdminEventDetail('${ev.id}')">📊 Gestisci</button><button class="btn btn-sm" style="background:rgba(99,102,241,.08);color:#6366f1;border:1px solid rgba(99,102,241,.2);font-size:.75rem" onclick="event.stopPropagation();archiveEvent('${ev.id}')">📦 Archivia</button>`:
     ev.status==='cancellato'?(()=>{
       const _dLeft=_getCancelledDaysLeft(ev);
       return `<div class="flex items-center gap-2 flex-wrap"><span class="text-xs" style="color:var(--red)">🗑️ Eliminato tra ${_dLeft}g</span><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();showEventDetail('${ev.id}')">👁️ Preview</button><button class="btn btn-danger btn-sm" onclick="event.stopPropagation();hardDeleteEvent('${ev.id}')">🗑️ Elimina</button></div>`;
     })():
       '<span class="text-xs txt3">Concluso</span>';
-    const opacity=ev.status==='bozza'?'opacity:.7':ev.status==='cancellato'?'opacity:.6':'';
+    const opacity=ev.status==='bozza'?'opacity:.7':ev.status==='cancellato'?'opacity:.6':ev.status==='archiviato'?'opacity:.75':'';
     const partnerBorder=isPartner?'border-left:4px solid #a855f7;':'';
     // Min participants not reached + deadline expired banner
     const _evConfStat=isCapofila?getConfirmationStatus(ev):null;
@@ -12464,7 +12543,7 @@ function renderAdminEvents(){
           <div class="flex gap-2 items-center mb-2 flex-wrap">
             <span class="badge ${badgeStatus(ev.status)}">${capitalize(ev.status)}</span>
             ${partnerBadge}
-            ${getRecurrenceBadge(ev)}
+            ${getRecurrenceBadge(ev)}${(()=>{if(!ev.recurrence||!ev.recurrence.active)return '';const tabs=getRecurringDateTabs(ev);const _pastCount=tabs?tabs.pastDates.length:0;return _pastCount>0?' <span class="text-xs" style="color:var(--txt3)">('+_pastCount+' concluse)</span>':'';})()}
             ${ev.alert?'<span class="badge" style="background:'+(ev.alert.type==='modificato'?'var(--orange-bg)':'var(--red-bg)')+';color:'+(ev.alert.type==='modificato'?'var(--orange)':'var(--red)')+'">⚠️ '+(ev.alert.type==='cancellato'?'Annullato':ev.alert.type==='rimandato'?'Rimandato':'Modificato')+'</span>':''}
           </div>
           <h3 class="font-semibold text-white" style="font-size:1.05rem;margin-bottom:4px">${escHtml(ev.title)}</h3>
@@ -12783,6 +12862,18 @@ function hardDeleteEvent(id){
     if(window._currentAdminDetailEvId===id){window._currentAdminDetailEvId=null;go(lastAdminListView||'admin-events');}
     renderAdminEvents();showToast('Evento eliminato definitivamente','error');
   },'danger');
+}
+function archiveEvent(id){
+  showConfirm('Archivia evento','Vuoi archiviare questo evento? Tutti i dati (presenze, pagamenti, metriche) verranno conservati ma non sarà più possibile modificarli.',()=>{
+    showConfirm('Conferma archiviazione','Sei sicuro? L\'evento diventerà di sola lettura e non potrà essere riportato in stato attivo.',()=>{
+      const ev=store.events.find(e=>e.id===id);if(!ev)return;
+      ev.status='archiviato';
+      ev.archivedAt=new Date().toISOString();
+      fsSet('events',ev.id,ev).catch(console.error);
+      if(window._currentAdminDetailEvId===id){window._adminDetailKeepScroll=true;}
+      renderAdminEvents();showToast('Evento archiviato');
+    });
+  });
 }
 
 /* === MODIFICA O CANCELLA EVENTO (alert modal v2) === */
@@ -15984,6 +16075,7 @@ function setAdminRecDateFilter(dateStr,evId){
 function showAdminEventDetail(evId){
   window._currentAdminDetailEvId=evId;
   const ev=store.events.find(e=>e.id===evId);if(!ev)return;
+  const isArchived=ev.status==='archiviato';
   if(currentView==='admin-community-events')lastAdminListView='admin-community-events';
   else if(currentView==='admin-events')lastAdminListView='admin-events';
   const c=document.getElementById('admin-event-detail-content');if(!c)return;
@@ -16017,7 +16109,9 @@ function showAdminEventDetail(evId){
   if(adminDetailSort.field){
     active.sort((a,b)=>{
       let va,vb;
-      if(adminDetailSort.field==='daIncassare'){
+      if(adminDetailSort.field==='checkedIn'){
+        va=a.checkedIn?1:0;vb=b.checkedIn?1:0;
+      } else if(adminDetailSort.field==='daIncassare'){
         const _da=(ev.deposit&&ev.deposit.required&&ev.deposit.amount)||0;
         const _calc=x=>{if(x.gift)return 0;const ow=x.amount||0;const pd=(x.paymentStatus==='pagato')?ow:0;const dp=(x.depositStatus==='ricevuto')?_da:0;return Math.max(0,ow-pd-dp);};
         va=_calc(a);vb=_calc(b);
@@ -16245,18 +16339,20 @@ function showAdminEventDetail(evId){
     <h2 class="font-semibold text-white mb-3">👥 Lista Partecipanti (${active.length})${viewSubtitle}</h2>
     ${active.length?`<div class="card" style="padding:0;overflow:auto">
       <table class="table">
-        <thead><tr><th style="cursor:pointer" onclick="sortAdminDetail('userName')">Partecipante ${adminDetailSort.field==='userName'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('role')">Ruolo ${adminDetailSort.field==='role'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('sessions')">Sessioni ${adminDetailSort.field==='sessions'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${ev.pricingMode!=='free'?'<th style="cursor:pointer" onclick="sortAdminDetail(\'amount\')">Importo '+(adminDetailSort.field==='amount'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'paymentStatus\')">Pagato '+(adminDetailSort.field==='paymentStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'depositStatus\')">Anticipo '+(adminDetailSort.field==='depositStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'daIncassare\')">Da incassare '+(adminDetailSort.field==='daIncassare'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).length?'<th style="border-left:2px solid var(--s400);padding-left:12px;cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+(ev.surveys[0].id)+'\')">'+ev.surveys[0].question.substring(0,20)+(ev.surveys[0].question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+ev.surveys[0].id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).slice(1).map(sq=>'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+sq.id+'\')">'+sq.question.substring(0,20)+(sq.question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+sq.id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>').join('')}<th>Azioni</th></tr></thead>
+        <thead><tr><th style="cursor:pointer" onclick="sortAdminDetail('userName')">Partecipante ${adminDetailSort.field==='userName'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('role')">Ruolo ${adminDetailSort.field==='role'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('sessions')">Sessioni ${adminDetailSort.field==='sessions'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('checkedIn')">Presente ${adminDetailSort.field==='checkedIn'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${ev.pricingMode!=='free'?'<th style="cursor:pointer" onclick="sortAdminDetail(\'amount\')">Importo '+(adminDetailSort.field==='amount'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'paymentStatus\')">Pagato '+(adminDetailSort.field==='paymentStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'depositStatus\')">Anticipo '+(adminDetailSort.field==='depositStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'daIncassare\')">Da incassare '+(adminDetailSort.field==='daIncassare'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).length?'<th style="border-left:2px solid var(--s400);padding-left:12px;cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+(ev.surveys[0].id)+'\')">'+ev.surveys[0].question.substring(0,20)+(ev.surveys[0].question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+ev.surveys[0].id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).slice(1).map(sq=>'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+sq.id+'\')">'+sq.question.substring(0,20)+(sq.question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+sq.id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>').join('')}<th>Azioni</th></tr></thead>
         <tbody>${active.map(b=>{
-          const depositHtml=b.depositStatus==='pending'?'<span class="badge badge-yellow" style="cursor:pointer" onclick="event.stopPropagation();confirmDepositCtx(\''+b.id+'\',\'detail\')">⏳ Pending</span>'
+          const depositHtml=isArchived?(b.depositStatus==='ricevuto'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">✅ Ricevuto</span>':b.depositStatus==='pending'?'<span class="badge badge-yellow">⏳ Pending</span>':'<span class="text-xs txt3">—</span>')
+            :(b.depositStatus==='pending'?'<span class="badge badge-yellow" style="cursor:pointer" onclick="event.stopPropagation();confirmDepositCtx(\''+b.id+'\',\'detail\')">⏳ Pending</span>'
             :b.depositStatus==='ricevuto'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">✅ Ricevuto</span>'
-            :'<span class="text-xs txt3">—</span>';
-          const giftBtn='<button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:.7rem;margin-left:4px" onclick="event.stopPropagation();toggleGift(\''+b.id+'\',\'detail\')" title="'+(b.gift?'Rimuovi regalo':'Segna come regalo')+'">'+(b.gift?'↩️':'🎁')+'</button>';
+            :'<span class="text-xs txt3">—</span>');
+          const giftBtn=isArchived?'':'<button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:.7rem;margin-left:4px" onclick="event.stopPropagation();toggleGift(\''+b.id+'\',\'detail\')" title="'+(b.gift?'Rimuovi regalo':'Segna come regalo')+'">'+(b.gift?'↩️':'🎁')+'</button>';
           const amountHtml=b.gift?'<span style="color:var(--purple)">🎁 Regalo</span>':'€'+(b.amount||0);
-          const payHtml=b.gift?'<span class="text-xs txt3">—</span>'
+          const payHtml=isArchived?(b.gift?'<span class="text-xs txt3">—</span>':b.paymentStatus==='pagato'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">💰 Pagato</span>':b.paymentStatus==='gratuito'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🎟️ Gratuito</span>':b.paymentStatus==='abbonamento'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🎟️ Abb.</span>':'<span class="text-xs txt3">Non pagato</span>')
+            :(b.gift?'<span class="text-xs txt3">—</span>'
             :b.paymentStatus==='pagato'?'<span class="badge" style="background:var(--green-bg);color:var(--green);cursor:pointer" onclick="event.stopPropagation();togglePayment(\''+b.id+'\',\'detail\')">💰 Pagato</span>'
             :b.paymentStatus==='gratuito'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🎟️ Gratuito</span>'
             :b.paymentStatus==='abbonamento'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🎟️ Abb.</span>'
-            :'<button class="btn btn-sm" style="background:rgba(234,179,8,.12);color:var(--yellow);border:1px solid rgba(234,179,8,.3);font-size:.7rem" onclick="event.stopPropagation();togglePayment(\''+b.id+'\',\'detail\')">💰 Segna pagato</button>';
+            :'<button class="btn btn-sm" style="background:rgba(234,179,8,.12);color:var(--yellow);border:1px solid rgba(234,179,8,.3);font-size:.7rem" onclick="event.stopPropagation();togglePayment(\''+b.id+'\',\'detail\')">💰 Segna pagato</button>');
           const _bOwed=b.gift?0:(b.amount||0);
           const _bPaid=(b.gift||b.paymentStatus==='pagato'||b.paymentStatus==='gratuito'||b.paymentStatus==='abbonamento')?_bOwed:0;
           const _bDep=(!b.gift&&b.depositStatus==='ricevuto')?depAmount:0;
@@ -16267,10 +16363,12 @@ function showAdminEventDetail(evId){
           const _pUser=store.users.find(x=>x.id===b.userId)||store.managers.find(x=>x.id===b.userId);
           const _pLogo=_pUser?.profileLogo||null;
           const avatarInner=_pLogo?'<img src="'+_pLogo+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':b.initials;
+          const checkedInHtml=b.checkedIn?'<span class="badge" style="background:rgba(16,185,129,.2);color:var(--green)">✅ Presente</span>':!isArchived?'<button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:.7rem" onclick="event.stopPropagation();toggleAttendance(\''+b.id+'\',true)">⬜ Segna presente</button>':'<span class="text-xs txt3">Assente</span>';
           return `<tr>
             <td><div class="flex items-center gap-2"><div class="avatar ${avatarCls}" ${avatarStyle} style="${!avatarCls?'background:var(--s300);color:var(--txt3)':''}${_pLogo?';overflow:hidden':''}">${avatarInner}</div><div><div class="font-medium text-white text-sm">${escHtml(b.userName)}</div><div class="text-xs txt3">${escHtml(b.email)}</div></div></div></td>
             <td><span style="color:${roleColor(b.role)}">${roleName(b.role)}</span></td>
             <td style="min-width:140px">${getSessionNames(b.sessions)}</td>
+            <td>${checkedInHtml}</td>
             ${ev.pricingMode!=='free'?'<td class="font-medium">'+amountHtml+' '+giftBtn+'</td><td>'+payHtml+'</td><td>'+depositHtml+'</td><td>'+daIncHtml+'</td>':''}
             ${(ev.surveys||[]).length?'<td class="text-sm" style="border-left:2px solid var(--s400);padding-left:12px" title="'+(((arr)=>{const r=(b.surveyResponses||{})[arr[0]?.id];return Array.isArray(r)?r.join(', '):r||'—';})(ev.surveys))+'">'+(((arr)=>{const r=(b.surveyResponses||{})[arr[0]?.id];const d=Array.isArray(r)?r.join(', '):r||'—';return d.length>25?d.substring(0,23)+'…':d;})(ev.surveys))+'</td>':''}
             ${(ev.surveys||[]).slice(1).map(sq=>{
@@ -16279,7 +16377,7 @@ function showAdminEventDetail(evId){
               const truncated=display.length>25?display.substring(0,23)+'…':display;
               return '<td class="text-sm" title="'+display+'">'+truncated+'</td>';
             }).join('')}
-            <td><button class="btn btn-danger btn-sm" onclick="event.stopPropagation();cancelBookingCtx('${b.id}','detail')">✕</button></td>
+            <td>${isArchived?'<span class="text-xs txt3">—</span>':'<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();cancelBookingCtx(\''+b.id+'\',\'detail\')">✕</button>'}</td>
           </tr>`;
         }).join('')}</tbody>
       </table>
