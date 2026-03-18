@@ -5795,12 +5795,12 @@ function renderRegistryTable(reg,entries,theadId,tbodyId,listId){
   if(!sorted.length){tbody.innerHTML='<tr><td colspan="'+(2+cols.length)+'" style="padding:24px;text-align:center;color:var(--txt3)">Nessun partecipante.</td></tr>';return;}
   let bh='';
   sorted.forEach(entry=>{
-    bh+='<tr data-uid="'+entry.uid+'" style="border-top:1px solid var(--s300);cursor:pointer;transition:background .15s" onmouseover="this.style.background=\'var(--s200)\'" onmouseout="this.style.background=\'\'">';
+    bh+='<tr data-uid="'+entry.uid+'" style="border-top:1px solid var(--s300)">';
     const _rusr=store.users.find(x=>x.id===entry.uid)||store.managers.find(x=>x.id===entry.uid);
     const _rlogo=_rusr?.profileLogo||null;
     const _rinitials=(entry.name||'?').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
     const _avatarInner=_rlogo?'<img src="'+_rlogo+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':'<span style="font-size:.65rem;font-weight:700">'+_rinitials+'</span>';
-    bh+='<td style="padding:8px 10px;white-space:nowrap"><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:var(--s300);display:flex;align-items:center;justify-content:center;color:var(--txt2);flex-shrink:0;overflow:hidden;font-size:.7rem">'+_avatarInner+'</div><span style="color:var(--txt1);font-weight:500;font-size:.82rem">'+escHtml(entry.name)+'</span></div></td>';
+    bh+='<td style="padding:8px 10px;white-space:nowrap"><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:var(--s300);display:flex;align-items:center;justify-content:center;color:var(--txt2);flex-shrink:0;overflow:hidden;font-size:.7rem">'+_avatarInner+'</div><span style="color:var(--txt1);font-weight:500;font-size:.82rem">'+escHtml(entry.name)+'</span><button style="background:none;border:1px solid var(--s400);border-radius:6px;padding:2px 6px;font-size:.6rem;color:var(--txt3);cursor:pointer;transition:all .15s;white-space:nowrap" onmouseover="this.style.borderColor=\'var(--brand)\';this.style.color=\'var(--brand-l)\'" onmouseout="this.style.borderColor=\'var(--s400)\';this.style.color=\'var(--txt3)\'" onclick="event.stopPropagation();window._regOpenDetail(\''+entry.uid+'\')">📅 Dettaglio</button></div></td>';
     bh+='<td style="padding:8px 10px;white-space:nowrap;color:var(--txt2);font-size:.78rem">'+escHtml(entry.email)+'</td>';
     cols.forEach(c=>{
       const val=entry.customData?.[c.id];
@@ -5863,6 +5863,7 @@ function renderRegistryTable(reg,entries,theadId,tbodyId,listId){
 }
 
 // === Registry User Detail Modal ===
+window._regOpenDetail=function(uid){openRegistryUserDetail(uid);};
 function openRegistryUserDetail(uid){
   const user=store.users.find(x=>x.id===uid)||store.managers.find(x=>x.id===uid);
   if(!user)return;
@@ -5977,12 +5978,66 @@ function openRegistryUserDetail(uid){
     h+='</div>';
   }
 
-  // Close button
-  h+='<div style="text-align:right;margin-top:8px"><button class="btn btn-secondary btn-sm" onclick="this.closest(\'.overlay\').remove()">Chiudi</button></div>';
+  // Diagnostic: all bookings in local store for this user (debug)
+  const allUserBookings=store.bookings.filter(b=>b.userId===uid);
+  if(allUserBookings.length!==activeBookings.length){
+    h+='<div style="margin-bottom:16px">';
+    h+='<div style="font-size:.78rem;font-weight:600;color:var(--txt3);margin-bottom:6px">🔍 Tutte le prenotazioni in memoria ('+allUserBookings.length+' totali)</div>';
+    allUserBookings.forEach(b=>{
+      const ev=store.events.find(e=>e.id===b.eventId);
+      const evName=ev?ev.title:'⚠️ Evento non trovato ('+b.eventId+')';
+      const stColor=b.status==='cancellata'?'var(--red)':b.status==='confermata'?'var(--green)':'var(--yellow)';
+      h+='<div style="font-size:.72rem;color:var(--txt3);padding:4px 0;border-bottom:1px solid var(--s300)">'+escHtml(evName)+' — <span style="color:'+stColor+'">'+escHtml(b.status||'?')+'</span> — id: <span style="font-family:monospace;font-size:.65rem">'+b.id+'</span></div>';
+    });
+    h+='</div>';
+  }
+
+  // Firestore verify button
+  h+='<div style="display:flex;gap:8px;align-items:center;margin-top:8px">';
+  h+='<button class="btn btn-sm" style="font-size:.72rem;background:rgba(99,102,241,.12);color:#6366f1;border:1px solid rgba(99,102,241,.3)" onclick="verifyFirestoreBookings(\''+uid+'\',this)">🔍 Verifica su Firestore</button>';
+  h+='<button class="btn btn-secondary btn-sm" onclick="this.closest(\'.overlay\').remove()">Chiudi</button>';
+  h+='</div>';
+  h+='<div id="fs-verify-result-'+uid+'" style="margin-top:8px"></div>';
+
   h+='</div>';
   overlay.innerHTML=h;
   overlay.onclick=e=>{if(e.target===overlay)overlay.remove()};
   document.body.appendChild(overlay);
+}
+
+// Firestore diagnostic: check bookings directly on Firestore for a user
+async function verifyFirestoreBookings(uid,btn){
+  btn.disabled=true;btn.textContent='⏳ Verifico...';
+  const resultDiv=document.getElementById('fs-verify-result-'+uid);
+  if(!resultDiv){btn.disabled=false;btn.textContent='🔍 Verifica su Firestore';return;}
+  try{
+    const snap=await fbDb.collection('bookings').where('userId','==',uid).get();
+    let rh='<div style="font-size:.78rem;margin-top:8px">';
+    rh+='<div style="font-weight:700;color:var(--txt1);margin-bottom:6px">📊 Risultato Firestore: '+snap.size+' booking trovati</div>';
+    if(snap.empty){
+      rh+='<div style="color:var(--yellow)">Nessun booking su Firestore per questo utente.</div>';
+    } else {
+      snap.forEach(doc=>{
+        const b=doc.data();
+        const ev=store.events.find(e=>e.id===b.eventId);
+        const evName=ev?ev.title:'⚠️ Evento sconosciuto';
+        const inLocal=store.bookings.find(lb=>lb.id===b.id)?'✅ in memoria':'❌ NON in memoria';
+        const stColor=b.status==='cancellata'?'var(--red)':b.status==='confermata'?'var(--green)':'var(--yellow)';
+        rh+='<div style="padding:6px 0;border-bottom:1px solid var(--s300)">';
+        rh+='<div style="color:var(--txt1);font-weight:500">'+escHtml(evName)+'</div>';
+        rh+='<div style="color:var(--txt3);font-size:.7rem">stato: <span style="color:'+stColor+'">'+escHtml(b.status||'?')+'</span> · '+inLocal+' · eventId: <span style="font-family:monospace">'+b.eventId+'</span> · id: <span style="font-family:monospace">'+doc.id+'</span></div>';
+        if(!store.bookings.find(lb=>lb.id===b.id)){
+          rh+='<button class="btn btn-sm" style="margin-top:4px;font-size:.65rem;background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="store.bookings.push('+escHtml(JSON.stringify(b).replace(/'/g,"\\\'"))+');showToast(\'Booking sincronizzato!\');this.textContent=\'✅ Sincronizzato\';this.disabled=true">🔄 Sincronizza in memoria</button>';
+        }
+        rh+='</div>';
+      });
+    }
+    rh+='</div>';
+    resultDiv.innerHTML=rh;
+  }catch(e){
+    resultDiv.innerHTML='<div style="color:var(--red);font-size:.78rem">Errore: '+escHtml(e.message)+'</div>';
+  }
+  btn.disabled=false;btn.textContent='🔍 Verifica su Firestore';
 }
 
 // Drag & drop column reordering
