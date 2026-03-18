@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.37.3</title>
+<title>BodyEvents — V2.37.4</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -40,6 +40,15 @@ a{color:var(--brand-l);text-decoration:none}
 #ptr-indicator.ptr-ready{opacity:1;border-color:var(--brand)}
 #ptr-indicator.ptr-refreshing{opacity:1;animation:ptr-spin .8s linear infinite;border-color:var(--brand)}
 @keyframes ptr-spin{from{transform:translateX(-50%) translateY(16px) rotate(0deg)}to{transform:translateX(-50%) translateY(16px) rotate(360deg)}}
+/* === FAB INFO BUTTON === */
+#info-fab{position:fixed;bottom:80px;left:16px;z-index:9990;width:44px;height:44px;border-radius:50%;background:var(--s200);border:1.5px solid var(--s300);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.4);transition:all .25s ease;opacity:.65;font-size:1.1rem}
+#info-fab:hover{opacity:1;transform:scale(1.08);border-color:var(--brand);background:var(--brand-bg)}
+#info-fab:active{transform:scale(.95)}
+@keyframes fab-pulse{0%{box-shadow:0 4px 16px rgba(0,0,0,.4)}50%{box-shadow:0 4px 16px rgba(0,0,0,.4),0 0 0 8px rgba(217,70,239,.15)}100%{box-shadow:0 4px 16px rgba(0,0,0,.4)}}
+#info-fab.fab-pulse{animation:fab-pulse 2.5s ease-in-out 3}
+#info-fab-tooltip{position:fixed;bottom:90px;left:68px;z-index:9991;background:var(--s100);border:1px solid var(--s300);border-radius:12px;padding:10px 14px;max-width:200px;box-shadow:0 8px 24px rgba(0,0,0,.5);animation:fab-tt-in .4s ease-out}
+#info-fab-tooltip::before{content:'';position:absolute;left:-6px;bottom:14px;width:12px;height:12px;background:var(--s100);border-left:1px solid var(--s300);border-bottom:1px solid var(--s300);transform:rotate(45deg)}
+@keyframes fab-tt-in{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
 
 /* === UTILITY === */
 .container{max-width:1100px;margin:0 auto;padding:0 16px}
@@ -340,7 +349,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.37.3</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.37.4</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2847,13 +2856,36 @@ function obDismissCard(key,btn){
 
 // === HELP BUTTON (removed in V2.8.9) ===
 function obShowHelpBtn(){}
+
+// === FAB INFO BUTTON (V2.37.4) ===
+const FAB_SEEN_KEY='bodyevents_fab_tooltip_seen';
+function showInfoFab(){
+  const fab=document.getElementById('info-fab');if(!fab)return;
+  // Show FAB on user-facing views only (not login/register/checkin)
+  const userViews=['events','event-detail-1','event-detail-2','event-detail-3','event-detail-dynamic','jams','dashboard','bookings','profile','info-page'];
+  if(!userViews.includes(currentView)){fab.style.display='none';return;}
+  // Hide on info-page itself
+  if(currentView==='info-page'){fab.style.display='none';return;}
+  fab.style.display='flex';
+  // Tooltip: show only once
+  if(!localStorage.getItem(FAB_SEEN_KEY)){
+    const tt=document.getElementById('info-fab-tooltip');
+    if(tt)tt.style.display='block';
+    fab.classList.add('fab-pulse');
+  }
+}
+function dismissInfoFabTooltip(){
+  const tt=document.getElementById('info-fab-tooltip');
+  if(tt)tt.style.display='none';
+  const fab=document.getElementById('info-fab');
+  if(fab)fab.classList.remove('fab-pulse');
+  localStorage.setItem(FAB_SEEN_KEY,'1');
+}
 function _obShowTourForCurrentView(force){
   const v=currentView;
-  if(v==='events')obShowTour('tour_events',force);
-  else if(v==='profile')obShowTour('tour_profile',force);
-  else if(v==='jams')obShowTour('tour_jams',force);
-  else if(v==='dashboard')obShowTour('tour_dashboard',force);
-  else if(v==='admin')obShowTour('tour_admin_intro',force);
+  // User-side tours removed in V2.37.4 — replaced by FAB info button + info page
+  // Admin-side tours kept (complex interface needs guidance)
+  if(v==='admin')obShowTour('tour_admin_intro',force);
   else if(v==='admin-events')obShowTour('tour_admin_events',force);
   else if(v==='admin-new-event')obShowTour('tour_new_event',force);
   else if(v==='admin-universes')obShowTour('tour_admin_universes',force);
@@ -3153,7 +3185,7 @@ function _migrateLegacyEventTypes(){
     if(stChanged||st.compatibleEventTypes.length!==before)fsUpdate('subscriptionTypes',st.id,{compatibleEventTypes:st.compatibleEventTypes}).catch(console.error);
   });
 }
-/* === INFO PAGE — Come funziona BodyEvents (V2.37.3) === */
+/* === INFO PAGE — Come funziona BodyEvents (V2.37.4) === */
 function renderInfoPage(){
   const c=document.getElementById('info-page-content');if(!c)return;
   const active=getActiveUniverses();
@@ -3899,7 +3931,7 @@ function saveUniverseEdit(overlay,univId){
   });
 }
 
-/* === UNIVERSE ROLE & EVENT TYPE INLINE CRUD (V2.37.3) === */
+/* === UNIVERSE ROLE & EVENT TYPE INLINE CRUD (V2.37.4) === */
 
 // --- ROLE EDIT/DELETE ---
 function editUniverseRole(univId,oldRole){
@@ -6306,8 +6338,7 @@ async function loadCurrentUser(uid){
     document.getElementById('navbar-user').classList.remove('hidden');
     if(_pendingDeepLink){go('events');await handleDeepLink();}
     else{go('events');}
-    // Show welcome tour for new users (first login)
-    setTimeout(()=>obShowTour('tour_welcome'),600);
+    // FAB tooltip replaces the old welcome tour for users
     checkPrivacyConsent();
     return;
   }
@@ -6719,10 +6750,10 @@ function go(view){
   }
   if(view==='bookings') go('dashboard');
   // Auto-render dynamic views
-  if(view==='events'){renderUserEvents();initMobileFilters();setTimeout(()=>obShowTour('tour_events'),400);}
-  if(view==='jams'){renderUserJams();setTimeout(()=>obShowTour('tour_jams'),400);}
-  if(view==='dashboard'){renderUserDashboard();setTimeout(()=>obShowTour('tour_dashboard'),400);}
-  if(view==='profile'){populateProfileFields();renderProfileUniverseSettings();renderAssistenzaBox();setTimeout(()=>obShowTour('tour_profile'),400);}
+  if(view==='events'){renderUserEvents();initMobileFilters();}
+  if(view==='jams'){renderUserJams();}
+  if(view==='dashboard'){renderUserDashboard();}
+  if(view==='profile'){populateProfileFields();renderProfileUniverseSettings();renderAssistenzaBox();}
   if(view==='admin-events'){renderAdminEvents();setTimeout(()=>obShowTour('tour_admin_events'),400);}
   if(view==='admin'){renderAdminDashboard();setTimeout(()=>obShowTour('tour_admin_intro'),400);}
   if(view==='admin-bookings') renderAdminBookings();
@@ -6747,7 +6778,8 @@ function go(view){
     const privEmail=master?(master.contactEmail||master.email):'';
     if(privEmail){document.querySelectorAll('.privacy-contact-email').forEach(el=>el.textContent=privEmail);}
   }
-  // Show help button on all logged-in views (removed — ? button no longer needed)
+  // Show/hide FAB info button based on current view
+  showInfoFab();
 }
 
 function populateProfileFields(){
@@ -16482,6 +16514,13 @@ document.addEventListener('DOMContentLoaded',()=>{
     </div>
     <div class="tsb-progress" id="tsb-progress" style="width:100%"></div>
   </div>
+</div>
+
+<!-- FAB Info Button -->
+<div id="info-fab" style="display:none" onclick="dismissInfoFabTooltip();go('info-page')">ℹ️</div>
+<div id="info-fab-tooltip" style="display:none">
+  <span style="position:absolute;top:6px;right:8px;font-size:.7rem;color:var(--txt3);cursor:pointer;padding:2px 4px" onclick="event.stopPropagation();dismissInfoFabTooltip()">✕</span>
+  <div style="font-size:.78rem;color:var(--txt2);line-height:1.4"><strong style="color:var(--brand-l)">Nuovo su BodyEvents?</strong><br>Scopri come funziona!</div>
 </div>
 
 </body>
