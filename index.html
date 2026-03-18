@@ -3392,18 +3392,26 @@ function renderInfoPageOrganizer(){
   // === HERO ===
   html+='<div style="background:linear-gradient(135deg, rgba(217,70,239,.15), rgba(99,102,241,.12));border:1px solid rgba(217,70,239,.25);border-radius:20px;padding:28px 22px;margin-bottom:20px;text-align:center"><div style="font-size:2.4rem;margin-bottom:8px">🏢</div><div style="font-size:1.35rem;font-weight:800;color:var(--txt1);margin-bottom:6px;letter-spacing:-.02em">Il tuo Centro di Gestione</div><p style="font-size:.84rem;color:var(--txt2);line-height:1.55;max-width:440px;margin:0 auto">Strumenti pensati per organizzatori che vogliono concentrarsi sulla propria comunità, non sulla burocrazia. Tutto in un unico posto, a portata di tap.</p></div>';
 
+  // === LINK TO USER PAGE ===
+  html+='<div style="background:var(--s50);border:1px solid rgba(99,102,241,.2);border-radius:12px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:border-color .2s" onclick="go(\'info-page\')" onmouseover="this.style.borderColor=\'var(--brand)\'" onmouseout="this.style.borderColor=\'rgba(99,102,241,.2)\'">';
+  html+='<span style="font-size:1.2rem">ℹ️</span>';
+  html+='<div><div style="font-size:.85rem;font-weight:600;color:var(--brand-l)">Leggi anche la guida utente</div>';
+  html+='<div style="font-size:.76rem;color:var(--txt3)">Per comprendere meglio come gli utenti vedono e interagiscono con i tuoi eventi.</div></div>';
+  html+='<span style="color:var(--txt3);margin-left:auto">→</span></div>';
+
   // === NAV INDEX ===
   const navItems=[
-    {id:'org-universi',icon:'🌌',label:'Universi e partner'},
     {id:'org-tipologie',icon:'📋',label:'Tipologie evento'},
     {id:'org-struttura',icon:'🏗️',label:'Struttura evento'},
+    {id:'org-universi',icon:'🌌',label:'Universi e partner'},
+    {id:'org-iscritti',icon:'📊',label:'Lista iscritti'},
     {id:'org-prezzi',icon:'💰',label:'Costi e prezzi'},
+    {id:'org-checkin',icon:'📱',label:'Check-in e presenze'},
     {id:'org-abbonamenti',icon:'🎟️',label:'Abbonamenti'},
     {id:'org-anagrafica',icon:'📇',label:'Anagrafica'},
-    {id:'org-iscritti',icon:'📊',label:'Lista iscritti'},
-    {id:'org-checkin',icon:'📱',label:'Check-in e presenze'},
     {id:'org-comunicazioni',icon:'📢',label:'Comunicazioni'},
-    {id:'org-inviti',icon:'🔗',label:'Inviti e crescita'}
+    {id:'org-inviti',icon:'🔗',label:'Inviti e crescita'},
+    {id:'org-costi',icon:'🪙',label:'Costi piattaforma'}
   ];
   let navHtml='<div style="font-size:.78rem;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">In questa guida</div><div style="display:flex;flex-wrap:wrap;gap:6px">';
   navItems.forEach(n=>{
@@ -3412,17 +3420,7 @@ function renderInfoPageOrganizer(){
   navHtml+='</div>';
   html+='<div style="background:var(--s50);border:1px solid var(--s200);border-radius:16px;padding:16px 18px;margin-bottom:20px">'+navHtml+'</div>';
 
-  // === 1. UNIVERSI E PARTNERSHIP ===
-  let s1=h2('🌌','Universi e Partnership');
-  s1+=tagline('Raggiungi più comunità con meno sforzo');
-  s1+=p('Ogni organizzatore opera all\'interno di uno o più <strong style="color:var(--txt1)">universi</strong> (aree tematiche). I tuoi eventi saranno visibili a tutti gli utenti iscritti a quegli universi, senza promozione aggiuntiva.');
-  s1+=h3('Eventi multi-universo');
-  s1+=p('Associa un evento a <strong style="color:var(--txt1)">più universi contemporaneamente</strong> per moltiplicare la visibilità. Un workshop di danza-acrobatica può apparire sia in AcroWorld che in BodySoul, raggiungendo entrambe le community con una sola pubblicazione.');
-  s1+=h3('Partnership tra organizzatori');
-  s1+=p('Invita <strong style="color:var(--txt1)">altri organizzatori come partner</strong> del tuo evento. I partner vedranno l\'evento nel loro pannello e i loro iscritti potranno usufruire degli abbonamenti compatibili. Tu (capofila) mantieni il <strong style="color:var(--txt1)">controllo completo</strong>.');
-  html+='<div id="org-universi" style="scroll-margin-top:16px">'+sec(s1)+'</div>';
-
-  // === 2. TIPOLOGIE DI EVENTO ===
+  // === 1. TIPOLOGIE DI EVENTO ===
   let s2=h2('📋','Tipologie di evento');
   s2+=tagline('Ogni formato ha le sue regole, tutte gestibili in automatico');
   s2+=p('Come organizzatore puoi creare <strong style="color:var(--txt1)">tutte e 4 le tipologie</strong> di evento:');
@@ -3451,7 +3449,36 @@ function renderInfoPageOrganizer(){
   s3+=valueBox('⚡','<strong style="color:#10b981">Efficienza:</strong> crea un evento una volta, genera automaticamente tutte le date ricorrenti, e gestisci ogni sessione con la sua lista iscritti separata. Zero duplicazioni.');
   html+='<div id="org-struttura" style="scroll-margin-top:16px">'+sec(s3)+'</div>';
 
-  // === 4. PREZZI ===
+  // === 3. UNIVERSI E PARTNERSHIP ===
+  let s1=h2('🌌','Universi e Partnership');
+  s1+=tagline('Raggiungi più comunità con meno sforzo');
+  s1+=p('Ogni organizzatore opera all\'interno di uno o più <strong style="color:var(--txt1)">universi</strong> (aree tematiche). I tuoi eventi saranno visibili a tutti gli utenti iscritti a quegli universi, senza promozione aggiuntiva.');
+  s1+=h3('Eventi multi-universo');
+  s1+=p('Associa un evento a <strong style="color:var(--txt1)">più universi contemporaneamente</strong> per moltiplicare la visibilità. Un workshop di danza-acrobatica può apparire sia in AcroWorld che in BodySoul, raggiungendo entrambe le community con una sola pubblicazione.');
+  s1+=h3('Partnership tra organizzatori');
+  s1+=p('Invita <strong style="color:var(--txt1)">altri organizzatori come partner</strong> del tuo evento. I partner vedranno l\'evento nel loro pannello e i loro iscritti potranno usufruire degli abbonamenti compatibili. Tu (capofila) mantieni il <strong style="color:var(--txt1)">controllo completo</strong>.');
+  html+='<div id="org-universi" style="scroll-margin-top:16px">'+sec(s1)+'</div>';
+
+  // === 4. LISTA ISCRITTI (moved before Prezzi) ===
+  let s7=h2('📊','Lista iscritti e gestione prenotazioni');
+  s7+=tagline('Ogni evento, ogni partecipante, ogni dettaglio sotto controllo');
+  s7+=p('Dalla <strong style="color:var(--txt1)">scheda dettaglio evento</strong> accedi alla lista completa dei partecipanti con tutte le metriche in tempo reale.');
+  s7+=p('Per ogni partecipante visualizzi: <strong style="color:var(--txt1)">ruolo</strong>, <strong style="color:var(--txt1)">sessioni prenotate</strong>, <strong style="color:var(--txt1)">fascia di prezzo</strong>, <strong style="color:var(--txt1)">stato pagamento</strong>, <strong style="color:var(--txt1)">anticipo</strong> e le <strong style="color:var(--txt1)">risposte al sondaggio</strong>.');
+  s7+=h3('Azioni rapide');
+  s7+=featList(
+    featItem('✅','<strong style="color:var(--txt1)">Conferma pagamento</strong> — segna un partecipante come pagato con un tap.')
+    +featItem('💰','<strong style="color:var(--txt1)">Registra anticipo</strong> — traccia la ricezione del deposito.')
+    +featItem('🎁','<strong style="color:var(--txt1)">Omaggio</strong> — imposta un ingresso come gratuito.')
+    +featItem('❌','<strong style="color:var(--txt1)">Cancella prenotazione</strong> — rimuove la prenotazione. L\'utente può re-iscriversi.')
+  );
+  s7+=h3('Vista per sessione');
+  s7+=p('Per eventi multi-sessione, filtra la vista per <strong style="color:var(--txt1)">singola sessione</strong>: vedi solo i partecipanti di quella specifica attività.');
+  s7+=h3('Export Excel avanzato');
+  s7+=p('L\'export include: <strong style="color:var(--txt1)">riepilogo metriche con formule</strong> (totale previsto, incassato, da incassare), distribuzione ruoli, lista completa con sondaggi, e sezione cancellati. Per eventi multi-sessione, un <strong style="color:var(--txt1)">foglio separato per ogni sessione</strong>.');
+  s7+=valueBox('⚡','<strong style="color:#10b981">Efficienza:</strong> tutte le operazioni di gestione partecipanti avvengono inline, senza navigare altrove. Conferma pagamenti, registra anticipi, esporta — tutto dalla stessa schermata.');
+  html+='<div id="org-iscritti" style="scroll-margin-top:16px">'+sec(s7)+'</div>';
+
+  // === 5. PREZZI ===
   let s4=h2('💰','Preferenze costi e struttura prezzi');
   s4+=tagline('Pricing flessibile che si adatta alla tua filosofia');
   s4+=p('Ogni evento può avere una politica di prezzo diversa. Scegli la modalità più adatta:');
@@ -3477,7 +3504,27 @@ function renderInfoPageOrganizer(){
   s4+=valueBox('📈','<strong style="color:#10b981">Valore:</strong> hai sempre il quadro finanziario completo — chi deve pagare, chi ha pagato, quanto manca — senza fogli di calcolo manuali. Apri l\'export e hai tutto pronto.');
   html+='<div id="org-prezzi" style="scroll-margin-top:16px">'+sec(s4)+'</div>';
 
-  // === 5. ABBONAMENTI ===
+  // === 6. CHECK-IN E PRESENZE (moved after Prezzi) ===
+  let s8=h2('📱','Check-in e presenze');
+  s8+=tagline('Dal QR code al registro presenze in zero passaggi');
+  s8+=p('Il check-in digitale elimina le liste cartacee e riduce a zero il tempo di ingresso.');
+  s8+=h3('Come funziona');
+  s8+=flowStep('1','<strong style="color:var(--txt1)">Genera il QR code</strong> dalla scheda evento. Stampalo o mostralo dal telefono.');
+  s8+=flowStep('2','<strong style="color:var(--txt1)">Il partecipante scansiona</strong> il QR all\'ingresso.');
+  s8+=flowStep('3','<strong style="color:var(--txt1)">Check-in automatico</strong> — se è prenotato, un tap e ha fatto. Se non lo è, si prenota e fa check-in in un unico flusso.');
+  s8+=h3('Scenari gestiti');
+  s8+=grid2(
+    valueCard('⚡','Prenotato','Check-in istantaneo con un singolo tap. Zero attesa.')
+    +valueCard('🆕','Nuovo utente','Si registra al volo con email e nome, senza account completo.')
+    +valueCard('🎫','Abbonato','L\'abbonamento viene scalato automaticamente al check-in.')
+    +valueCard('📲','Non prenotato','Può prenotarsi e fare check-in in un unico flusso dal QR.')
+  );
+  s8+=h3('Registro presenze');
+  s8+=p('Nella sezione <strong style="color:var(--txt1)">📊 Presenze</strong> trovi il registro completo: chi era presente, a quale sessione, con dettaglio per data. Tutto esportabile in Excel.');
+  s8+=valueBox('🕐','<strong style="color:#10b981">Tempo risparmiato:</strong> niente più liste cartacee, spunte manuali o conteggi a fine giornata. Il sistema traccia tutto in tempo reale.');
+  html+='<div id="org-checkin" style="scroll-margin-top:16px">'+sec(s8)+'</div>';
+
+  // === 7. ABBONAMENTI ===
   let s5=h2('🎟️','Abbonamenti');
   s5+=tagline('Fidelizza la tua community con pacchetti su misura');
   s5+=p('Crea <strong style="color:var(--txt1)">tipologie di abbonamento</strong> legate ai tuoi universi. Due modalità disponibili:');
@@ -3505,45 +3552,6 @@ function renderInfoPageOrganizer(){
   s6+=valueBox('📊','<strong style="color:#10b981">Valore:</strong> un CRM integrato nella piattaforma. Non serve nessun tool esterno per gestire i tuoi contatti, segmentarli o esportarli.');
   html+='<div id="org-anagrafica" style="scroll-margin-top:16px">'+sec(s6)+'</div>';
 
-  // === 7. LISTA ISCRITTI ===
-  let s7=h2('📊','Lista iscritti e gestione prenotazioni');
-  s7+=tagline('Ogni evento, ogni partecipante, ogni dettaglio sotto controllo');
-  s7+=p('Dalla <strong style="color:var(--txt1)">scheda dettaglio evento</strong> accedi alla lista completa dei partecipanti con tutte le metriche in tempo reale.');
-  s7+=p('Per ogni partecipante visualizzi: <strong style="color:var(--txt1)">ruolo</strong>, <strong style="color:var(--txt1)">sessioni prenotate</strong>, <strong style="color:var(--txt1)">fascia di prezzo</strong>, <strong style="color:var(--txt1)">stato pagamento</strong>, <strong style="color:var(--txt1)">anticipo</strong> e le <strong style="color:var(--txt1)">risposte al sondaggio</strong>.');
-  s7+=h3('Azioni rapide');
-  s7+=featList(
-    featItem('✅','<strong style="color:var(--txt1)">Conferma pagamento</strong> — segna un partecipante come pagato con un tap.')
-    +featItem('💰','<strong style="color:var(--txt1)">Registra anticipo</strong> — traccia la ricezione del deposito.')
-    +featItem('🎁','<strong style="color:var(--txt1)">Omaggio</strong> — imposta un ingresso come gratuito.')
-    +featItem('❌','<strong style="color:var(--txt1)">Cancella prenotazione</strong> — rimuove la prenotazione. L\'utente può re-iscriversi.')
-  );
-  s7+=h3('Vista per sessione');
-  s7+=p('Per eventi multi-sessione, filtra la vista per <strong style="color:var(--txt1)">singola sessione</strong>: vedi solo i partecipanti di quella specifica attività.');
-  s7+=h3('Export Excel avanzato');
-  s7+=p('L\'export include: <strong style="color:var(--txt1)">riepilogo metriche con formule</strong> (totale previsto, incassato, da incassare), distribuzione ruoli, lista completa con sondaggi, e sezione cancellati. Per eventi multi-sessione, un <strong style="color:var(--txt1)">foglio separato per ogni sessione</strong>.');
-  s7+=valueBox('⚡','<strong style="color:#10b981">Efficienza:</strong> tutte le operazioni di gestione partecipanti avvengono inline, senza navigare altrove. Conferma pagamenti, registra anticipi, esporta — tutto dalla stessa schermata.');
-  html+='<div id="org-iscritti" style="scroll-margin-top:16px">'+sec(s7)+'</div>';
-
-  // === 8. CHECK-IN E PRESENZE ===
-  let s8=h2('📱','Check-in e presenze');
-  s8+=tagline('Dal QR code al registro presenze in zero passaggi');
-  s8+=p('Il check-in digitale elimina le liste cartacee e riduce a zero il tempo di ingresso.');
-  s8+=h3('Come funziona');
-  s8+=flowStep('1','<strong style="color:var(--txt1)">Genera il QR code</strong> dalla scheda evento. Stampalo o mostralo dal telefono.');
-  s8+=flowStep('2','<strong style="color:var(--txt1)">Il partecipante scansiona</strong> il QR all\'ingresso.');
-  s8+=flowStep('3','<strong style="color:var(--txt1)">Check-in automatico</strong> — se è prenotato, un tap e ha fatto. Se non lo è, si prenota e fa check-in in un unico flusso.');
-  s8+=h3('Scenari gestiti');
-  s8+=grid2(
-    valueCard('⚡','Prenotato','Check-in istantaneo con un singolo tap. Zero attesa.')
-    +valueCard('🆕','Nuovo utente','Si registra al volo con email e nome, senza account completo.')
-    +valueCard('🎫','Abbonato','L\'abbonamento viene scalato automaticamente al check-in.')
-    +valueCard('📲','Non prenotato','Può prenotarsi e fare check-in in un unico flusso dal QR.')
-  );
-  s8+=h3('Registro presenze');
-  s8+=p('Nella sezione <strong style="color:var(--txt1)">📊 Presenze</strong> trovi il registro completo: chi era presente, a quale sessione, con dettaglio per data. Tutto esportabile in Excel.');
-  s8+=valueBox('🕐','<strong style="color:#10b981">Tempo risparmiato:</strong> niente più liste cartacee, spunte manuali o conteggi a fine giornata. Il sistema traccia tutto in tempo reale.');
-  html+='<div id="org-checkin" style="scroll-margin-top:16px">'+sec(s8)+'</div>';
-
   // === 9. COMUNICAZIONI ===
   let s9=h2('📢','Comunicazioni e modifiche');
   s9+=tagline('Aggiorna gli iscritti con un tap, senza messaggi individuali');
@@ -3568,7 +3576,19 @@ function renderInfoPageOrganizer(){
   s10+=valueBox('🌱','<strong style="color:#10b981">Valore:</strong> ogni invito è tracciato. Puoi misurare la crescita organica della tua community e capire quali canali funzionano meglio.');
   html+='<div id="org-inviti" style="scroll-margin-top:16px">'+sec(s10)+'</div>';
 
-  // === 11. FEEDBACK ===
+  // === 11. COSTI DELLA PIATTAFORMA ===
+  let sCosti=h2('🪙','Costi della piattaforma');
+  sCosti+=tagline('Parliamoci chiaro, da subito');
+  sCosti+=p('BodyEvents è <strong style="color:var(--txt1)">gratuita per tutti</strong> — utenti e organizzatori. Nessun costo di attivazione, nessun abbonamento, nessuna commissione sui pagamenti.');
+  sCosti+=p('Detto questo, è giusto essere trasparenti su cosa succede quando si cresce. Se il numero di utenti e organizzatori aumenterà in modo significativo, i costi reali aumenteranno con esso: server, database, backup, manutenzione, sviluppo di nuove funzionalità. Sono costi concreti che qualcuno deve sostenere.');
+  sCosti+=p('Per questo è importante una riflessione sincera:');
+  sCosti+='<div style="background:var(--s100);border:1px solid var(--s300);border-radius:12px;padding:16px 18px;margin:12px 0;font-size:.86rem;color:var(--txt2);line-height:1.6;font-style:italic">';
+  sCosti+='Se il valore che questo servizio ti offre — il tempo risparmiato nella gestione, la facilità di organizzazione, il network effect con la tua community, gli strumenti amministrativi, l\'export automatico, il check-in digitale — non varrà mai per te il corrispettivo di <strong style="color:var(--txt1);font-style:normal">una pizza al mese</strong>, allora probabilmente non vale la pena iniziare.';
+  sCosti+='</div>';
+  sCosti+=p('Non lo diciamo per scoraggiare, ma per costruire qualcosa di sostenibile insieme. Se un giorno sarà necessario introdurre un contributo minimo per mantenere vivo il servizio, sarà trasparente, equo e proporzionato al valore reale che la piattaforma offre a chi la usa ogni giorno.');
+  html+='<div id="org-costi" style="scroll-margin-top:16px">'+sec(sCosti)+'</div>';
+
+  // === 12. FEEDBACK ===
   let feedSec=h2('💬','Aiutaci a migliorare');
   feedSec+=tagline('La piattaforma cresce con il contributo di chi la usa');
   feedSec+=p('Hai feedback, suggerimenti, o trovi che alcune meccaniche siano poco efficienti? Hai un\'idea per una nuova funzionalità che renderebbe la gestione dei tuoi eventi più semplice?');
@@ -5816,10 +5836,11 @@ function renderRegistryTable(reg,entries,theadId,tbodyId,listId){
     hh+='</span>';
     hh+='</th>';
   });
+  hh+='<th style="'+thStyle+';width:40px;text-align:center"></th>';
   hh+='</tr>';
   thead.innerHTML=hh;
   // Body
-  if(!sorted.length){tbody.innerHTML='<tr><td colspan="'+(2+cols.length)+'" style="padding:24px;text-align:center;color:var(--txt3)">Nessun partecipante.</td></tr>';return;}
+  if(!sorted.length){tbody.innerHTML='<tr><td colspan="'+(3+cols.length)+'" style="padding:24px;text-align:center;color:var(--txt3)">Nessun partecipante.</td></tr>';return;}
   let bh='';
   sorted.forEach(entry=>{
     bh+='<tr data-uid="'+entry.uid+'" style="border-top:1px solid var(--s300)">';
@@ -5843,6 +5864,7 @@ function renderRegistryTable(reg,entries,theadId,tbodyId,listId){
         bh+='<td style="padding:6px 10px"><input type="text" value="'+escHtml(val||'')+'" placeholder="—" style="width:100%;min-width:70px;background:var(--s100);border:1px solid var(--s300);border-radius:6px;padding:3px 5px;color:var(--txt1);font-size:.78rem" onchange="updateRegistryCell(\''+entry.uid+'\',\''+c.id+'\',this.value)"></td>';
       }
     });
+    bh+='<td style="padding:4px 6px;text-align:center"><button style="background:none;border:none;color:var(--txt3);font-size:.7rem;cursor:pointer;opacity:.3;transition:all .15s;padding:4px;border-radius:4px" onmouseover="this.style.opacity=1;this.style.color=\'var(--red)\';this.style.background=\'rgba(239,68,68,.1)\'" onmouseout="this.style.opacity=.3;this.style.color=\'var(--txt3)\';this.style.background=\'none\'" onclick="event.stopPropagation();removeFromRegistry(\''+entry.uid+'\')" title="Rimuovi dall\'anagrafica">✕</button></td>';
     bh+='</tr>';
   });
   tbody.innerHTML=bh;
@@ -6291,6 +6313,18 @@ function confirmRegistryColumn(){
   showToast('Colonna "'+name+'" creata');
 }
 
+function removeFromRegistry(uid){
+  showConfirm('Rimuovi dall\'anagrafica','Vuoi rimuovere questo utente dalla tua anagrafica locale? Non verrà eliminato dalla piattaforma, solo dalla tua lista.',()=>{
+    const reg=getRegistryData();
+    const before=reg.entries.length;
+    reg.entries=reg.entries.filter(e=>e.uid!==uid);
+    if(reg.entries.length<before){
+      saveRegistry();renderAdminRegistry();showToast('Utente rimosso dall\'anagrafica');
+    } else {
+      showToast('Utente non trovato','error');
+    }
+  });
+}
 function deleteRegistryColumn(colId){
   showConfirm('Elimina colonna','Vuoi eliminare questa colonna e tutti i suoi dati? L\'azione è irreversibile.',()=>{
     const reg=getRegistryData();
@@ -12342,18 +12376,23 @@ function renderAdminEvents(){
 
   // Update filter counts
   const fc=document.getElementById('admin-filter-counts');
-  const _af=adminStatusFilter;
-  const _tabStyle=(f)=>'padding:8px 14px;cursor:pointer;border:none;'+(_af===f?'outline:2px solid var(--brand);outline-offset:-2px;':'');
-  let filterHtml=`<button class="badge badge-pubblicato" style="${_tabStyle('')}" onclick="filterAdminEvts('')">Tutti (${evts.length})</button>
-    <button class="badge" style="${_tabStyle('pubblicato')}background:var(--s200);color:var(--txt3)" onclick="filterAdminEvts('pubblicato')">Pubblicati (${pub})</button>
-    <button class="badge" style="${_tabStyle('bozza')}background:var(--s200);color:var(--txt3)" onclick="filterAdminEvts('bozza')">Bozze (${boz})</button>
-    <button class="badge" style="${_tabStyle('concluso')}background:var(--s200);color:var(--txt3)" onclick="filterAdminEvts('concluso')">Conclusi (${con})</button>
-    <button class="badge" style="${_tabStyle('cancellato')}background:var(--red-bg);color:var(--red)" onclick="filterAdminEvts('cancellato')">Cancellati (${canc})</button>`;
+  const _af=adminStatusFilter||'pub_bozza';
+  const _pubBoz=pub+boz;
+  const _ftab=(key,label,count,active)=>{
+    const isAct=_af===key;
+    return `<button style="padding:8px 16px;border-radius:10px;border:1px solid ${isAct?'var(--brand)':'var(--s300)'};background:${isAct?'var(--brand-bg)':'var(--s100)'};color:${isAct?'var(--brand-l)':'var(--txt3)'};font-size:.78rem;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap" onmouseover="if(!${isAct})this.style.borderColor='var(--s400)';this.style.background='var(--s200)'" onmouseout="if(!${isAct}){this.style.borderColor='var(--s300)';this.style.background='var(--s100)'}" onclick="filterAdminEvts('${key}')">${label} <span style="opacity:.6">${count}</span></button>`;
+  };
+  let filterHtml=_ftab('pub_bozza','Pubblicati e Bozze',_pubBoz)
+    +_ftab('pubblicato','Pubblicati',pub)
+    +_ftab('bozza','Bozze',boz)
+    +_ftab('concluso','Conclusi',con)
+    +(canc?_ftab('cancellato','Cancellati',canc):'')
+    +_ftab('','Tutti',evts.length);
   if(fc)fc.innerHTML=filterHtml;
 
-
-  const statusFilter=(document.getElementById('admin-status-filter')||{}).value||'';
-  if(statusFilter)evts=evts.filter(e=>e.status===statusFilter);
+  const statusFilter=_af;
+  if(statusFilter==='pub_bozza')evts=evts.filter(e=>e.status==='pubblicato'||e.status==='bozza');
+  else if(statusFilter)evts=evts.filter(e=>e.status===statusFilter);
 
   const _cancNotice=statusFilter==='cancellato'?'<div class="card mb-4" style="background:rgba(239,68,68,.06);border-color:var(--red);padding:14px"><div class="flex items-center gap-2"><span>🗑️</span><span class="text-sm" style="color:var(--red)"><strong>Gli eventi cancellati vengono eliminati automaticamente dopo 10 giorni</strong> dalla data di cancellazione.</span></div></div>':'';
   // Group events by type
@@ -12420,16 +12459,20 @@ function renderAdminEvents(){
       </div>`;
     })():'';
     return `<div class="card" style="${opacity};${partnerBorder}cursor:pointer;margin-bottom:16px;background:var(--s50);border:1px solid var(--s200);box-shadow:0 2px 8px rgba(0,0,0,.2)" onclick="showAdminEventDetail('${ev.id}')">
-      <div class="flex gap-2 items-center mb-2 flex-wrap">
-        <span class="badge ${badgeStatus(ev.status)}">${capitalize(ev.status)}</span>
-        ${partnerBadge}
-        ${getRecurrenceBadge(ev)}
-        ${ev.alert?'<span class="badge" style="background:'+(ev.alert.type==='modificato'?'var(--orange-bg)':'var(--red-bg)')+';color:'+(ev.alert.type==='modificato'?'var(--orange)':'var(--red)')+'">⚠️ '+(ev.alert.type==='cancellato'?'Annullato':ev.alert.type==='rimandato'?'Rimandato':'Modificato')+'</span>':''}
+      <div style="display:flex;gap:16px;align-items:flex-start">
+        <div style="flex:1;min-width:0">
+          <div class="flex gap-2 items-center mb-2 flex-wrap">
+            <span class="badge ${badgeStatus(ev.status)}">${capitalize(ev.status)}</span>
+            ${partnerBadge}
+            ${getRecurrenceBadge(ev)}
+            ${ev.alert?'<span class="badge" style="background:'+(ev.alert.type==='modificato'?'var(--orange-bg)':'var(--red-bg)')+';color:'+(ev.alert.type==='modificato'?'var(--orange)':'var(--red)')+'">⚠️ '+(ev.alert.type==='cancellato'?'Annullato':ev.alert.type==='rimandato'?'Rimandato':'Modificato')+'</span>':''}
+          </div>
+          <h3 class="font-semibold text-white" style="font-size:1.05rem;margin-bottom:4px">${escHtml(ev.title)}</h3>
+          <div class="text-xs txt3" style="margin-bottom:2px">📅 ${dateStr} · 🕐 ${ev.days[0]?.startTime||''} — ${ev.days[0]?.endTime||''}${orgLabel}</div>
+          <div class="text-xs txt3">📍 ${escHtml(ev.location)}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;align-items:flex-end">${actions}</div>
       </div>
-      <h3 class="font-semibold text-white" style="font-size:1.05rem;margin-bottom:6px">${escHtml(ev.title)}</h3>
-      <div class="text-sm txt3" style="margin-bottom:2px">📅 ${dateStr} · 🕐 ${ev.days[0]?.startTime||''} — ${ev.days[0]?.endTime||''}${orgLabel}</div>
-      <div class="text-sm txt3">📍 ${escHtml(ev.location)}</div>
-      <div class="flex gap-2 flex-wrap mt-3" style="border-top:1px solid var(--s300);padding-top:10px">${actions}</div>
       ${_minBanner}
     </div>`;
   }).join('');
@@ -12437,8 +12480,8 @@ function renderAdminEvents(){
   });
   c.innerHTML=_groupedHtml||'<div class="card text-center txt3">Nessun evento.</div>';
 }
-let adminStatusFilter='';
-function filterAdminEvts(s){adminStatusFilter=s;document.getElementById('admin-status-filter').value=s;renderAdminEvents();}
+let adminStatusFilter='pub_bozza';
+function filterAdminEvts(s){adminStatusFilter=s;const el=document.getElementById('admin-status-filter');if(el)el.value=s;renderAdminEvents();}
 
 function _refreshAdminAfterAction(id){
   renderAdminEvents();
