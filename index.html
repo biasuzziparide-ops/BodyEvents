@@ -5863,10 +5863,24 @@ function renderRegistryTable(reg,entries,theadId,tbodyId,listId){
 }
 
 // === Registry User Detail Modal ===
-window._regOpenDetail=function(uid){openRegistryUserDetail(uid);};
 function openRegistryUserDetail(uid){
-  const user=store.users.find(x=>x.id===uid)||store.managers.find(x=>x.id===uid);
-  if(!user)return;
+  if(!uid)return;
+  // uid might be a real user ID or an email (for guest bookings without userId)
+  let user=store.users.find(x=>x.id===uid)||store.managers.find(x=>x.id===uid);
+  if(!user){
+    // Try matching by email
+    user=store.users.find(x=>x.email===uid)||store.managers.find(x=>x.email===uid);
+  }
+  // If still no user found, build a minimal object from registry entry
+  if(!user){
+    const mgr=store.managers.find(m=>m.id===store.currentUser?.id);
+    const regEntry=mgr?.registry?.entries?.find(e=>e.uid===uid);
+    if(regEntry){
+      user={id:uid,username:regEntry.name,email:regEntry.email||uid};
+    } else {
+      user={id:uid,username:uid,email:uid.includes('@')?uid:''};
+    }
+  }
   const name=user.username||user.name||'Utente';
   const email=user.email||'';
   const logo=user.profileLogo||null;
@@ -5874,8 +5888,11 @@ function openRegistryUserDetail(uid){
   // Find active bookings (non-cancelled) for this user, for events visible to current manager
   const mgr=store.currentUser;
   const isMaster=mgr.role==='master';
+  const _uidIsEmail=uid.includes('@');
+  const _realUserId=user.id||uid;
   const activeBookings=store.bookings.filter(b=>{
-    if(b.userId!==uid||b.status==='cancellata')return false;
+    const matchUser=b.userId===_realUserId||b.userId===uid||(_uidIsEmail&&b.email===uid);
+    if(!matchUser||b.status==='cancellata')return false;
     const ev=store.events.find(e=>e.id===b.eventId);
     if(!ev)return false;
     // Only show events visible to current organizer (or all if master)
@@ -5893,7 +5910,7 @@ function openRegistryUserDetail(uid){
 
   // Find active subscriptions
   const activeSubs=store.subscriptions.filter(s=>{
-    if(s.userId!==uid)return false;
+    if(s.userId!==_realUserId&&s.userId!==uid)return false;
     if(!isMaster&&s.managerId!==mgr.id)return false;
     // Check if subscription is active
     if(s.type==='ingressi'&&(s.remainingEntries||0)<=0)return false;
@@ -5979,7 +5996,7 @@ function openRegistryUserDetail(uid){
   }
 
   // Diagnostic: all bookings in local store for this user (debug)
-  const allUserBookings=store.bookings.filter(b=>b.userId===uid);
+  const allUserBookings=store.bookings.filter(b=>b.userId===_realUserId||b.userId===uid||(_uidIsEmail&&b.email===uid));
   if(allUserBookings.length!==activeBookings.length){
     h+='<div style="margin-bottom:16px">';
     h+='<div style="font-size:.78rem;font-weight:600;color:var(--txt3);margin-bottom:6px">🔍 Tutte le prenotazioni in memoria ('+allUserBookings.length+' totali)</div>';
@@ -6011,7 +6028,15 @@ async function verifyFirestoreBookings(uid,btn){
   const resultDiv=document.getElementById('fs-verify-result-'+uid);
   if(!resultDiv){btn.disabled=false;btn.textContent='🔍 Verifica su Firestore';return;}
   try{
-    const snap=await fbDb.collection('bookings').where('userId','==',uid).get();
+    // Query by userId, and also by email if uid looks like an email
+    const snap1=await fbDb.collection('bookings').where('userId','==',uid).get();
+    const isEmail=uid.includes('@');
+    const snap2=isEmail?await fbDb.collection('bookings').where('email','==',uid).get():null;
+    // Merge results, deduplicate by doc id
+    const allDocs=new Map();
+    snap1.forEach(doc=>allDocs.set(doc.id,doc));
+    if(snap2)snap2.forEach(doc=>allDocs.set(doc.id,doc));
+    const snap={size:allDocs.size,empty:allDocs.size===0,forEach:fn=>allDocs.forEach(fn)};
     let rh='<div style="font-size:.78rem;margin-top:8px">';
     rh+='<div style="font-weight:700;color:var(--txt1);margin-bottom:6px">📊 Risultato Firestore: '+snap.size+' booking trovati</div>';
     if(snap.empty){
