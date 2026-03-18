@@ -15916,8 +15916,11 @@ function showAdminEventDetail(evId){
           const daIncHtml=b.gift?'<span class="text-xs txt3">—</span>':(_bDaInc>0?'<span style="color:var(--yellow);font-weight:600">€'+_bDaInc+'</span>':'<span style="color:var(--green)">€0</span>');
           const avatarCls=b.color||'';
           const avatarStyle=!avatarCls?'style="background:var(--s300);color:var(--txt3)"':'';
+          const _pUser=store.users.find(x=>x.id===b.userId)||store.managers.find(x=>x.id===b.userId);
+          const _pLogo=_pUser?.profileLogo||null;
+          const avatarInner=_pLogo?'<img src="'+_pLogo+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':b.initials;
           return `<tr>
-            <td><div class="flex items-center gap-2"><div class="avatar ${avatarCls}" ${avatarStyle}>${b.initials}</div><div><div class="font-medium text-white text-sm">${escHtml(b.userName)}</div><div class="text-xs txt3">${escHtml(b.email)}</div></div></div></td>
+            <td><div class="flex items-center gap-2"><div class="avatar ${avatarCls}" ${avatarStyle} style="${!avatarCls?'background:var(--s300);color:var(--txt3)':''}${_pLogo?';overflow:hidden':''}">${avatarInner}</div><div><div class="font-medium text-white text-sm">${escHtml(b.userName)}</div><div class="text-xs txt3">${escHtml(b.email)}</div></div></div></td>
             <td><span style="color:${roleColor(b.role)}">${roleName(b.role)}</span></td>
             <td style="min-width:140px">${getSessionNames(b.sessions)}</td>
             ${ev.pricingMode!=='free'?'<td class="font-medium">'+amountHtml+' '+giftBtn+'</td><td>'+payHtml+'</td><td>'+depositHtml+'</td><td>'+daIncHtml+'</td>':''}
@@ -15938,10 +15941,10 @@ function showAdminEventDetail(evId){
     <h2 class="font-semibold text-white mb-3 mt-6" style="opacity:.6">❌ Cancellate (${cancelled.length})</h2>
     <div class="card" style="padding:0;overflow:auto;opacity:.5">
       <table class="table"><thead><tr><th>Utente</th><th>Importo</th></tr></thead>
-      <tbody>${cancelled.map(b=>`<tr>
-        <td><div class="flex items-center gap-2"><div class="avatar" style="background:var(--s300);color:var(--txt3)">${b.initials}</div><div class="font-medium text-white text-sm" style="text-decoration:line-through">${escHtml(b.userName)}</div></div></td>
+      <tbody>${cancelled.map(b=>{const _cu=store.users.find(x=>x.id===b.userId)||store.managers.find(x=>x.id===b.userId);const _cl=_cu?.profileLogo||null;return `<tr>
+        <td><div class="flex items-center gap-2"><div class="avatar" style="background:var(--s300);color:var(--txt3)${_cl?';overflow:hidden':''}">${_cl?'<img src="'+_cl+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':b.initials}</div><div class="font-medium text-white text-sm" style="text-decoration:line-through">${escHtml(b.userName)}</div></div></td>
         <td class="text-sm txt3">€${b.amount}</td>
-      </tr>`).join('')}</tbody></table>
+      </tr>`}).join('')}</tbody></table>
     </div>`:''}
   </div>`;
   if(window._adminDetailKeepScroll){
