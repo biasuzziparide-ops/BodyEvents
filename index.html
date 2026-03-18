@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.37.1</title>
+<title>BodyEvents — V2.37.3</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -340,7 +340,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.37.1</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.37.3</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -400,6 +400,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="mm-group-label">Il mio account</div>
       <div class="nav-link" onclick="go('dashboard');closeMobile()">🎫 Prenotazioni</div>
       <div class="nav-link" onclick="go('profile');closeMobile()">👤 Il mio profilo</div>
+      <div class="nav-link" onclick="go('info-page');closeMobile()">ℹ️ Come funziona</div>
     </div>
     <div class="mm-group">
       <div class="nav-link" onclick="refreshData();closeMobile()">🔄 Aggiorna dati</div>
@@ -466,6 +467,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="nav-link master-only" style="display:none" onclick="go('admin-community-jams');closeMobileAdmin()">🤝 Community Events</div>
       <div class="nav-link master-only" style="display:none" onclick="go('admin-users');closeMobileAdmin()">👥 Gestione Utenti</div>
       <div class="nav-link master-only" style="display:none" onclick="go('admin-universes');closeMobileAdmin()">🌌 Universi</div>
+      <div class="nav-link" onclick="go('info-page');closeMobileAdmin()">ℹ️ Come funziona</div>
     </div>
     <div class="mm-group">
       <div class="mm-group-label">Impostazioni</div>
@@ -2140,6 +2142,16 @@ textarea.input{resize:none;font-family:inherit}
 </div>
 </div>
 <!-- ============================================================ -->
+<!-- VIEW: INFO PAGE — Come funziona BodyEvents -->
+<!-- ============================================================ -->
+<div class="view" id="view-info-page">
+<div class="container" style="padding-top:32px;padding-bottom:48px;max-width:600px">
+  <h1 class="page-title">ℹ️ Come funziona BodyEvents</h1>
+  <p class="text-sm txt3" style="margin-bottom:24px">Tutto quello che devi sapere sulla piattaforma</p>
+  <div id="info-page-content"></div>
+</div>
+</div>
+<!-- ============================================================ -->
 <!-- VIEW: CHECK-IN SCENARIO A — Prenotato + loggato (1 tap!) -->
 <!-- ============================================================ -->
 <div class="view" id="view-checkin-booked">
@@ -2926,8 +2938,10 @@ async function loadAllData(forceReload){
     store.communityJams=[];jamsSnap.forEach(doc=>{store.communityJams.push(doc.data());});
     store.attendances={};attendancesSnap.forEach(doc=>{store.attendances[doc.id]=doc.data().events||[];});
     store.universes=[];universesSnap.forEach(doc=>{store.universes.push(doc.data());});
-    // Ensure all universes have the 4 default event types
+    // Ensure all universes have the 4 default event types + clean duplicates
     store.universes.forEach(u=>ensureUniverseHasEventTypes(u));
+    // Migrate legacy custom type keys that duplicate defaults (e.g. "community event" → "social")
+    _migrateLegacyEventTypes();
     // Load subscription collections separately (fault-tolerant: won't block if Firestore rules don't include them yet)
     try{const subTypesSnap=await fbDb.collection('subscriptionTypes').get();store.subscriptionTypes=[];subTypesSnap.forEach(doc=>{store.subscriptionTypes.push(doc.data());});}catch(e){console.warn('subscriptionTypes load skipped:',e.message);store.subscriptionTypes=[];}
     try{const subsSnap=await fbDb.collection('subscriptions').get();store.subscriptions=[];subsSnap.forEach(doc=>{store.subscriptions.push(doc.data());});}catch(e){console.warn('subscriptions load skipped:',e.message);store.subscriptions=[];}
@@ -3037,10 +3051,23 @@ function getEventTypesForUniverses(univIds){
 }
 function getAllEventTypes(){
   const all=new Set(DEFAULT_EVENT_TYPES);
+  const defaultLabels=new Set();
+  DEFAULT_EVENT_TYPES.forEach(dt=>defaultLabels.add((EVENT_TYPE_LABELS[dt]||dt).toLowerCase()));
   getActiveUniverses().forEach(u=>{(u.eventTypes||DEFAULT_EVENT_TYPES).forEach(t=>all.add(t));});
   store.events.forEach(ev=>{if(ev.type)all.add(ev.type);});
   store.communityJams.forEach(j=>{if(j.type)all.add(j.type);});
-  return Array.from(all);
+  // Remove custom keys that duplicate a default type's label (e.g. "community event" vs "social")
+  const result=[];
+  const seenLabels=new Set();
+  // Defaults first (they always win)
+  DEFAULT_EVENT_TYPES.forEach(t=>{result.push(t);seenLabels.add((EVENT_TYPE_LABELS[t]||t).toLowerCase());});
+  // Then customs, skip if label already seen
+  all.forEach(t=>{
+    if(DEFAULT_EVENT_TYPES.includes(t))return;
+    const label=(EVENT_TYPE_LABELS[t]||t).toLowerCase();
+    if(!seenLabels.has(label)&&!defaultLabels.has(t.toLowerCase())){result.push(t);seenLabels.add(label);}
+  });
+  return result;
 }
 function getEventTypeLabel(t){return EVENT_TYPE_LABELS[t]||t.charAt(0).toUpperCase()+t.slice(1);}
 function getEventTypeIcon(t){return EVENT_TYPE_ICONS[t]||'📌';}
@@ -3050,6 +3077,9 @@ async function addCustomEventType(univId,typeName){
   const univ=store.universes.find(u=>u.id===univId);
   if(!univ)return null;
   if(!univ.eventTypes)univ.eventTypes=DEFAULT_EVENT_TYPES.slice();
+  // Block custom types that duplicate a default type's label
+  const _defMatch=DEFAULT_EVENT_TYPES.find(dt=>(EVENT_TYPE_LABELS[dt]||dt).toLowerCase()===norm||dt===norm);
+  if(_defMatch){showToast('Tipologia "'+getEventTypeLabel(_defMatch)+'" è già un tipo predefinito','error');return _defMatch;}
   // Check for duplicates (case-insensitive)
   const existing=univ.eventTypes.find(t=>normalizeTypeName(t)===norm);
   if(existing){showToast('Tipologia "'+getEventTypeLabel(existing)+'" già esistente','error');return existing;}
@@ -3072,7 +3102,157 @@ function ensureUniverseHasEventTypes(univ){
   for(const dt of DEFAULT_EVENT_TYPES){
     if(!univ.eventTypes.includes(dt)){univ.eventTypes.push(dt);changed=true;}
   }
+  // Remove custom duplicates that clash with default type labels
+  const defaultLabels=new Map();
+  DEFAULT_EVENT_TYPES.forEach(dt=>{defaultLabels.set(getEventTypeLabel(dt).toLowerCase(),dt);});
+  const toRemove=[];
+  univ.eventTypes.forEach(t=>{
+    if(DEFAULT_EVENT_TYPES.includes(t))return;// skip defaults themselves
+    const label=(EVENT_TYPE_LABELS[t]||t).toLowerCase();
+    if(defaultLabels.has(label)||defaultLabels.has(t.toLowerCase())){toRemove.push(t);}
+  });
+  if(toRemove.length){
+    univ.eventTypes=univ.eventTypes.filter(t=>!toRemove.includes(t));
+    changed=true;
+  }
   if(changed)fsUpdate('universes',univ.id,{eventTypes:univ.eventTypes}).catch(console.error);
+}
+// One-time silent migration: remap legacy custom type keys that duplicate defaults
+function _migrateLegacyEventTypes(){
+  // Build map of legacy keys → correct default key (by label match)
+  const labelToDefault=new Map();
+  DEFAULT_EVENT_TYPES.forEach(dt=>{
+    labelToDefault.set((EVENT_TYPE_LABELS[dt]||dt).toLowerCase(),dt);
+    labelToDefault.set(dt.toLowerCase(),dt);
+  });
+  // Check events
+  store.events.forEach(ev=>{
+    if(!ev.type||DEFAULT_EVENT_TYPES.includes(ev.type))return;
+    const match=labelToDefault.get(ev.type.toLowerCase())||labelToDefault.get((EVENT_TYPE_LABELS[ev.type]||ev.type).toLowerCase());
+    if(match&&match!==ev.type){ev.type=match;fsUpdate('events',ev.id,{type:match}).catch(console.error);}
+  });
+  // Check community jams
+  store.communityJams.forEach(j=>{
+    if(!j.type||DEFAULT_EVENT_TYPES.includes(j.type))return;
+    const match=labelToDefault.get(j.type.toLowerCase())||labelToDefault.get((EVENT_TYPE_LABELS[j.type]||j.type).toLowerCase());
+    if(match&&match!==j.type){j.type=match;fsUpdate('communityJams',j.id,{type:match}).catch(console.error);}
+  });
+  // Check subscription type compatibleEventTypes
+  store.subscriptionTypes.forEach(st=>{
+    if(!st.compatibleEventTypes||!st.compatibleEventTypes.length)return;
+    let stChanged=false;
+    st.compatibleEventTypes=st.compatibleEventTypes.map(t=>{
+      if(DEFAULT_EVENT_TYPES.includes(t))return t;
+      const match=labelToDefault.get(t.toLowerCase())||labelToDefault.get((EVENT_TYPE_LABELS[t]||t).toLowerCase());
+      if(match&&match!==t){stChanged=true;return match;}
+      return t;
+    });
+    // Deduplicate
+    const before=st.compatibleEventTypes.length;
+    st.compatibleEventTypes=[...new Set(st.compatibleEventTypes)];
+    if(stChanged||st.compatibleEventTypes.length!==before)fsUpdate('subscriptionTypes',st.id,{compatibleEventTypes:st.compatibleEventTypes}).catch(console.error);
+  });
+}
+/* === INFO PAGE — Come funziona BodyEvents (V2.37.3) === */
+function renderInfoPage(){
+  const c=document.getElementById('info-page-content');if(!c)return;
+  const active=getActiveUniverses();
+  const master=store.managers.find(m=>m.role==='master');
+  const masterEmail=master?(master.contactEmail||master.email):'';
+  // Section style helpers
+  const sec=(inner)=>'<div style="background:var(--s50);border-radius:16px;padding:20px;margin-bottom:16px;border:1px solid var(--s200)">'+inner+'</div>';
+  const h2=(icon,text)=>'<div style="font-size:1.05rem;font-weight:700;color:var(--txt1);margin-bottom:10px;display:flex;align-items:center;gap:8px">'+icon+' '+text+'</div>';
+  const h3=(text)=>'<div style="font-size:.9rem;font-weight:600;color:var(--brand-l);margin:14px 0 6px">'+text+'</div>';
+  const p=(text)=>'<p style="font-size:.88rem;color:var(--txt2);margin-bottom:8px;line-height:1.55">'+text+'</p>';
+  const tip=(icon,text)=>'<div style="background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.2);border-radius:12px;padding:14px 16px;margin:12px 0 4px;font-size:.82rem;color:#6366f1;line-height:1.5">'+icon+' '+text+'</div>';
+
+  let html='';
+
+  // === UNIVERSI ===
+  let univSec=h2('🌌','Gli Universi');
+  univSec+=p('Un <strong style="color:var(--txt1)">Universo</strong> rappresenta un\'area tematica (es. AcroYoga, Yoga, Danza, Arrampicata). Ogni universo ha i propri eventi, organizzatori e comunità.');
+  univSec+=p('Dentro la sezione <strong style="color:var(--txt1)">Il mio profilo</strong> puoi scegliere a quali universi partecipare e visualizzare solo gli eventi che ti interessano.');
+
+  // Dynamic universe list
+  if(active.length){
+    univSec+=h3('Universi attualmente presenti');
+    active.forEach(u=>{
+      const desc=u.description?'<div style="font-size:.78rem;color:var(--txt3);margin-top:4px;line-height:1.45">'+escHtml(u.description)+'</div>':'';
+      const rolesHtml=(u.roles||[]).length?'<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">'+u.roles.map(r=>'<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:10px;font-size:.8rem;font-weight:600;background:'+u.color+'22;color:'+u.color+'">'+escHtml(r)+'</span>').join('')+'</div>':'';
+      univSec+='<div style="background:var(--s100);border-radius:12px;padding:14px;margin-bottom:8px;border:1px solid var(--s300);border-left:3px solid '+u.color+'"><div style="font-size:.85rem;font-weight:700;color:var(--txt1)">'+u.emoji+' '+escHtml(u.name)+'</div>'+desc+rolesHtml+'</div>';
+    });
+    univSec+=p('<span style="color:var(--txt3);font-style:italic">Altri universi possono essere creati ed entrare a far parte della piattaforma.</span>');
+  }
+
+  univSec+=h3('Ruoli per universo');
+  univSec+=p('Alcuni universi hanno <strong style="color:var(--txt1)">ruoli specifici</strong> che puoi selezionare durante la prenotazione. I ruoli aiutano gli organizzatori a bilanciare i gruppi e a organizzare meglio le sessioni. Puoi preimpostare il tuo ruolo preferito dalla pagina <strong style="color:var(--txt1)">Il mio profilo</strong>.');
+
+  univSec+=h3('Eventi multi-universo e partnership');
+  univSec+=p('Un evento può appartenere a <strong style="color:var(--txt1)">più universi contemporaneamente</strong>. Inoltre, gli organizzatori possono creare eventi <strong style="color:var(--txt1)">in partnership</strong> con altri organizzatori, anche di universi diversi. In questo modo un singolo evento può raggiungere comunità differenti.');
+  html+=sec(univSec);
+
+  // === TIPOLOGIE EVENTO ===
+  let typesSec=h2('📋','Tipologie di evento');
+  typesSec+=p('Su BodyEvents esistono <strong style="color:var(--txt1)">4 tipologie principali</strong> di evento, ognuna con caratteristiche diverse:');
+  const evTypes=[
+    {icon:'🤝',name:'Jam',desc:'Sessioni informali di pratica libera. Nessun insegnante: ci si incontra, si pratica insieme e si condivide.'},
+    {icon:'📚',name:'Lezione',desc:'Lezioni strutturate con un insegnante. Ideali per imparare nuove tecniche o approfondire le basi.'},
+    {icon:'🛠️',name:'Workshop',desc:'Sessioni intensive e tematiche, spesso su più ore o giorni. Perfetti per un approfondimento specifico.'},
+    {icon:'🎉',name:'Community Event',desc:'Eventi sociali e comunitari: ritrovi, feste, uscite. Aperti a tutti, pensati per stare insieme.'}
+  ];
+  typesSec+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 4px">';
+  evTypes.forEach(t=>{
+    typesSec+='<div style="background:var(--s100);border-radius:12px;padding:14px;border:1px solid var(--s300)"><div style="font-size:1.3rem;margin-bottom:6px">'+t.icon+'</div><div style="font-size:.82rem;font-weight:700;color:var(--txt1);margin-bottom:4px">'+t.name+'</div><div style="font-size:.78rem;color:var(--txt3);line-height:1.45">'+t.desc+'</div></div>';
+  });
+  typesSec+='</div>';
+  typesSec+=tip('👥','<strong style="color:#6366f1">Jam e Community Event:</strong> per queste tipologie puoi vedere <strong style="color:#6366f1">chi si è già iscritto</strong> prima ancora di prenotarti.');
+  typesSec+=p('<span style="margin-top:10px;display:block">Gli organizzatori possono anche creare <strong style="color:var(--txt1)">tipologie aggiuntive personalizzate</strong> per il proprio universo.</span>');
+  html+=sec(typesSec);
+
+  // === PREZZI ===
+  let priceSec=h2('💰','Come funzionano i prezzi');
+  priceSec+=p('Ogni evento può avere una politica di prezzo diversa, decisa dall\'organizzatore:');
+  const tiers=[
+    {icon:'🆓',name:'Gratuito',desc:'Nessun costo di partecipazione.'},
+    {icon:'💳',name:'Prezzo unico',desc:'Un singolo prezzo per tutti i partecipanti.'},
+    {icon:'📊',name:'3 fasce di prezzo',desc:'L\'organizzatore può offrire 3 opzioni: <strong style="color:var(--txt1)">Sostenitore</strong>, <strong style="color:var(--txt1)">Standard</strong> e <strong style="color:var(--txt1)">Ridotto</strong>. La scelta è libera e basata sulla fiducia: chi può permetterselo contribuisce di più, rendendo l\'evento accessibile anche a chi ha meno disponibilità. È una scelta coraggiosa e rischiosa per l\'organizzatore, ma rappresenta la volontà di far emergere la dimensione etica della propria comunità.'}
+  ];
+  tiers.forEach(t=>{
+    priceSec+='<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--s100);border-radius:10px;margin-bottom:6px;border:1px solid var(--s300)"><span style="font-size:1.1rem;flex-shrink:0">'+t.icon+'</span><div style="flex:1"><div style="font-size:.82rem;font-weight:700;color:var(--txt1)">'+t.name+'</div><div style="font-size:.78rem;color:var(--txt3);line-height:1.45">'+t.desc+'</div></div></div>';
+  });
+  priceSec+=p('Alcuni eventi possono anche prevedere uno <strong style="color:var(--txt1)">sconto early bird</strong> per chi si prenota in anticipo, o un <strong style="color:var(--txt1)">anticipo</strong> da versare al momento dell\'iscrizione.');
+  priceSec+=h3('🎟️ Abbonamenti');
+  priceSec+=p('Gli organizzatori possono attivare degli <strong style="color:var(--txt1)">abbonamenti</strong> per la propria comunità. Se possiedi un abbonamento attivo e compatibile con l\'evento, il prezzo potrebbe essere <strong style="color:var(--txt1)">ridotto</strong> o l\'ingresso potrebbe essere <strong style="color:var(--txt1)">incluso</strong> nel tuo pacchetto, senza costi aggiuntivi.');
+  html+=sec(priceSec);
+
+  // === UTENTI E ORGANIZZATORI ===
+  let usersSec=h2('👤','Utenti e Organizzatori');
+  usersSec+=p('Su BodyEvents ci sono <strong style="color:var(--txt1)">due tipi di account</strong>:');
+  usersSec+=h3('👤 Utente');
+  usersSec+=p('Ogni persona registrata è un <strong style="color:var(--txt1)">utente</strong>. Come utente puoi:');
+  usersSec+='<p style="margin-bottom:8px">'
+    +'<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:8px;font-size:.78rem;font-weight:600;margin:2px;background:rgba(16,185,129,.12);color:#10b981">✓ Sfogliare gli eventi</span>'
+    +'<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:8px;font-size:.78rem;font-weight:600;margin:2px;background:rgba(16,185,129,.12);color:#10b981">✓ Prenotarti</span>'
+    +'<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:8px;font-size:.78rem;font-weight:600;margin:2px;background:rgba(16,185,129,.12);color:#10b981">✓ Gestire il tuo profilo</span>'
+    +'<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:8px;font-size:.78rem;font-weight:600;margin:2px;background:var(--brand-bg);color:var(--brand-l)">✓ Creare Community Event</span>'
+    +'</p>';
+  usersSec+=p('I Community Event sono l\'unica tipologia che gli utenti possono proporre: sono eventi informali, creati dalla comunità per la comunità.');
+  usersSec+='<div style="height:1px;background:var(--s200);margin:8px 0 12px"></div>';
+  usersSec+=h3('🏢 Organizzatore');
+  usersSec+=p('Gli organizzatori sono utenti approvati dall\'amministratore. Oltre a tutte le funzioni utente, possono:');
+  usersSec+='<p style="margin-bottom:8px">'
+    +'<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:8px;font-size:.78rem;font-weight:600;margin:2px;background:var(--brand-bg);color:var(--brand-l)">✓ Creare Jam</span>'
+    +'<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:8px;font-size:.78rem;font-weight:600;margin:2px;background:var(--brand-bg);color:var(--brand-l)">✓ Creare Lezioni</span>'
+    +'<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:8px;font-size:.78rem;font-weight:600;margin:2px;background:var(--brand-bg);color:var(--brand-l)">✓ Creare Workshop</span>'
+    +'<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:8px;font-size:.78rem;font-weight:600;margin:2px;background:var(--brand-bg);color:var(--brand-l)">✓ Creare Community Event</span>'
+    +'</p>';
+  usersSec+=p('Gli organizzatori possono anche gestire <strong style="color:var(--txt1)">prenotazioni</strong>, <strong style="color:var(--txt1)">abbonamenti</strong>, <strong style="color:var(--txt1)">check-in</strong> e la propria <strong style="color:var(--txt1)">anagrafica iscritti</strong>. Possono inoltre creare eventi <strong style="color:var(--txt1)">in partnership</strong> con altri organizzatori.');
+  if(masterEmail){
+    usersSec+=tip('💡','<strong style="color:#6366f1">Vuoi diventare organizzatore?</strong> Scrivi a <strong style="color:#6366f1">'+escHtml(masterEmail)+'</strong> per richiedere l\'approvazione.');
+  }
+  html+=sec(usersSec);
+
+  c.innerHTML=html;
 }
 /* === PARTNER ORGANIZATIONS SYSTEM (V2.7.0) === */
 /* --- V2.7.1: Capofila & Partner Visibility Helpers --- */
@@ -3597,7 +3777,9 @@ function renderAdminUniversesView(){
       if(isMaster){
         editBtnHtml='<button class="btn btn-sm btn-secondary" style="flex-shrink:0;font-size:.75rem" onclick="openEditUniverseModal(\''+u.id+'\')">✏️ Modifica</button>';
       }
-      return '<div class="card mb-3" style="border-left:4px solid '+u.color+'"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><div style="flex:1"><div class="font-semibold text-white">'+u.emoji+' '+u.name+'</div>'+rolesHtml+pendingRolesHtml+proposeRoleHtml+evTypesHtml+addEvTypeHtml+'</div>'+editBtnHtml+'</div></div>';
+      // Description
+      let descHtml=u.description?'<div class="text-xs txt3" style="margin-top:4px;margin-bottom:6px;line-height:1.45">'+escHtml(u.description)+'</div>':'';
+      return '<div class="card mb-3" style="border-left:4px solid '+u.color+'"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><div style="flex:1"><div class="font-semibold text-white">'+u.emoji+' '+u.name+'</div>'+descHtml+rolesHtml+pendingRolesHtml+proposeRoleHtml+evTypesHtml+addEvTypeHtml+'</div>'+editBtnHtml+'</div></div>';
     }).join('');
   }
   // Universe association requests from managers (master only)
@@ -3667,6 +3849,7 @@ function openEditUniverseModal(univId){
     html+='<div class="eu-color-opt" data-color="'+c+'" onclick="document.getElementById(\'eu-color\').value=\''+c+'\';document.querySelectorAll(\'#eu-color-grid .eu-color-opt\').forEach(o=>o.style.border=\'3px solid transparent\');this.style.border=\'3px solid #fff\';document.getElementById(\'eu-color\').dispatchEvent(new Event(\'input\'));" style="width:36px;height:36px;border-radius:8px;background:'+c+';cursor:pointer;border:3px solid '+(sel?'#fff':'transparent')+'" title="'+UNIVERSE_PALETTE_NAMES[i]+'"></div>';
   });
   html+='</div></div>';
+  html+='<div class="mb-3"><label class="label">Descrizione</label><textarea class="input" id="eu-desc" rows="2" style="font-size:.85rem" placeholder="Breve descrizione delle discipline incluse...">'+(u.description||'').replace(/</g,'&lt;')+'</textarea></div>';
   html+='<div class="mb-3"><label class="label">Ruoli (separati da virgola)</label><input class="input" id="eu-roles" value="'+rolesVal+'" placeholder="es. Base, Flyer, Entrambi"></div>';
   // Preview
   html+='<div class="mt-3 mb-2"><label class="label">Anteprima</label></div>';
@@ -3702,20 +3885,21 @@ function saveUniverseEdit(overlay,univId){
   if(!name){showToast('Inserisci un nome','error');return;}
   const emoji=(document.getElementById('eu-emoji')?.value||'🌐').trim();
   const color=document.getElementById('eu-color')?.value||'#D07840';
+  const description=(document.getElementById('eu-desc')?.value||'').trim();
   const rolesRaw=(document.getElementById('eu-roles')?.value||'').trim();
   const roles=rolesRaw?rolesRaw.split(',').map(r=>r.trim()).filter(Boolean):[];
   if(store.universes.find(u=>u.id!==univId&&u.name.toLowerCase()===name.toLowerCase())){showToast('Esiste già un universo con questo nome','error');return;}
   const u=store.universes.find(x=>x.id===univId);if(!u)return;
   tripleConfirmUniverse('Modificare l\'universo "'+u.name+'"',async()=>{
-    Object.assign(u,{name,emoji,color,roles});
-    await fsUpdate('universes',univId,{name,emoji,color,roles}).catch(console.error);
+    Object.assign(u,{name,emoji,color,roles,description});
+    await fsUpdate('universes',univId,{name,emoji,color,roles,description}).catch(console.error);
     overlay.remove();
     showToast('Universo "'+name+'" aggiornato!');
     renderAdminUniversesView();
   });
 }
 
-/* === UNIVERSE ROLE & EVENT TYPE INLINE CRUD (V2.37.1) === */
+/* === UNIVERSE ROLE & EVENT TYPE INLINE CRUD (V2.37.3) === */
 
 // --- ROLE EDIT/DELETE ---
 function editUniverseRole(univId,oldRole){
@@ -6555,6 +6739,7 @@ function go(view){
   if(view==='admin-subscriptions'){renderAdminSubscriptions();}
   if(view==='admin-registry'){renderAdminRegistry();}
   if(view==='admin-universes'){renderAdminUniversesView();setTimeout(()=>obShowTour('tour_admin_universes'),400);}
+  if(view==='info-page'){renderInfoPage();}
   if(view==='admin-org-profile'){populateOrgProfile();renderAssistenzaBox();}
   if(view==='register-org'){populateRegoUniverses();}
   if(view==='privacy-policy'){
@@ -10069,7 +10254,7 @@ function openCreateJamModal(){
   const juc=document.getElementById('jam-universes-list');
   if(juc){
     const active=getActiveUniverses();
-    juc.innerHTML=active.map(u=>'<button type="button" class="jam-univ-btn ne-univ-selected" data-univ="'+u.id+'" onclick="toggleJamUnivBtn(this)" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:12px;border:2px solid '+u.color+';background:'+u.color+'25;color:'+u.color+';font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s ease;outline:none"><span style="font-size:1.1rem">'+u.emoji+'</span>'+u.name+'</button>').join('');
+    juc.innerHTML=active.map(u=>'<button type="button" class="jam-univ-btn" data-univ="'+u.id+'" onclick="toggleJamUnivBtn(this)" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:12px;border:2px solid '+u.color+'40;background:transparent;color:var(--txt2);font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s ease;outline:none"><span style="font-size:1.1rem">'+u.emoji+'</span>'+u.name+'</button>').join('');
   }
   // Populate type buttons from selected universes
   populateJamTypeButtons();
