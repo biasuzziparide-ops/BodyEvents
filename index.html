@@ -3003,6 +3003,8 @@ async function loadAllData(forceReload){
     store.universes.forEach(u=>ensureUniverseHasEventTypes(u));
     // Migrate legacy custom type keys that duplicate defaults (e.g. "community event" → "social")
     _migrateLegacyEventTypes();
+    // Migrate orphan bookings: fix null recurringDate for recurring events
+    _migrateOrphanRecurringBookings();
     // Load subscription collections separately (fault-tolerant: won't block if Firestore rules don't include them yet)
     try{const subTypesSnap=await fbDb.collection('subscriptionTypes').get();store.subscriptionTypes=[];subTypesSnap.forEach(doc=>{store.subscriptionTypes.push(doc.data());});}catch(e){console.warn('subscriptionTypes load skipped:',e.message);store.subscriptionTypes=[];}
     try{const subsSnap=await fbDb.collection('subscriptions').get();store.subscriptions=[];subsSnap.forEach(doc=>{store.subscriptions.push(doc.data());});}catch(e){console.warn('subscriptions load skipped:',e.message);store.subscriptions=[];}
@@ -3212,6 +3214,31 @@ function _migrateLegacyEventTypes(){
     const before=st.compatibleEventTypes.length;
     st.compatibleEventTypes=[...new Set(st.compatibleEventTypes)];
     if(stChanged||st.compatibleEventTypes.length!==before)fsUpdate('subscriptionTypes',st.id,{compatibleEventTypes:st.compatibleEventTypes}).catch(console.error);
+  });
+}
+// Migration: fix bookings with null recurringDate for recurring events
+function _migrateOrphanRecurringBookings(){
+  const recurringEvents=store.events.filter(e=>e.recurrence&&e.recurrence.active);
+  if(!recurringEvents.length)return;
+  const recEvIds=new Set(recurringEvents.map(e=>e.id));
+  const orphans=store.bookings.filter(b=>recEvIds.has(b.eventId)&&!b.recurringDate&&b.status!=='cancellata');
+  if(!orphans.length)return;
+  console.warn('_migrateOrphanRecurringBookings: found '+orphans.length+' bookings with null recurringDate');
+  orphans.forEach(b=>{
+    const ev=recurringEvents.find(e=>e.id===b.eventId);if(!ev)return;
+    const recTabs=getRecurringDateTabs(ev);
+    if(!recTabs||!recTabs.dates.length)return;
+    // Determine best date: use bookedAt to find nearest recurring date
+    const bookedDate=b.bookedAt||b.createdAt?.substring(0,10)||'';
+    let bestDate=null;
+    if(bookedDate){
+      const sorted=[...recTabs.dates].sort();
+      bestDate=sorted.find(d=>d>=bookedDate)||sorted[sorted.length-1];
+    }
+    if(!bestDate)bestDate=recTabs.defaultDate||recTabs.dates[0];
+    b.recurringDate=bestDate;
+    console.info('  Fixed booking '+b.id+' ('+b.userName+') → recurringDate='+bestDate);
+    fsUpdate('bookings',b.id,{recurringDate:bestDate}).catch(e=>console.error('Failed to update booking '+b.id,e));
   });
 }
 /* === INFO PAGE — Come funziona BodyEvents (V2.37.5) === */
@@ -8345,6 +8372,15 @@ async function doBook(){
   const ev=store.events.find(e=>e.id===currentBookingEventId);
   if(!ev){showToast('Errore: evento non trovato','error');return;}
 
+  // Safety: ensure recurringDate is set for recurring events
+  if(ev.recurrence&&ev.recurrence.active&&!currentBookingRecDate){
+    const _recTabs=getRecurringDateTabs(ev);
+    if(_recTabs&&_recTabs.dates.length){
+      currentBookingRecDate=_recTabs.defaultDate||_recTabs.futureDates[0]||_recTabs.dates[0];
+      console.warn('doBook: recurringDate was null for recurring event, auto-fixed to '+currentBookingRecDate);
+    }
+  }
+
   // Block booking after deadline (uses getEffectiveBookingDeadline for recurring support)
   const _effDeadline=getEffectiveBookingDeadline(ev,currentBookingRecDate);
   if(_effDeadline&&localDateStr(new Date())>_effDeadline){
@@ -8487,6 +8523,11 @@ async function doBook(){
 
 async function bookWithSubscription(subId,eventId){
   const ev=store.events.find(e=>e.id===eventId);if(!ev)return;
+  // Safety: ensure recurringDate for recurring events
+  if(ev.recurrence&&ev.recurrence.active&&!currentBookingRecDate){
+    const _rT=getRecurringDateTabs(ev);
+    if(_rT&&_rT.dates.length){currentBookingRecDate=_rT.defaultDate||_rT.futureDates[0]||_rT.dates[0];console.warn('bookWithSubscription: auto-fixed recurringDate to '+currentBookingRecDate);}
+  }
   // ── GUARD: Block duplicate booking (same event + user + recurringDate) ──
   const _bkRecDate=currentBookingRecDate||null;
   let _existBk=store.bookings.find(b=>b.eventId===ev.id&&b.userId===store.currentUser.id&&b.status!=='cancellata'&&(b.recurringDate||null)===_bkRecDate);
@@ -11765,6 +11806,14 @@ function showOrgPublicProfile(managerId){
 function showEventDetail(evId,recDate){
   const ev=store.events.find(e=>e.id===evId);if(!ev)return;
   currentBookingEventId=evId;
+  // Auto-detect recurringDate for recurring events when not provided
+  if(!recDate&&ev.recurrence&&ev.recurrence.active){
+    const recTabs=getRecurringDateTabs(ev);
+    if(recTabs&&recTabs.dates.length){
+      recDate=recTabs.defaultDate||recTabs.futureDates[0]||recTabs.dates[0];
+      console.info('showEventDetail: auto-detected recDate='+recDate+' for recurring event '+evId);
+    }
+  }
   currentBookingRecDate=recDate||null;
   // Reset tier selections for a clean booking
   Object.keys(selectedTiers).forEach(k=>delete selectedTiers[k]);
@@ -15886,7 +15935,8 @@ function showAdminEventDetail(evId){
   // Get bookings for this event, filtered by recurring date if applicable
   let allBks=store.bookings.filter(b=>b.eventId===evId);
   if(recDateFilter&&recDateFilter!=='__all__'){
-    allBks=allBks.filter(b=>(b.recurringDate||null)===recDateFilter);
+    // Include bookings for this date AND orphan bookings with null recurringDate
+    allBks=allBks.filter(b=>(b.recurringDate||null)===recDateFilter||!b.recurringDate);
   }
   // Session toggle logic
   const totalSessions=ev.days.reduce((sum,d)=>sum+(d.sessions?.length||0),0);
