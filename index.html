@@ -2880,10 +2880,10 @@ function showInfoFab(){
   fab.style.display='flex';
   // Set correct target based on context
   fab.onclick=function(){dismissInfoFabTooltip();go(isAdmin?'info-page-organizer':'info-page');};
-  // Tooltip: show only once (separate keys for user/admin)
+  // Tooltip: show only once per context (separate keys for user/admin)
   const seenKey=isAdmin?'bodyevents_fab_org_tooltip_seen':FAB_SEEN_KEY;
+  const tt=document.getElementById('info-fab-tooltip');
   if(!localStorage.getItem(seenKey)){
-    const tt=document.getElementById('info-fab-tooltip');
     if(tt){
       tt.style.display='block';
       tt.querySelector('.tt-text').innerHTML=isAdmin
@@ -2891,6 +2891,10 @@ function showInfoFab(){
         :'<strong style="color:var(--brand-l)">Nuovo su BodyEvents?</strong><br>Scopri come funziona la piattaforma!';
     }
     fab.classList.add('fab-pulse');
+  } else {
+    // Hide tooltip and pulse if already seen in this context
+    if(tt)tt.style.display='none';
+    fab.classList.remove('fab-pulse');
   }
 }
 function dismissInfoFabTooltipForContext(){
