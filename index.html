@@ -12356,7 +12356,26 @@ function renderAdminEvents(){
   if(statusFilter)evts=evts.filter(e=>e.status===statusFilter);
 
   const _cancNotice=statusFilter==='cancellato'?'<div class="card mb-4" style="background:rgba(239,68,68,.06);border-color:var(--red);padding:14px"><div class="flex items-center gap-2"><span>🗑️</span><span class="text-sm" style="color:var(--red)"><strong>Gli eventi cancellati vengono eliminati automaticamente dopo 10 giorni</strong> dalla data di cancellazione.</span></div></div>':'';
-  c.innerHTML=_cancNotice+evts.map(ev=>{
+  // Group events by type
+  const _typeOrder=['jam','lezione','workshop','social'];
+  const _typeGroups={};
+  evts.forEach(ev=>{
+    const t=ev.type||'altro';
+    if(!_typeGroups[t])_typeGroups[t]=[];
+    _typeGroups[t].push(ev);
+  });
+  const _sortedTypes=[..._typeOrder.filter(t=>_typeGroups[t]),...Object.keys(_typeGroups).filter(t=>!_typeOrder.includes(t))];
+  const _groupColors={jam:'rgba(234,179,8,.08)',lezione:'rgba(99,102,241,.08)',workshop:'rgba(249,115,22,.08)',social:'rgba(217,70,239,.08)'};
+  const _groupBorders={jam:'rgba(234,179,8,.2)',lezione:'rgba(99,102,241,.2)',workshop:'rgba(249,115,22,.2)',social:'rgba(217,70,239,.2)'};
+  let _groupedHtml=_cancNotice;
+  _sortedTypes.forEach(type=>{
+    const groupEvts=_typeGroups[type];
+    const icon=getEventTypeIcon(type);
+    const label=getEventTypeLabel(type);
+    const gBg=_groupColors[type]||'var(--s50)';
+    const gBorder=_groupBorders[type]||'var(--s200)';
+    _groupedHtml+=`<div style="margin-bottom:24px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:10px 16px;background:${gBg};border:1px solid ${gBorder};border-radius:12px"><span style="font-size:1.2rem">${icon}</span><span style="font-size:.95rem;font-weight:700;color:var(--txt1)">${label}</span><span style="font-size:.78rem;color:var(--txt3);margin-left:auto">${groupEvts.length}</span></div>`;
+    _groupedHtml+=groupEvts.map(ev=>{
     const isCapofila=isEventCapofila(ev,u.id);
     const isPartner=!isCapofila;
     const dateStr=ev.days.length>1?fmtDateShort(ev.days[0]?.date)+' — '+fmtDateShort(ev.days[ev.days.length-1]?.date):fmtDate(ev.days[0]?.date);
@@ -12400,21 +12419,23 @@ function renderAdminEvents(){
         <div class="flex gap-2"><button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="event.stopPropagation();confirmEventDespiteMin('${ev.id}')">✅ Conferma evento</button><button class="btn btn-sm" style="background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.3)" onclick="event.stopPropagation();cancelEventDueToMin('${ev.id}')">🚫 Cancella evento</button></div>
       </div>`;
     })():'';
-    return `<div class="card mb-3" style="${opacity};${partnerBorder}cursor:pointer" onclick="showAdminEventDetail('${ev.id}')">
-      <div class="flex gap-2 items-center mb-1 flex-wrap">
-        <span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>
+    return `<div class="card" style="${opacity};${partnerBorder}cursor:pointer;margin-bottom:16px;background:var(--s50);border:1px solid var(--s200);box-shadow:0 2px 8px rgba(0,0,0,.2)" onclick="showAdminEventDetail('${ev.id}')">
+      <div class="flex gap-2 items-center mb-2 flex-wrap">
         <span class="badge ${badgeStatus(ev.status)}">${capitalize(ev.status)}</span>
         ${partnerBadge}
         ${getRecurrenceBadge(ev)}
         ${ev.alert?'<span class="badge" style="background:'+(ev.alert.type==='modificato'?'var(--orange-bg)':'var(--red-bg)')+';color:'+(ev.alert.type==='modificato'?'var(--orange)':'var(--red)')+'">⚠️ '+(ev.alert.type==='cancellato'?'Annullato':ev.alert.type==='rimandato'?'Rimandato':'Modificato')+'</span>':''}
       </div>
-      <h3 class="font-semibold text-white">${escHtml(ev.title)}</h3>
-      <div class="text-xs txt3 mt-1">📅 ${dateStr} · 🕐 ${ev.days[0]?.startTime||''} — ${ev.days[0]?.endTime||''}${orgLabel}</div>
-      <div class="text-xs txt3">📍 ${escHtml(ev.location)}</div>
+      <h3 class="font-semibold text-white" style="font-size:1.05rem;margin-bottom:6px">${escHtml(ev.title)}</h3>
+      <div class="text-sm txt3" style="margin-bottom:2px">📅 ${dateStr} · 🕐 ${ev.days[0]?.startTime||''} — ${ev.days[0]?.endTime||''}${orgLabel}</div>
+      <div class="text-sm txt3">📍 ${escHtml(ev.location)}</div>
       <div class="flex gap-2 flex-wrap mt-3" style="border-top:1px solid var(--s300);padding-top:10px">${actions}</div>
       ${_minBanner}
     </div>`;
-  }).join('')||'<div class="card text-center txt3">Nessun evento.</div>';
+  }).join('');
+    _groupedHtml+='</div>';
+  });
+  c.innerHTML=_groupedHtml||'<div class="card text-center txt3">Nessun evento.</div>';
 }
 let adminStatusFilter='';
 function filterAdminEvts(s){adminStatusFilter=s;document.getElementById('admin-status-filter').value=s;renderAdminEvents();}
