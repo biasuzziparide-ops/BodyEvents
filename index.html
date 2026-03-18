@@ -3267,6 +3267,20 @@ function renderInfoPage(){
   });
   typesSec+='</div>';
   typesSec+=tip('👥','<strong style="color:#6366f1">Jam e Community Event:</strong> per queste tipologie puoi vedere <strong style="color:#6366f1">chi si è già iscritto</strong> prima ancora di prenotarti.');
+
+  // Community Events highlight
+  typesSec+='<div style="background:linear-gradient(135deg, rgba(217,70,239,.08), rgba(249,115,22,.08));border:1px solid rgba(217,70,239,.2);border-radius:14px;padding:18px;margin:14px 0 8px">';
+  typesSec+='<div style="font-size:1.05rem;font-weight:700;color:var(--txt1);margin-bottom:8px;display:flex;align-items:center;gap:8px">🎉 Community Events: la piattaforma è anche tua</div>';
+  typesSec+=p('I Community Events sono l\'unica tipologia che <strong style="color:var(--txt1)">ogni utente può creare</strong>, non solo gli organizzatori. Sono eventi dal basso, nati spontaneamente dalla community.');
+  typesSec+=p('Hai voglia di praticare e vuoi vedere chi si unisce? Proponi un evento:');
+  typesSec+='<div style="display:flex;flex-direction:column;gap:6px;margin:10px 0">';
+  typesSec+='<div style="background:var(--s100);border-radius:10px;padding:10px 14px;border:1px solid var(--s300);font-size:.84rem;color:var(--txt2)">🏖️ <em>"Andiamo al mare a fare Acro venerdì pomeriggio?"</em></div>';
+  typesSec+='<div style="background:var(--s100);border-radius:10px;padding:10px 14px;border:1px solid var(--s300);font-size:.84rem;color:var(--txt2)">🌳 <em>"Contact al parco domenica mattina, chi viene?"</em></div>';
+  typesSec+='<div style="background:var(--s100);border-radius:10px;padding:10px 14px;border:1px solid var(--s300);font-size:.84rem;color:var(--txt2)">🍕 <em>"Pizza e chiacchiere dopo la jam, per conoscerci!"</em></div>';
+  typesSec+='</div>';
+  typesSec+=p('Basta un titolo, un luogo e un orario. Gli altri utenti vedranno il tuo evento, chi si è già iscritto, e potranno unirsi con un tap. È il modo più semplice per far nascere qualcosa di bello dalla tua community.');
+  typesSec+='</div>';
+
   typesSec+=p('<span style="margin-top:10px;display:block">Gli organizzatori possono anche creare <strong style="color:var(--txt1)">tipologie aggiuntive personalizzate</strong> per il proprio universo.</span>');
   html+=sec(typesSec);
 
