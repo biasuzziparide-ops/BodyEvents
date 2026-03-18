@@ -5800,7 +5800,7 @@ function renderRegistryTable(reg,entries,theadId,tbodyId,listId){
     const _rlogo=_rusr?.profileLogo||null;
     const _rinitials=(entry.name||'?').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
     const _avatarInner=_rlogo?'<img src="'+_rlogo+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':'<span style="font-size:.65rem;font-weight:700">'+_rinitials+'</span>';
-    bh+='<td style="padding:8px 10px;white-space:nowrap"><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:var(--s300);display:flex;align-items:center;justify-content:center;color:var(--txt2);flex-shrink:0;overflow:hidden;font-size:.7rem">'+_avatarInner+'</div><span style="color:var(--txt1);font-weight:500;font-size:.82rem">'+escHtml(entry.name)+'</span><button style="background:none;border:1px solid var(--s400);border-radius:6px;padding:2px 6px;font-size:.6rem;color:var(--txt3);cursor:pointer;transition:all .15s;white-space:nowrap" onmouseover="this.style.borderColor=\'var(--brand)\';this.style.color=\'var(--brand-l)\'" onmouseout="this.style.borderColor=\'var(--s400)\';this.style.color=\'var(--txt3)\'" onclick="event.stopPropagation();window._regOpenDetail(\''+entry.uid+'\')">📅 Dettaglio</button></div></td>';
+    bh+='<td style="padding:8px 10px;white-space:nowrap"><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:var(--s300);display:flex;align-items:center;justify-content:center;color:var(--txt2);flex-shrink:0;overflow:hidden;font-size:.7rem">'+_avatarInner+'</div><span style="color:var(--txt1);font-weight:500;font-size:.82rem">'+escHtml(entry.name)+'</span></div></td>';
     bh+='<td style="padding:8px 10px;white-space:nowrap;color:var(--txt2);font-size:.78rem">'+escHtml(entry.email)+'</td>';
     cols.forEach(c=>{
       const val=entry.customData?.[c.id];
@@ -5865,6 +5865,9 @@ function renderRegistryTable(reg,entries,theadId,tbodyId,listId){
 // === Registry User Detail Modal ===
 function openRegistryUserDetail(uid){
   if(!uid)return;
+  // Role helpers (local scope duplicates from showAdminEventDetail)
+  const _roleColor=r=>r==='base'?'var(--green)':r==='flyer'?'var(--blue)':r==='non_so'?'var(--txt3)':'var(--purple)';
+  const _roleName=r=>r==='base'?'💪 Base':r==='flyer'?'🦅 Flyer':r==='non_so'?'🤷 Non lo so':r==='entrambi'?'🔄 Entrambi':'—';
   // uid might be a real user ID or an email (for guest bookings without userId)
   let user=store.users.find(x=>x.id===uid)||store.managers.find(x=>x.id===uid);
   if(!user){
@@ -5954,7 +5957,7 @@ function openRegistryUserDetail(uid){
           else payInfo='<span style="color:var(--yellow);font-size:.72rem">⏳ Da pagare €'+(b.amount||0)+'</span>';
         }
         // Role
-        const roleStr=b.role?'<span style="font-size:.72rem;color:'+roleColor(b.role)+'">'+roleName(b.role)+'</span>':'';
+        const roleStr=b.role?'<span style="font-size:.72rem;color:'+_roleColor(b.role)+'">'+_roleName(b.role)+'</span>':'';
 
         h+='<div style="background:var(--s100);border:1px solid var(--s300);border-radius:12px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor=\'var(--brand)\'" onmouseout="this.style.borderColor=\'var(--s300)\'" onclick="event.stopPropagation();this.closest(\'.overlay\').remove();showAdminEventDetail(\''+evId+'\')">';
         h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">';
