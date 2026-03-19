@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.39.0</title>
+<title>BodyEvents — V2.40.0</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -341,6 +341,7 @@ textarea.input{resize:none;font-family:inherit}
 .view-toggle button.active-toggle{background:var(--brand-d);color:#fff}
 .view-toggle button:hover:not(.active-toggle){background:var(--s300);color:var(--txt2)}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body>
 <div id="ptr-indicator">↓</div>
@@ -349,7 +350,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.39.0</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.40.0</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -894,9 +895,10 @@ textarea.input{resize:none;font-family:inherit}
     <h1 class="page-title">Dashboard</h1>
     <p class="page-sub mb-6">Panoramica del tuo gruppo</p>
     <div id="admin-dash-stats" class="grid grid-4 gap-3 mb-6"></div>
-    <!-- Prossimi eventi (dinamici) -->
-    <h2 class="font-semibold text-white mb-3" id="dash-next-title" style="display:none">Prossimi eventi</h2>
-    <div id="admin-dash-events" class="mb-4"></div>
+    <!-- Financial Metrics (from archived events) -->
+    <div id="admin-dash-financial" class="mb-6"></div>
+    <!-- Revenue Chart -->
+    <div id="admin-dash-chart" class="mb-6"></div>
     <!-- Admin Tools (master only) -->
     <div class="master-only mt-6" style="display:none">
       <h2 class="font-semibold text-white mb-3">🛠️ Strumenti Master</h2>
@@ -2865,7 +2867,7 @@ function obDismissCard(key,btn){
 // === HELP BUTTON (removed in V2.8.9) ===
 function obShowHelpBtn(){}
 
-// === FAB INFO BUTTON (V2.39.0) ===
+// === FAB INFO BUTTON (V2.40.0) ===
 const FAB_SEEN_KEY='bodyevents_fab_tooltip_seen';
 function showInfoFab(){
   const fab=document.getElementById('info-fab');if(!fab)return;
@@ -2912,7 +2914,7 @@ function dismissInfoFabTooltip(){
 }
 function _obShowTourForCurrentView(force){
   const v=currentView;
-  // User-side tours removed in V2.39.0 — replaced by FAB info button + info page
+  // User-side tours removed in V2.40.0 — replaced by FAB info button + info page
   // Admin-side tours kept (complex interface needs guidance)
   if(v==='admin')obShowTour('tour_admin_intro',force);
   else if(v==='admin-events')obShowTour('tour_admin_events',force);
@@ -3380,7 +3382,7 @@ async function _splitConcludedRecurringDates(){
     await fsSet('events',ev.id,ev).catch(console.error);
   }
 }
-/* === INFO PAGE — Come funziona BodyEvents (V2.39.0) === */
+/* === INFO PAGE — Come funziona BodyEvents (V2.40.0) === */
 function renderInfoPage(){
   const c=document.getElementById('info-page-content');if(!c)return;
   const active=getActiveUniverses();
@@ -3504,7 +3506,7 @@ function renderInfoPage(){
 
   c.innerHTML=html;
 }
-/* === INFO PAGE ORGANIZER — Guida Organizzatore (V2.39.0) === */
+/* === INFO PAGE ORGANIZER — Guida Organizzatore (V2.40.0) === */
 function renderInfoPageOrganizer(){
   const c=document.getElementById('info-page-organizer-content');if(!c)return;
   const master=store.managers.find(m=>m.role==='master');
@@ -4386,7 +4388,7 @@ function saveUniverseEdit(overlay,univId){
   });
 }
 
-/* === UNIVERSE ROLE & EVENT TYPE INLINE CRUD (V2.39.0) === */
+/* === UNIVERSE ROLE & EVENT TYPE INLINE CRUD (V2.40.0) === */
 
 // --- ROLE EDIT/DELETE ---
 function editUniverseRole(univId,oldRole){
@@ -13618,26 +13620,218 @@ function showRestoreBackup(){
 function renderAdminDashboard(){
   const c=document.getElementById('admin-dash-stats');if(!c)return;
   const u=store.currentUser;
+  const isMaster=u.role==='master';
   const ownEvts=store.events.filter(e=>e.managerId===u.id);
   const partnerEvts=store.events.filter(e=>!isEventCapofila(e,u.id)&&isEventVisibleToManager(e,u.id));
   const allEvts=store.events.filter(e=>isEventVisibleToManager(e,u.id));
   const pub=allEvts.filter(e=>e.status==='pubblicato');
   const bozze=ownEvts.filter(e=>e.status==='bozza').length;
+  const conclusi=allEvts.filter(e=>e.status==='concluso').length;
+  const archiviati=allEvts.filter(e=>e.status==='archiviato').length;
   const myEvtIds=new Set(allEvts.map(e=>e.id));
   const myBookings=store.bookings.filter(b=>myEvtIds.has(b.eventId));
-  c.innerHTML=`<div class="stat-card"><div class="value" style="color:var(--brand-l)">${pub.length}</div><div class="label">Eventi attivi</div></div>
+
+  // Stats cards
+  c.innerHTML=`
+    <div class="stat-card"><div class="value" style="color:var(--brand-l)">${pub.length}</div><div class="label">Eventi attivi</div></div>
     <div class="stat-card"><div class="value" style="color:var(--yellow)">${bozze}</div><div class="label">Bozze</div></div>
     <div class="stat-card"><div class="value" style="color:var(--green)">${myBookings.length}</div><div class="label">Prenotazioni</div></div>
     <div class="stat-card"><div class="value" style="color:var(--blue)">${allEvts.length}</div><div class="label">Totale eventi</div></div>
-    ${partnerEvts.length?'<div class="stat-card"><div class="value" style="color:#a855f7">'+partnerEvts.length+'</div><div class="label">🤝 Partner</div></div>':''}`;
-  // Prossimi eventi table
-  const dt=document.getElementById('dash-next-title');
-  const dc=document.getElementById('admin-dash-events');
-  if(!dc)return;
-  if(pub.length){
-    if(dt)dt.style.display='';
-    dc.innerHTML=`<div class="card" style="padding:0;overflow:auto;-webkit-overflow-scrolling:touch"><table class="table" style="min-width:520px"><thead><tr><th>Evento</th><th>Data</th><th>Tipo</th><th>Org</th><th>Stato</th></tr></thead><tbody>${pub.slice(0,5).map(ev=>{const isP=!isEventCapofila(ev,u.id);return`<tr style="cursor:pointer${isP?';border-left:3px solid #a855f7':''}" onclick="showAdminEventDetail('${ev.id}')"><td class="font-medium text-white">${escHtml(ev.title)}${isP?' <span style="color:#a855f7;font-size:.7rem">🤝</span>':''}</td><td>${ev.days[0]?fmtDateShort(ev.days[0].date):''}</td><td><span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span></td><td class="text-xs txt3">${escHtml(ev.orgName||'')}</td><td><span class="badge badge-pubblicato">Pubblicato</span></td></tr>`;}).join('')}</tbody></table></div>`;
-  } else {if(dt)dt.style.display='none';dc.innerHTML='';}
+    ${conclusi?'<div class="stat-card"><div class="value" style="color:var(--txt3)">'+conclusi+'</div><div class="label">Conclusi</div></div>':''}
+    ${archiviati?'<div class="stat-card"><div class="value" style="color:#6366f1">'+archiviati+'</div><div class="label">Archiviati</div></div>':''}
+    ${partnerEvts.length?'<div class="stat-card"><div class="value" style="color:#a855f7">'+partnerEvts.length+'</div><div class="label">🤝 Partner</div></div>':''}
+  `;
+
+  // === FINANCIAL METRICS (from archived events only) ===
+  const fc=document.getElementById('admin-dash-financial');
+  if(fc){
+    const archivedEvts=allEvts.filter(e=>e.status==='archiviato');
+    const archivedIds=new Set(archivedEvts.map(e=>e.id));
+    const archivedBookings=store.bookings.filter(b=>archivedIds.has(b.eventId)&&b.status!=='cancellata');
+
+    // Calculate revenue by event type
+    const typeRevenue={};
+    let totalPaid=0;
+    archivedEvts.forEach(ev=>{
+      const type=ev.type||'altro';
+      if(!typeRevenue[type])typeRevenue[type]={paid:0,total:0,count:0,label:getEventTypeLabel(type),icon:getEventTypeIcon(type)};
+      typeRevenue[type].count++;
+      const evBks=archivedBookings.filter(b=>b.eventId===ev.id&&!b.gift&&b.paymentStatus!=='gratuito'&&b.paymentStatus!=='abbonamento');
+      const evPaid=evBks.filter(b=>b.paymentStatus==='pagato').reduce((s,b)=>s+(b.amount||0),0);
+      const evTotal=evBks.reduce((s,b)=>s+(b.amount||0),0);
+      typeRevenue[type].paid+=evPaid;
+      typeRevenue[type].total+=evTotal;
+      totalPaid+=evPaid;
+    });
+
+    if(archivedEvts.length){
+      let fh='<h2 class="font-semibold text-white mb-3">💰 Incassi effettivi <span class="text-xs txt3">(solo eventi archiviati)</span></h2>';
+      fh+='<div class="grid gap-3 mb-4" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">';
+      fh+='<div class="stat-card" style="border:1px solid rgba(16,185,129,.3)"><div class="value" style="color:var(--green);font-size:1.5rem">€'+totalPaid+'</div><div class="label">Totale incassato</div></div>';
+      const typeOrder=['jam','lezione','workshop','social'];
+      const sortedTypes=[...typeOrder.filter(t=>typeRevenue[t]),...Object.keys(typeRevenue).filter(t=>!typeOrder.includes(t))];
+      sortedTypes.forEach(t=>{
+        const tr=typeRevenue[t];
+        fh+='<div class="stat-card"><div class="value" style="font-size:1.2rem;color:var(--txt1)">€'+tr.paid+'</div><div class="label">'+tr.icon+' '+tr.label+' ('+tr.count+')</div></div>';
+      });
+      fh+='</div>';
+      fc.innerHTML=fh;
+    } else {
+      fc.innerHTML='<div class="card text-center" style="padding:20px;color:var(--txt3)"><p class="text-sm">💰 Le metriche finanziarie appariranno quando archivierai i tuoi primi eventi.</p></div>';
+    }
+  }
+
+  // === CUMULATIVE REVENUE CHART ===
+  const chartContainer=document.getElementById('admin-dash-chart');
+  if(chartContainer){
+    const archivedEvts=allEvts.filter(e=>e.status==='archiviato');
+    if(!archivedEvts.length){chartContainer.innerHTML='';return;}
+
+    // Build data points: each archived event contributes revenue on its date
+    const dataPoints=[];
+    archivedEvts.forEach(ev=>{
+      const date=ev.days?.[0]?.date||ev.archivedAt?.substring(0,10)||'';
+      if(!date)return;
+      const type=ev.type||'altro';
+      const evBks=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata'&&!b.gift&&b.paymentStatus==='pagato');
+      const revenue=evBks.reduce((s,b)=>s+(b.amount||0),0);
+      if(revenue>0)dataPoints.push({date,revenue,type,title:ev.title});
+    });
+
+    dataPoints.sort((a,b)=>a.date.localeCompare(b.date));
+    if(!dataPoints.length){chartContainer.innerHTML='';return;}
+
+    // All known types
+    const allTypes=[...new Set(dataPoints.map(d=>d.type))];
+    const typeColors={jam:'#eab308',lezione:'#6366f1',workshop:'#f97316',social:'#d946ef',altro:'#a1a1b5'};
+
+    // Build cumulative series per type + total
+    const dateSet=[...new Set(dataPoints.map(d=>d.date))].sort();
+    const cumByType={};allTypes.forEach(t=>{cumByType[t]=[];});
+    const cumTotal=[];
+    let runTotal=0;
+    const runByType={};allTypes.forEach(t=>{runByType[t]=0;});
+    const eventsByDate={};
+
+    dateSet.forEach(d=>{
+      const dps=dataPoints.filter(p=>p.date===d);
+      dps.forEach(p=>{runByType[p.type]+=p.revenue;runTotal+=p.revenue;});
+      allTypes.forEach(t=>{cumByType[t].push(runByType[t]);});
+      cumTotal.push(runTotal);
+      eventsByDate[d]=dps.map(p=>p.title+' (€'+p.revenue+')').join(', ');
+    });
+
+    // Time range filter
+    const ranges=[
+      {label:'1 sett.',days:7},{label:'1 mese',days:30},{label:'1 anno',days:365},{label:'3 anni',days:1095},{label:'5 anni',days:1825},{label:'Tutto',days:99999}
+    ];
+
+    let ch='<h2 class="font-semibold text-white mb-3">📈 Incassi cumulati nel tempo</h2>';
+    ch+='<div class="flex gap-2 mb-3 flex-wrap" id="chart-range-btns">';
+    ranges.forEach((r,i)=>{
+      const isDefault=r.label==='Tutto';
+      ch+='<button class="btn btn-sm" data-range="'+r.days+'" style="font-size:.72rem;padding:4px 10px;background:'+(isDefault?'var(--brand-bg)':'var(--s200)')+';color:'+(isDefault?'var(--brand-l)':'var(--txt3)')+';border:1px solid '+(isDefault?'var(--brand)':'var(--s400)')+'" onclick="updateDashChart('+r.days+',this)">'+r.label+'</button>';
+    });
+    ch+='</div>';
+
+    // Legend
+    ch+='<div class="flex gap-3 flex-wrap mb-3" id="chart-legend">';
+    ch+='<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--txt2)"><input type="checkbox" checked data-type="__total__" onchange="toggleChartSeries(this)" style="accent-color:var(--green)"><span style="width:10px;height:3px;background:var(--green);display:inline-block;border-radius:2px"></span> Totale</label>';
+    allTypes.forEach(t=>{
+      ch+='<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--txt2)"><input type="checkbox" checked data-type="'+t+'" onchange="toggleChartSeries(this)" style="accent-color:'+typeColors[t]+'"><span style="width:10px;height:3px;background:'+typeColors[t]+';display:inline-block;border-radius:2px"></span> '+getEventTypeLabel(t)+'</label>';
+    });
+    ch+='</div>';
+    ch+='<div class="card" style="padding:16px;position:relative"><canvas id="dash-revenue-chart" height="280"></canvas></div>';
+    chartContainer.innerHTML=ch;
+
+    // Store chart data globally for filtering
+    window._dashChartData={dateSet,cumTotal,cumByType,allTypes,typeColors,eventsByDate};
+    _renderDashChart(99999);
+  }
+}
+
+function _renderDashChart(rangeDays){
+  const d=window._dashChartData;if(!d)return;
+  const canvas=document.getElementById('dash-revenue-chart');if(!canvas)return;
+
+  // Filter by range
+  const today=localDateStr(new Date());
+  const cutoff=new Date();cutoff.setDate(cutoff.getDate()-rangeDays);
+  const cutoffStr=localDateStr(cutoff);
+  const indices=[];
+  d.dateSet.forEach((dt,i)=>{if(dt>=cutoffStr)indices.push(i);});
+  if(!indices.length)return;
+
+  const labels=indices.map(i=>fmtDateShort(d.dateSet[i]));
+  const totalData=indices.map(i=>d.cumTotal[i]);
+
+  const datasets=[{
+    label:'Totale',data:totalData,borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.1)',
+    fill:true,tension:.3,borderWidth:2,pointRadius:3,pointHoverRadius:6
+  }];
+
+  d.allTypes.forEach(t=>{
+    datasets.push({
+      label:getEventTypeLabel(t),data:indices.map(i=>d.cumByType[t][i]),
+      borderColor:d.typeColors[t]||'#a1a1b5',backgroundColor:'transparent',
+      tension:.3,borderWidth:1.5,pointRadius:2,pointHoverRadius:5,hidden:false
+    });
+  });
+
+  // Destroy existing chart
+  if(window._dashChart)window._dashChart.destroy();
+
+  window._dashChart=new Chart(canvas,{
+    type:'line',
+    data:{labels,datasets},
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        tooltip:{
+          backgroundColor:'rgba(15,15,19,.95)',
+          titleColor:'#f1f1f4',bodyColor:'#a1a1b5',borderColor:'#2d2d3a',borderWidth:1,
+          padding:12,cornerRadius:10,
+          callbacks:{
+            afterBody:function(ctx){
+              const idx=ctx[0].dataIndex;
+              const globalIdx=indices[idx];
+              const dateStr=d.dateSet[globalIdx];
+              const evts=d.eventsByDate[dateStr];
+              return evts?'\n📅 '+evts:'';
+            }
+          }
+        },
+        legend:{display:false}
+      },
+      scales:{
+        x:{ticks:{color:'#6b6b80',font:{size:10},maxRotation:45},grid:{color:'rgba(45,45,58,.5)'}},
+        y:{ticks:{color:'#6b6b80',font:{size:10},callback:v=>'€'+v},grid:{color:'rgba(45,45,58,.5)'},beginAtZero:true}
+      }
+    }
+  });
+}
+
+function updateDashChart(days,btn){
+  document.querySelectorAll('#chart-range-btns button').forEach(b=>{
+    b.style.background='var(--s200)';b.style.color='var(--txt3)';b.style.borderColor='var(--s400)';
+  });
+  btn.style.background='var(--brand-bg)';btn.style.color='var(--brand-l)';btn.style.borderColor='var(--brand)';
+  _renderDashChart(days);
+}
+
+function toggleChartSeries(checkbox){
+  if(!window._dashChart)return;
+  const type=checkbox.dataset.type;
+  const ds=window._dashChart.data.datasets;
+  if(type==='__total__'){
+    ds[0].hidden=!checkbox.checked;
+  } else {
+    const idx=ds.findIndex(d=>d.label===getEventTypeLabel(type));
+    if(idx>=0)ds[idx].hidden=!checkbox.checked;
+  }
+  window._dashChart.update();
 }
 
 /* ==============================
