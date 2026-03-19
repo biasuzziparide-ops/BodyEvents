@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.41.0</title>
+<title>BodyEvents — V3.0.0</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -350,7 +350,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.41.0</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.0.0</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2874,7 +2874,7 @@ function obDismissCard(key,btn){
 // === HELP BUTTON (removed in V2.8.9) ===
 function obShowHelpBtn(){}
 
-// === FAB INFO BUTTON (V2.41.0) ===
+// === FAB INFO BUTTON (V3.0.0) ===
 const FAB_SEEN_KEY='bodyevents_fab_tooltip_seen';
 function showInfoFab(){
   const fab=document.getElementById('info-fab');if(!fab)return;
@@ -2921,7 +2921,7 @@ function dismissInfoFabTooltip(){
 }
 function _obShowTourForCurrentView(force){
   const v=currentView;
-  // User-side tours removed in V2.41.0 — replaced by FAB info button + info page
+  // User-side tours removed in V3.0.0 — replaced by FAB info button + info page
   // Admin-side tours kept (complex interface needs guidance)
   if(v==='admin')obShowTour('tour_admin_intro',force);
   else if(v==='admin-events')obShowTour('tour_admin_events',force);
@@ -3389,7 +3389,7 @@ async function _splitConcludedRecurringDates(){
     await fsSet('events',ev.id,ev).catch(console.error);
   }
 }
-/* === INFO PAGE — Come funziona BodyEvents (V2.41.0) === */
+/* === INFO PAGE — Come funziona BodyEvents (V3.0.0) === */
 function renderInfoPage(){
   const c=document.getElementById('info-page-content');if(!c)return;
   const active=getActiveUniverses();
@@ -3513,7 +3513,7 @@ function renderInfoPage(){
 
   c.innerHTML=html;
 }
-/* === INFO PAGE ORGANIZER — Guida Organizzatore (V2.41.0) === */
+/* === INFO PAGE ORGANIZER — Guida Organizzatore (V3.0.0) === */
 function renderInfoPageOrganizer(){
   const c=document.getElementById('info-page-organizer-content');if(!c)return;
   const master=store.managers.find(m=>m.role==='master');
@@ -4424,7 +4424,7 @@ function saveUniverseEdit(overlay,univId){
   });
 }
 
-/* === UNIVERSE ROLE & EVENT TYPE INLINE CRUD (V2.41.0) === */
+/* === UNIVERSE ROLE & EVENT TYPE INLINE CRUD (V3.0.0) === */
 
 // --- ROLE EDIT/DELETE ---
 function editUniverseRole(univId,oldRole){
@@ -8014,7 +8014,7 @@ function openFullscreenImage(src,alt){
   document.body.appendChild(ov);
 }
 
-// === QR CODE CANVAS BUILDER (V2.41.0) ===
+// === QR CODE CANVAS BUILDER (V3.0.0) ===
 function _buildQRCanvas(opts){
   // opts: {qrDataUrl, title, subtitle, date, orgName, instruction, accentColor, type}
   const scale=2; // 2x for retina/HD
@@ -13225,7 +13225,7 @@ function hardDeleteEvent(id){
 }
 
 // ============================================================
-// COST MANAGEMENT SYSTEM (V2.41.0)
+// COST MANAGEMENT SYSTEM (V3.0.0)
 // ============================================================
 function openCostManagement(evId){
   window._costMgmtEventId=evId;
@@ -13311,7 +13311,7 @@ function renderCostManagement(evId){
         html+='<span class="text-sm" style="text-align:center;color:var(--txt2)">'+(item.quantity||1)+'</span>';
         html+='<span class="text-sm" style="text-align:center;color:var(--txt2)">'+(item.multiplier||1)+'</span>';
       }
-      html+='<span style="text-align:center;font-weight:700;color:var(--green);font-size:.88rem">€'+total+'</span>';
+      html+='<span id="cost-total-'+item.id+'" style="text-align:center;font-weight:700;color:var(--green);font-size:.88rem">€'+total+'</span>';
 
       if(hasPartners){
         const sm=item.splitMode||'equal';
@@ -13418,7 +13418,8 @@ function renderCostManagement(evId){
 
   // Save button
   if(!readOnly){
-    html+='<div style="text-align:center;padding:16px 0"><button class="btn btn-primary" onclick="saveCosts(\''+evId+'\')">💾 Salva costi</button></div>';
+    // Auto-save indicator
+    html+='<div style="text-align:center;padding:12px 0"><span class="text-xs txt3">💾 Salvataggio automatico</span></div>';
   }
 
   html+='</div>';
@@ -13533,17 +13534,20 @@ function _buildCostSummary(ev,costs,isCapo,hasPartners,allParticipants,getPartne
 function updateCostSectionTitle(evId,secId,title){
   const ev=store.events.find(e=>e.id===evId);if(!ev||!ev.eventCosts)return;
   const sec=ev.eventCosts.sections.find(s=>s.id===secId);if(sec)sec.title=title;
+  _autoSaveCosts(evId);
 }
 
 function addCostSection(evId){
   const ev=store.events.find(e=>e.id===evId);if(!ev||!ev.eventCosts)return;
   ev.eventCosts.sections.push({id:genId('cs'),title:'Nuova sezione',items:[]});
+  _autoSaveCosts(evId);
   renderCostManagement(evId);
 }
 
 function removeCostSection(evId,secId){
   const ev=store.events.find(e=>e.id===evId);if(!ev||!ev.eventCosts)return;
   ev.eventCosts.sections=ev.eventCosts.sections.filter(s=>s.id!==secId);
+  _autoSaveCosts(evId);
   renderCostManagement(evId);
 }
 
@@ -13551,6 +13555,7 @@ function addCostItem(evId,secId){
   const ev=store.events.find(e=>e.id===evId);if(!ev||!ev.eventCosts)return;
   const sec=ev.eventCosts.sections.find(s=>s.id===secId);if(!sec)return;
   sec.items.push({id:genId('ci'),label:'',unitValue:0,quantity:1,multiplier:1,splitMode:'equal',splits:{}});
+  _autoSaveCosts(evId);
   renderCostManagement(evId);
 }
 
@@ -13558,20 +13563,37 @@ function removeCostItem(evId,secId,itemId){
   const ev=store.events.find(e=>e.id===evId);if(!ev||!ev.eventCosts)return;
   const sec=ev.eventCosts.sections.find(s=>s.id===secId);if(!sec)return;
   sec.items=sec.items.filter(i=>i.id!==itemId);
+  _autoSaveCosts(evId);
   renderCostManagement(evId);
+}
+
+// Auto-save debounce for costs
+let _costSaveTimer=null;
+function _autoSaveCosts(evId){
+  if(_costSaveTimer)clearTimeout(_costSaveTimer);
+  _costSaveTimer=setTimeout(()=>{
+    const ev=store.events.find(e=>e.id===evId);if(!ev||!ev.eventCosts)return;
+    fsUpdate('events',evId,{eventCosts:ev.eventCosts}).catch(e=>console.error('Auto-save costs error:',e));
+  },600);
 }
 
 function updateCostItem(evId,secId,itemId,field,value){
   const ev=store.events.find(e=>e.id===evId);if(!ev||!ev.eventCosts)return;
   const sec=ev.eventCosts.sections.find(s=>s.id===secId);if(!sec)return;
-  const item=sec.items.find(i=>i.id===itemId);if(item)item[field]=value;
-  // Don't re-render on every keystroke — just update in memory
+  const item=sec.items.find(i=>i.id===itemId);if(!item)return;
+  item[field]=value;
+  // Update total cell in real-time
+  const total=Math.round((item.unitValue||0)*(item.quantity||1)*(item.multiplier||1)*100)/100;
+  const totalEl=document.getElementById('cost-total-'+itemId);
+  if(totalEl)totalEl.textContent='€'+total;
+  _autoSaveCosts(evId);
 }
 
 function updateCostItemSplit(evId,secId,itemId,value){
   const ev=store.events.find(e=>e.id===evId);if(!ev||!ev.eventCosts)return;
   const sec=ev.eventCosts.sections.find(s=>s.id===secId);if(!sec)return;
   const item=sec.items.find(i=>i.id===itemId);if(item)item.splitMode=value;
+  _autoSaveCosts(evId);
 }
 
 function updateSessionCost(evId,sessionId,field,value){
@@ -13579,24 +13601,15 @@ function updateSessionCost(evId,sessionId,field,value){
   if(!ev.eventCosts.sessions)ev.eventCosts.sessions={};
   if(!ev.eventCosts.sessions[sessionId])ev.eventCosts.sessions[sessionId]={amount:0,assignedTo:null};
   ev.eventCosts.sessions[sessionId][field]=value;
+  _autoSaveCosts(evId);
 }
 
 function updateRevenueShare(evId,pid,pct){
   const ev=store.events.find(e=>e.id===evId);if(!ev||!ev.eventCosts)return;
   if(!ev.eventCosts.revenueSharing)ev.eventCosts.revenueSharing={};
   ev.eventCosts.revenueSharing[pid]=pct;
+  _autoSaveCosts(evId);
   renderCostManagement(evId);
-}
-
-async function saveCosts(evId){
-  const ev=store.events.find(e=>e.id===evId);if(!ev||!ev.eventCosts)return;
-  try{
-    await fsUpdate('events',evId,{eventCosts:ev.eventCosts});
-    showToast('💰 Costi salvati!');
-  }catch(e){
-    console.error('saveCosts error:',e);
-    showToast('Errore nel salvataggio dei costi','error');
-  }
 }
 
 function archiveEvent(id){
@@ -14209,30 +14222,90 @@ function renderAdminDashboard(){
     const archivedIds=new Set(archivedEvts.map(e=>e.id));
     const archivedBookings=store.bookings.filter(b=>archivedIds.has(b.eventId)&&b.status!=='cancellata');
 
-    // Calculate revenue by event type
-    const typeRevenue={};
-    let totalPaid=0;
+    // Helper: calculate total costs for an event from eventCosts
+    function _calcEventCosts(ev){
+      const costs=ev.eventCosts;if(!costs)return 0;
+      let total=0;
+      (costs.sections||[]).forEach(sec=>{
+        (sec.items||[]).forEach(item=>{
+          total+=Math.round((item.unitValue||0)*(item.quantity||1)*(item.multiplier||1)*100)/100;
+        });
+      });
+      Object.values(costs.sessions||{}).forEach(sc=>{total+=(sc.amount||0);});
+      return Math.round(total*100)/100;
+    }
+    // Helper: calculate costs assigned to current user (for partners)
+    function _calcMyCosts(ev){
+      const costs=ev.eventCosts;if(!costs)return 0;
+      const myId=u.id;
+      const isCapo=ev.managerId===myId;
+      const allParts=[ev.managerId,...(ev.partnerIds||[])];
+      let total=0;
+      // General costs
+      (costs.sections||[]).forEach(sec=>{
+        (sec.items||[]).forEach(item=>{
+          const itemTotal=Math.round((item.unitValue||0)*(item.quantity||1)*(item.multiplier||1)*100)/100;
+          const sm=item.splitMode||'equal';
+          if(sm==='equal')total+=Math.round(itemTotal/allParts.length*100)/100;
+          else if(sm==='solo_'+myId)total+=itemTotal;
+        });
+      });
+      // Session costs
+      Object.entries(costs.sessions||{}).forEach(([sid,sc])=>{
+        const assignee=sc.assignedTo||ev.managerId;
+        if(assignee===myId)total+=(sc.amount||0);
+      });
+      return Math.round(total*100)/100;
+    }
+
+    // Calculate revenue and costs by event type
+    const typeData={};
+    let totalPaid=0,totalCosts=0;
+    const isCapoOfAny=archivedEvts.some(e=>e.managerId===u.id);
     archivedEvts.forEach(ev=>{
       const type=ev.type||'altro';
-      if(!typeRevenue[type])typeRevenue[type]={paid:0,total:0,count:0,label:getEventTypeLabel(type),icon:getEventTypeIcon(type)};
-      typeRevenue[type].count++;
+      if(!typeData[type])typeData[type]={paid:0,costs:0,count:0,label:getEventTypeLabel(type),icon:getEventTypeIcon(type)};
+      typeData[type].count++;
       const evBks=archivedBookings.filter(b=>b.eventId===ev.id&&!b.gift&&b.paymentStatus!=='gratuito'&&b.paymentStatus!=='abbonamento');
       const evPaid=evBks.filter(b=>b.paymentStatus==='pagato').reduce((s,b)=>s+(b.amount||0),0);
-      const evTotal=evBks.reduce((s,b)=>s+(b.amount||0),0);
-      typeRevenue[type].paid+=evPaid;
-      typeRevenue[type].total+=evTotal;
-      totalPaid+=evPaid;
+      // For capofila: use total event costs. For partner: use own share only
+      const isCapo=ev.managerId===u.id;
+      const evCosts=isCapo?_calcEventCosts(ev):_calcMyCosts(ev);
+      // Revenue share: if partner, apply revenue sharing percentage
+      let evRevenue=evPaid;
+      if(!isCapo&&ev.eventCosts?.revenueSharing){
+        const pct=ev.eventCosts.revenueSharing[u.id]||0;
+        evRevenue=Math.round(evPaid*pct/100);
+      }
+      typeData[type].paid+=isCapo?evPaid:evRevenue;
+      typeData[type].costs+=evCosts;
+      totalPaid+=isCapo?evPaid:evRevenue;
+      totalCosts+=evCosts;
     });
+    const totalProfit=Math.round((totalPaid-totalCosts)*100)/100;
 
     if(archivedEvts.length){
-      let fh='<h2 class="font-semibold text-white mb-3">💰 Incassi effettivi <span class="text-xs txt3">(solo eventi archiviati)</span></h2>';
-      fh+='<div class="grid gap-3 mb-4" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">';
-      fh+='<div class="stat-card" style="border:1px solid rgba(16,185,129,.3)"><div class="value" style="color:var(--green);font-size:1.5rem">€'+totalPaid+'</div><div class="label">Totale incassato</div></div>';
+      let fh='<h2 class="font-semibold text-white mb-3">💰 Riepilogo finanziario <span class="text-xs txt3">(eventi archiviati)</span></h2>';
+      // Main summary cards
+      fh+='<div class="grid gap-3 mb-4" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">';
+      fh+='<div class="stat-card" style="border:1px solid rgba(16,185,129,.3)"><div class="value" style="color:var(--green);font-size:1.4rem">€'+totalPaid+'</div><div class="label">Incassato</div></div>';
+      fh+='<div class="stat-card" style="border:1px solid rgba(239,68,68,.2)"><div class="value" style="color:var(--red);font-size:1.4rem">€'+totalCosts+'</div><div class="label">Costi</div></div>';
+      fh+='<div class="stat-card" style="border:2px solid '+(totalProfit>=0?'rgba(16,185,129,.4)':'rgba(239,68,68,.4)')+'"><div class="value" style="color:'+(totalProfit>=0?'var(--green)':'var(--red)')+';font-size:1.5rem">€'+totalProfit+'</div><div class="label">'+(totalProfit>=0?'📈 Profitto':'📉 Perdita')+'</div></div>';
+      fh+='</div>';
+      // Per-type breakdown
+      fh+='<div class="grid gap-3 mb-4" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">';
       const typeOrder=['jam','lezione','workshop','social'];
-      const sortedTypes=[...typeOrder.filter(t=>typeRevenue[t]),...Object.keys(typeRevenue).filter(t=>!typeOrder.includes(t))];
+      const sortedTypes=[...typeOrder.filter(t=>typeData[t]),...Object.keys(typeData).filter(t=>!typeOrder.includes(t))];
       sortedTypes.forEach(t=>{
-        const tr=typeRevenue[t];
-        fh+='<div class="stat-card"><div class="value" style="font-size:1.2rem;color:var(--txt1)">€'+tr.paid+'</div><div class="label">'+tr.icon+' '+tr.label+' ('+tr.count+')</div></div>';
+        const td=typeData[t];
+        const tProfit=Math.round((td.paid-td.costs)*100)/100;
+        fh+='<div class="stat-card" style="padding:14px">';
+        fh+='<div style="font-size:.78rem;color:var(--txt3);margin-bottom:6px">'+td.icon+' '+td.label+' <span style="opacity:.6">('+td.count+')</span></div>';
+        fh+='<div style="display:flex;gap:12px;flex-wrap:wrap;font-size:.82rem">';
+        fh+='<span style="color:var(--green)">+€'+td.paid+'</span>';
+        if(td.costs>0)fh+='<span style="color:var(--red)">-€'+td.costs+'</span>';
+        fh+='<span style="font-weight:700;color:'+(tProfit>=0?'var(--green)':'var(--red)')+'">= €'+tProfit+'</span>';
+        fh+='</div></div>';
       });
       fh+='</div>';
       fc.innerHTML=fh;
@@ -14247,7 +14320,7 @@ function renderAdminDashboard(){
     const archivedEvts=allEvts.filter(e=>e.status==='archiviato');
     if(!archivedEvts.length){chartContainer.innerHTML='';return;}
 
-    // Build data points: each archived event contributes revenue on its date
+    // Build data points: each archived event contributes revenue AND costs on its date
     const dataPoints=[];
     archivedEvts.forEach(ev=>{
       const date=ev.days?.[0]?.date||ev.archivedAt?.substring(0,10)||'';
@@ -14255,7 +14328,14 @@ function renderAdminDashboard(){
       const type=ev.type||'altro';
       const evBks=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata'&&!b.gift&&b.paymentStatus==='pagato');
       const revenue=evBks.reduce((s,b)=>s+(b.amount||0),0);
-      if(revenue>0)dataPoints.push({date,revenue,type,title:ev.title});
+      const isCapo=ev.managerId===u.id;
+      const cost=isCapo?_calcEventCosts(ev):_calcMyCosts(ev);
+      let adjRevenue=revenue;
+      if(!isCapo&&ev.eventCosts?.revenueSharing){
+        const pct=ev.eventCosts.revenueSharing[u.id]||0;
+        adjRevenue=Math.round(revenue*pct/100);
+      }
+      dataPoints.push({date,revenue:isCapo?revenue:adjRevenue,cost,type,title:ev.title});
     });
 
     dataPoints.sort((a,b)=>a.date.localeCompare(b.date));
@@ -14265,20 +14345,22 @@ function renderAdminDashboard(){
     const allTypes=[...new Set(dataPoints.map(d=>d.type))];
     const typeColors={jam:'#eab308',lezione:'#6366f1',workshop:'#f97316',social:'#d946ef',altro:'#a1a1b5'};
 
-    // Build cumulative series per type + total
+    // Build cumulative series: revenue, costs, profit per type + totals
     const dateSet=[...new Set(dataPoints.map(d=>d.date))].sort();
     const cumByType={};allTypes.forEach(t=>{cumByType[t]=[];});
-    const cumTotal=[];
-    let runTotal=0;
+    const cumTotal=[],cumCosts=[],cumProfit=[];
+    let runTotal=0,runCosts=0;
     const runByType={};allTypes.forEach(t=>{runByType[t]=0;});
     const eventsByDate={};
 
     dateSet.forEach(d=>{
       const dps=dataPoints.filter(p=>p.date===d);
-      dps.forEach(p=>{runByType[p.type]+=p.revenue;runTotal+=p.revenue;});
+      dps.forEach(p=>{runByType[p.type]+=p.revenue;runTotal+=p.revenue;runCosts+=p.cost;});
       allTypes.forEach(t=>{cumByType[t].push(runByType[t]);});
       cumTotal.push(runTotal);
-      eventsByDate[d]=dps.map(p=>p.title+' (€'+p.revenue+')').join(', ');
+      cumCosts.push(runCosts);
+      cumProfit.push(Math.round((runTotal-runCosts)*100)/100);
+      eventsByDate[d]=dps.map(p=>p.title+' (+€'+p.revenue+(p.cost?' -€'+p.cost:'')+')').join(', ');
     });
 
     // Time range filter
@@ -14286,7 +14368,7 @@ function renderAdminDashboard(){
       {label:'1 sett.',days:7},{label:'1 mese',days:30},{label:'1 anno',days:365},{label:'3 anni',days:1095},{label:'5 anni',days:1825},{label:'Tutto',days:99999}
     ];
 
-    let ch='<h2 class="font-semibold text-white mb-3">📈 Incassi cumulati nel tempo</h2>';
+    let ch='<h2 class="font-semibold text-white mb-3">📈 Andamento finanziario nel tempo</h2>';
     ch+='<div class="flex gap-2 mb-3 flex-wrap" id="chart-range-btns">';
     ranges.forEach((r,i)=>{
       const isDefault=r.label==='Tutto';
@@ -14294,18 +14376,21 @@ function renderAdminDashboard(){
     });
     ch+='</div>';
 
-    // Legend
+    // Legend — main lines
     ch+='<div class="flex gap-3 flex-wrap mb-3" id="chart-legend">';
-    ch+='<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--txt2)"><input type="checkbox" checked data-type="__total__" onchange="toggleChartSeries(this)" style="accent-color:var(--green)"><span style="width:10px;height:3px;background:var(--green);display:inline-block;border-radius:2px"></span> Totale</label>';
+    ch+='<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--txt2)"><input type="checkbox" checked data-type="__total__" onchange="toggleChartSeries(this)" style="accent-color:#10b981"><span style="width:10px;height:3px;background:#10b981;display:inline-block;border-radius:2px"></span> Ricavi</label>';
+    ch+='<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--txt2)"><input type="checkbox" checked data-type="__costs__" onchange="toggleChartSeries(this)" style="accent-color:#ef4444"><span style="width:10px;height:3px;background:#ef4444;display:inline-block;border-radius:2px"></span> Costi</label>';
+    ch+='<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--txt2)"><input type="checkbox" checked data-type="__profit__" onchange="toggleChartSeries(this)" style="accent-color:#d946ef"><span style="width:10px;height:3px;background:#d946ef;display:inline-block;border-radius:2px"></span> Profitto</label>';
+    ch+='<span style="width:1px;height:14px;background:var(--s400);margin:0 4px"></span>';
     allTypes.forEach(t=>{
-      ch+='<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--txt2)"><input type="checkbox" checked data-type="'+t+'" onchange="toggleChartSeries(this)" style="accent-color:'+typeColors[t]+'"><span style="width:10px;height:3px;background:'+typeColors[t]+';display:inline-block;border-radius:2px"></span> '+getEventTypeLabel(t)+'</label>';
+      ch+='<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--txt2)"><input type="checkbox" data-type="'+t+'" onchange="toggleChartSeries(this)" style="accent-color:'+typeColors[t]+'"><span style="width:10px;height:3px;background:'+typeColors[t]+';display:inline-block;border-radius:2px"></span> '+getEventTypeLabel(t)+'</label>';
     });
     ch+='</div>';
     ch+='<div class="card" style="padding:16px;position:relative"><canvas id="dash-revenue-chart" height="280"></canvas></div>';
     chartContainer.innerHTML=ch;
 
     // Store chart data globally for filtering
-    window._dashChartData={dateSet,cumTotal,cumByType,allTypes,typeColors,eventsByDate};
+    window._dashChartData={dateSet,cumTotal,cumCosts,cumProfit,cumByType,allTypes,typeColors,eventsByDate};
     _renderDashChart(99999);
   }
 }
@@ -14324,17 +14409,20 @@ function _renderDashChart(rangeDays){
 
   const labels=indices.map(i=>fmtDateShort(d.dateSet[i]));
   const totalData=indices.map(i=>d.cumTotal[i]);
+  const costsData=indices.map(i=>d.cumCosts[i]);
+  const profitData=indices.map(i=>d.cumProfit[i]);
 
-  const datasets=[{
-    label:'Totale',data:totalData,borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.1)',
-    fill:true,tension:.3,borderWidth:2,pointRadius:3,pointHoverRadius:6
-  }];
+  const datasets=[
+    {label:'Ricavi',data:totalData,borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.08)',fill:true,tension:.3,borderWidth:2.5,pointRadius:3,pointHoverRadius:6},
+    {label:'Costi',data:costsData,borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.06)',fill:true,tension:.3,borderWidth:2,pointRadius:2,pointHoverRadius:5,borderDash:[5,3]},
+    {label:'Profitto',data:profitData,borderColor:'#d946ef',backgroundColor:'transparent',tension:.3,borderWidth:2,pointRadius:2,pointHoverRadius:5}
+  ];
 
   d.allTypes.forEach(t=>{
     datasets.push({
       label:getEventTypeLabel(t),data:indices.map(i=>d.cumByType[t][i]),
       borderColor:d.typeColors[t]||'#a1a1b5',backgroundColor:'transparent',
-      tension:.3,borderWidth:1.5,pointRadius:2,pointHoverRadius:5,hidden:false
+      tension:.3,borderWidth:1.5,pointRadius:2,pointHoverRadius:5,hidden:true
     });
   });
 
@@ -14385,9 +14473,10 @@ function toggleChartSeries(checkbox){
   if(!window._dashChart)return;
   const type=checkbox.dataset.type;
   const ds=window._dashChart.data.datasets;
-  if(type==='__total__'){
-    ds[0].hidden=!checkbox.checked;
-  } else {
+  if(type==='__total__'){ds[0].hidden=!checkbox.checked;}
+  else if(type==='__costs__'){ds[1].hidden=!checkbox.checked;}
+  else if(type==='__profit__'){ds[2].hidden=!checkbox.checked;}
+  else{
     const idx=ds.findIndex(d=>d.label===getEventTypeLabel(type));
     if(idx>=0)ds[idx].hidden=!checkbox.checked;
   }
@@ -17207,13 +17296,15 @@ function showAdminEventDetail(evId){
       return _eyeBtn+_shareBtn+_resumeBtn+'<button class="btn btn-sm" style="background:rgba(234,179,8,.15);color:var(--yellow);border:1px solid rgba(234,179,8,.3)" onclick="revertToDraft(\''+ev.id+'\')">📝 Torna in bozza</button><button class="btn btn-danger btn-sm" onclick="deleteEvent(\''+ev.id+'\')">🗑️ Elimina</button>';
     }
     if(ev.status==='cancellato')return '<button class="btn btn-ghost btn-sm" onclick="showEventDetail(\''+ev.id+'\')">👁️ Preview</button><button class="btn btn-danger btn-sm" onclick="hardDeleteEvent(\''+ev.id+'\')">🗑️ Elimina</button>';
-    return '<span class="text-xs txt3">Concluso</span>';
+    if(ev.status==='archiviato')return _eyeBtn+'<button class="btn btn-sm" style="background:rgba(99,102,241,.1);color:#6366f1;border:1px solid rgba(99,102,241,.2);font-size:.75rem" onclick="copyEventAsTemplate(\''+ev.id+'\')">📋 Usa come template</button>';
+    // concluso
+    return _eyeBtn+'<button class="btn btn-sm" style="background:rgba(99,102,241,.08);color:#6366f1;border:1px solid rgba(99,102,241,.2);font-size:.75rem" onclick="archiveEvent(\''+ev.id+'\')">📦 Archivia</button><button class="btn btn-sm" style="background:rgba(99,102,241,.1);color:#6366f1;border:1px solid rgba(99,102,241,.2);font-size:.75rem" onclick="copyEventAsTemplate(\''+ev.id+'\')">📋 Template</button>';
   })();
 
   c.innerHTML=`<div class="container" style="padding-top:32px;padding-bottom:48px;max-width:1100px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px">
       <div class="text-sm txt3" style="cursor:pointer" onclick="resetAdminDetailView();go(lastAdminListView||'admin-events')">← Torna agli eventi</div>
-      <div class="flex gap-2 flex-wrap">${_detailActions}${isEventCapofila(ev,store.currentUser.id)?'<button class="btn btn-sm" style="background:rgba(234,179,8,.1);color:var(--yellow);border:1px solid rgba(234,179,8,.25);font-size:.75rem" onclick="openCostManagement(\''+ev.id+'\')">💰 Costi</button>':''}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">${_detailActions}${isEventCapofila(ev,store.currentUser.id)?'<button class="btn btn-sm" style="background:rgba(234,179,8,.1);color:var(--yellow);border:1px solid rgba(234,179,8,.25);font-size:.75rem" onclick="openCostManagement(\''+ev.id+'\')">💰 Costi</button>':''}</div>
     </div>
     ${(()=>{
       const _isCapo=isEventCapofila(ev,store.currentUser.id);
