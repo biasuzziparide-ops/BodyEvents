@@ -3005,6 +3005,8 @@ async function loadAllData(forceReload){
     _migrateLegacyEventTypes();
     // Migrate orphan bookings: fix null recurringDate for recurring events
     _migrateOrphanRecurringBookings();
+    // Split concluded recurring dates into standalone events
+    await _splitConcludedRecurringDates();
     // Load subscription collections separately (fault-tolerant: won't block if Firestore rules don't include them yet)
     try{const subTypesSnap=await fbDb.collection('subscriptionTypes').get();store.subscriptionTypes=[];subTypesSnap.forEach(doc=>{store.subscriptionTypes.push(doc.data());});}catch(e){console.warn('subscriptionTypes load skipped:',e.message);store.subscriptionTypes=[];}
     try{const subsSnap=await fbDb.collection('subscriptions').get();store.subscriptions=[];subsSnap.forEach(doc=>{store.subscriptions.push(doc.data());});}catch(e){console.warn('subscriptions load skipped:',e.message);store.subscriptions=[];}
@@ -3240,6 +3242,143 @@ function _migrateOrphanRecurringBookings(){
     console.info('  Fixed booking '+b.id+' ('+b.userName+') → recurringDate='+bestDate);
     fsUpdate('bookings',b.id,{recurringDate:bestDate}).catch(e=>console.error('Failed to update booking '+b.id,e));
   });
+}
+async function _splitConcludedRecurringDates(){
+  const today=localDateStr(new Date());
+  const now=new Date();
+  const recurringEvents=store.events.filter(e=>e.recurrence&&e.recurrence.day&&e.status==='pubblicato');
+  if(!recurringEvents.length)return;
+
+  for(const ev of recurringEvents){
+    const recTabs=getRecurringDateTabs(ev);
+    if(!recTabs)continue;
+
+    // Get past dates that haven't been split yet
+    const splitExceptions=Object.entries(ev.recurrence.exceptions||{}).filter(([k,v])=>v.type==='split').map(([k])=>k);
+    const datesToSplit=recTabs.pastDates.filter(d=>{
+      // Don't split today if the last session hasn't ended yet
+      // For multi-day events, consider the last day's end time
+      if(d===today){
+        const lastDay=ev.days?.[ev.days.length-1]||ev.days?.[0];
+        const endT=lastDay?.endTime||'23:59';
+        const [h,m]=(endT).split(':').map(Number);
+        // For multi-day events, the "end" is on the last day offset from the start date
+        // e.g., 2-day event starting Wed: ends Thu at endTime
+        const daysSpan=ev.days?ev.days.length-1:0;
+        if(daysSpan>0){
+          // Multi-day: today must be after startDate + daysSpan
+          const startDate=new Date(d+'T00:00:00');
+          const endDate=new Date(startDate);endDate.setDate(endDate.getDate()+daysSpan);
+          const endDateStr=localDateStr(endDate);
+          if(today<endDateStr)return false; // Still in progress (not on last day yet)
+          if(today===endDateStr&&(now.getHours()<h||(now.getHours()===h&&now.getMinutes()<=m)))return false;
+        } else {
+          if(now.getHours()<h||(now.getHours()===h&&now.getMinutes()<=m))return false;
+        }
+      }
+      // Don't split if already split
+      if(splitExceptions.includes(d))return false;
+      // Only split dates that have bookings
+      const hasBookings=store.bookings.some(b=>b.eventId===ev.id&&b.recurringDate===d&&b.status!=='cancellata');
+      return hasBookings;
+    });
+
+    if(!datesToSplit.length)continue;
+
+    for(const dateStr of datesToSplit){
+      console.info('Splitting recurring date '+dateStr+' from event '+ev.title);
+
+      // Get exception changes for this date (if any modifications were made)
+      const dateException=(ev.recurrence.exceptions||{})[dateStr];
+      const dateChanges=dateException?.changes||{};
+
+      // Build the standalone event
+      const instanceId=genId('ev');
+      // Clone all days, offsetting dates from the recurring start date
+      const instanceDays=ev.days.map((d,i)=>{
+        const cloned=JSON.parse(JSON.stringify(d));
+        if(i===0){
+          cloned.date=dateStr;
+        } else {
+          // Offset subsequent days relative to the first day
+          const startDate=new Date(dateStr+'T00:00:00');
+          startDate.setDate(startDate.getDate()+i);
+          cloned.date=localDateStr(startDate);
+        }
+        return cloned;
+      });
+      // Apply exception overrides to the first day
+      const instanceDay=instanceDays[0];
+      if(dateChanges.startTime)instanceDay.startTime=dateChanges.startTime;
+      if(dateChanges.endTime)instanceDay.endTime=dateChanges.endTime;
+      if(dateChanges.tiers)(instanceDay.sessions||[]).forEach(s=>{if(dateChanges.tiers[s.id])s.tiers=dateChanges.tiers[s.id];});
+      if(dateChanges.dayTiers)instanceDay.tiers=dateChanges.dayTiers;
+
+      const instance={
+        id:instanceId,
+        managerId:ev.managerId,
+        orgName:ev.orgName,
+        universeId:ev.universeId,
+        universeIds:ev.universeIds||[],
+        title:ev.title,
+        description:ev.description,
+        type:ev.type,
+        level:ev.level||'auto',
+        location:dateChanges.location||ev.location,
+        locationUrl:dateChanges.locationUrl||ev.locationUrl,
+        coords:ev.coords||null,
+        teacher:ev.teacher,
+        maxSpots:ev.maxSpots||0,
+        image:ev.image||null,
+        imageThumb:ev.imageThumb||null,
+        imageHeader:ev.imageHeader||null,
+        days:instanceDays,
+        tiers:ev.tiers?JSON.parse(JSON.stringify(ev.tiers)):null,
+        loyaltyDiscount:ev.loyaltyDiscount||null,
+        earlyBird:ev.earlyBird||null,
+        contactPhone:ev.contactPhone||'',
+        contactEmail:ev.contactEmail||'',
+        groupLink:ev.groupLink||'',
+        paymentMethods:ev.paymentMethods?JSON.parse(JSON.stringify(ev.paymentMethods)):{},
+        deposit:ev.deposit?JSON.parse(JSON.stringify(ev.deposit)):null,
+        pricingMode:ev.pricingMode||'standard',
+        surveys:ev.surveys?JSON.parse(JSON.stringify(ev.surveys)):[],
+        status:'concluso',
+        recurrence:null,
+        createdAt:ev.createdAt,
+        partnerIds:ev.partnerIds||[],
+        partnerEntryPolicy:ev.partnerEntryPolicy||null,
+        subscriptionBookable:ev.subscriptionBookable||null,
+        subscriptionDiscount:ev.subscriptionDiscount||null,
+        alert:(dateException&&dateException.type!=='split')?{type:dateException.type,message:dateException.message||'',date:dateException.date||dateStr}:null,
+        confirmedByOrganizer:ev.confirmedByOrganizer||false,
+        parentRecurringId:ev.id,
+        recurringInstanceDate:dateStr,
+        allowDayPurchase:ev.allowDayPurchase||false
+      };
+
+      // Save instance to Firestore
+      await fsSet('events',instanceId,instance).catch(console.error);
+      store.events.push(instance);
+
+      // Migrate bookings: change eventId from parent to instance, clear recurringDate
+      const booksToMigrate=store.bookings.filter(b=>b.eventId===ev.id&&b.recurringDate===dateStr);
+      for(const b of booksToMigrate){
+        b.eventId=instanceId;
+        b.recurringDate=null;
+        await fsUpdate('bookings',b.id,{eventId:instanceId,recurringDate:null}).catch(console.error);
+      }
+
+      // Mark this date as split in parent's exceptions
+      if(!ev.recurrence.exceptions)ev.recurrence.exceptions={};
+      ev.recurrence.exceptions[dateStr]={type:'split',linkedEventId:instanceId,date:localDateStr(new Date())};
+
+      console.info('  Created instance '+instanceId+' with '+booksToMigrate.length+' bookings');
+    }
+
+    // Save updated parent with new exceptions
+    await fsSet('events',ev.id,ev).catch(console.error);
+  }
 }
 /* === INFO PAGE — Come funziona BodyEvents (V2.38.0) === */
 function renderInfoPage(){
@@ -12549,6 +12688,7 @@ function renderAdminEvents(){
             <span class="badge ${badgeStatus(ev.status)}">${capitalize(ev.status)}</span>
             ${partnerBadge}
             ${getRecurrenceBadge(ev)}${(()=>{if(!ev.recurrence||!ev.recurrence.active)return '';const tabs=getRecurringDateTabs(ev);const _pastCount=tabs?tabs.pastDates.length:0;return _pastCount>0?' <span class="text-xs" style="color:var(--txt3)">('+_pastCount+' concluse)</span>':'';})()}
+            ${ev.parentRecurringId?'<span class="badge" style="background:rgba(99,102,241,.1);color:#6366f1;font-size:.65rem;padding:2px 8px">🔄 da ricorrente</span>':''}
             ${ev.alert?'<span class="badge" style="background:'+(ev.alert.type==='modificato'?'var(--orange-bg)':'var(--red-bg)')+';color:'+(ev.alert.type==='modificato'?'var(--orange)':'var(--red)')+'">⚠️ '+(ev.alert.type==='cancellato'?'Annullato':ev.alert.type==='rimandato'?'Rimandato':'Modificato')+'</span>':''}
           </div>
           <h3 class="font-semibold text-white" style="font-size:1.05rem;margin-bottom:4px">${escHtml(ev.title)}</h3>
@@ -12743,7 +12883,7 @@ function getNextRecurringDates(ev,count){
   const dates=[];
   /* Helper: check if a date is excluded */
   function isExcluded(dateStr){
-    if(exc[dateStr]&&(exc[dateStr].type==='skip'||exc[dateStr].type==='cancellato'))return true;
+    if(exc[dateStr]&&(exc[dateStr].type==='skip'||exc[dateStr].type==='cancellato'||exc[dateStr].type==='split'))return true;
     if(exclDates.includes(dateStr))return true;
     return false;
   }
@@ -12751,10 +12891,15 @@ function getNextRecurringDates(ev,count){
     const d=new Date(startFrom);
     while(d.getDay()!==targetDay)d.setDate(d.getDate()+1);
     if(d.getTime()===today.getTime()){
-      const lastSession=ev.days&&ev.days[0]?ev.days[0].endTime:'23:59';
+      // For multi-day events, use last day's end time and account for day span
+      const _ld=ev.days?.[ev.days.length-1]||ev.days?.[0];
+      const lastSession=_ld?.endTime||'23:59';
+      const _ds2=ev.days?ev.days.length-1:0;
       const now=new Date();const [h,m]=(lastSession||'23:59').split(':').map(Number);
       const ds=localDateStr(d);
-      if((now.getHours()<h||(now.getHours()===h&&now.getMinutes()<=m))&&!isExcluded(ds)){dates.push(ds);}
+      // Multi-day: event is still "future" if we haven't passed the last day's end time
+      const _endD=new Date(d);_endD.setDate(_endD.getDate()+_ds2);_endD.setHours(h,m,0,0);
+      if(now<_endD&&!isExcluded(ds)){dates.push(ds);}
       d.setDate(d.getDate()+7);
     }
     while(dates.length<count){
@@ -16045,15 +16190,20 @@ function getRecurringDateTabs(ev){
   const today=new Date();today.setHours(0,0,0,0);
   const exc=(ev.recurrence.exceptions||{});
   const exclDates=ev.recurrence.exclusionDates||[];
-  function isExcl(ds){return(exc[ds]&&(exc[ds].type==='skip'||exc[ds].type==='cancellato'))||exclDates.includes(ds);}
+  function isExcl(ds){return(exc[ds]&&(exc[ds].type==='skip'||exc[ds].type==='cancellato'||exc[ds].type==='split'))||exclDates.includes(ds);}
   // Check if today's session has ended (today is target day but session is over)
   const _todayStr=localDateStr(today);
   const _nowFull=new Date();
-  const _endT=ev.days?.[0]?.endTime||'23:59';
+  // For multi-day events, use the LAST day's end time and account for day span
+  const _lastDay=ev.days?.[ev.days.length-1]||ev.days?.[0];
+  const _endT=_lastDay?.endTime||'23:59';
   const _endParts=_endT.split(':');
-  const _sessionEndToday=new Date(today);_sessionEndToday.setHours(parseInt(_endParts[0])||23,parseInt(_endParts[1])||59,0,0);
+  const _daysSpan=ev.days?ev.days.length-1:0;
   const _todayIsTargetDay=today.getDay()===targetDay;
-  const _todaySessionEnded=_todayIsTargetDay&&_nowFull>_sessionEndToday;
+  // For multi-day: session ends on targetDay + daysSpan, at last day's endTime
+  const _sessionEndDate=new Date(today);_sessionEndDate.setDate(_sessionEndDate.getDate()+_daysSpan);
+  _sessionEndDate.setHours(parseInt(_endParts[0])||23,parseInt(_endParts[1])||59,0,0);
+  const _todaySessionEnded=_todayIsTargetDay&&_nowFull>_sessionEndDate;
   // Find last completed date (most recent past occurrence)
   // Include today if it's the target day AND the session has ended
   const pastDates=[];
@@ -16286,6 +16436,11 @@ function showAdminEventDetail(evId){
         ${!isEventCapofila(ev,store.currentUser.id)?'<div style="margin-top:6px"><span style="display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:8px;font-size:.75rem;background:rgba(168,85,247,.12);color:#a855f7;border:1px solid rgba(168,85,247,.25)">🤝 Sei partner di questo evento — visualizzazione in sola lettura</span></div>':''}
       </div>
     </div>
+
+    ${ev.parentRecurringId?(()=>{
+      const parent=store.events.find(e=>e.id===ev.parentRecurringId);
+      return parent?'<div class="card mb-3" style="padding:10px 14px;background:rgba(99,102,241,.06);border-color:rgba(99,102,241,.2)"><span class="text-sm" style="color:#6366f1">🔄 Istanza del '+fmtDateShort(ev.recurringInstanceDate||ev.days[0]?.date)+' dall\'evento ricorrente <a style="color:var(--brand-l);cursor:pointer;text-decoration:underline" onclick="showAdminEventDetail(\''+ev.parentRecurringId+'\')">'+escHtml(parent.title)+'</a></span></div>':'';
+    })():''}
 
     ${recTabsHtml}
     ${viewToggleHtml}
