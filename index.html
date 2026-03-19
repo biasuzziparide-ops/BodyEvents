@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V2.40.0</title>
+<title>BodyEvents — V2.41.0</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -202,7 +202,7 @@ textarea.input{resize:none;font-family:inherit}
 .avatar-yellow{background:var(--yellow-bg);color:var(--yellow)}
 
 /* === QR CODE === */
-.qr-box{width:220px;height:220px;background:#fff;border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto;padding:10px}
+.qr-box{width:320px;height:320px;background:#fff;border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto;padding:10px}
 .qr-box canvas,.qr-box img{border-radius:8px}
 
 /* === MOBILE TOP-NAV === */
@@ -350,7 +350,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.40.0</span>
+      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V2.41.0</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -614,6 +614,13 @@ textarea.input{resize:none;font-family:inherit}
 <!-- VIEW: DETTAGLIO EVENTO ORGANIZZATORE -->
 <div class="view" id="view-admin-event-detail">
   <div id="admin-event-detail-content"></div>
+</div>
+
+<!-- ============================================================ -->
+<!-- VIEW: COST MANAGEMENT -->
+<!-- ============================================================ -->
+<div class="view" id="view-admin-cost-management">
+  <div id="admin-cost-management-content"></div>
 </div>
 
 <!-- PLACEHOLDER per le altre viste (verranno aggiunte nelle prossime tranche) -->
@@ -2867,7 +2874,7 @@ function obDismissCard(key,btn){
 // === HELP BUTTON (removed in V2.8.9) ===
 function obShowHelpBtn(){}
 
-// === FAB INFO BUTTON (V2.40.0) ===
+// === FAB INFO BUTTON (V2.41.0) ===
 const FAB_SEEN_KEY='bodyevents_fab_tooltip_seen';
 function showInfoFab(){
   const fab=document.getElementById('info-fab');if(!fab)return;
@@ -2914,7 +2921,7 @@ function dismissInfoFabTooltip(){
 }
 function _obShowTourForCurrentView(force){
   const v=currentView;
-  // User-side tours removed in V2.40.0 — replaced by FAB info button + info page
+  // User-side tours removed in V2.41.0 — replaced by FAB info button + info page
   // Admin-side tours kept (complex interface needs guidance)
   if(v==='admin')obShowTour('tour_admin_intro',force);
   else if(v==='admin-events')obShowTour('tour_admin_events',force);
@@ -3382,7 +3389,7 @@ async function _splitConcludedRecurringDates(){
     await fsSet('events',ev.id,ev).catch(console.error);
   }
 }
-/* === INFO PAGE — Come funziona BodyEvents (V2.40.0) === */
+/* === INFO PAGE — Come funziona BodyEvents (V2.41.0) === */
 function renderInfoPage(){
   const c=document.getElementById('info-page-content');if(!c)return;
   const active=getActiveUniverses();
@@ -3506,7 +3513,7 @@ function renderInfoPage(){
 
   c.innerHTML=html;
 }
-/* === INFO PAGE ORGANIZER — Guida Organizzatore (V2.40.0) === */
+/* === INFO PAGE ORGANIZER — Guida Organizzatore (V2.41.0) === */
 function renderInfoPageOrganizer(){
   const c=document.getElementById('info-page-organizer-content');if(!c)return;
   const master=store.managers.find(m=>m.role==='master');
@@ -3552,6 +3559,7 @@ function renderInfoPageOrganizer(){
     {id:'org-anagrafica',icon:'📇',label:'Anagrafica'},
     {id:'org-comunicazioni',icon:'📢',label:'Comunicazioni'},
     {id:'org-inviti',icon:'🔗',label:'Inviti e crescita'},
+    {id:'org-gestcosti',icon:'💰',label:'Gestione costi evento'},
     {id:'org-costi',icon:'🪙',label:'Costi piattaforma'}
   ];
   let navHtml='<div style="font-size:.78rem;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">In questa guida</div><div style="display:flex;flex-wrap:wrap;gap:6px">';
@@ -3717,7 +3725,27 @@ function renderInfoPageOrganizer(){
   s10+=valueBox('🌱','<strong style="color:#10b981">Valore:</strong> ogni invito è tracciato. Puoi misurare la crescita organica della tua community e capire quali canali funzionano meglio.');
   html+='<div id="org-inviti" style="scroll-margin-top:16px">'+sec(s10)+'</div>';
 
-  // === 11. COSTI DELLA PIATTAFORMA ===
+  // === 11. GESTIONE COSTI EVENTO ===
+  let sGestCosti=h2('💰','Gestione costi evento');
+  sGestCosti+=tagline('Tieni traccia di costi, ricavi e profitti per ogni evento');
+  sGestCosti+=p('Ogni evento ha una sezione dedicata alla <strong style="color:var(--txt1)">gestione dei costi</strong>, accessibile dal bottone "💰 Costi" nel dettaglio evento. Questa sezione è separata dalla creazione evento: puoi modificarla in qualsiasi momento, anche dopo la pubblicazione, senza che gli utenti ricevano notifiche.');
+
+  sGestCosti+=h3('Costi generali');
+  sGestCosti+=p('Aggiungi voci di costo organizzate in sezioni tematiche (Logistica, Vitto, Materiali...). Ogni voce ha un <strong style="color:var(--txt1)">valore unitario</strong>, una <strong style="color:var(--txt1)">quantità</strong> e un <strong style="color:var(--txt1)">moltiplicatore</strong> — il totale si calcola automaticamente. Di default trovi la voce "Location" a €0.');
+
+  sGestCosti+=h3('Costi insegnanti');
+  sGestCosti+=p('Per ogni sessione del tuo evento puoi indicare il <strong style="color:var(--txt1)">costo dell\'insegnante</strong>. Se l\'evento ha dei partner, puoi assegnare il costo di ogni sessione al capofila o a un partner specifico.');
+
+  sGestCosti+=h3('Spartizione con i partner');
+  sGestCosti+=p('Quando un evento è in partnership, puoi definire come vengono <strong style="color:var(--txt1)">spartiti i ricavi</strong> (in percentuale) e come vengono <strong style="color:var(--txt1)">divisi i costi generali</strong> — equamente o con percentuali personalizzate per ciascuna voce. I costi delle sessioni possono essere assegnati singolarmente a chi di competenza.');
+
+  sGestCosti+=h3('Riepilogo finanziario');
+  sGestCosti+=p('Il sistema calcola automaticamente <strong style="color:var(--txt1)">ricavi, costi e profitto</strong> per l\'evento. Con più partner, ogni partecipante vede i propri numeri: la propria quota di ricavi, i costi a proprio carico, e il profitto netto. Solo il capofila ha la visione completa di tutti i partner.');
+
+  sGestCosti+=tip('💡','<strong style="color:#6366f1">Nota:</strong> i costi sono dati interni dell\'organizzatore. Non vengono mai mostrati agli utenti e non generano notifiche. Puoi aggiornarli in qualsiasi momento, anche a evento concluso.');
+  html+='<div id="org-gestcosti" style="scroll-margin-top:16px">'+sec(sGestCosti)+'</div>';
+
+  // === 12. COSTI DELLA PIATTAFORMA ===
   let sCosti=h2('🪙','Costi della piattaforma');
   sCosti+=tagline('Parliamoci chiaro, da subito');
   sCosti+=p('BodyEvents è <strong style="color:var(--txt1)">gratuita per tutti</strong> — utenti e organizzatori. Nessun costo di attivazione, nessun abbonamento, nessuna commissione sui pagamenti.');
@@ -3823,6 +3851,7 @@ function filterPartnerList(){
   const txt=(document.getElementById('partner-search-text')?.value||'').toLowerCase();
   const univFilter=document.getElementById('partner-search-univ')?.value||'';
   const approved=getApprovedManagers();
+  const allUsers=store.users.filter(u=>u.id!==store.currentUser.id&&!store.managers.some(m=>m.id===u.id));
   const alreadySelected=window._partnerAlreadySelected||new Set();
   const filtered=approved.filter(m=>{
     if(txt&&!m.orgName.toLowerCase().includes(txt)&&!m.username.toLowerCase().includes(txt))return false;
@@ -3830,12 +3859,19 @@ function filterPartnerList(){
     return true;
   });
   const c=document.getElementById('partner-search-results');if(!c)return;
-  if(!filtered.length){c.innerHTML='<div class="text-sm txt3 text-center" style="padding:20px">Nessuna organizzazione trovata</div>';return;}
+  const filteredUsers=allUsers.filter(u=>{
+    if(txt&&!u.username.toLowerCase().includes(txt)&&!(u.email||'').toLowerCase().includes(txt))return false;
+    return true;
+  });
+  if(!filtered.length&&!filteredUsers.length){c.innerHTML='<div class="text-sm txt3 text-center" style="padding:20px">Nessun risultato trovato</div>';return;}
   c.innerHTML=filtered.map(m=>{
     const univs=(m.universes||[]).map(uid=>{const u=store.universes.find(x=>x.id===uid);return u?(u.emoji+' '+u.name):'';}).filter(Boolean).join(', ')||'—';
     const checked=alreadySelected.has(m.id)?'checked':'';
     return '<label class="flex items-center gap-3" style="cursor:pointer;padding:10px 12px;border-bottom:1px solid var(--s300)"><input type="checkbox" class="partner-cb" value="'+m.id+'" '+checked+'><div style="flex:1"><div class="text-sm text-white font-medium">'+m.orgName+'</div><div class="text-xs txt3">'+m.username+' · '+univs+'</div></div></label>';
-  }).join('');
+  }).join('')+(!filteredUsers.length?'':'<div style="padding:8px 12px;border-top:2px solid var(--s300);margin-top:8px"><div style="font-size:.72rem;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">👤 Utenti</div></div>'+filteredUsers.map(u=>{
+    const checked=alreadySelected.has(u.id)?'checked':'';
+    return '<label class="flex items-center gap-3" style="cursor:pointer;padding:10px 12px;border-bottom:1px solid var(--s300)"><input type="checkbox" class="partner-cb" value="'+u.id+'" '+checked+'><div style="flex:1"><div class="text-sm text-white font-medium">'+escHtml(u.username||u.name||'Utente')+'</div><div class="text-xs txt3">'+escHtml(u.email||'')+'</div></div></label>';
+  }).join(''));
 }
 function confirmPartnerSelection(){
   const checks=document.querySelectorAll('#partner-search-results .partner-cb:checked');
@@ -4388,7 +4424,7 @@ function saveUniverseEdit(overlay,univId){
   });
 }
 
-/* === UNIVERSE ROLE & EVENT TYPE INLINE CRUD (V2.40.0) === */
+/* === UNIVERSE ROLE & EVENT TYPE INLINE CRUD (V2.41.0) === */
 
 // --- ROLE EDIT/DELETE ---
 function editUniverseRole(univId,oldRole){
@@ -4912,7 +4948,7 @@ async function generateSubQR(){
   const qrEl=document.getElementById('sub-qr-canvas');
   if(qrEl){
     qrEl.innerHTML='';
-    new QRCode(qrEl,{text:subUrl,width:200,height:200,colorDark:'#1e1e27',colorLight:'#ffffff'});
+    new QRCode(qrEl,{text:subUrl,width:300,height:300,colorDark:'#1e1e27',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
   }
   showToast('QR code generato! L\'utente può scansionarlo con la fotocamera.');
 }
@@ -7459,6 +7495,7 @@ function go(view){
   if(view==='admin-universes'){renderAdminUniversesView();setTimeout(()=>obShowTour('tour_admin_universes'),400);}
   if(view==='info-page'){renderInfoPage();}
   if(view==='info-page-organizer'){renderInfoPageOrganizer();}
+  if(view==='admin-cost-management'&&window._costMgmtEventId){renderCostManagement(window._costMgmtEventId);}
   if(view==='admin-org-profile'){populateOrgProfile();renderAssistenzaBox();}
   if(view==='register-org'){populateRegoUniverses();}
   if(view==='privacy-policy'){
@@ -7976,13 +8013,158 @@ function openFullscreenImage(src,alt){
   document.addEventListener('keydown',escHandler);
   document.body.appendChild(ov);
 }
+
+// === QR CODE CANVAS BUILDER (V2.41.0) ===
+function _buildQRCanvas(opts){
+  // opts: {qrDataUrl, title, subtitle, date, orgName, instruction, accentColor, type}
+  const scale=2; // 2x for retina/HD
+  const w=420*scale, h=620*scale;
+  const c=document.createElement('canvas');c.width=w;c.height=h;
+  const ctx=c.getContext('2d');
+  const s=scale;
+
+  // Background gradient
+  const grad=ctx.createLinearGradient(0,0,0,h);
+  grad.addColorStop(0,'#0f0f13');grad.addColorStop(1,'#18181f');
+  ctx.fillStyle=grad;ctx.fillRect(0,0,w,h);
+
+  // Outer decorative border
+  const borderColor=opts.accentColor||'#d946ef';
+  ctx.strokeStyle=borderColor;ctx.lineWidth=3*s;
+  _roundRect(ctx,8*s,8*s,w-16*s,h-16*s,16*s);ctx.stroke();
+
+  // Inner subtle border
+  ctx.strokeStyle='rgba(255,255,255,.06)';ctx.lineWidth=1*s;
+  _roundRect(ctx,14*s,14*s,w-28*s,h-28*s,12*s);ctx.stroke();
+
+  // Top accent line
+  ctx.fillStyle=borderColor;
+  _roundRect(ctx,30*s,8*s,w-60*s,4*s,2*s);ctx.fill();
+
+  // Type badge at top
+  if(opts.type){
+    ctx.font='bold '+Math.round(11*s)+'px -apple-system,BlinkMacSystemFont,sans-serif';
+    const badgeW=ctx.measureText(opts.type).width+20*s;
+    ctx.fillStyle=borderColor+'22';
+    _roundRect(ctx,(w-badgeW)/2,22*s,badgeW,24*s,12*s);ctx.fill();
+    ctx.fillStyle=borderColor;ctx.textAlign='center';
+    ctx.fillText(opts.type,w/2,39*s);
+  }
+
+  // Title
+  ctx.fillStyle='#f1f1f4';ctx.textAlign='center';
+  ctx.font='bold '+Math.round(18*s)+'px -apple-system,BlinkMacSystemFont,sans-serif';
+  const titleY=opts.type?65*s:50*s;
+  _wrapText(ctx,opts.title||'Evento',w/2,titleY,w-60*s,22*s);
+
+  // Subtitle (date + time)
+  if(opts.subtitle){
+    ctx.font=Math.round(12*s)+'px -apple-system,BlinkMacSystemFont,sans-serif';
+    ctx.fillStyle='#a1a1b5';
+    ctx.fillText(opts.subtitle,w/2,titleY+28*s);
+  }
+
+  // Date badge
+  if(opts.date){
+    ctx.font='bold '+Math.round(12*s)+'px -apple-system,BlinkMacSystemFont,sans-serif';
+    const dateW=ctx.measureText('📅 '+opts.date).width+16*s;
+    ctx.fillStyle='rgba(217,70,239,.1)';
+    _roundRect(ctx,(w-dateW)/2,titleY+38*s,dateW,22*s,11*s);ctx.fill();
+    ctx.fillStyle='#f0abfc';ctx.textAlign='center';
+    ctx.fillText('📅 '+opts.date,w/2,titleY+53*s);
+  }
+
+  // QR code white background with rounded corners
+  const qrSize=260*s;
+  const qrX=(w-qrSize-20*s)/2;
+  const qrY=titleY+(opts.date?75:50)*s;
+  ctx.fillStyle='#ffffff';
+  _roundRect(ctx,qrX,qrY,qrSize+20*s,qrSize+20*s,16*s);ctx.fill();
+
+  // Shadow around QR
+  ctx.shadowColor='rgba(0,0,0,.3)';ctx.shadowBlur=20*s;ctx.shadowOffsetY=4*s;
+  ctx.fillStyle='#ffffff';
+  _roundRect(ctx,qrX,qrY,qrSize+20*s,qrSize+20*s,16*s);ctx.fill();
+  ctx.shadowColor='transparent';ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+
+  // Draw QR image
+  if(opts.qrDataUrl){
+    const img=new Image();
+    img.src=opts.qrDataUrl;
+    try{ctx.drawImage(img,qrX+10*s,qrY+10*s,qrSize,qrSize);}catch(e){}
+  }
+
+  // Instruction text
+  const instrY=qrY+qrSize+40*s;
+  ctx.font=Math.round(11*s)+'px -apple-system,BlinkMacSystemFont,sans-serif';
+  ctx.fillStyle='#a1a1b5';ctx.textAlign='center';
+  const instrText=opts.instruction||'Scannerizza con la fotocamera questo QR Code';
+  _wrapText(ctx,instrText,w/2,instrY,w-50*s,15*s);
+
+  // Org name at bottom
+  if(opts.orgName){
+    ctx.font='bold '+Math.round(10*s)+'px -apple-system,BlinkMacSystemFont,sans-serif';
+    ctx.fillStyle='#6b6b80';ctx.textAlign='center';
+    ctx.fillText(opts.orgName,w/2,h-20*s);
+  }
+
+  // "BodyEvents" watermark
+  ctx.font=Math.round(8*s)+'px -apple-system,BlinkMacSystemFont,sans-serif';
+  ctx.fillStyle='#3d3d50';ctx.textAlign='center';
+  ctx.fillText('BodyEvents',w/2,h-8*s);
+
+  return c;
+}
+
+function _roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
+}
+
+function _wrapText(ctx,text,x,y,maxW,lineH){
+  const words=text.split(' ');let line='';
+  for(let i=0;i<words.length;i++){
+    const test=line+words[i]+' ';
+    if(ctx.measureText(test).width>maxW&&i>0){ctx.fillText(line.trim(),x,y);line=words[i]+' ';y+=lineH;}
+    else{line=test;}
+  }
+  ctx.fillText(line.trim(),x,y);
+  return y;
+}
+
 function openFullscreenQR(wrapId){
   const wrap=document.getElementById(wrapId);if(!wrap)return;
   const srcCanvas=wrap.querySelector('canvas');
   const srcImg=wrap.querySelector('img');
-  if(srcCanvas){openFullscreenImage(srcCanvas.toDataURL('image/png'),'QR Code');}
-  else if(srcImg){openFullscreenImage(srcImg.src,'QR Code');}
-  else{showToast('Genera prima un QR code','error');}
+  if(!srcCanvas&&!srcImg){showToast('Genera prima un QR code','error');return;}
+  const qrDataUrl=srcCanvas?srcCanvas.toDataURL('image/png'):srcImg.src;
+  // Determine context from wrapId
+  let title='QR Code',subtitle='',date='',orgName=store.currentUser?.orgName||'BodyEvents',type='',instruction='Scannerizza con la fotocamera',accent='#d946ef';
+  if(wrapId==='qr-canvas-wrap'){
+    const v=document.getElementById('qr-event-select');
+    const rawVal=v?v.value:'';
+    const evId=rawVal.includes('__')?rawVal.split('__')[0]:rawVal;
+    const recDate=rawVal.includes('__')?rawVal.split('__')[1]:null;
+    const ev=store.events.find(e=>e.id===evId);
+    if(ev){
+      title=ev.title;
+      const d0=ev.days?.[0];
+      date=recDate?fmtDate(recDate):(d0?fmtDate(d0.date):'');
+      subtitle=d0?(d0.startTime+' — '+(d0.endTime||'')):'';
+      orgName=ev.orgName||orgName;
+      type=getEventTypeIcon(ev.type)+' '+getEventTypeLabel(ev.type);
+    }
+    instruction='Scannerizza con la fotocamera questo QR Code per completare il check-in';
+  } else if(wrapId==='qr-new-user-wrap'){
+    title='Unisciti a '+orgName;subtitle='Registrati su BodyEvents';type='📲 Registrazione';accent='#10b981';
+    instruction='Scannerizza con la fotocamera questo QR Code per registrarti alla piattaforma';
+  } else if(wrapId==='sub-qr-canvas'){
+    title='Abbonamento';type='🎟️ Abbonamento';accent='#6366f1';
+    instruction='Scannerizza con la fotocamera questo QR Code per ricevere il tuo abbonamento';
+  }
+  const hd=_buildQRCanvas({qrDataUrl,title,subtitle,date,orgName,type,instruction,accentColor:accent});
+  openFullscreenImage(hd.toDataURL('image/png'),'QR Code');
 }
 
 // Legacy compatibility wrappers
@@ -9407,7 +9589,7 @@ function updateQRPreview(){
   ev._lastQRToken=token;ev._lastQRUrl=url;ev._lastQRRecDate=_qrRecDate;
   if(wrap)wrap.innerHTML='';
   if(wrap&&typeof QRCode!=='undefined'){
-    qrInstance=new QRCode(wrap,{text:url,width:180,height:180,colorDark:'#1a1a2e',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
+    qrInstance=new QRCode(wrap,{text:url,width:300,height:300,colorDark:'#1a1a2e',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
   } else if(wrap){
     wrap.innerHTML='<div style="width:160px;height:160px;display:flex;align-items:center;justify-content:center;color:#999;font-size:.75rem;text-align:center">QR Library non caricata.<br>Serve connessione internet.</div>';
   }
@@ -9426,35 +9608,32 @@ function downloadQR(){
   const wrap=document.getElementById('qr-canvas-wrap');if(!wrap)return;
   const srcCanvas=wrap.querySelector('canvas');
   const srcImg=wrap.querySelector('img');
+  const source=srcCanvas||srcImg;
+  if(!source){showToast('Genera prima un QR code','error');return;}
   const v=document.getElementById('qr-event-select');
   const _dlRawVal=v?v.value:'';
   const _dlEvId=_dlRawVal.includes('__')?_dlRawVal.split('__')[0]:_dlRawVal;
+  const _dlRecDate=_dlRawVal.includes('__')?_dlRawVal.split('__')[1]:null;
   const ev=v?store.events.find(e=>e.id===_dlEvId):null;
-  const source=srcCanvas||srcImg;
-  if(!source){showToast('Genera prima un QR code','error');return;}
-  // Create a new canvas with event description below the QR
-  const qrSize=200;
-  const padding=20;
-  const textHeight=ev?60:0;
-  const totalW=qrSize+padding*2;
-  const totalH=qrSize+padding*2+textHeight;
-  const c=document.createElement('canvas');c.width=totalW;c.height=totalH;
-  const ctx=c.getContext('2d');
-  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,totalW,totalH);
-  if(srcCanvas)ctx.drawImage(srcCanvas,padding,padding,qrSize,qrSize);
-  else{const img=new Image();img.src=srcImg.src;ctx.drawImage(img,padding,padding,qrSize,qrSize);}
-  if(ev){
-    const d0=ev.days[0];const dLast=ev.days[ev.days.length-1];
-    const dateStr=d0?(ev.days.length>1?fmtDateShort(d0.date)+' — '+fmtDateShort(dLast.date):fmtDateShort(d0.date)):'';
-    ctx.fillStyle='#1a1a2e';ctx.font='bold 11px sans-serif';ctx.textAlign='center';
-    ctx.fillText(ev.title.substring(0,30),totalW/2,qrSize+padding+20);
-    ctx.font='10px sans-serif';ctx.fillStyle='#666';
-    ctx.fillText(dateStr,totalW/2,qrSize+padding+35);
-    ctx.fillText('Check-in evento',totalW/2,qrSize+padding+50);
-  }
-  const fname=ev?'checkin-'+ev.title.replace(/[^a-zA-Z0-9]/g,'_').substring(0,20)+'.png':'checkin-qr.png';
-  const a=document.createElement('a');a.download=fname;a.href=c.toDataURL('image/png');a.click();
-  showToast('QR scaricato con descrizione evento!');
+  const qrDataUrl=srcCanvas?srcCanvas.toDataURL('image/png'):srcImg.src;
+  const d0=ev?.days?.[0];const dLast=ev?.days?.[ev.days.length-1];
+  const dateStr=_dlRecDate?fmtDate(_dlRecDate):(d0?(ev.days.length>1?fmtDateShort(d0.date)+' — '+fmtDateShort(dLast.date):fmtDate(d0.date)):'');
+  const timeStr=d0?(d0.startTime+' — '+(d0.endTime||'')):'';
+  const orgName=ev?.orgName||store.currentUser?.orgName||'BodyEvents';
+  const typeLabel=ev?getEventTypeIcon(ev.type)+' '+getEventTypeLabel(ev.type):'Check-in';
+  const hd=_buildQRCanvas({
+    qrDataUrl,
+    title:ev?ev.title:'Check-in Evento',
+    subtitle:timeStr,
+    date:dateStr,
+    orgName,
+    type:typeLabel,
+    instruction:'Scannerizza con la fotocamera questo QR Code per completare il check-in',
+    accentColor:'#d946ef'
+  });
+  const fname=ev?'checkin-'+ev.title.replace(/[^a-zA-Z0-9àèéìòù ]/g,'').replace(/ +/g,'_').substring(0,25)+'.png':'checkin-qr.png';
+  const a=document.createElement('a');a.download=fname;a.href=hd.toDataURL('image/png');a.click();
+  showToast('QR scaricato in alta risoluzione!');
 }
 function copyQRLink(){
   const v=document.getElementById('qr-event-select');if(!v)return;
@@ -9475,7 +9654,7 @@ function generateNewUserQR(){
   if(!wrap)return;
   wrap.innerHTML='';
   if(typeof QRCode!=='undefined'){
-    new QRCode(wrap,{text:url,width:180,height:180,colorDark:'#065f46',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
+    new QRCode(wrap,{text:url,width:300,height:300,colorDark:'#065f46',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H});
   } else {
     wrap.innerHTML='<div style="width:160px;height:160px;display:flex;align-items:center;justify-content:center;color:#999;font-size:.75rem;text-align:center">QR Library non caricata.</div>';
   }
@@ -9504,20 +9683,20 @@ function downloadNewUserQR(){
   const srcImg=wrap.querySelector('img');
   const source=srcCanvas||srcImg;
   if(!source){showToast('Genera prima il QR','error');return;}
-  const qrSize=200;const padding=20;const textHeight=50;
-  const totalW=qrSize+padding*2;const totalH=qrSize+padding*2+textHeight;
-  const c=document.createElement('canvas');c.width=totalW;c.height=totalH;
-  const ctx=c.getContext('2d');
-  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,totalW,totalH);
-  if(srcCanvas)ctx.drawImage(srcCanvas,padding,padding,qrSize,qrSize);
-  else{const img=new Image();img.src=srcImg.src;ctx.drawImage(img,padding,padding,qrSize,qrSize);}
-  ctx.fillStyle='#065f46';ctx.font='bold 12px sans-serif';ctx.textAlign='center';
-  const _orgLabel=store.currentUser?.orgName||store.currentUser?.username||'BodyEvents';
-  ctx.fillText(_orgLabel+' — Registrazione',totalW/2,qrSize+padding+20);
-  ctx.font='10px sans-serif';ctx.fillStyle='#666';
-  ctx.fillText('Scansiona per registrarti',totalW/2,qrSize+padding+38);
-  const a=document.createElement('a');a.download='bodyevents-registrazione.png';a.href=c.toDataURL('image/png');a.click();
-  showToast('QR registrazione scaricato!');
+  const qrDataUrl=srcCanvas?srcCanvas.toDataURL('image/png'):srcImg.src;
+  const orgName=store.currentUser?.orgName||store.currentUser?.username||'BodyEvents';
+  const hd=_buildQRCanvas({
+    qrDataUrl,
+    title:'Unisciti a '+orgName,
+    subtitle:'Registrati su BodyEvents',
+    date:null,
+    orgName,
+    type:'📲 Registrazione',
+    instruction:'Scannerizza con la fotocamera questo QR Code per registrarti alla piattaforma',
+    accentColor:'#10b981'
+  });
+  const a=document.createElement('a');a.download='bodyevents-registrazione.png';a.href=hd.toDataURL('image/png');a.click();
+  showToast('QR registrazione scaricato in alta risoluzione!');
 }
 function populateQRSelect(){
   const sel=document.getElementById('qr-event-select');if(!sel)return;
@@ -10537,23 +10716,6 @@ function renderUserDashboard(){
 
     // Payment info and links
     let paymentInfoLine='';
-    if(b.paymentStatus!=='pagato'&&b.paymentStatus!=='gratuito'&&!b.gift){
-      let depInfoLine='';
-      if(ev.deposit&&ev.deposit.required&&b.depositStatus==='pending'){
-        depInfoLine=`<div class="text-xs txt3 mt-1">⏳ Anticipo: €${ev.deposit.amount}</div>`;
-      }
-      const remaining=b.amount-(ev.deposit&&ev.deposit.required&&b.depositStatus==='ricevuto'?ev.deposit.amount:0);
-      let remInfoLine='';
-      if(remaining>0){
-        remInfoLine=`<div class="text-xs txt3 mt-1">💳 Saldo dovuto: €${remaining}</div>`;
-      }
-      const payLinks=[];
-      if(ev.paymentMethods.paypal)payLinks.push(`<a class="badge" style="background:rgba(59,130,246,.08);color:var(--blue);padding:4px 8px;font-size:.7rem;text-decoration:none" href="${ev.paymentMethods.paypal}" target="_blank">💳 PayPal ↗</a>`);
-      if(ev.paymentMethods.revolut)payLinks.push(`<a class="badge" style="background:rgba(6,182,212,.08);color:#22d3ee;padding:4px 8px;font-size:.7rem;text-decoration:none" href="${ev.paymentMethods.revolut}" target="_blank">💳 Revolut ↗</a>`);
-      if(ev.paymentMethods.cash)payLinks.push('<span class="badge" style="background:var(--green-bg);color:var(--green);padding:4px 8px;font-size:.7rem">💵 Cash</span>');
-      const payLinksHtml=payLinks.length?'<div class="flex gap-2 flex-wrap mt-1">'+payLinks.join('')+'</div>':'';
-      paymentInfoLine=depInfoLine+remInfoLine+payLinksHtml;
-    }
 
     html+=`<div class="card mb-4 card-hover" style="border-color:${borderColor};background:${bgColor};position:relative;overflow:hidden;cursor:pointer" onclick="showEventDetail('${ev.id}'${b.recurringDate?`,'${b.recurringDate}'`:''})">
       ${alertStamp}
@@ -12407,7 +12569,7 @@ function showEventDetail(evId,recDate){
         if(myBooking.items&&myBooking.items.length){
           sessionsHtml='<div class="mb-3"><div class="text-xs txt3 mb-2" style="text-transform:uppercase;letter-spacing:.5px">Dettaglio prenotazione</div>';
           myBooking.items.forEach(item=>{
-            sessionsHtml+='<div class="flex justify-between items-center py-2" style="border-bottom:1px solid var(--s200);gap:12px"><div style="flex:1;min-width:0"><div class="text-sm text-white">'+item.name+'</div>'+(item.date||item.time?'<div class="text-xs txt3" style="margin-top:2px">'+(item.date?item.date:'')+(item.date&&item.time?' · ':'')+( item.time?item.time:'')+'</div>':'')+'</div><div class="text-sm font-medium" style="color:var(--brand-l);white-space:nowrap">'+(item.tier||'')+(item.price!=null?' · €'+item.price:'')+'</div></div>';
+            sessionsHtml+='<div style="border-bottom:1px solid var(--s200);padding:12px 0"><div class="text-sm text-white">'+item.name+'</div>'+(item.date||item.time?'<div class="text-xs txt3" style="margin-top:2px">'+(item.date?item.date:'')+(item.date&&item.time?' · ':'')+( item.time?item.time:'')+'</div>':'')+'<div class="text-sm font-medium" style="color:var(--brand-l);margin-top:6px">'+(item.tier||'')+(item.price!=null?' · €'+item.price:'')+'</div></div>';
           });
           sessionsHtml+='</div>';
         } else {
@@ -12470,11 +12632,33 @@ function showEventDetail(evId,recDate){
         }
         return '<div class="card mb-4" style="border:2px solid var(--green);background:rgba(16,185,129,.04)">'
           +'<div class="flex items-center gap-2 mb-4"><span style="font-size:1.5rem">✅</span><div><h3 class="font-bold" style="color:var(--green)">Sei iscritto!</h3><p class="text-xs txt3">Prenotazione del '+myBooking.bookedAt+'</p></div></div>'
-          +'<div class="grid grid-2-resp gap-3 mb-4" style="grid-template-columns:1fr 1fr">'
+          +'<div style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px">'
           +'<div><div class="text-xs txt3">Ruolo preferito</div><div class="text-sm text-white mt-1">'+roleLbl+'</div></div>'
-          +'<div><div class="text-xs txt3">Tariffa</div><div class="text-sm text-white mt-1">'+tierLbl+' — <strong>€'+myBooking.amount+'</strong></div></div>'
-          +'<div><div class="text-xs txt3">Pagamento</div><div class="text-sm mt-1">'+payLbl+'</div></div>'
-          +(depLbl?'<div><div class="text-xs txt3">Anticipo</div><div class="text-sm mt-1">'+depLbl+'</div></div>':'')
+          +'<div style="border-top:1px solid var(--s300);padding-top:12px"><div class="text-xs txt3">Tariffa</div><div class="text-sm text-white mt-1">'+tierLbl+' — <strong>€'+myBooking.amount+'</strong></div>'
+          +(function(){
+            let extra='';
+            if(ev.deposit&&ev.deposit.required){
+              if(myBooking.depositStatus==='pending')extra+='<div class="text-xs mt-2" style="color:var(--yellow)">⏳ Anticipo richiesto: <strong>€'+ev.deposit.amount+'</strong></div>';
+              else if(myBooking.depositStatus==='ricevuto')extra+='<div class="text-xs mt-2" style="color:var(--green)">✅ Anticipo versato: <strong>€'+ev.deposit.amount+'</strong></div>';
+            }
+            if(myBooking.paymentStatus!=='pagato'&&myBooking.paymentStatus!=='gratuito'&&!myBooking.gift){
+              const rem=(myBooking.amount||0)-(ev.deposit&&ev.deposit.required&&myBooking.depositStatus==='ricevuto'?ev.deposit.amount:0);
+              if(rem>0)extra+='<div class="text-xs mt-2" style="color:var(--txt2)">💳 Saldo dovuto: <strong>€'+rem+'</strong></div>';
+            }
+            return extra;
+          })()
+          +'</div>'
+          +'<div style="border-top:1px solid var(--s300);padding-top:12px"><div class="text-xs txt3">Pagamento</div><div class="text-sm mt-1">'+payLbl+'</div>'
+          +(function(){
+            if(myBooking.paymentStatus==='pagato'||myBooking.paymentStatus==='gratuito'||myBooking.gift)return '';
+            const links=[];
+            if(ev.paymentMethods&&ev.paymentMethods.paypal)links.push('<a class="badge" style="background:rgba(59,130,246,.08);color:var(--blue);padding:4px 10px;font-size:.72rem;text-decoration:none" href="'+ev.paymentMethods.paypal+'" target="_blank">💳 PayPal ↗</a>');
+            if(ev.paymentMethods&&ev.paymentMethods.revolut)links.push('<a class="badge" style="background:rgba(6,182,212,.08);color:#22d3ee;padding:4px 10px;font-size:.72rem;text-decoration:none" href="'+ev.paymentMethods.revolut+'" target="_blank">💳 Revolut ↗</a>');
+            if(ev.paymentMethods&&ev.paymentMethods.cash)links.push('<span class="badge" style="background:var(--green-bg);color:var(--green);padding:4px 10px;font-size:.72rem">💵 Cash</span>');
+            return links.length?'<div class="flex gap-2 flex-wrap mt-2">'+links.join('')+'</div>':'';
+          })()
+          +'</div>'
+          +(depLbl?'<div style="border-top:1px solid var(--s300);padding-top:12px"><div class="text-xs txt3">Anticipo</div><div class="text-sm mt-1">'+depLbl+'</div></div>':'')
           +'</div>'
           +sessionsHtml
           +surveyHtml
@@ -13039,6 +13223,382 @@ function hardDeleteEvent(id){
     renderAdminEvents();showToast('Evento eliminato definitivamente','error');
   },'danger');
 }
+
+// ============================================================
+// COST MANAGEMENT SYSTEM (V2.41.0)
+// ============================================================
+function openCostManagement(evId){
+  window._costMgmtEventId=evId;
+  go('admin-cost-management');
+}
+
+function renderCostManagement(evId){
+  const c=document.getElementById('admin-cost-management-content');if(!c)return;
+  const ev=store.events.find(e=>e.id===evId);if(!ev)return;
+  const isCapo=isEventCapofila(ev,store.currentUser.id);
+  const isArchived=ev.status==='archiviato';
+  const readOnly=!isCapo||isArchived;
+  const partners=ev.partnerIds||[];
+  const hasPartners=partners.length>0;
+
+  // Initialize costs if not present
+  if(!ev.eventCosts)ev.eventCosts={sections:[{id:genId('cs'),title:'Costi generali',items:[{id:genId('ci'),label:'Location',unitValue:0,quantity:1,multiplier:1,splitMode:'equal',splits:{}}]}],sessions:{},revenueSharing:{}};
+  const costs=ev.eventCosts;
+
+  // Partner lookup helper
+  const getPartnerName=(pid)=>{
+    if(pid===ev.managerId){const m=store.managers.find(x=>x.id===pid);return m?m.orgName:'Capofila';}
+    const m=store.managers.find(x=>x.id===pid)||store.users.find(x=>x.id===pid);
+    return m?(m.orgName||m.username||m.name||'Partner'):'Partner';
+  };
+  const allParticipants=[ev.managerId,...partners]; // capofila + partners
+
+  // Calculate session costs
+  const allSessions=[];
+  (ev.days||[]).forEach((d,di)=>{
+    (d.sessions||[]).forEach((s,si)=>{
+      allSessions.push({id:s.id,name:s.name||('Sessione '+(si+1)),day:d.date,dayIdx:di,startTime:s.startTime,endTime:s.endTime,teacher:s.teacher||ev.teacher||''});
+    });
+  });
+
+  let html='';
+  html+='<div class="container" style="padding-top:24px;padding-bottom:48px;max-width:800px">';
+
+  // Header
+  html+='<div class="text-sm txt3 mb-4" style="cursor:pointer" onclick="window._adminDetailKeepScroll=false;showAdminEventDetail(\''+evId+'\')">← Torna al dettaglio evento</div>';
+  html+='<h1 class="page-title mb-1">💰 Gestione Costi</h1>';
+  html+='<p class="text-sm txt3 mb-4">'+escHtml(ev.title)+'</p>';
+  if(readOnly)html+='<div class="card mb-4" style="background:rgba(99,102,241,.06);border-color:rgba(99,102,241,.2);padding:10px 14px;text-align:center"><span class="text-sm" style="color:#6366f1">📦 Modalità sola lettura</span></div>';
+
+  // ========== SECTION A: GENERAL COSTS ==========
+  html+='<div class="card mb-4" style="padding:0;overflow:hidden">';
+  html+='<div style="padding:14px 18px;background:var(--s100);border-bottom:1px solid var(--s300)"><h2 style="font-size:1rem;font-weight:700;color:var(--txt1);margin:0">📋 Costi generali</h2></div>';
+  html+='<div style="padding:16px 18px">';
+
+  (costs.sections||[]).forEach((section,secIdx)=>{
+    // Section title separator
+    html+='<div style="display:flex;align-items:center;gap:8px;margin:'+(secIdx>0?'20px':'0')+' 0 10px">';
+    html+='<div style="flex:1;height:1px;background:var(--s300)"></div>';
+    if(!readOnly){
+      html+='<input type="text" value="'+escHtml(section.title)+'" style="background:transparent;border:none;color:var(--brand-l);font-size:.82rem;font-weight:700;text-align:center;min-width:80px;max-width:200px;outline:none;letter-spacing:.3px" onchange="updateCostSectionTitle(\''+evId+'\',\''+section.id+'\',this.value)">';
+    } else {
+      html+='<span style="color:var(--brand-l);font-size:.82rem;font-weight:700;letter-spacing:.3px">'+escHtml(section.title)+'</span>';
+    }
+    html+='<div style="flex:1;height:1px;background:var(--s300)"></div>';
+    if(!readOnly)html+='<button style="background:none;border:none;color:var(--red);cursor:pointer;font-size:.7rem;opacity:.4;padding:2px 4px" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.4" onclick="removeCostSection(\''+evId+'\',\''+section.id+'\')" title="Rimuovi sezione">✕</button>';
+    html+='</div>';
+
+    // Column headers
+    html+='<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr'+(hasPartners?' 1.5fr':'')+(!readOnly?' 30px':'')+';gap:6px;padding:4px 0;font-size:.68rem;color:var(--txt3);text-transform:uppercase;letter-spacing:.3px">';
+    html+='<span>Descrizione</span><span style="text-align:center">Valore €</span><span style="text-align:center">Qtà</span><span style="text-align:center">Molt.</span><span style="text-align:center">Totale</span>';
+    if(hasPartners)html+='<span style="text-align:center">Spartizione</span>';
+    if(!readOnly)html+='<span></span>';
+    html+='</div>';
+
+    // Items
+    (section.items||[]).forEach(item=>{
+      const total=Math.round((item.unitValue||0)*(item.quantity||1)*(item.multiplier||1)*100)/100;
+      html+='<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr'+(hasPartners?' 1.5fr':'')+(!readOnly?' 30px':'')+';gap:6px;padding:6px 0;border-bottom:1px solid var(--s200);align-items:center">';
+
+      if(!readOnly){
+        html+='<input type="text" value="'+escHtml(item.label)+'" style="background:var(--s100);border:1px solid var(--s300);border-radius:6px;padding:4px 8px;color:var(--txt1);font-size:.82rem" onchange="updateCostItem(\''+evId+'\',\''+section.id+'\',\''+item.id+'\',\'label\',this.value)">';
+        html+='<input type="number" value="'+(item.unitValue||0)+'" style="background:var(--s100);border:1px solid var(--s300);border-radius:6px;padding:4px 6px;color:var(--txt1);font-size:.82rem;text-align:center;width:100%" onchange="updateCostItem(\''+evId+'\',\''+section.id+'\',\''+item.id+'\',\'unitValue\',parseFloat(this.value)||0)">';
+        html+='<input type="number" value="'+(item.quantity||1)+'" min="1" style="background:var(--s100);border:1px solid var(--s300);border-radius:6px;padding:4px 6px;color:var(--txt1);font-size:.82rem;text-align:center;width:100%" onchange="updateCostItem(\''+evId+'\',\''+section.id+'\',\''+item.id+'\',\'quantity\',parseInt(this.value)||1)">';
+        html+='<input type="number" value="'+(item.multiplier||1)+'" min="1" style="background:var(--s100);border:1px solid var(--s300);border-radius:6px;padding:4px 6px;color:var(--txt1);font-size:.82rem;text-align:center;width:100%" onchange="updateCostItem(\''+evId+'\',\''+section.id+'\',\''+item.id+'\',\'multiplier\',parseFloat(this.value)||1)">';
+      } else {
+        html+='<span class="text-sm" style="color:var(--txt1)">'+escHtml(item.label)+'</span>';
+        html+='<span class="text-sm" style="text-align:center;color:var(--txt2)">€'+(item.unitValue||0)+'</span>';
+        html+='<span class="text-sm" style="text-align:center;color:var(--txt2)">'+(item.quantity||1)+'</span>';
+        html+='<span class="text-sm" style="text-align:center;color:var(--txt2)">'+(item.multiplier||1)+'</span>';
+      }
+      html+='<span style="text-align:center;font-weight:700;color:var(--green);font-size:.88rem">€'+total+'</span>';
+
+      if(hasPartners){
+        const sm=item.splitMode||'equal';
+        if(!readOnly){
+          html+='<select style="background:var(--s100);border:1px solid var(--s300);border-radius:6px;padding:3px 4px;color:var(--txt2);font-size:.7rem;width:100%" onchange="updateCostItemSplit(\''+evId+'\',\''+section.id+'\',\''+item.id+'\',this.value)">';
+          html+='<option value="equal"'+(sm==='equal'?' selected':'')+'>Equa</option>';
+          allParticipants.forEach(pid=>{
+            html+='<option value="solo_'+pid+'"'+(sm==='solo_'+pid?' selected':'')+'>100% '+escHtml(getPartnerName(pid))+'</option>';
+          });
+          html+='<option value="custom"'+(sm==='custom'?' selected':'')+'>Personalizzata</option>';
+          html+='</select>';
+        } else {
+          html+='<span class="text-xs" style="text-align:center;color:var(--txt3)">'+(sm==='equal'?'Equa':sm.startsWith('solo_')?getPartnerName(sm.replace('solo_','')):'Custom')+'</span>';
+        }
+      }
+
+      if(!readOnly)html+='<button style="background:none;border:none;color:var(--txt3);cursor:pointer;font-size:.65rem;opacity:.3" onmouseover="this.style.opacity=1;this.style.color=\'var(--red)\'" onmouseout="this.style.opacity=.3;this.style.color=\'var(--txt3)\'" onclick="removeCostItem(\''+evId+'\',\''+section.id+'\',\''+item.id+'\')">✕</button>';
+      html+='</div>';
+    });
+
+    // Add item button
+    if(!readOnly){
+      html+='<button class="btn btn-sm" style="margin-top:8px;font-size:.72rem;padding:4px 10px;background:var(--s200);color:var(--txt2);border:1px solid var(--s400)" onclick="addCostItem(\''+evId+'\',\''+section.id+'\')">+ Aggiungi voce</button>';
+    }
+  });
+
+  // Add section button
+  if(!readOnly){
+    html+='<div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--s300)">';
+    html+='<button class="btn btn-sm" style="font-size:.72rem;padding:4px 12px;background:rgba(99,102,241,.1);color:#6366f1;border:1px solid rgba(99,102,241,.2)" onclick="addCostSection(\''+evId+'\')">+ Aggiungi sezione</button>';
+    html+='</div>';
+  }
+  html+='</div></div>';
+
+  // ========== SECTION B: SESSION COSTS ==========
+  if(allSessions.length){
+    html+='<div class="card mb-4" style="padding:0;overflow:hidden">';
+    html+='<div style="padding:14px 18px;background:var(--s100);border-bottom:1px solid var(--s300)"><h2 style="font-size:1rem;font-weight:700;color:var(--txt1);margin:0">🎓 Costi insegnanti / sessioni</h2></div>';
+    html+='<div style="padding:16px 18px">';
+
+    // Headers
+    html+='<div style="display:grid;grid-template-columns:2.5fr 1fr'+(hasPartners?' 1.5fr':'')+';gap:8px;padding:4px 0;font-size:.68rem;color:var(--txt3);text-transform:uppercase;letter-spacing:.3px">';
+    html+='<span>Sessione</span><span style="text-align:center">Costo €</span>';
+    if(hasPartners)html+='<span style="text-align:center">Assegnato a</span>';
+    html+='</div>';
+
+    allSessions.forEach(s=>{
+      const sc=costs.sessions?.[s.id]||{amount:0,assignedTo:null};
+      html+='<div style="display:grid;grid-template-columns:2.5fr 1fr'+(hasPartners?' 1.5fr':'')+';gap:8px;padding:8px 0;border-bottom:1px solid var(--s200);align-items:center">';
+      html+='<div><div class="text-sm" style="color:var(--txt1);font-weight:500">'+escHtml(s.name)+'</div><div class="text-xs txt3">'+fmtDateShort(s.day)+' · '+s.startTime+'-'+s.endTime+(s.teacher?' · '+escHtml(s.teacher):'')+'</div></div>';
+
+      if(!readOnly){
+        html+='<input type="number" value="'+(sc.amount||0)+'" style="background:var(--s100);border:1px solid var(--s300);border-radius:6px;padding:4px 6px;color:var(--txt1);font-size:.82rem;text-align:center;width:100%" onchange="updateSessionCost(\''+evId+'\',\''+s.id+'\',\'amount\',parseFloat(this.value)||0)">';
+      } else {
+        html+='<span class="text-sm" style="text-align:center;color:var(--txt1);font-weight:600">€'+(sc.amount||0)+'</span>';
+      }
+
+      if(hasPartners){
+        if(!readOnly){
+          html+='<select style="background:var(--s100);border:1px solid var(--s300);border-radius:6px;padding:3px 4px;color:var(--txt2);font-size:.72rem;width:100%" onchange="updateSessionCost(\''+evId+'\',\''+s.id+'\',\'assignedTo\',this.value||null)">';
+          html+='<option value=""'+((!sc.assignedTo)?' selected':'')+'>Capofila (default)</option>';
+          partners.forEach(pid=>{
+            html+='<option value="'+pid+'"'+(sc.assignedTo===pid?' selected':'')+'>'+escHtml(getPartnerName(pid))+'</option>';
+          });
+          html+='</select>';
+        } else {
+          html+='<span class="text-xs" style="text-align:center;color:var(--txt3)">'+(sc.assignedTo?getPartnerName(sc.assignedTo):'Capofila')+'</span>';
+        }
+      }
+      html+='</div>';
+    });
+    html+='</div></div>';
+  }
+
+  // ========== SECTION C: REVENUE SHARING (only with partners) ==========
+  if(hasPartners&&isCapo){
+    html+='<div class="card mb-4" style="padding:0;overflow:hidden">';
+    html+='<div style="padding:14px 18px;background:var(--s100);border-bottom:1px solid var(--s300)"><h2 style="font-size:1rem;font-weight:700;color:var(--txt1);margin:0">📊 Spartizione ricavi</h2></div>';
+    html+='<div style="padding:16px 18px">';
+
+    const rs=costs.revenueSharing||{};
+    const totalPct=allParticipants.reduce((s,pid)=>s+(rs[pid]||0),0);
+
+    allParticipants.forEach(pid=>{
+      const pct=rs[pid]||0;
+      const name=getPartnerName(pid);
+      const isMe=pid===ev.managerId;
+      html+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--s200)">';
+      html+='<span class="text-sm" style="color:var(--txt1);flex:1;font-weight:'+(isMe?'600':'400')+'">'+escHtml(name)+(isMe?' (capofila)':'')+'</span>';
+      if(!readOnly){
+        html+='<input type="number" value="'+pct+'" min="0" max="100" step="1" style="width:70px;background:var(--s100);border:1px solid var(--s300);border-radius:6px;padding:4px 6px;color:var(--txt1);font-size:.85rem;text-align:center" onchange="updateRevenueShare(\''+evId+'\',\''+pid+'\',parseFloat(this.value)||0)">%';
+      } else {
+        html+='<span class="text-sm" style="color:var(--txt1);font-weight:600">'+pct+'%</span>';
+      }
+      html+='</div>';
+    });
+
+    html+='<div style="padding:8px 0;text-align:right"><span class="text-sm" style="color:'+(Math.abs(totalPct-100)<0.01?'var(--green)':'var(--red)')+';font-weight:700">Totale: '+totalPct+'%</span>'+(Math.abs(totalPct-100)>0.01?' <span class="text-xs" style="color:var(--red)">(deve essere 100%)</span>':'')+'</div>';
+    html+='</div></div>';
+  }
+
+  // ========== SECTION D: PROFIT SUMMARY ==========
+  html+=_buildCostSummary(ev,costs,isCapo,hasPartners,allParticipants,getPartnerName);
+
+  // Save button
+  if(!readOnly){
+    html+='<div style="text-align:center;padding:16px 0"><button class="btn btn-primary" onclick="saveCosts(\''+evId+'\')">💾 Salva costi</button></div>';
+  }
+
+  html+='</div>';
+  c.innerHTML=html;
+}
+
+function _buildCostSummary(ev,costs,isCapo,hasPartners,allParticipants,getPartnerName){
+  // Calculate totals
+  const generalTotal=(costs.sections||[]).reduce((sum,sec)=>{
+    return sum+(sec.items||[]).reduce((s2,item)=>s2+Math.round((item.unitValue||0)*(item.quantity||1)*(item.multiplier||1)*100)/100,0);
+  },0);
+  const sessionTotal=Object.values(costs.sessions||{}).reduce((s,sc)=>s+(sc.amount||0),0);
+  const totalCosts=generalTotal+sessionTotal;
+
+  // Revenue from bookings
+  const evBks=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata'&&!b.gift&&b.paymentStatus!=='gratuito'&&b.paymentStatus!=='abbonamento');
+  const totalRevenue=evBks.filter(b=>b.paymentStatus==='pagato').reduce((s,b)=>s+(b.amount||0),0);
+  const profit=totalRevenue-totalCosts;
+
+  let h='<div class="card mb-4" style="padding:0;overflow:hidden">';
+  h+='<div style="padding:14px 18px;background:var(--s100);border-bottom:1px solid var(--s300)"><h2 style="font-size:1rem;font-weight:700;color:var(--txt1);margin:0">📈 Riepilogo finanziario</h2></div>';
+  h+='<div style="padding:16px 18px">';
+
+  if(isCapo){
+    // Capofila sees everything
+    h+='<div class="grid gap-3 mb-4" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">';
+    h+='<div class="stat-card"><div class="value" style="color:var(--green)">€'+totalRevenue+'</div><div class="label">Incassato</div></div>';
+    h+='<div class="stat-card"><div class="value" style="color:var(--red)">€'+totalCosts+'</div><div class="label">Costi totali</div></div>';
+    h+='<div class="stat-card" style="border:1px solid '+(profit>=0?'rgba(16,185,129,.3)':'rgba(239,68,68,.3)')+'"><div class="value" style="color:'+(profit>=0?'var(--green)':'var(--red)')+'">€'+profit+'</div><div class="label">'+(profit>=0?'📈 Profitto':'📉 Perdita')+'</div></div>';
+    h+='</div>';
+
+    // Cost breakdown
+    if(generalTotal>0||sessionTotal>0){
+      h+='<div style="font-size:.82rem;color:var(--txt3);margin-bottom:8px">Dettaglio costi:</div>';
+      h+='<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:.82rem;margin-bottom:12px">';
+      if(generalTotal>0)h+='<span style="color:var(--txt2)">📋 Generali: <strong style="color:var(--txt1)">€'+generalTotal+'</strong></span>';
+      if(sessionTotal>0)h+='<span style="color:var(--txt2)">🎓 Sessioni: <strong style="color:var(--txt1)">€'+sessionTotal+'</strong></span>';
+      h+='</div>';
+    }
+
+    // Partner breakdown (if partners exist)
+    if(hasPartners){
+      h+='<div style="border-top:1px solid var(--s300);padding-top:12px;margin-top:8px">';
+      h+='<div style="font-size:.85rem;font-weight:600;color:var(--txt1);margin-bottom:10px">Breakdown per partner</div>';
+
+      allParticipants.forEach(pid=>{
+        const name=getPartnerName(pid);
+        const isMe=pid===ev.managerId;
+        const revPct=(costs.revenueSharing||{})[pid]||0;
+        const pRevenue=Math.round(totalRevenue*revPct/100);
+
+        // Costs assigned to this participant
+        let pCosts=0;
+        // Session costs assigned
+        Object.entries(costs.sessions||{}).forEach(([sid,sc])=>{
+          if((sc.assignedTo||ev.managerId)===pid)pCosts+=(sc.amount||0);
+        });
+        // General costs share
+        (costs.sections||[]).forEach(sec=>{
+          (sec.items||[]).forEach(item=>{
+            const itemTotal=Math.round((item.unitValue||0)*(item.quantity||1)*(item.multiplier||1)*100)/100;
+            const sm=item.splitMode||'equal';
+            if(sm==='equal')pCosts+=Math.round(itemTotal/allParticipants.length*100)/100;
+            else if(sm==='solo_'+pid)pCosts+=itemTotal;
+          });
+        });
+        pCosts=Math.round(pCosts*100)/100;
+        const pProfit=pRevenue-pCosts;
+
+        h+='<div style="background:var(--s100);border:1px solid var(--s300);border-radius:10px;padding:12px 14px;margin-bottom:8px'+(isMe?';border-left:3px solid var(--brand)':';border-left:3px solid #a855f7')+'">';
+        h+='<div style="font-size:.85rem;font-weight:600;color:var(--txt1);margin-bottom:6px">'+escHtml(name)+(isMe?' (tu)':'')+' <span class="text-xs" style="color:var(--txt3)">'+revPct+'% ricavi</span></div>';
+        h+='<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:.82rem">';
+        h+='<span style="color:var(--green)">Ricavi: €'+pRevenue+'</span>';
+        h+='<span style="color:var(--red)">Costi: €'+pCosts+'</span>';
+        h+='<span style="font-weight:700;color:'+(pProfit>=0?'var(--green)':'var(--red)')+'">Profitto: €'+pProfit+'</span>';
+        h+='</div></div>';
+      });
+      h+='</div>';
+    }
+  } else {
+    // Partner sees only their own metrics
+    const myId=store.currentUser.id;
+    const revPct=(costs.revenueSharing||{})[myId]||0;
+    const myRevenue=Math.round(totalRevenue*revPct/100);
+    let myCosts=0;
+    Object.entries(costs.sessions||{}).forEach(([sid,sc])=>{
+      if(sc.assignedTo===myId)myCosts+=(sc.amount||0);
+    });
+    (costs.sections||[]).forEach(sec=>{
+      (sec.items||[]).forEach(item=>{
+        const itemTotal=Math.round((item.unitValue||0)*(item.quantity||1)*(item.multiplier||1)*100)/100;
+        const sm=item.splitMode||'equal';
+        if(sm==='equal')myCosts+=Math.round(itemTotal/allParticipants.length*100)/100;
+        else if(sm==='solo_'+myId)myCosts+=itemTotal;
+      });
+    });
+    myCosts=Math.round(myCosts*100)/100;
+    const myProfit=myRevenue-myCosts;
+
+    h+='<div class="grid gap-3" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">';
+    h+='<div class="stat-card"><div class="value" style="color:var(--green)">€'+myRevenue+'</div><div class="label">I tuoi ricavi ('+(revPct)+'%)</div></div>';
+    h+='<div class="stat-card"><div class="value" style="color:var(--red)">€'+myCosts+'</div><div class="label">I tuoi costi</div></div>';
+    h+='<div class="stat-card" style="border:1px solid '+(myProfit>=0?'rgba(16,185,129,.3)':'rgba(239,68,68,.3)')+'"><div class="value" style="color:'+(myProfit>=0?'var(--green)':'var(--red)')+'">€'+myProfit+'</div><div class="label">'+(myProfit>=0?'Profitto':'Perdita')+'</div></div>';
+    h+='</div>';
+  }
+
+  h+='</div></div>';
+  return h;
+}
+
+// Cost management CRUD operations
+function updateCostSectionTitle(evId,secId,title){
+  const ev=store.events.find(e=>e.id===evId);if(!ev||!ev.eventCosts)return;
+  const sec=ev.eventCosts.sections.find(s=>s.id===secId);if(sec)sec.title=title;
+}
+
+function addCostSection(evId){
+  const ev=store.events.find(e=>e.id===evId);if(!ev||!ev.eventCosts)return;
+  ev.eventCosts.sections.push({id:genId('cs'),title:'Nuova sezione',items:[]});
+  renderCostManagement(evId);
+}
+
+function removeCostSection(evId,secId){
+  const ev=store.events.find(e=>e.id===evId);if(!ev||!ev.eventCosts)return;
+  ev.eventCosts.sections=ev.eventCosts.sections.filter(s=>s.id!==secId);
+  renderCostManagement(evId);
+}
+
+function addCostItem(evId,secId){
+  const ev=store.events.find(e=>e.id===evId);if(!ev||!ev.eventCosts)return;
+  const sec=ev.eventCosts.sections.find(s=>s.id===secId);if(!sec)return;
+  sec.items.push({id:genId('ci'),label:'',unitValue:0,quantity:1,multiplier:1,splitMode:'equal',splits:{}});
+  renderCostManagement(evId);
+}
+
+function removeCostItem(evId,secId,itemId){
+  const ev=store.events.find(e=>e.id===evId);if(!ev||!ev.eventCosts)return;
+  const sec=ev.eventCosts.sections.find(s=>s.id===secId);if(!sec)return;
+  sec.items=sec.items.filter(i=>i.id!==itemId);
+  renderCostManagement(evId);
+}
+
+function updateCostItem(evId,secId,itemId,field,value){
+  const ev=store.events.find(e=>e.id===evId);if(!ev||!ev.eventCosts)return;
+  const sec=ev.eventCosts.sections.find(s=>s.id===secId);if(!sec)return;
+  const item=sec.items.find(i=>i.id===itemId);if(item)item[field]=value;
+  // Don't re-render on every keystroke — just update in memory
+}
+
+function updateCostItemSplit(evId,secId,itemId,value){
+  const ev=store.events.find(e=>e.id===evId);if(!ev||!ev.eventCosts)return;
+  const sec=ev.eventCosts.sections.find(s=>s.id===secId);if(!sec)return;
+  const item=sec.items.find(i=>i.id===itemId);if(item)item.splitMode=value;
+}
+
+function updateSessionCost(evId,sessionId,field,value){
+  const ev=store.events.find(e=>e.id===evId);if(!ev||!ev.eventCosts)return;
+  if(!ev.eventCosts.sessions)ev.eventCosts.sessions={};
+  if(!ev.eventCosts.sessions[sessionId])ev.eventCosts.sessions[sessionId]={amount:0,assignedTo:null};
+  ev.eventCosts.sessions[sessionId][field]=value;
+}
+
+function updateRevenueShare(evId,pid,pct){
+  const ev=store.events.find(e=>e.id===evId);if(!ev||!ev.eventCosts)return;
+  if(!ev.eventCosts.revenueSharing)ev.eventCosts.revenueSharing={};
+  ev.eventCosts.revenueSharing[pid]=pct;
+  renderCostManagement(evId);
+}
+
+async function saveCosts(evId){
+  const ev=store.events.find(e=>e.id===evId);if(!ev||!ev.eventCosts)return;
+  try{
+    await fsUpdate('events',evId,{eventCosts:ev.eventCosts});
+    showToast('💰 Costi salvati!');
+  }catch(e){
+    console.error('saveCosts error:',e);
+    showToast('Errore nel salvataggio dei costi','error');
+  }
+}
+
 function archiveEvent(id){
   showConfirm('Archivia evento','Vuoi archiviare questo evento? Tutti i dati (presenze, pagamenti, metriche) verranno conservati ma non sarà più possibile modificarli.',()=>{
     showConfirm('Conferma archiviazione','Sei sicuro? L\'evento diventerà di sola lettura e non potrà essere riportato in stato attivo.',()=>{
@@ -16653,7 +17213,7 @@ function showAdminEventDetail(evId){
   c.innerHTML=`<div class="container" style="padding-top:32px;padding-bottom:48px;max-width:1100px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px">
       <div class="text-sm txt3" style="cursor:pointer" onclick="resetAdminDetailView();go(lastAdminListView||'admin-events')">← Torna agli eventi</div>
-      <div class="flex gap-2 flex-wrap">${_detailActions}</div>
+      <div class="flex gap-2 flex-wrap">${_detailActions}${isEventCapofila(ev,store.currentUser.id)?'<button class="btn btn-sm" style="background:rgba(234,179,8,.1);color:var(--yellow);border:1px solid rgba(234,179,8,.25);font-size:.75rem" onclick="openCostManagement(\''+ev.id+'\')">💰 Costi</button>':''}</div>
     </div>
     ${(()=>{
       const _isCapo=isEventCapofila(ev,store.currentUser.id);
