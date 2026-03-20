@@ -12757,7 +12757,8 @@ function showEventDetail(evId,recDate){
           +'<div class="flex items-center gap-2 mb-4"><span style="font-size:1.5rem">✅</span><div><h3 class="font-bold" style="color:var(--green)">Sei iscritto!</h3><p class="text-xs txt3">Prenotazione del '+myBooking.bookedAt+'</p></div></div>'
           +'<div style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px">'
           +'<div><div class="text-xs txt3">Ruolo preferito</div><div class="text-sm text-white mt-1">'+roleLbl+'</div></div>'
-          +'<div style="border-top:1px solid var(--s300);padding-top:12px"><div class="text-xs txt3">Tariffa</div><div class="text-sm text-white mt-1">'+tierLbl+' — <strong>€'+myBooking.amount+'</strong></div>'
+          +'<div style="border-top:1px solid var(--s300);padding-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:12px">'
+          +'<div><div class="text-xs txt3">Tariffa</div><div class="text-sm text-white mt-1">'+tierLbl+' — <strong>€'+myBooking.amount+'</strong></div>'
           +(function(){
             let extra='';
             if(ev.deposit&&ev.deposit.required){
@@ -12768,13 +12769,12 @@ function showEventDetail(evId,recDate){
               const rem=(myBooking.amount||0)-(ev.deposit&&ev.deposit.required&&myBooking.depositStatus==='ricevuto'?ev.deposit.amount:0);
               if(rem>0){
                 extra+='<div class="text-xs mt-2" style="color:var(--txt2)">💳 Saldo dovuto: <strong>€'+rem+'</strong></div>';
-                extra+='<div style="margin-top:10px;padding:10px 12px;background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.18);border-radius:10px;font-size:.72rem;line-height:1.55;color:var(--yellow)">💡 Se è disponibile, utilizza un link di pagamento e completa la procedura prima di recarti all\'evento! Qualora fosse possibile pagare cash e non riuscissi a procedere in via digitale, ricordati di arrivare con l\'importo corretto per minimizzare i tempi burocratici. Grazie!</div>';
               }
             }
             return extra;
           })()
           +'</div>'
-          +'<div style="border-top:1px solid var(--s300);padding-top:12px"><div class="text-xs txt3">Pagamento</div><div class="text-sm mt-1">'+payLbl+'</div>'
+          +'<div><div class="text-xs txt3">Pagamento</div><div class="text-sm mt-1">'+payLbl+'</div>'
           +(function(){
             if(myBooking.paymentStatus==='pagato'||myBooking.paymentStatus==='gratuito'||myBooking.gift)return '';
             const links=[];
@@ -12784,9 +12784,16 @@ function showEventDetail(evId,recDate){
             return links.length?'<div class="flex gap-2 flex-wrap mt-2">'+links.join('')+'</div>':'';
           })()
           +'</div>'
-          +''
+          +'</div>'
+          +(function(){
+            if(myBooking.paymentStatus==='pagato'||myBooking.paymentStatus==='gratuito'||myBooking.gift)return '';
+            const rem=(myBooking.amount||0)-(ev.deposit&&ev.deposit.required&&myBooking.depositStatus==='ricevuto'?ev.deposit.amount:0);
+            if(rem<=0)return '';
+            return '<div style="margin-top:10px;padding:10px 12px;background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.18);border-radius:10px;font-size:.72rem;line-height:1.55;color:var(--yellow)">💡 Se è disponibile, utilizza un link di pagamento e completa la procedura prima di recarti all\'evento! Qualora fosse possibile pagare cash e non riuscissi a procedere in via digitale, ricordati di arrivare con l\'importo corretto per minimizzare i tempi burocratici. Grazie!</div>';
+          })()
           +'</div>'
           +sessionsHtml
+          +(ev.location?'<div style="padding-top:12px;border-top:1px solid var(--s200);margin-bottom:12px"><div class="text-xs txt3 mb-1" style="text-transform:uppercase;letter-spacing:.5px">📍 Luogo</div><div class="text-sm text-white">'+(ev.locationUrl?'<a href="'+escHtml(ev.locationUrl)+'" target="_blank" style="color:var(--brand-l);text-decoration:none">'+escHtml(ev.location)+' ↗</a>':escHtml(ev.location))+'</div></div>':'')
           +surveyHtml
           +participantsHtml
           +'</div>';
