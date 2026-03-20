@@ -2644,7 +2644,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.1.3';
+const APP_VERSION='V3.1.5';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -2988,6 +2988,79 @@ const store={
 };
 
 /* ==============================
+   LAZY LOADING INFRASTRUCTURE (V3.1.5)
+   ============================== */
+let _bookingsLoaded=false;
+let _attendancesLoaded=false;
+let _subscriptionsLoaded=false;
+let _usersFullyLoaded=false;
+let _userOwnBookingsLoaded=false;
+
+async function ensureBookingsLoaded(){
+  if(_bookingsLoaded)return;
+  const snap=await fbDb.collection('bookings').get();
+  store.bookings=[];snap.forEach(doc=>{store.bookings.push(doc.data());});
+  _bookingsLoaded=true;
+  _userOwnBookingsLoaded=true;
+  // Run booking migrations once (need all bookings)
+  _migrateOrphanRecurringBookings();
+  await _splitConcludedRecurringDates();
+}
+
+async function ensureUserBookingsLoaded(uid){
+  if(_bookingsLoaded||_userOwnBookingsLoaded)return;
+  const snap=await fbDb.collection('bookings').where('userId','==',uid).get();
+  snap.forEach(doc=>{
+    const d=doc.data();
+    if(!store.bookings.find(b=>b.id===d.id))store.bookings.push(d);
+  });
+  _userOwnBookingsLoaded=true;
+}
+
+async function ensureAttendancesLoaded(){
+  if(_attendancesLoaded)return;
+  const snap=await fbDb.collection('attendances').get();
+  store.attendances={};snap.forEach(doc=>{store.attendances[doc.id]=doc.data().events||[];});
+  _attendancesLoaded=true;
+}
+
+async function ensureSubscriptionsLoaded(){
+  if(_subscriptionsLoaded)return;
+  try{
+    const [typesSnap,subsSnap]=await Promise.all([
+      fbDb.collection('subscriptionTypes').get(),
+      fbDb.collection('subscriptions').get()
+    ]);
+    store.subscriptionTypes=[];typesSnap.forEach(doc=>{store.subscriptionTypes.push(doc.data());});
+    store.subscriptions=[];subsSnap.forEach(doc=>{store.subscriptions.push(doc.data());});
+  }catch(e){console.warn('Subscriptions load skipped:',e.message);store.subscriptionTypes=[];store.subscriptions=[];}
+  _subscriptionsLoaded=true;
+}
+
+async function ensureUsersLoaded(){
+  if(_usersFullyLoaded)return;
+  const snap=await fbDb.collection('users').get();
+  store.users=[];snap.forEach(doc=>{store.users.push(doc.data());});
+  _usersFullyLoaded=true;
+}
+
+// Background loader for admin/organizer: starts loading heavy collections in parallel
+function _loadDeferredAdminData(){
+  Promise.all([ensureBookingsLoaded(),ensureUsersLoaded(),ensureAttendancesLoaded(),ensureSubscriptionsLoaded()])
+    .then(()=>{
+      // Re-render current admin view now that data is available
+      if(currentView==='admin')renderAdminDashboard();
+      else if(currentView==='admin-events')renderAdminEvents();
+    })
+    .catch(e=>console.error('Deferred admin data load error:',e));
+}
+
+// Loading spinner helper for deferred views
+function _showDeferredLoading(container){
+  if(container)container.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:200px;gap:12px"><div class="spinner"></div><span class="txt3">Caricamento dati...</span></div>';
+}
+
+/* ==============================
    FIRESTORE HELPERS
 ============================== */
 function genId(prefix){return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).substring(2,6);}
@@ -3034,33 +3107,23 @@ async function loadAllData(forceReload){
   try{
     const app=document.getElementById('app');
     if(app&&!_dataLoaded)app.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:60vh;flex-direction:column;gap:16px"><div class="spinner"></div><p class="txt2">Caricamento dati...</p></div>';
-    const [usersSnap,managersSnap,eventsSnap,bookingsSnap,jamsSnap,attendancesSnap,universesSnap]=await Promise.all([
-      fbDb.collection('users').get(),
+    // V3.1.5: Load only essential collections at startup (managers, events, universes, communityJams)
+    // Heavy collections (bookings, attendances, subscriptions, users) are loaded on-demand via ensure*() functions
+    const [managersSnap,eventsSnap,jamsSnap,universesSnap]=await Promise.all([
       fbDb.collection('managers').get(),
       fbDb.collection('events').get(),
-      fbDb.collection('bookings').get(),
       fbDb.collection('communityJams').get(),
-      fbDb.collection('attendances').get(),
       fbDb.collection('universes').get()
     ]);
-    store.users=[];usersSnap.forEach(doc=>{store.users.push(doc.data());});
     store.managers=[];managersSnap.forEach(doc=>{store.managers.push(doc.data());});
     store.events=[];eventsSnap.forEach(doc=>{store.events.push(doc.data());});
-    store.bookings=[];bookingsSnap.forEach(doc=>{store.bookings.push(doc.data());});
     store.communityJams=[];jamsSnap.forEach(doc=>{store.communityJams.push(doc.data());});
-    store.attendances={};attendancesSnap.forEach(doc=>{store.attendances[doc.id]=doc.data().events||[];});
     store.universes=[];universesSnap.forEach(doc=>{store.universes.push(doc.data());});
     // Ensure all universes have the 4 default event types + clean duplicates
     store.universes.forEach(u=>ensureUniverseHasEventTypes(u));
     // Migrate legacy custom type keys that duplicate defaults (e.g. "community event" → "social")
     _migrateLegacyEventTypes();
-    // Migrate orphan bookings: fix null recurringDate for recurring events
-    _migrateOrphanRecurringBookings();
-    // Split concluded recurring dates into standalone events
-    await _splitConcludedRecurringDates();
-    // Load subscription collections separately (fault-tolerant: won't block if Firestore rules don't include them yet)
-    try{const subTypesSnap=await fbDb.collection('subscriptionTypes').get();store.subscriptionTypes=[];subTypesSnap.forEach(doc=>{store.subscriptionTypes.push(doc.data());});}catch(e){console.warn('subscriptionTypes load skipped:',e.message);store.subscriptionTypes=[];}
-    try{const subsSnap=await fbDb.collection('subscriptions').get();store.subscriptions=[];subsSnap.forEach(doc=>{store.subscriptions.push(doc.data());});}catch(e){console.warn('subscriptions load skipped:',e.message);store.subscriptions=[];}
+    // NOTE: Booking migrations (_migrateOrphanRecurringBookings, _splitConcludedRecurringDates) now run inside ensureBookingsLoaded()
     // Auto-create AcroYoga universe if missing
     if(!store.universes.find(u=>u.id==='univ_acro')){
       const acroUniv={id:'univ_acro',name:'AcroYoga',emoji:'🤸',color:'#D07840',roles:['Base','Flyer','Entrambi'],pendingRoles:[],status:'active',createdBy:'system',approvedBy:'system',createdAt:new Date().toISOString()};
@@ -3081,14 +3144,16 @@ async function loadAllData(forceReload){
 async function refreshData(){
   showToast('Aggiornamento dati...');
   _dataLoaded=false;_dataLoadingPromise=null;
+  _resetLazyFlags();
   await loadAllData();
-  // Re-render current view
+  // Re-render current view (ensure functions will reload deferred data as needed)
   if(typeof renderCurrentView==='function')renderCurrentView();
   else if(typeof go==='function')go(currentView);
   showToast('Dati aggiornati!');
 }
 
-function resetStoreData(){_dataLoaded=false;store.events=[];store.bookings=[];store.users=[];store.managers=[];store.communityJams=[];store.attendances={};store.universes=[];store.subscriptionTypes=[];store.subscriptions=[];}
+function _resetLazyFlags(){_bookingsLoaded=false;_attendancesLoaded=false;_subscriptionsLoaded=false;_usersFullyLoaded=false;_userOwnBookingsLoaded=false;}
+function resetStoreData(){_dataLoaded=false;_resetLazyFlags();store.events=[];store.bookings=[];store.users=[];store.managers=[];store.communityJams=[];store.attendances={};store.universes=[];store.subscriptionTypes=[];store.subscriptions=[];}
 
 /* ==============================
    UNIVERSI — HELPERS & FUNCTIONS
@@ -4733,7 +4798,9 @@ async function migrateToUniverses(){
 ============================== */
 let _subTab='types';
 
-function renderAdminSubscriptions(){
+async function renderAdminSubscriptions(){
+  if(!_subscriptionsLoaded){await ensureSubscriptionsLoaded();}
+  if(!_bookingsLoaded){await ensureBookingsLoaded();}
   switchSubTab('types',document.querySelector('#view-admin-subscriptions .active-toggle'));
   populateSubTypeCheckboxes();
 }
@@ -6002,7 +6069,8 @@ function buildRegistryFromBookings(){
   if(changed)saveRegistry();
 }
 
-function renderAdminRegistry(){
+async function renderAdminRegistry(){
+  if(!_bookingsLoaded||!_usersFullyLoaded){await Promise.all([ensureBookingsLoaded(),ensureUsersLoaded()]);}
   buildRegistryFromBookings();
   const reg=getRegistryData();
   renderRegistrySublists(reg);
@@ -7111,6 +7179,8 @@ async function loadCurrentUser(uid){
   if(userDoc.exists){
     store.currentUser=userDoc.data();
     if(!store.users.find(u=>u.id===uid)){store.users.push(userDoc.data());}
+    // V3.1.5: Preload only this user's bookings (fast, filtered query)
+    await ensureUserBookingsLoaded(uid);
     // Check if no master exists — show master setup for first user
     if(!checkMasterExists()){
       document.getElementById('modeBanner').style.display='none';
@@ -7159,6 +7229,9 @@ async function loadCurrentUser(uid){
       if(_pendingDeepLink.type==='sub'){switchMode('user');go('events');await handleDeepLink();}
       else{switchMode('user');await handleDeepLink();}
     } else{switchMode('admin');}
+    // V3.1.5: Start background loading of heavy data for organizer/admin
+    // The ensure functions in render views will await if not yet loaded
+    _loadDeferredAdminData();
     // Show welcome tour for new organizers (first login)
     setTimeout(()=>obShowTour('tour_welcome_org'),600);
     checkPrivacyConsent();
@@ -7539,7 +7612,7 @@ function go(view){
   }
   if(view==='bookings') go('dashboard');
   // Auto-render dynamic views
-  if(view==='events'){renderUserEvents();initMobileFilters();}
+  if(view==='events'){_userEvCurrentMax=_userEvPageSize;renderUserEvents();initMobileFilters();}
   if(view==='jams'){renderUserJams();}
   if(view==='dashboard'){renderUserDashboard();}
   if(view==='profile'){populateProfileFields();renderProfileUniverseSettings();renderAssistenzaBox();}
@@ -9864,8 +9937,10 @@ function getCheckinEvent(){
   return store.events.find(e=>e.id===checkinEventId);
 }
 
-function populateAttendanceSelect(){
+async function populateAttendanceSelect(){
   const sel=document.getElementById('attendance-event-select');if(!sel)return;
+  if(!_attendancesLoaded){await ensureAttendancesLoaded();}
+  if(!_bookingsLoaded){await ensureBookingsLoaded();}
   const myEvts=store.events.filter(e=>isEventVisibleToManager(e,store.currentUser.id)&&e.status==='pubblicato');
   sel.innerHTML='';
   myEvts.forEach(ev=>{
@@ -9989,8 +10064,9 @@ function setBookingPayment(bookingId,status){
   showToast('Stato pagamento aggiornato per '+b.userName);
 }
 
-function renderCheckinA(){
+async function renderCheckinA(){
   const c=document.getElementById('checkin-a-content');if(!c)return;
+  if(!_bookingsLoaded){_showDeferredLoading(c);await ensureBookingsLoaded();if(currentView!=='checkin-booked')return;}
   const ev=getCheckinEvent();
   if(!ev){c.innerHTML='<p class="txt3">Nessun evento selezionato. Torna a Presenze e Check-in e seleziona un evento.</p><button class="btn btn-secondary mt-4" onclick="go(\'admin-checkin\')">← Torna</button>';return;}
   // Find first booked user for this event (for check-in preview)
@@ -10023,8 +10099,9 @@ function renderCheckinA(){
     <button class="btn btn-secondary w-full" onclick="go('events')">← Torna agli eventi</button>`;
 }
 
-function renderCheckinB(){
+async function renderCheckinB(){
   const c=document.getElementById('checkin-b-content');if(!c)return;
+  if(!_bookingsLoaded){_showDeferredLoading(c);await ensureBookingsLoaded();if(currentView!=='checkin-walkin')return;}
   const ev=getCheckinEvent();
   if(!ev){c.innerHTML='<p class="txt3">Nessun evento selezionato.</p><button class="btn btn-secondary mt-4" onclick="go(\'admin-checkin\')">← Torna</button>';return;}
   // Reset tier selections for fresh check-in
@@ -10123,8 +10200,9 @@ function confirmWalkinCheckin(evId){
   showToast('Check-in walk-in completato!');
 }
 
-function renderCheckinC(){
+async function renderCheckinC(){
   const c=document.getElementById('checkin-c-content');if(!c)return;
+  if(!_bookingsLoaded){_showDeferredLoading(c);await ensureBookingsLoaded();if(currentView!=='checkin-new')return;}
   const ev=getCheckinEvent();
   if(!ev){c.innerHTML='<p class="txt3">Nessun evento selezionato.</p><button class="btn btn-secondary mt-4" onclick="go(\'admin-checkin\')">← Torna</button>';return;}
   // Reset tier selections for fresh check-in
@@ -10267,8 +10345,13 @@ function confirmNewCheckin(evId){
 /* ==============================
    RENDER: USER EVENT LIST
 ============================== */
-function renderUserEvents(){
+let _userEvSubsLoading=false;
+const _userEvPageSize=20;
+let _userEvCurrentMax=20;
+async function renderUserEvents(){
   const c=document.getElementById('user-events-container');if(!c)return;
+  // V3.1.5: Load subscriptions in background for pricing badges (non-blocking)
+  if(!_subscriptionsLoaded&&!_userEvSubsLoading){_userEvSubsLoading=true;ensureSubscriptionsLoaded().then(()=>{_userEvSubsLoading=false;if(currentView==='events')renderUserEvents();}).catch(()=>{_userEvSubsLoading=false;});}
   populateUniverseFilters();
   populateZonaFilter();
   const evts=getFilteredEvents();
@@ -10479,13 +10562,23 @@ function renderUserEvents(){
   });
 
   const allCards=[...eventCards,...jamCards];
-  c.innerHTML=allCards.length?allCards.join(''):'<div class="card text-center txt3" style="padding:40px">Nessun evento trovato con questi filtri.</div>';
+  // V3.1.5: Pagination — show _userEvPageSize events at a time
+  const _pageSize=_userEvPageSize;
+  const visibleCards=allCards.slice(0,_userEvCurrentMax);
+  const hasMore=allCards.length>_userEvCurrentMax;
+  let html=visibleCards.length?visibleCards.join(''):'<div class="card text-center txt3" style="padding:40px">Nessun evento trovato con questi filtri.</div>';
+  if(hasMore){
+    const remaining=allCards.length-_userEvCurrentMax;
+    html+='<div style="text-align:center;padding:16px 0"><button class="btn btn-secondary" onclick="_userEvCurrentMax+='+_pageSize+';renderUserEvents()" style="min-width:200px;border-radius:12px;padding:10px 24px">Mostra altri eventi <span style="font-size:.8em;opacity:.7">('+remaining+' rimanenti)</span></button></div>';
+  }
+  c.innerHTML=html;
 
   // Update count
   const rc2=document.getElementById('filter-results-count');
   if(rc2){
     const totalAll=store.events.filter(e=>e.status==='pubblicato'&&!(e.alert&&e.alert.type==='cancellato')).length+store.communityJams.filter(j=>j.status!=='cancellato'&&!(j.alert&&j.alert.type==='cancellato')&&j.date>=localDateStr(new Date())).length;
-    rc2.textContent=allCards.length===totalAll?totalAll+' eventi disponibili':allCards.length+' di '+totalAll+' eventi';
+    const shownCount=Math.min(visibleCards.length,allCards.length);
+    rc2.textContent=shownCount===totalAll?totalAll+' eventi disponibili':shownCount+' di '+totalAll+' eventi';
   }
 
   // Aggiorna mappa se visibile
@@ -10498,6 +10591,7 @@ function resetFilters(){
   const dfEl=document.getElementById('filter-date-from');if(dfEl)dfEl.value=today;
   ['filter-type','filter-zona','filter-universe'].forEach(id=>{const el=document.getElementById(id);if(el)el.selectedIndex=0;});
   const ctgl=document.getElementById('filter-community-toggle');if(ctgl)ctgl.checked=true;
+  _userEvCurrentMax=_userEvPageSize;
   renderUserEvents();
   showToast('Filtri resettati');
 }
@@ -10573,8 +10667,10 @@ function toggleMobileFilters(){
 /* ==============================
    RENDER: USER DASHBOARD (Le mie prenotazioni)
 ============================== */
-function renderUserDashboard(){
+async function renderUserDashboard(){
   const c=document.getElementById('user-dashboard-container');if(!c)return;
+  // V3.1.5: Ensure user bookings are loaded (no-op for regular users since preloaded in loadCurrentUser)
+  if(!_userOwnBookingsLoaded){_showDeferredLoading(c);await ensureUserBookingsLoaded(store.currentUser.id);if(currentView!=='dashboard')return;}
   // Get active bookings for current user
   const uEmail=store.currentUser.email;
   const uName=store.currentUser.username;
@@ -13025,8 +13121,13 @@ function _getCancelledDaysLeft(ev){
 /* ==============================
    RENDER: ADMIN EVENTS LIST
 ============================== */
-function renderAdminEvents(){
+async function renderAdminEvents(){
   const c=document.getElementById('admin-events-container');if(!c)return;
+  if(!_bookingsLoaded){
+    _showDeferredLoading(c);
+    await ensureBookingsLoaded();
+    if(currentView!=='admin-events')return;
+  }
   const u=store.currentUser;
   // Auto-purge cancelled events older than 10 days
   _autoPurgeCancelledEvents(u.id);
@@ -13545,8 +13646,9 @@ function openCostManagement(evId){
   go('admin-cost-management');
 }
 
-function renderCostManagement(evId){
+async function renderCostManagement(evId){
   const c=document.getElementById('admin-cost-management-content');if(!c)return;
+  if(!_bookingsLoaded){_showDeferredLoading(c);await ensureBookingsLoaded();}
   const ev=store.events.find(e=>e.id===evId);if(!ev)return;
   const isCapo=isEventCapofila(ev,store.currentUser.id);
   const isArchived=ev.status==='archiviato';
@@ -13727,7 +13829,9 @@ function renderCostManagement(evId){
   }
 
   // ========== SECTION D: PROFIT SUMMARY ==========
+  html+='<div id="cost-summary-container">';
   html+=_buildCostSummary(ev,costs,isCapo,hasPartners,allParticipants,getPartnerName);
+  html+='</div>';
 
   // Save button
   if(!readOnly){
@@ -13890,6 +13994,22 @@ function _autoSaveCosts(evId){
   },600);
 }
 
+function _refreshCostSummary(evId){
+  const container=document.getElementById('cost-summary-container');if(!container)return;
+  const ev=store.events.find(e=>e.id===evId);if(!ev||!ev.eventCosts)return;
+  const costs=ev.eventCosts;
+  const isCapo=isEventCapofila(ev,store.currentUser.id);
+  const partners=ev.partnerIds||[];
+  const hasPartners=partners.length>0;
+  const allParticipants=[ev.managerId,...partners];
+  const getPartnerName=(pid)=>{
+    if(pid===ev.managerId){const m=store.managers.find(x=>x.id===pid);return m?m.orgName:'Capofila';}
+    const m=store.managers.find(x=>x.id===pid)||store.users.find(x=>x.id===pid);
+    return m?(m.orgName||m.username||m.name||'Partner'):'Partner';
+  };
+  container.innerHTML=_buildCostSummary(ev,costs,isCapo,hasPartners,allParticipants,getPartnerName);
+}
+
 function updateCostItem(evId,secId,itemId,field,value){
   const ev=store.events.find(e=>e.id===evId);if(!ev||!ev.eventCosts)return;
   const sec=ev.eventCosts.sections.find(s=>s.id===secId);if(!sec)return;
@@ -13900,6 +14020,7 @@ function updateCostItem(evId,secId,itemId,field,value){
   const totalEl=document.getElementById('cost-total-'+itemId);
   if(totalEl)totalEl.textContent='€'+total;
   _autoSaveCosts(evId);
+  _refreshCostSummary(evId);
 }
 
 function updateCostItemSplit(evId,secId,itemId,value){
@@ -13907,6 +14028,7 @@ function updateCostItemSplit(evId,secId,itemId,value){
   const sec=ev.eventCosts.sections.find(s=>s.id===secId);if(!sec)return;
   const item=sec.items.find(i=>i.id===itemId);if(item)item.splitMode=value;
   _autoSaveCosts(evId);
+  _refreshCostSummary(evId);
 }
 
 function updateSessionCost(evId,sessionId,field,value){
@@ -13915,6 +14037,7 @@ function updateSessionCost(evId,sessionId,field,value){
   if(!ev.eventCosts.sessions[sessionId])ev.eventCosts.sessions[sessionId]={amount:0,assignedTo:null};
   ev.eventCosts.sessions[sessionId][field]=value;
   _autoSaveCosts(evId);
+  _refreshCostSummary(evId);
 }
 
 function updateRevenueShare(evId,pid,pct){
@@ -14504,8 +14627,13 @@ function showRestoreBackup(){
 /* ==============================
    RENDER: ADMIN DASHBOARD
 ============================== */
-function renderAdminDashboard(){
+async function renderAdminDashboard(){
   const c=document.getElementById('admin-dash-stats');if(!c)return;
+  if(!_bookingsLoaded||!_usersFullyLoaded){
+    _showDeferredLoading(c);
+    await Promise.all([ensureBookingsLoaded(),ensureUsersLoaded(),ensureAttendancesLoaded()]);
+    if(currentView!=='admin')return;
+  }
   const u=store.currentUser;
   const isMaster=u.role==='master';
   const ownEvts=store.events.filter(e=>e.managerId===u.id);
@@ -16186,7 +16314,8 @@ function restoreFormTitle(){
 /* ==============================
    RENDER: ADMIN BOOKINGS (dynamic)
 ============================== */
-function renderAdminBookings(){
+async function renderAdminBookings(){
+  if(!_bookingsLoaded){await ensureBookingsLoaded();if(currentView!=='admin-bookings')return;}
   const u=store.currentUser;
   // Get events visible to this user (own + partner events)
   const myEvts=store.events.filter(e=>isEventVisibleToManager(e,u.id));
@@ -16514,8 +16643,13 @@ function switchUserTab(tab){
   renderUsersTab();
 }
 
-function renderUsersTab(){
+async function renderUsersTab(){
   const c=document.getElementById('admin-users-container');if(!c)return;
+  if(!_usersFullyLoaded||!_bookingsLoaded){
+    _showDeferredLoading(c);
+    await Promise.all([ensureUsersLoaded(),ensureBookingsLoaded()]);
+    if(currentView!=='admin-users')return;
+  }
   const q=(document.getElementById('users-search')?.value||'').toLowerCase();
   // Update counts
   const ucEl=document.getElementById('users-count');if(ucEl)ucEl.textContent=store.users.length;
@@ -17579,9 +17713,10 @@ function setAdminRecDateFilter(dateStr,evId){
   showAdminEventDetail(evId);
 }
 
-function showAdminEventDetail(evId){
+async function showAdminEventDetail(evId){
   window._currentAdminDetailEvId=evId;
   const ev=store.events.find(e=>e.id===evId);if(!ev)return;
+  if(!_bookingsLoaded){await ensureBookingsLoaded();}
   const isArchived=ev.status==='archiviato';
   if(currentView==='admin-community-events')lastAdminListView='admin-community-events';
   else if(currentView==='admin-events')lastAdminListView='admin-events';
