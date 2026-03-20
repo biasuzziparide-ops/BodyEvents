@@ -71,7 +71,7 @@ a{color:var(--brand-l);text-decoration:none}
 .card-hover:hover{border-color:rgba(217,70,239,.35);background:var(--s100)}
 
 .badge{display:inline-flex;align-items:center;border-radius:9999px;padding:2px 10px;font-size:.75rem;font-weight:500;gap:4px}
-.badge-jam{background:var(--green-bg);color:var(--green)}.badge-lezione{background:var(--blue-bg);color:var(--blue)}.badge-workshop{background:var(--brand-bg);color:var(--brand)}.badge-type-dynamic{background:rgba(168,85,247,.15);color:#a855f7}
+.badge-jam{background:var(--green-bg);color:var(--green)}.badge-lezione{background:var(--blue-bg);color:var(--blue)}.badge-workshop{background:rgba(190,24,93,.15);color:#e11d7a}.badge-social{background:rgba(234,179,8,.12);color:#eab308}.badge-type-dynamic{background:rgba(168,85,247,.15);color:#a855f7}
 .badge-open{background:rgba(107,114,128,.15);color:#d1d5db}.badge-base{background:var(--green-bg);color:var(--green)}.badge-intermedio{background:var(--yellow-bg);color:var(--yellow)}.badge-avanzato{background:var(--red-bg);color:var(--red)}
 .badge-bozza{background:rgba(107,114,128,.15);color:var(--txt2)}.badge-pubblicato{background:var(--green-bg);color:var(--green)}.badge-concluso{background:var(--blue-bg);color:var(--blue)}.badge-cancellato{background:var(--red-bg);color:var(--red)}.badge-attesa{background:rgba(234,179,8,.15);color:var(--yellow)}.badge-confermato{background:var(--green-bg);color:var(--green)}.badge-archiviato{background:rgba(99,102,241,.12);color:#6366f1}
 .badge-purple{background:var(--purple-bg);color:var(--purple)}
@@ -8650,8 +8650,8 @@ function localDateStr(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padSt
 function fmtDate(ds){if(!ds)return'';const d=new Date(ds+'T00:00:00');return DAYS_IT[d.getDay()].substring(0,3)+' '+d.getDate()+' '+MONTHS_IT[d.getMonth()]+' '+d.getFullYear();}
 function fmtDateShort(ds){if(!ds)return'';const d=new Date(ds+'T00:00:00');return d.getDate()+' '+MONTHS_IT[d.getMonth()]+' '+d.getFullYear();}
 function fmtDateFull(ds){if(!ds)return'';const d=new Date(ds+'T00:00:00');return d.getDate()+' '+MONTHS_IT_FULL[d.getMonth()]+' '+d.getFullYear();}
-function badgeType(t){const known={jam:'badge-jam',lezione:'badge-lezione',workshop:'badge-workshop'};return known[t]||'badge-type-dynamic';}
-function badgeTypeStyle(t){const colors={jam:'var(--green-bg);color:var(--green)',lezione:'var(--blue-bg);color:var(--blue)',workshop:'var(--brand-bg);color:var(--brand)'};return colors[t]?'':'background:rgba(168,85,247,.15);color:#a855f7';}
+function badgeType(t){const known={jam:'badge-jam',lezione:'badge-lezione',workshop:'badge-workshop',social:'badge-social'};return known[t]||'badge-type-dynamic';}
+function badgeTypeStyle(t){const colors={jam:'var(--green-bg);color:var(--green)',lezione:'var(--blue-bg);color:var(--blue)',workshop:'rgba(190,24,93,.15);color:#e11d7a',social:'rgba(234,179,8,.12);color:#eab308'};return colors[t]?'':'background:rgba(168,85,247,.15);color:#a855f7';}
 function badgeLevel(l){const m={open:'badge-open',base:'badge-base',intermedio:'badge-intermedio',avanzato:'badge-avanzato',multi:'badge-purple'};return m[l]||'badge-open';}
 /* V2.13.0 — Compute event level automatically from sessions */
 function getComputedEventLevel(ev){
@@ -13068,8 +13068,8 @@ function renderAdminEvents(){
     _typeGroups[t].push(ev);
   });
   const _sortedTypes=[..._typeOrder.filter(t=>_typeGroups[t]),...Object.keys(_typeGroups).filter(t=>!_typeOrder.includes(t))];
-  const _groupColors={jam:'rgba(234,179,8,.08)',lezione:'rgba(99,102,241,.08)',workshop:'rgba(249,115,22,.08)',social:'rgba(217,70,239,.08)'};
-  const _groupBorders={jam:'rgba(234,179,8,.2)',lezione:'rgba(99,102,241,.2)',workshop:'rgba(249,115,22,.2)',social:'rgba(217,70,239,.2)'};
+  const _groupColors={jam:'rgba(234,179,8,.08)',lezione:'rgba(99,102,241,.08)',workshop:'rgba(190,24,93,.08)',social:'rgba(234,179,8,.08)'};
+  const _groupBorders={jam:'rgba(234,179,8,.2)',lezione:'rgba(99,102,241,.2)',workshop:'rgba(190,24,93,.2)',social:'rgba(234,179,8,.2)'};
   let _groupedHtml=_cancNotice;
   _sortedTypes.forEach(type=>{
     const groupEvts=_typeGroups[type];
