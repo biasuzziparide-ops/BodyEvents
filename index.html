@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V3.0.0</title>
+<title>BodyEvents — V3.1.1</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -387,7 +387,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.0.0</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.1.1</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -501,11 +501,11 @@ textarea.input{resize:none;font-family:inherit}
   <div class="mobile-menu" id="mobileMenuAdmin">
     <div class="mm-group">
       <div class="mm-group-label">Community e piattaforma</div>
-      <div class="nav-link master-only" style="display:none" onclick="go('admin-community-events');closeMobileAdmin()">📅 Eventi Organizzati</div>
-      <div class="nav-link master-only" style="display:none" onclick="go('admin-community-jams');closeMobileAdmin()">🤝 Community Events</div>
-      <div class="nav-link master-only" style="display:none" onclick="go('admin-users');closeMobileAdmin()">👥 Gestione Utenti</div>
-      <div class="nav-link master-only" style="display:none" onclick="go('admin-universes');closeMobileAdmin()">🌌 Universi</div>
-      <div class="nav-link" onclick="go('info-page-organizer');closeMobileAdmin()">ℹ️ Guida organizzatore</div>
+      <div class="nav-link master-only" style="display:none" onclick="closeMobileAdmin();switchMode('admin');go('admin-community-events')">📅 Eventi Organizzati</div>
+      <div class="nav-link master-only" style="display:none" onclick="closeMobileAdmin();switchMode('admin');go('admin-community-jams')">🤝 Community Events</div>
+      <div class="nav-link master-only" style="display:none" onclick="closeMobileAdmin();switchMode('admin');go('admin-users')">👥 Gestione Utenti</div>
+      <div class="nav-link master-only" style="display:none" onclick="closeMobileAdmin();switchMode('admin');go('admin-universes')">🌌 Universi</div>
+      <div class="nav-link" onclick="closeMobileAdmin();switchMode('admin');go('info-page-organizer')">ℹ️ Guida organizzatore</div>
     </div>
   </div>
 </nav>
@@ -2281,7 +2281,7 @@ textarea.input{resize:none;font-family:inherit}
 <!-- ============================================================ -->
 <!-- VIEW: LOGIN (Magic Link) -->
 <!-- ============================================================ -->
-<div class="view active" id="view-login">
+<div class="view" id="view-login">
 <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;background:linear-gradient(135deg,#1a0a1a 0%,#0f0f13 60%,#0a0f1a 100%)">
   <div style="max-width:400px;width:100%">
     <div class="text-center mb-6">
@@ -2644,6 +2644,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
+const APP_VERSION='V3.1.1';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -14434,7 +14435,7 @@ async function exportFullBackup(){
         appName:'BodyEvents',
         exportDate:new Date().toISOString(),
         exportedBy:store.currentUser.email,
-        version:'V3.0.0',
+        version:APP_VERSION,
         collections:collections
       }
     };
@@ -16555,6 +16556,7 @@ function renderUsersTab(){
       html+='<td class="text-sm txt2">'+fmtDate(u.registeredAt)+'</td>';
       html+='<td class="flex gap-2" onclick="event.stopPropagation()">';
       html+='<button class="btn btn-sm btn-secondary" onclick="openUserForm(\'user\',\''+u.id+'\')">✏️</button>';
+      if(!store.managers.some(m=>m.id===u.id))html+='<button class="btn btn-sm" style="background:rgba(168,85,247,.12);color:#a855f7;border:1px solid rgba(168,85,247,.3)" onclick="openPromoteToOrgModal(\''+u.id+'\')" title="Promuovi a organizzatore">🛡️</button>';
       if(u.status==='attivo')html+='<button class="btn btn-sm" style="background:var(--yellow-bg);color:var(--yellow);border:1px solid var(--yellow)" onclick="toggleUserStatus(\''+u.id+'\')">⏸️</button>';
       else html+='<button class="btn btn-sm" style="background:var(--green-bg);color:var(--green);border:1px solid var(--green)" onclick="toggleUserStatus(\''+u.id+'\')">▶️</button>';
       html+='<button class="btn btn-sm" style="background:var(--red-bg);color:var(--red);border:1px solid var(--red)" onclick="startRemoveUser(\''+u.id+'\',\'user\')">🗑️</button>';
@@ -16669,8 +16671,9 @@ function showUserDetail(userId){
     ${bks.length?`<h3 class="font-semibold text-white mb-2 mt-4">📋 Prenotazioni attive (${bks.length})</h3>
     <div class="overflow-auto mb-4"><table class="table w-full"><thead><tr><th>Evento</th><th>Data</th><th>Pagamento</th><th class="text-right">Importo</th></tr></thead><tbody>${bkRows}</tbody></table></div>`:'<p class="txt3 text-sm mt-4">Nessuna prenotazione attiva</p>'}
     ${checkins.length?`<h3 class="font-semibold text-white mb-2">✅ Eventi frequentati</h3><div class="flex flex-wrap gap-2 mb-4">${checkins.map(t=>'<span class="badge badge-pubblicato">'+t+'</span>').join('')}</div>`:''}
-    <div class="flex gap-2 mt-4">
+    <div class="flex gap-2 flex-wrap mt-4">
       <button class="btn btn-sm btn-primary" onclick="document.getElementById('user-form-overlay').style.display='none';openUserForm('user','${u.id}')">✏️ Modifica</button>
+      ${!store.managers.some(m=>m.id===u.id)?`<button class="btn btn-sm" style="background:rgba(168,85,247,.12);color:#a855f7;border:1px solid rgba(168,85,247,.3)" onclick="document.getElementById('user-form-overlay').style.display='none';openPromoteToOrgModal('${u.id}')">🛡️ Promuovi a organizzatore</button>`:''}
       ${u.status==='attivo'?`<button class="btn btn-sm" style="background:var(--yellow-bg);color:var(--yellow);border:1px solid var(--yellow)" onclick="document.getElementById('user-form-overlay').style.display='none';toggleUserStatus('${u.id}')">⏸️ Sospendi</button>`:`<button class="btn btn-sm" style="background:var(--green-bg);color:var(--green);border:1px solid var(--green)" onclick="document.getElementById('user-form-overlay').style.display='none';toggleUserStatus('${u.id}')">▶️ Riattiva</button>`}
       <button class="btn btn-sm" style="background:var(--s300);color:var(--txt2)" onclick="document.getElementById('user-form-overlay').style.display='none'">Chiudi</button>
     </div>
@@ -16870,6 +16873,100 @@ function rejectManager(mgrId){
     }catch(e){showToast('Errore: '+e.message,'error');}
   },'danger');
 }
+/* === Promote user to organizer === */
+function openPromoteToOrgModal(userId){
+  const u=store.users.find(x=>x.id===userId);
+  if(!u){showToast('Utente non trovato','error');return;}
+  if(store.managers.some(m=>m.id===userId)){showToast('Questo utente è già un organizzatore','error');return;}
+  // Build universe checkboxes
+  const univs=store.universes.filter(uv=>uv.status!=='rejected');
+  let univChecks='';
+  univs.forEach(uv=>{
+    univChecks+=`<label style="display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer">
+      <input type="checkbox" class="promote-univ-cb" value="${uv.id}">
+      <span>${uv.emoji||'🌐'} ${escHtml(uv.name)}</span>
+    </label>`;
+  });
+  const html=`<div style="padding:24px">
+    <h3 class="font-semibold text-white mb-2">🛡️ Promuovi a organizzatore</h3>
+    <p class="text-sm txt2 mb-4">Stai promuovendo <strong class="text-white">${escHtml(u.username)}</strong> (${escHtml(u.email)}) a organizzatore. Verrà creato un account organizzatore collegato.</p>
+    <div class="mb-3">
+      <label class="label">Nome organizzazione *</label>
+      <input class="input" id="promote-org-name" placeholder="es. AcroYoga Roma, Dance Academy..." value="${escHtml(u.username)}">
+    </div>
+    <div class="mb-3">
+      <label class="label">Città</label>
+      <input class="input" id="promote-org-city" placeholder="es. Roma, Milano...">
+    </div>
+    <div class="mb-3">
+      <label class="label">Descrizione (opzionale)</label>
+      <textarea class="input" id="promote-org-desc" rows="2" placeholder="Breve descrizione dell'organizzazione..."></textarea>
+    </div>
+    ${univs.length?`<div class="mb-3">
+      <label class="label">Universi di appartenenza</label>
+      <div style="max-height:160px;overflow-y:auto;background:var(--s50);border:1px solid var(--s300);border-radius:10px;padding:8px 12px">${univChecks}</div>
+    </div>`:''}
+    <div class="mb-3">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="promote-auto-approve" checked>
+        <span class="text-sm">Approva automaticamente (salta la fase di approvazione)</span>
+      </label>
+    </div>
+    <div class="card mb-3" style="background:rgba(234,179,8,.06);border-color:var(--yellow);padding:12px">
+      <div class="text-xs" style="color:var(--yellow);line-height:1.6">⚠️ <strong>Attenzione:</strong> questa azione creerà un documento organizzatore su Firestore con lo stesso UID dell'utente. Al prossimo login, l'utente verrà riconosciuto come organizzatore e potrà accedere alla vista admin per creare e gestire eventi.</div>
+    </div>
+    <div class="flex gap-2">
+      <button class="btn btn-primary flex-1" onclick="confirmPromoteToOrg('${u.id}')">🛡️ Promuovi</button>
+      <button class="btn btn-secondary flex-1" onclick="closeModal()">Annulla</button>
+    </div>
+  </div>`;
+  openGenericModal(html);
+}
+
+async function confirmPromoteToOrg(userId){
+  const u=store.users.find(x=>x.id===userId);
+  if(!u){showToast('Utente non trovato','error');return;}
+  if(store.managers.some(m=>m.id===userId)){showToast('Già organizzatore','error');closeModal();return;}
+  const orgName=(document.getElementById('promote-org-name')?.value||'').trim();
+  if(!orgName){showToast('Inserisci il nome dell\'organizzazione','error');return;}
+  const city=(document.getElementById('promote-org-city')?.value||'').trim();
+  const desc=(document.getElementById('promote-org-desc')?.value||'').trim();
+  const autoApprove=document.getElementById('promote-auto-approve')?.checked;
+  const selectedUnivs=Array.from(document.querySelectorAll('.promote-univ-cb:checked')).map(cb=>cb.value);
+  const now=new Date().toISOString();
+
+  try{
+    const mgrData={
+      id:userId,
+      username:u.username,
+      email:u.email,
+      orgName:orgName,
+      city:city,
+      description:desc,
+      role:'manager',
+      status:autoApprove?'approved':'pending_approval',
+      universes:selectedUnivs,
+      consents:u.consents||{},
+      requestedAt:now.split('T')[0],
+      promotedBy:store.currentUser.id,
+      promotedAt:now
+    };
+    if(autoApprove){
+      mgrData.approvedAt=now;
+      mgrData.approvedBy=store.currentUser.id;
+    }
+    // Write manager document to Firestore
+    await fbDb.collection('managers').doc(userId).set(mgrData);
+    // Add to local store
+    store.managers.push(mgrData);
+    closeModal();
+    showToast('✅ '+u.username+' è ora organizzatore'+(autoApprove?' (approvato)':' (in attesa di approvazione)'));
+    renderUsersTab();
+  }catch(e){
+    showToast('Errore durante la promozione: '+e.message,'error');
+  }
+}
+
 function toggleUserStatus(userId){
   const u=store.users.find(x=>x.id===userId);if(!u)return;
   if(u.status==='attivo'){
@@ -18422,6 +18519,7 @@ fbAuth.onAuthStateChanged(async(user)=>{
     dismissAuthSplash();
   } else {
     // No user logged in — show login page
+    document.getElementById('view-login').classList.add('active');
     dismissAuthSplash();
     // If invite deep link: auto-navigate to register page and show invite banner
     if(_pendingDeepLink&&_pendingDeepLink.type==='invite'){
@@ -18443,8 +18541,15 @@ fbAuth.onAuthStateChanged(async(user)=>{
     }
   }
 });
-// Safety: dismiss splash after 8s max (in case auth hangs)
-setTimeout(dismissAuthSplash,8000);
+// Safety: dismiss splash after 15s max (in case auth hangs)
+// Also show login view as fallback so user isn't stuck on blank screen
+setTimeout(()=>{
+  const sp=document.getElementById('auth-splash');
+  if(sp){
+    document.getElementById('view-login').classList.add('active');
+    dismissAuthSplash();
+  }
+},15000);
 
 /* ===== PULL-TO-REFRESH for standalone / home-screen mode ===== */
 (function(){
@@ -18493,6 +18598,9 @@ setTimeout(dismissAuthSplash,8000);
 
 /* Init on load */
 document.addEventListener('DOMContentLoaded',()=>{
+  // Sync version badge from constant
+  const _vBadge=document.getElementById('app-version-badge');if(_vBadge)_vBadge.textContent=APP_VERSION;
+  document.title='BodyEvents — '+APP_VERSION;
   // Show in-app browser warning on login page
   if(isInAppBrowser()&&!fbAuth.currentUser)showInAppBrowserBanner();
   // Popola profile switcher
