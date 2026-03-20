@@ -170,16 +170,16 @@ textarea.input{resize:none;font-family:inherit}
 @keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 
 /* === TIER SELECTOR === */
-.tier-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
-.tier-btn{display:flex;align-items:center;gap:3px;padding:3px 6px;border-radius:8px;border:1px solid var(--s300);background:var(--s100);cursor:pointer;text-align:left;transition:all .15s;white-space:nowrap}
-.tier-btn:hover{border-color:var(--s400)}
+.tier-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.tier-btn{display:flex;align-items:center;gap:6px;padding:10px 12px;border-radius:12px;border:1.5px solid var(--s300);background:var(--s100);cursor:pointer;text-align:left;transition:all .15s;white-space:nowrap;min-height:48px}
+.tier-btn:hover{border-color:var(--s400);background:var(--s150,var(--s100))}
 .tier-btn.selected{border-color:var(--brand);border-width:2px;background:rgba(217,70,239,.18);box-shadow:0 0 12px rgba(217,70,239,.25),inset 0 0 8px rgba(217,70,239,.08)}
-.tier-icon{font-size:.65rem}
-.tier-label{font-size:.6rem;font-weight:500;color:var(--txt2)}
+.tier-icon{font-size:.8rem}
+.tier-label{font-size:.72rem;font-weight:500;color:var(--txt2)}
 .tier-btn.selected .tier-label{color:var(--brand-l);font-weight:700}
-.tier-price{font-size:.75rem;font-weight:700;color:#fff;margin-left:auto}
+.tier-price{font-size:.95rem;font-weight:700;color:#fff;margin-left:auto}
 .tier-btn.selected .tier-price{color:#fff;text-shadow:0 0 8px rgba(217,70,239,.5)}
-.tier-btn.selected::after{content:'✓';position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:var(--brand);color:#fff;font-size:.55rem;display:flex;align-items:center;justify-content:center;font-weight:700;box-shadow:0 2px 6px rgba(217,70,239,.4)}
+.tier-btn.selected::after{content:'✓';position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--brand);color:#fff;font-size:.6rem;display:flex;align-items:center;justify-content:center;font-weight:700;box-shadow:0 2px 6px rgba(217,70,239,.4)}
 .tier-btn{position:relative}
 
 /* === CHECK ITEM === */
@@ -500,25 +500,12 @@ textarea.input{resize:none;font-family:inherit}
   <!-- Mobile full menu (admin) -->
   <div class="mobile-menu" id="mobileMenuAdmin">
     <div class="mm-group">
-      <div class="mm-group-label">Gestione eventi</div>
-      <div class="nav-link" onclick="go('admin-events');closeMobileAdmin()">📅 Eventi</div>
-      <div class="nav-link" onclick="go('admin-new-event');closeMobileAdmin()">➕ Nuovo Evento</div>
-      <div class="nav-link" onclick="go('admin-checkin');closeMobileAdmin()">📱 Presenze e Check-in</div>
-      <div class="nav-link" onclick="go('admin-subscriptions');closeMobileAdmin()">💳 Abbonamenti</div>
-      <div class="nav-link" onclick="go('admin-registry');closeMobileAdmin()">📋 Anagrafica</div>
-      <div class="nav-link" onclick="go('admin');closeMobileAdmin()">📊 Dashboard</div>
-    </div>
-    <div class="mm-group">
       <div class="mm-group-label">Community e piattaforma</div>
       <div class="nav-link master-only" style="display:none" onclick="go('admin-community-events');closeMobileAdmin()">📅 Eventi Organizzati</div>
       <div class="nav-link master-only" style="display:none" onclick="go('admin-community-jams');closeMobileAdmin()">🤝 Community Events</div>
       <div class="nav-link master-only" style="display:none" onclick="go('admin-users');closeMobileAdmin()">👥 Gestione Utenti</div>
       <div class="nav-link master-only" style="display:none" onclick="go('admin-universes');closeMobileAdmin()">🌌 Universi</div>
       <div class="nav-link" onclick="go('info-page-organizer');closeMobileAdmin()">ℹ️ Guida organizzatore</div>
-    </div>
-    <div class="mm-group">
-      <div class="mm-group-label">Impostazioni</div>
-      <div class="nav-link" onclick="refreshData();closeMobileAdmin()">🔄 Aggiorna dati</div>
     </div>
   </div>
 </nav>
@@ -6405,7 +6392,7 @@ function openColVisibilityMenu(listId,btnEl){
   if(!allCols.length){showToast('Nessuna colonna personalizzata da gestire','error');return;}
   const menu=document.createElement('div');
   menu.className='reg-col-vis-menu';
-  menu.style.cssText='position:absolute;z-index:9999;background:var(--card);border:1px solid var(--s400);border-radius:12px;padding:10px;box-shadow:0 4px 20px rgba(0,0,0,.5);min-width:200px';
+  menu.style.cssText='position:absolute;z-index:9999;background:var(--s100);border:1px solid var(--s400);border-radius:12px;padding:10px;box-shadow:0 4px 20px rgba(0,0,0,.5);min-width:200px';
   menu.innerHTML='<div style="font-size:.72rem;font-weight:600;color:var(--txt2);margin-bottom:8px;padding:0 4px;letter-spacing:.3px">👁 Visibilità colonne</div>';
   allCols.forEach(c=>{
     const isHidden=hidden.has(c.id);
@@ -6934,7 +6921,7 @@ async function _exportRegistryXLSX(title,entries,cols){
 function openGenericModal(html){
   let modal=document.getElementById('generic-modal');
   if(!modal){modal=document.createElement('div');modal.id='generic-modal';modal.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:10000;display:flex;align-items:center;justify-content:center';document.body.appendChild(modal);}
-  modal.innerHTML='<div style="background:var(--card);border:1px solid var(--s400);border-radius:16px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto">'+html+'</div>';
+  modal.innerHTML='<div style="background:var(--s100);border:1px solid var(--s400);border-radius:16px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto">'+html+'</div>';
   modal.style.display='flex';modal.onclick=e=>{if(e.target===modal)closeModal();};
 }
 function closeModal(){const m=document.getElementById('generic-modal');if(m)m.style.display='none';}
@@ -10318,8 +10305,45 @@ function renderUserEvents(){
     const _todayStr=localDateStr(new Date());
     const _bookClosed=_effBkDl&&_todayStr>_effBkDl;
     const bookClosedBadge=_bookClosed?'<span class="badge" style="background:var(--red-bg);color:var(--red)">🔒 Prenotazioni chiuse</span>':'';
-    /* Deadline banner */
+    /* Deadline banner — check for active early bird first */
     const _deadlineBanner=(()=>{
+      // Check if event has active early bird with date-based deadline
+      const _anyEB=ev.earlyBird||(ev.days&&ev.days.some(d=>d.earlyBird));
+      const _ebDeadline=(()=>{
+        // Event-level EB
+        if(ev.earlyBird&&isEarlyBirdActive(ev.earlyBird,ev.id)&&ev.earlyBird.type==='date'&&ev.earlyBird.deadline)return ev.earlyBird.deadline;
+        // Day-level EB (use earliest active deadline)
+        if(ev.days){
+          let earliest=null;
+          ev.days.forEach(d=>{
+            if(d.earlyBird&&isEarlyBirdActive(d.earlyBird,ev.id)&&d.earlyBird.type==='date'&&d.earlyBird.deadline){
+              if(!earliest||d.earlyBird.deadline<earliest)earliest=d.earlyBird.deadline;
+            }
+            // Session-level EB
+            if(d.sessions)d.sessions.forEach(s=>{
+              if(s.earlyBird&&isEarlyBirdActive(s.earlyBird,ev.id)&&s.earlyBird.type==='date'&&s.earlyBird.deadline){
+                if(!earliest||s.earlyBird.deadline<earliest)earliest=s.earlyBird.deadline;
+              }
+            });
+          });
+          return earliest;
+        }
+        return null;
+      })();
+      // If EB deadline is active and in the future, show EB banner instead
+      if(_ebDeadline&&_ebDeadline>=_todayStr){
+        const ebDlDate=new Date(_ebDeadline+'T00:00:00');
+        const todayDate=new Date(_todayStr+'T00:00:00');
+        const diffDays=Math.round((ebDlDate-todayDate)/(1000*60*60*24));
+        const ebDlFormatted=fmtDateShort(_ebDeadline);
+        let urgency='';let icon='🐦';
+        if(diffDays<=1){urgency='background:rgba(234,179,8,.15);border-color:rgba(234,179,8,.4);color:#fbbf24';icon='🐦🔥';}
+        else if(diffDays<=3){urgency='background:rgba(234,179,8,.1);border-color:rgba(234,179,8,.3);color:#fbbf24';icon='🐦⏳';}
+        else{urgency='background:rgba(234,179,8,.06);border-color:rgba(234,179,8,.2);color:var(--yellow)';icon='🐦';}
+        const label=diffDays===0?'Ultimo giorno per il prezzo Early Bird!':diffDays===1?'Early Bird entro domani ('+ebDlFormatted+')':'Early Bird entro il '+ebDlFormatted;
+        return '<div style="margin-top:8px;padding:5px 10px;border-radius:8px;font-size:.7rem;font-weight:600;border:1px solid;display:inline-block;'+urgency+'">'+icon+' '+label+'</div>';
+      }
+      // Fallback to standard booking deadline
       if(!_effBkDl||_bookClosed)return '';
       const dlDate=new Date(_effBkDl+'T00:00:00');
       const todayDate=new Date(_todayStr+'T00:00:00');
@@ -13072,7 +13096,7 @@ function renderAdminEvents(){
       const resumeBtn=isPausedRec?`<button class="btn btn-sm" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="event.stopPropagation();resumeRecurring('${ev.id}')">▶️ Riprendi</button>`:'';
       const shareBtn=`<button class="btn btn-sm" style="background:rgba(59,130,246,.1);color:var(--blue);border:1px solid rgba(59,130,246,.25)" onclick="event.stopPropagation();openShareModal('${ev.id}')">📤 Condividi</button>`;
       if(hasBookings){
-        return `${eyeBtn}${shareBtn}${resumeBtn}<button class="btn btn-sm" style="background:rgba(249,115,22,.12);color:var(--orange);border:1px solid rgba(249,115,22,.3)" onclick="event.stopPropagation();openAlertModal('${ev.id}')">⚠️ Modifica</button>`;
+        return `${eyeBtn}${shareBtn}<button class="btn btn-sm" style="background:rgba(249,115,22,.12);color:var(--orange);border:1px solid rgba(249,115,22,.3)" onclick="event.stopPropagation();openAlertModal('${ev.id}')">⚠️ Modifica</button>${resumeBtn}`;
       } else {
         return `${eyeBtn}${shareBtn}${resumeBtn}
         <button class="btn btn-sm" style="background:rgba(234,179,8,.15);color:var(--yellow);border:1px solid rgba(234,179,8,.3)" onclick="event.stopPropagation();revertToDraft('${ev.id}')">📝 Torna in bozza</button>
@@ -17610,7 +17634,7 @@ function showAdminEventDetail(evId){
       const _isPaused=ev.recurrence&&ev.recurrence.active===false;
       const _resumeBtn=_isPaused?'<button class="btn btn-sm" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="resumeRecurring(\''+ev.id+'\')">▶️ Riprendi</button>':'';
       const _shareBtn='<button class="btn btn-sm" style="background:rgba(59,130,246,.1);color:var(--blue);border:1px solid rgba(59,130,246,.25)" onclick="openShareModal(\''+ev.id+'\')">📤 Condividi</button>';
-      if(_hb)return _eyeBtn+_shareBtn+_resumeBtn+'<button class="btn btn-sm" style="background:rgba(249,115,22,.12);color:var(--orange);border:1px solid rgba(249,115,22,.3)" onclick="openAlertModal(\''+ev.id+'\')">⚠️ Modifica o Cancella</button>';
+      if(_hb)return _eyeBtn+_shareBtn+'<button class="btn btn-sm" style="background:rgba(249,115,22,.12);color:var(--orange);border:1px solid rgba(249,115,22,.3)" onclick="openAlertModal(\''+ev.id+'\')">⚠️ Modifica o Cancella</button>'+_resumeBtn;
       return _eyeBtn+_shareBtn+_resumeBtn+'<button class="btn btn-sm" style="background:rgba(234,179,8,.15);color:var(--yellow);border:1px solid rgba(234,179,8,.3)" onclick="revertToDraft(\''+ev.id+'\')">📝 Torna in bozza</button><button class="btn btn-danger btn-sm" onclick="deleteEvent(\''+ev.id+'\')">🗑️ Elimina</button>';
     }
     if(ev.status==='cancellato')return '<button class="btn btn-ghost btn-sm" onclick="showEventDetail(\''+ev.id+'\')">👁️ Preview</button><button class="btn btn-danger btn-sm" onclick="hardDeleteEvent(\''+ev.id+'\')">🗑️ Elimina</button>';
