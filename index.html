@@ -152,7 +152,9 @@ textarea.input{resize:none;font-family:inherit}
 .sidebar-link{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;font-size:.875rem;font-weight:500;color:var(--txt3);cursor:pointer;transition:all .15s}
 .sidebar-link:hover{background:var(--s200);color:var(--txt2)}
 .sidebar-link.active{background:var(--brand-bg);color:var(--brand-l)}
-.admin-content{flex:1;padding:32px;max-width:1100px;min-width:0;overflow-x:hidden}
+.admin-content{flex:1;padding:32px;max-width:1100px;min-width:0;overflow-x:hidden;box-sizing:border-box}
+.admin-content .input,.admin-content select,.admin-content textarea{max-width:100%;box-sizing:border-box}
+.admin-content .card{max-width:100%;box-sizing:border-box}
 
 /* === MODAL / DIALOG === */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:24px 16px;overflow-y:auto;-webkit-overflow-scrolling:touch}
@@ -230,14 +232,14 @@ textarea.input{resize:none;font-family:inherit}
   .mobile-quickbar{display:none!important}
   .logo{display:none!important}
   .sidebar{display:none}
-  .admin-content{padding:12px;max-width:100vw;box-sizing:border-box}
+  .admin-content{padding:12px;max-width:100vw;width:100%;box-sizing:border-box}
   .admin-wrap{min-height:auto;max-width:100vw;overflow-x:hidden}
   .tier-grid{grid-template-columns:1fr}
   .logo-text{display:none}
   .table{font-size:.8rem}
   .table th,.table td{padding:6px 8px}
   .container{padding-left:12px;padding-right:12px;max-width:100vw;box-sizing:border-box}
-  .card{padding:16px;max-width:100%;box-sizing:border-box}
+  .card{padding:16px;max-width:100%;box-sizing:border-box;overflow-wrap:break-word;word-break:break-word}
   .flex.gap-3{gap:8px}
   .stat-card{padding:12px}
   .stat-card .value{font-size:1.2rem}
@@ -256,6 +258,16 @@ textarea.input{resize:none;font-family:inherit}
   .overlay{padding:12px 8px}
   /* Prevent any child from overflowing viewport */
   .view{max-width:100vw;overflow-x:hidden}
+  /* Form inputs: prevent overflow in flex/grid contexts */
+  .input{max-width:100%;min-width:0!important;box-sizing:border-box}
+  select.input{max-width:100%}
+  /* Tables: horizontal scroll on mobile */
+  .table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  /* QR box responsive */
+  .qr-box{max-width:100%;width:auto;height:auto;aspect-ratio:1/1}
+  /* Prevent min-width causing overflow */
+  [style*="min-width:180px"]{min-width:0!important}
+  [style*="min-width: 180px"]{min-width:0!important}
 }
 @media(max-width:480px){
   .grid-4{grid-template-columns:1fr}
@@ -265,7 +277,7 @@ textarea.input{resize:none;font-family:inherit}
   .dialog{padding:14px;max-width:calc(100vw - 24px)!important}
   .overlay{padding:10px 6px}
   .table th,.table td{padding:5px 6px;font-size:.75rem}
-  .card{padding:14px;overflow-x:hidden}
+  .card{padding:14px;overflow-x:hidden;overflow-wrap:break-word;word-break:break-word}
   .tier-suggest-banner-inner{padding:10px 32px 10px 10px}
   .container{padding-left:10px;padding-right:10px}
   .admin-content{padding:10px}
@@ -274,6 +286,16 @@ textarea.input{resize:none;font-family:inherit}
 }
 @media(min-width:769px) and (max-width:1024px){
   .grid-4{grid-template-columns:repeat(2,1fr)}
+  .admin-content{padding:20px;max-width:calc(100vw - 240px);box-sizing:border-box;overflow-x:hidden}
+  .admin-content .input,.admin-content select,.admin-content textarea{max-width:100%;box-sizing:border-box}
+  .input{min-width:0!important}
+  .card{max-width:100%;box-sizing:border-box;overflow-wrap:break-word;word-break:break-word}
+  .grid-3{grid-template-columns:1fr 1fr!important}
+  [style*="grid-template-columns:1fr 1fr"],[style*="grid-template-columns: 1fr 1fr"]{grid-template-columns:1fr!important}
+  [style*="grid-template-columns:repeat(3"]{grid-template-columns:1fr 1fr!important}
+  .dialog{max-width:calc(100vw - 32px)!important;box-sizing:border-box}
+  .qr-box{max-width:100%;width:auto;height:auto;aspect-ratio:1/1}
+  .table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
 }
 
 /* === PAGE VIEWS (SPA) === */
@@ -1458,14 +1480,31 @@ textarea.input{resize:none;font-family:inherit}
       <!-- THUMBNAIL (card) -->
       <div class="mb-4" style="padding-bottom:16px;border-bottom:1px solid var(--s400)">
         <p class="text-sm font-medium text-white mb-2">📋 Thumbnail (card lista eventi)</p>
-        <p class="text-xs txt3 mb-3">Immagine quadrata mostrata a sinistra di ogni card evento.</p>
-        <input class="input mb-3" id="ne-img-thumb-upload" type="file" accept="image/*" onchange="handleImgUpload('thumb',this)" style="display:none">
+        <p class="text-xs txt3 mb-3">Immagine mostrata a sinistra di ogni card evento, sopra al blocco data.</p>
+        <!-- Mask size selector -->
+        <div class="mb-3" id="ne-thumb-mask-selector">
+          <label class="label" style="font-size:.78rem">📐 Proporzione thumbnail</label>
+          <div class="flex gap-3 mt-2">
+            <button type="button" class="thumb-mask-opt" data-mask="compact" onclick="selectThumbMask('compact')" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 16px;border-radius:12px;border:2px solid var(--brand);background:var(--brand-bg);color:var(--brand-l);cursor:pointer;transition:all .2s;min-width:90px">
+              <div style="width:48px;height:41px;border-radius:6px;background:linear-gradient(135deg,rgba(217,70,239,.3),rgba(168,85,247,.15));border:1.5px solid rgba(217,70,239,.4)"></div>
+              <span style="font-size:.7rem;font-weight:600">Compatta</span>
+              <span style="font-size:.55rem;opacity:.7">~come la data</span>
+            </button>
+            <button type="button" class="thumb-mask-opt" data-mask="large" onclick="selectThumbMask('large')" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 16px;border-radius:12px;border:2px solid var(--s300);background:var(--s100);color:var(--txt3);cursor:pointer;transition:all .2s;min-width:90px">
+              <div style="width:48px;height:78px;border-radius:6px;background:linear-gradient(135deg,rgba(217,70,239,.15),rgba(168,85,247,.08));border:1.5px solid rgba(168,85,247,.2)"></div>
+              <span style="font-size:.7rem;font-weight:600">Grande</span>
+              <span style="font-size:.55rem;opacity:.7">~2x la data</span>
+            </button>
+          </div>
+          <p class="text-xs txt3 mt-2" style="font-style:italic">💡 La visualizzazione finale dipende anche dal contenuto della card (titolo, badge, deadline). Se la card è più alta dell'immagine, il blocco data si espande per compensare.</p>
+        </div>
+        <input class="input mb-3" id="ne-img-thumb-upload" type="file" accept="image/*" onchange="handleImgUpload(selectedThumbMask==='large'?'thumb_large':'thumb',this)" style="display:none">
         <button class="btn btn-secondary btn-sm mb-3" onclick="document.getElementById('ne-img-thumb-upload').click()" id="ne-img-thumb-btn">📷 Carica immagine</button>
         <div id="ne-img-thumb-preview" style="display:none">
           <div style="background:var(--s100);border:1px solid var(--s400);border-radius:16px;padding:16px;max-width:420px">
             <div class="flex gap-4" style="align-items:flex-start">
-              <div style="flex-shrink:0;width:72px;height:72px;border-radius:12px;overflow:hidden;position:relative;border:2px solid var(--brand)" id="ne-img-thumb-mask">
-                <img id="ne-img-thumb-img" style="width:100%;height:100%;object-fit:cover" draggable="false">
+              <div style="flex-shrink:0;width:80px;border-radius:12px;overflow:hidden;position:relative;border:2px solid var(--brand)" id="ne-img-thumb-mask">
+                <img id="ne-img-thumb-img" style="width:100%;display:block;object-fit:cover" draggable="false">
               </div>
               <div class="flex-1" style="opacity:.4">
                 <div style="height:14px;width:70%;background:var(--s300);border-radius:4px;margin-bottom:6px"></div>
@@ -7681,7 +7720,8 @@ let _ieMouseMove=null,_ieMouseUp=null;
 const IE_PRESETS={
   avatar: {label:'Foto profilo',shape:'circle',aspect:1,lockAspect:true,maxW:256,maxH:256,maxKB:100},
   logo:   {label:'Logo organizzazione',shape:'square',aspect:1,lockAspect:true,maxW:300,maxH:300,maxKB:120},
-  thumb:  {label:'Thumbnail card evento',shape:'rect',aspect:80/68,lockAspect:true,maxW:400,maxH:340,maxKB:150},
+  thumb:  {label:'Thumbnail compatta',shape:'rect',aspect:80/68,lockAspect:true,maxW:400,maxH:340,maxKB:150},
+  thumb_large:{label:'Thumbnail grande',shape:'rect',aspect:80/130,lockAspect:true,maxW:400,maxH:650,maxKB:200},
   header: {label:'Header dettaglio evento',shape:'panoramic',aspect:16/9,lockAspect:true,maxW:800,maxH:450,maxKB:250}
 };
 const IE_ASPECTS={
@@ -10278,10 +10318,11 @@ function renderUserEvents(){
       :`<span style="font-size:1.6rem;font-weight:800;color:#fff;line-height:1.1">${dayNum}</span>
             <span style="font-size:.7rem;font-weight:700;color:rgba(240,171,252,.65);text-transform:uppercase;line-height:1;letter-spacing:.5px">${monthStr}</span>
             <span style="font-size:.55rem;font-weight:500;color:rgba(240,171,252,.35);line-height:1;margin-top:2px">${_yearStr}</span>`;
+    const _fullImgSrc=(ev.image||_thumbData?.src||'').replace(/'/g,"\\'");
     const cardThumb=_thumbData
-      ?`<div style="flex-shrink:0;display:flex;flex-direction:column;align-self:stretch">
-          <div style="width:80px;height:68px;border-radius:12px 12px 0 0;overflow:hidden;cursor:zoom-in" onclick="event.stopPropagation();openFullscreenImage('${_thumbData.src.replace(/'/g,"\\'")}','Evento')"><img src="${_thumbData.src}" style="width:100%;height:100%;object-fit:cover;${_thumbPos}" alt=""></div>
-          <div class="date-block" style="position:relative;width:80px;flex:1;min-height:48px;border-radius:0 0 12px 12px;background:linear-gradient(160deg,rgba(217,70,239,.14),rgba(168,85,247,.08));border:1px solid rgba(217,70,239,.15);border-top:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:6px 0">
+      ?`<div style="flex-shrink:0;display:flex;flex-direction:column;align-self:stretch;width:80px">
+          <div style="width:80px;flex:0 0 auto;min-height:48px;border-radius:12px 12px 0 0;overflow:hidden;cursor:zoom-in" onclick="event.stopPropagation();openFullscreenImage('${_fullImgSrc}','Evento')"><img src="${_thumbData.src}" style="width:100%;display:block;object-fit:cover;${_thumbPos}" alt=""></div>
+          <div class="date-block" style="position:relative;width:80px;flex:1 0 auto;min-height:48px;border-radius:0 0 12px 12px;background:linear-gradient(160deg,rgba(217,70,239,.14),rgba(168,85,247,.08));border:1px solid rgba(217,70,239,.15);border-top:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:6px 0">
             ${_dateBlockContent}${_recIndicator}
           </div>
         </div>`
@@ -10316,7 +10357,7 @@ function renderUserEvents(){
           ${cardThumb}
           <div class="flex-1" style="min-width:0">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
-              ${_orgLogoHtml}<h3 class="font-semibold text-white" style="margin-bottom:0;font-size:.95rem;line-height:1.3">${escHtml(ev.title)}</h3>
+              ${_orgLogoHtml}<h3 class="font-semibold text-white" style="margin-bottom:0;font-size:.95rem;line-height:1.3;overflow-wrap:break-word;word-break:break-word;min-width:0">${escHtml(ev.title)}</h3>
             </div>
             <div class="flex gap-2 mt-1 flex-wrap" style="row-gap:4px">
               <span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>${levelBadges}${pricingBadge}${confirmBadge}${bookClosedBadge}
@@ -12871,9 +12912,6 @@ function renderAdminEvents(){
     _groupedHtml+=groupEvts.map(ev=>{
     const isCapofila=isEventCapofila(ev,u.id);
     const isPartner=!isCapofila;
-    const dateStr=ev.days.length>1?fmtDateShort(ev.days[0]?.date)+' — '+fmtDateShort(ev.days[ev.days.length-1]?.date):fmtDate(ev.days[0]?.date);
-    const orgLabel=isPartner?' · <span style="color:var(--brand-l)">'+escHtml(ev.orgName)+'</span>':'';
-    const partnerBadge=isPartner?getCapofilaLabel(ev,u.id):'';
     const eyeBtn=`<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();showEventDetail('${ev.id}')" title="Anteprima vista utente">👁️</button>`;
     // Partner events: read-only actions only (view, metrics)
     const actions=isPartner?getPartnerReadOnlyActions(ev):
@@ -12911,24 +12949,83 @@ function renderAdminEvents(){
       const _current=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata').length;
       return `<div style="margin-top:10px;padding:10px 14px;border-radius:10px;background:var(--red-bg);border:1px solid rgba(239,68,68,.3)">
         <div class="flex items-center gap-2 mb-2"><span>⚠️</span><span class="text-xs font-bold" style="color:var(--red)">Non hai raggiunto il numero minimo di iscritti (${_current}/${_needed}): conferma o cancella l'evento!</span></div>
-        <div class="flex gap-2"><button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="event.stopPropagation();confirmEventDespiteMin('${ev.id}')">✅ Conferma evento</button><button class="btn btn-sm" style="background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.3)" onclick="event.stopPropagation();cancelEventDueToMin('${ev.id}')">🚫 Cancella evento</button></div>
+        <div class="flex gap-2 flex-wrap"><button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="event.stopPropagation();confirmEventDespiteMin('${ev.id}')">✅ Conferma evento</button><button class="btn btn-sm" style="background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.3)" onclick="event.stopPropagation();cancelEventDueToMin('${ev.id}')">🚫 Cancella evento</button></div>
       </div>`;
     })():'';
-    return `<div class="card" style="${opacity};${partnerBorder}cursor:pointer;margin-bottom:16px;background:var(--s50);border:1px solid var(--s200);box-shadow:0 2px 8px rgba(0,0,0,.2)" onclick="showAdminEventDetail('${ev.id}')">
-      <div style="display:flex;gap:16px;align-items:flex-start">
-        <div style="flex:1;min-width:0">
-          <div class="flex gap-2 items-center mb-2 flex-wrap">
-            <span class="badge ${badgeStatus(ev.status)}">${capitalize(ev.status)}</span>
-            ${partnerBadge}
-            ${getRecurrenceBadge(ev)}${(()=>{if(!ev.recurrence||!ev.recurrence.active)return '';const tabs=getRecurringDateTabs(ev);const _pastCount=tabs?tabs.pastDates.length:0;return _pastCount>0?' <span class="text-xs" style="color:var(--txt3)">('+_pastCount+' concluse)</span>':'';})()}
-            ${ev.parentRecurringId?'<span class="badge" style="background:rgba(99,102,241,.1);color:#6366f1;font-size:.65rem;padding:2px 8px">🔄 da ricorrente</span>':''}
-            ${ev.alert?'<span class="badge" style="background:'+(ev.alert.type==='modificato'?'var(--orange-bg)':'var(--red-bg)')+';color:'+(ev.alert.type==='modificato'?'var(--orange)':'var(--red)')+'">⚠️ '+(ev.alert.type==='cancellato'?'Annullato':ev.alert.type==='rimandato'?'Rimandato':'Modificato')+'</span>':''}
+    /* === Card layout matching Home cards === */
+    const d0=ev.days[0];const dd=d0?new Date(d0.date+'T00:00:00'):null;
+    const dayNum=dd?dd.getDate():'';const monthStr=dd?MONTHS_IT[dd.getMonth()]:'';
+    const _yearStr=dd?dd.getFullYear():'';
+    const _recIndicator=ev.recurrence?'<span class="rec-indicator" title="Evento ricorrente">↻</span>':'';
+    const _isMultiDay=ev.days.length>1;
+    const _lastDay=_isMultiDay?ev.days[ev.days.length-1]:null;
+    const _lastDd=_lastDay?new Date(_lastDay.date+'T00:00:00'):null;
+    const _lastMonthStr=_lastDd?MONTHS_IT[_lastDd.getMonth()]:'';
+    const _sameMonth=_isMultiDay&&dd&&_lastDd&&dd.getMonth()===_lastDd.getMonth()&&dd.getFullYear()===_lastDd.getFullYear();
+    const _dateBlockContent=_isMultiDay?(_sameMonth
+      ?`<span style="font-size:1.4rem;font-weight:800;color:#fff;line-height:1.1">${dayNum}–${_lastDd.getDate()}</span>
+            <span style="font-size:.7rem;font-weight:700;color:rgba(240,171,252,.65);text-transform:uppercase;line-height:1;letter-spacing:.5px">${monthStr}</span>
+            <span style="font-size:.55rem;font-weight:500;color:rgba(240,171,252,.35);line-height:1;margin-top:2px">${_yearStr}</span>`
+      :`<span style="font-size:.85rem;font-weight:700;color:#fff;line-height:1.1">${dayNum} ${monthStr}</span>
+            <span style="font-size:.55rem;color:rgba(240,171,252,.5);line-height:1;margin:1px 0">↓</span>
+            <span style="font-size:.85rem;font-weight:700;color:#fff;line-height:1.1">${_lastDd.getDate()} ${_lastMonthStr}</span>
+            <span style="font-size:.55rem;font-weight:500;color:rgba(240,171,252,.35);line-height:1;margin-top:2px">${_yearStr}</span>`)
+      :`<span style="font-size:1.6rem;font-weight:800;color:#fff;line-height:1.1">${dayNum}</span>
+            <span style="font-size:.7rem;font-weight:700;color:rgba(240,171,252,.65);text-transform:uppercase;line-height:1;letter-spacing:.5px">${monthStr}</span>
+            <span style="font-size:.55rem;font-weight:500;color:rgba(240,171,252,.35);line-height:1;margin-top:2px">${_yearStr}</span>`;
+    const _aThumbData=(ev.imageThumb||ev.image)?{src:ev.imageThumb?.src||ev.image}:null;
+    const _aCardThumb=_aThumbData
+      ?`<div style="flex-shrink:0;display:flex;flex-direction:column;align-self:stretch;width:80px">
+          <div style="width:80px;flex:0 0 auto;min-height:48px;border-radius:12px 12px 0 0;overflow:hidden"><img src="${_aThumbData.src}" style="width:100%;display:block;object-fit:cover" alt=""></div>
+          <div class="date-block" style="position:relative;width:80px;flex:1 0 auto;min-height:48px;border-radius:0 0 12px 12px;background:linear-gradient(160deg,rgba(217,70,239,.14),rgba(168,85,247,.08));border:1px solid rgba(217,70,239,.15);border-top:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:6px 0">
+            ${_dateBlockContent}${_recIndicator}
           </div>
-          <h3 class="font-semibold text-white" style="font-size:1.05rem;margin-bottom:4px">${escHtml(ev.title)}</h3>
-          <div class="text-xs txt3" style="margin-bottom:2px">📅 ${dateStr} · 🕐 ${ev.days[0]?.startTime||''} — ${ev.days[0]?.endTime||''}${orgLabel}</div>
-          <div class="text-xs txt3">📍 ${escHtml(ev.location)}</div>
+        </div>`
+      :`<div style="flex-shrink:0;width:80px;align-self:stretch;display:flex;align-items:center;justify-content:center">
+          <div class="date-block" style="position:relative;width:80px;border-radius:12px;background:linear-gradient(160deg,rgba(217,70,239,.14),rgba(168,85,247,.08));border:1px solid rgba(217,70,239,.15);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:14px 0">
+            ${_dateBlockContent}${_recIndicator}
+          </div>
+        </div>`;
+    const _aMgr=store.managers.find(m=>m.id===ev.managerId);
+    const _aOrgLogoHtml=_aMgr&&_aMgr.orgLogo?`<div style="width:26px;height:26px;border-radius:50%;overflow:hidden;border:2px solid var(--s300);flex-shrink:0"><img src="${_aMgr.orgLogo}" style="width:100%;height:100%;object-fit:cover" alt=""></div>`:'';
+    const _aUniStrip=getUniverseStripHtml(ev);
+    const levelBadges=getEventLevelBadges(ev);
+    const _aMinP=ev.pricingMode==='standard'?minPrice(ev):0;
+    const _aPricingBadge=ev.pricingMode==='free'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🆓 Gratuito</span>':ev.pricingMode==='managed'?'<span class="badge badge-yellow">🤝 Costi con org.</span>':(_aMinP>0?'<span class="badge" style="background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)">💰 da €'+_aMinP+'</span>':'');
+    const confirmStatus=getConfirmationStatus(ev);
+    const confirmBadge=confirmStatus==='attesa'?'<span class="badge badge-attesa">⏳ Min. non raggiunto</span>':confirmStatus==='deadline_scaduta'?'<span class="badge" style="background:var(--red-bg);color:var(--red)">🚫 Deadline scaduta</span>':confirmStatus==='confermato'?'<span class="badge badge-confermato">✅ Confermato</span>':'';
+    const _aPartnerCount=ev.partnerIds?ev.partnerIds.length:0;
+    const _aPartnerHtml=(()=>{
+      if(_aPartnerCount===0)return '';
+      if(_aPartnerCount===1){
+        const pMgr=store.managers.find(m=>m.id===ev.partnerIds[0]);
+        return pMgr?' · <a style="color:#a855f7;cursor:pointer;text-decoration:none" onclick="event.stopPropagation();showOrgPublicProfile(\''+ev.partnerIds[0]+'\')" onmouseover="this.style.textDecoration=\'underline\'" onmouseout="this.style.textDecoration=\'none\'">'+escHtml(pMgr.orgName)+'</a>':'';
+      }
+      return ' <span class="badge" style="background:var(--purple-bg);color:var(--purple);cursor:pointer;font-size:.65rem;padding:1px 8px;white-space:nowrap" onclick="event.stopPropagation();showEventPartners(\''+ev.id+'\')">+'+_aPartnerCount+' partner</span>';
+    })();
+    const _aStartTime=d0?.startTime||(d0?.sessions&&d0.sessions.length?d0.sessions.reduce((m,s)=>s.startTime<m?s.startTime:m,'23:59'):'');
+    const _aEndTime=d0?.endTime||(d0?.sessions&&d0.sessions.length?d0.sessions.reduce((m,s)=>s.endTime>m?s.endTime:m,'00:00'):'');
+    const partnerBadgeSmall=isPartner?getCapofilaLabel(ev,u.id):'';
+    const alertBadge=ev.alert?'<span class="badge" style="background:'+(ev.alert.type==='modificato'?'var(--orange-bg)':'var(--red-bg)')+';color:'+(ev.alert.type==='modificato'?'var(--orange)':'var(--red)')+'">⚠️ '+(ev.alert.type==='cancellato'?'Annullato':ev.alert.type==='rimandato'?'Rimandato':'Modificato')+'</span>':'';
+    return `<div class="card-hover mb-4" style="border-radius:16px;overflow:hidden;padding:0;${opacity};${partnerBorder}" onclick="showAdminEventDetail('${ev.id}')">
+      <div style="display:flex;align-items:stretch">
+        ${_aUniStrip}
+        <div style="flex:1;min-width:0;padding:14px 16px;display:flex;gap:14px;align-items:flex-start">
+          ${_aCardThumb}
+          <div class="flex-1" style="min-width:0">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+              ${_aOrgLogoHtml}<h3 class="font-semibold text-white" style="margin-bottom:0;font-size:.95rem;line-height:1.3;overflow-wrap:break-word;word-break:break-word;min-width:0">${escHtml(ev.title)}</h3>
+            </div>
+            <div class="flex gap-2 mt-1 flex-wrap" style="row-gap:4px">
+              <span class="badge ${badgeStatus(ev.status)}">${capitalize(ev.status)}</span>
+              <span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>${levelBadges}${_aPricingBadge}${confirmBadge}${partnerBadgeSmall}${alertBadge}
+            </div>
+            <div style="margin-top:8px;font-size:.78rem;color:var(--txt2)">
+              🕐 dalle ${_aStartTime} alle ${_aEndTime} · <a style="color:var(--brand-l);cursor:pointer;text-decoration:none" onclick="event.stopPropagation();showOrgPublicProfile('${ev.managerId}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${escHtml(ev.orgName)}</a>${_aPartnerHtml}
+            </div>
+            <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">${actions}</div>
+          </div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;align-items:flex-end">${actions}</div>
       </div>
       ${_minBanner}
     </div>`;
@@ -15436,24 +15533,38 @@ function collectFormData(){
 let editingEventId=null;
 // Dual image system: thumb (card) + header (detail)
 const evImages={thumb:null,header:null};
+let selectedThumbMask='compact'; // 'compact' or 'large'
+function selectThumbMask(type){
+  selectedThumbMask=type;
+  document.querySelectorAll('.thumb-mask-opt').forEach(btn=>{
+    const isActive=btn.dataset.mask===type;
+    btn.style.border='2px solid '+(isActive?'var(--brand)':'var(--s300)');
+    btn.style.background=isActive?'var(--brand-bg)':'var(--s100)';
+    btn.style.color=isActive?'var(--brand-l)':'var(--txt3)';
+  });
+  // If image already uploaded, store the new mask type
+  if(evImages.thumb){evImages.thumb.maskType=type;}
+}
 const _imgDrag={active:false,key:'',startX:0,startY:0,origX:0,origY:0};
 
 function handleImgUpload(key,input){
   const file=input.files[0];if(!file)return;
   input.value='';
+  const isThumb=key==='thumb'||key==='thumb_large';
+  const storeKey=isThumb?'thumb':key;
   loadImageFromFile(file).then(img=>{
     openImageEditor(img,{
-      preset:key, // 'thumb' or 'header'
+      preset:key, // 'thumb', 'thumb_large', or 'header'
       onConfirm:(base64,metadata)=>{
-        evImages[key]={src:base64,zoom:100,posX:0,posY:0,_edited:true};
-        const imgEl=document.getElementById('ne-img-'+key+'-img');
-        const preview=document.getElementById('ne-img-'+key+'-preview');
+        evImages[storeKey]={src:base64,zoom:100,posX:0,posY:0,_edited:true,maskType:isThumb?selectedThumbMask:undefined};
+        const imgEl=document.getElementById('ne-img-'+storeKey+'-img');
+        const preview=document.getElementById('ne-img-'+storeKey+'-preview');
         if(imgEl)imgEl.src=base64;
         if(preview)preview.style.display='block';
         // For new editor: image is already cropped/compressed, no zoom/pan needed in form
-        if(imgEl){imgEl.style.width='100%';imgEl.style.height='100%';imgEl.style.objectFit='cover';imgEl.style.position='relative';imgEl.style.left='0';imgEl.style.top='0';}
+        if(imgEl){imgEl.style.width='100%';imgEl.style.height='auto';imgEl.style.display='block';imgEl.style.objectFit='cover';imgEl.style.position='relative';imgEl.style.left='0';imgEl.style.top='0';}
         // Hide zoom slider since image is pre-processed
-        const zoomWrap=document.getElementById('ne-img-'+key+'-zoom')?.parentElement;
+        const zoomWrap=document.getElementById('ne-img-'+storeKey+'-zoom')?.parentElement;
         if(zoomWrap)zoomWrap.style.display='none';
         const dragTip=preview?.querySelector('[style*="font-style:italic"]');
         if(dragTip)dragTip.textContent='Immagine ritagliata e ottimizzata · Clicca "Ri-edita" per modificare';
@@ -15756,11 +15867,13 @@ function editEvent(id){
   // Restore images (dual system)
   function restoreImgEdit(key,data){
     if(!data||!data.src)return;
-    evImages[key]={src:data.src,zoom:data.zoom||100,posX:data.posX||0,posY:data.posY||0};
+    evImages[key]={src:data.src,zoom:data.zoom||100,posX:data.posX||0,posY:data.posY||0,maskType:data.maskType||undefined};
     const img=document.getElementById('ne-img-'+key+'-img');
     const preview=document.getElementById('ne-img-'+key+'-preview');
-    if(img){img.src=data.src;img.style.width='100%';img.style.height='100%';img.style.objectFit='cover';img.style.position='relative';img.style.left='0';img.style.top='0';}
+    if(img){img.src=data.src;img.style.width='100%';img.style.height='auto';img.style.display='block';img.style.objectFit='cover';img.style.position='relative';img.style.left='0';img.style.top='0';}
     if(preview)preview.style.display='block';
+    // Restore mask type selector for thumb
+    if(key==='thumb'&&data.maskType){selectedThumbMask=data.maskType;selectThumbMask(data.maskType);}
   }
   if(ev.imageThumb)restoreImgEdit('thumb',ev.imageThumb);
   else if(ev.image)restoreImgEdit('thumb',{src:ev.image,zoom:100,posX:0,posY:0});
