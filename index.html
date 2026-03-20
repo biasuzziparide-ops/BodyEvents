@@ -77,6 +77,9 @@ a{color:var(--brand-l);text-decoration:none}
 .badge-purple{background:var(--purple-bg);color:var(--purple)}
 .badge-yellow{background:var(--yellow-bg);color:var(--yellow)}
 
+/* Recurring event indicator (overlaid on date block) */
+.rec-indicator{position:absolute;bottom:4px;right:-4px;width:18px;height:18px;border-radius:50%;background:var(--s50);border:1.5px solid rgba(168,85,247,.4);display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:700;color:var(--brand-l);line-height:1}
+
 /* === INCLUDED STATE === */
 .included{background:var(--green-bg);opacity:0.8}
 
@@ -372,13 +375,13 @@ textarea.input{resize:none;font-family:inherit}
     <div class="mobile-topnav">
       <div class="mtn-avatar" onclick="go('profile')"><span class="nav-user-avatar" style="width:38px;height:38px;border-radius:50%;background:var(--brand-bg);display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;color:var(--brand-l);overflow:hidden;border:2px solid var(--brand);cursor:pointer">👤</span></div>
       <div class="mtn-items">
-        <div class="mtn-item active" data-view="events" onclick="go('events')"><span>📅</span><span class="mtn-label">Eventi</span></div>
+        <div class="mtn-item active" data-view="events" onclick="go('events')"><span>🏠</span><span class="mtn-label">Home</span></div>
         <div class="mtn-item" data-view="jams" onclick="go('jams')"><span>🤝</span><span class="mtn-label">Community</span></div>
         <div class="mtn-item" data-view="dashboard" onclick="go('dashboard')"><span>🎫</span><span class="mtn-label">Prenot.</span></div>
       </div>
     </div>
     <div class="nav-links" id="navLinks">
-      <div class="nav-link active" data-view="events" onclick="go('events')">📅 Bacheca</div>
+      <div class="nav-link active" data-view="events" onclick="go('events')">🏠 Home</div>
       <div class="nav-link" data-view="jams" onclick="go('jams')">🤝 Community Events</div>
       <div class="nav-link" data-view="dashboard" onclick="go('dashboard')">🎫 Prenotazioni</div>
     </div>
@@ -393,7 +396,7 @@ textarea.input{resize:none;font-family:inherit}
   <!-- Mobile quick-access bar (user) -->
   <div class="mobile-quickbar" id="quickbar-user">
     <div class="mobile-quickbar-inner">
-      <div class="mqb-item active" data-view="events" onclick="go('events');closeMobile()"><span class="mqb-icon">📅</span><span class="mqb-label">Bacheca</span></div>
+      <div class="mqb-item active" data-view="events" onclick="go('events');closeMobile()"><span class="mqb-icon">🏠</span><span class="mqb-label">Home</span></div>
       <div class="mqb-item" data-view="jams" onclick="go('jams');closeMobile()"><span class="mqb-icon">🤝</span><span class="mqb-label">Community</span></div>
       <div class="mqb-item" data-view="dashboard" onclick="go('dashboard');closeMobile()"><span class="mqb-icon">🎫</span><span class="mqb-label">Prenotazioni</span></div>
       <div class="mqb-item" data-view="profile" onclick="go('profile');closeMobile()"><span class="mqb-icon">👤</span><span class="mqb-label">Account</span></div>
@@ -403,7 +406,7 @@ textarea.input{resize:none;font-family:inherit}
   <div class="mobile-menu" id="mobileMenu">
     <div class="mm-group">
       <div class="mm-group-label">Esplora</div>
-      <div class="nav-link" onclick="go('events');closeMobile()">📅 Bacheca</div>
+      <div class="nav-link" onclick="go('events');closeMobile()">🏠 Home</div>
       <div class="nav-link" onclick="go('jams');closeMobile()">🤝 Community Events</div>
     </div>
     <div class="mm-group">
@@ -491,7 +494,7 @@ textarea.input{resize:none;font-family:inherit}
 <!-- ============================================================ -->
 <div class="view" id="view-events">
 <div class="container" style="padding-top:32px;padding-bottom:48px">
-  <h1 class="page-title">Bacheca Eventi</h1>
+  <h1 class="page-title">Home</h1>
   <p class="page-sub mb-6">Scopri i prossimi eventi e prenota il tuo posto</p>
 
   <!-- Mobile: search bar che si espande -->
@@ -10209,15 +10212,11 @@ function renderUserEvents(){
   const eventCards=evts.map(ev=>{
     const d0=ev.days[0];const dd=d0?new Date(d0.date+'T00:00:00'):null;
     const dayNum=dd?dd.getDate():'';const monthStr=dd?MONTHS_IT[dd.getMonth()]:'';
-    const dateRange=ev.days.length>1?fmtDateShort(ev.days[0]?.date)+' — '+fmtDateShort(ev.days[ev.days.length-1]?.date):fmtDate(d0?.date);
     const levelBadges=getEventLevelBadges(ev);
-    const daysBadge=ev.days.length>1?'<span class="badge badge-purple">'+ev.days.length+' giorni</span>':'';
-    const recBadge=getRecurrenceBadge(ev);
     const _minP=ev.pricingMode==='standard'?minPrice(ev):0;
     // Check if user has entry-based or discount sub for this event
     const _cardSubInfo=(()=>{
       if(!store.currentUser||ev.pricingMode!=='standard')return null;
-      // Check entry-based sub (same organizer + compatible, no subscriptionBookable dependency)
       const _uSubs=getUserActiveSubscriptions(store.currentUser.id);
       const hasEntry=_uSubs.some(s=>{
         const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
@@ -10229,7 +10228,6 @@ function renderUserEvents(){
         return true;
       });
       if(hasEntry)return {type:'entry'};
-      // Check discount sub
       const discPct=getEffectiveDiscountPct(ev);
       if(discPct>0&&_minP>0){
         const scontato=Math.round(_minP*(1-discPct/100)*100)/100;
@@ -10244,7 +10242,7 @@ function renderUserEvents(){
     const _todayStr=localDateStr(new Date());
     const _bookClosed=_effBkDl&&_todayStr>_effBkDl;
     const bookClosedBadge=_bookClosed?'<span class="badge" style="background:var(--red-bg);color:var(--red)">🔒 Prenotazioni chiuse</span>':'';
-    /* Deadline banner: show when deadline exists and bookings are still open */
+    /* Deadline banner */
     const _deadlineBanner=(()=>{
       if(!_effBkDl||_bookClosed)return '';
       const dlDate=new Date(_effBkDl+'T00:00:00');
@@ -10261,20 +10259,35 @@ function renderUserEvents(){
     const _thumbData=(ev.imageThumb||ev.image)?{src:ev.imageThumb?.src||ev.image,zoom:ev.imageThumb?.zoom||100,posX:ev.imageThumb?.posX||0,posY:ev.imageThumb?.posY||0}:null;
     const _thumbPos=_thumbData?(()=>{const s=_thumbData.zoom/100;const denom=72*s-72;const px=denom>0?Math.round(Math.abs(_thumbData.posX)/denom*100):50;const py=denom>0?Math.round(Math.abs(_thumbData.posY)/denom*100):50;return `object-position:${isNaN(px)?50:px}% ${isNaN(py)?50:py}%`})():'';
     const _yearStr=dd?dd.getFullYear():'';
+    /* Recurring indicator for date block */
+    const _recIndicator=ev.recurrence?'<span class="rec-indicator" title="Evento ricorrente">↻</span>':'';
+    /* Multi-day date display in date block */
+    const _isMultiDay=ev.days.length>1;
+    const _lastDay=_isMultiDay?ev.days[ev.days.length-1]:null;
+    const _lastDd=_lastDay?new Date(_lastDay.date+'T00:00:00'):null;
+    const _lastMonthStr=_lastDd?MONTHS_IT[_lastDd.getMonth()]:'';
+    const _sameMonth=_isMultiDay&&dd&&_lastDd&&dd.getMonth()===_lastDd.getMonth()&&dd.getFullYear()===_lastDd.getFullYear();
+    const _dateBlockContent=_isMultiDay?(_sameMonth
+      ?`<span style="font-size:1.4rem;font-weight:800;color:#fff;line-height:1.1">${dayNum}–${_lastDd.getDate()}</span>
+            <span style="font-size:.7rem;font-weight:700;color:rgba(240,171,252,.65);text-transform:uppercase;line-height:1;letter-spacing:.5px">${monthStr}</span>
+            <span style="font-size:.55rem;font-weight:500;color:rgba(240,171,252,.35);line-height:1;margin-top:2px">${_yearStr}</span>`
+      :`<span style="font-size:.85rem;font-weight:700;color:#fff;line-height:1.1">${dayNum} ${monthStr}</span>
+            <span style="font-size:.55rem;color:rgba(240,171,252,.5);line-height:1;margin:1px 0">↓</span>
+            <span style="font-size:.85rem;font-weight:700;color:#fff;line-height:1.1">${_lastDd.getDate()} ${_lastMonthStr}</span>
+            <span style="font-size:.55rem;font-weight:500;color:rgba(240,171,252,.35);line-height:1;margin-top:2px">${_yearStr}</span>`)
+      :`<span style="font-size:1.6rem;font-weight:800;color:#fff;line-height:1.1">${dayNum}</span>
+            <span style="font-size:.7rem;font-weight:700;color:rgba(240,171,252,.65);text-transform:uppercase;line-height:1;letter-spacing:.5px">${monthStr}</span>
+            <span style="font-size:.55rem;font-weight:500;color:rgba(240,171,252,.35);line-height:1;margin-top:2px">${_yearStr}</span>`;
     const cardThumb=_thumbData
       ?`<div style="flex-shrink:0;display:flex;flex-direction:column;align-self:stretch">
           <div style="width:80px;height:68px;border-radius:12px 12px 0 0;overflow:hidden;cursor:zoom-in" onclick="event.stopPropagation();openFullscreenImage('${_thumbData.src.replace(/'/g,"\\'")}','Evento')"><img src="${_thumbData.src}" style="width:100%;height:100%;object-fit:cover;${_thumbPos}" alt=""></div>
-          <div style="width:80px;flex:1;min-height:48px;border-radius:0 0 12px 12px;background:linear-gradient(160deg,rgba(217,70,239,.14),rgba(168,85,247,.08));border:1px solid rgba(217,70,239,.15);border-top:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:6px 0">
-            <span style="font-size:1.6rem;font-weight:800;color:#fff;line-height:1.1">${dayNum}</span>
-            <span style="font-size:.7rem;font-weight:700;color:rgba(240,171,252,.65);text-transform:uppercase;line-height:1;letter-spacing:.5px">${monthStr}</span>
-            <span style="font-size:.55rem;font-weight:500;color:rgba(240,171,252,.35);line-height:1;margin-top:2px">${_yearStr}</span>
+          <div class="date-block" style="position:relative;width:80px;flex:1;min-height:48px;border-radius:0 0 12px 12px;background:linear-gradient(160deg,rgba(217,70,239,.14),rgba(168,85,247,.08));border:1px solid rgba(217,70,239,.15);border-top:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:6px 0">
+            ${_dateBlockContent}${_recIndicator}
           </div>
         </div>`
       :`<div style="flex-shrink:0;width:80px;align-self:stretch;display:flex;align-items:center;justify-content:center">
-          <div style="width:80px;border-radius:12px;background:linear-gradient(160deg,rgba(217,70,239,.14),rgba(168,85,247,.08));border:1px solid rgba(217,70,239,.15);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:14px 0">
-            <span style="font-size:1.6rem;font-weight:800;color:#fff;line-height:1.1">${dayNum}</span>
-            <span style="font-size:.7rem;font-weight:700;color:rgba(240,171,252,.65);text-transform:uppercase;line-height:1;letter-spacing:.5px">${monthStr}</span>
-            <span style="font-size:.55rem;font-weight:500;color:rgba(240,171,252,.35);line-height:1;margin-top:2px">${_yearStr}</span>
+          <div class="date-block" style="position:relative;width:80px;border-radius:12px;background:linear-gradient(160deg,rgba(217,70,239,.14),rgba(168,85,247,.08));border:1px solid rgba(217,70,239,.15);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:14px 0">
+            ${_dateBlockContent}${_recIndicator}
           </div>
         </div>`;
     /* Org logo (capofila) */
@@ -10282,7 +10295,20 @@ function renderUserEvents(){
     const _orgLogoHtml=_mgr&&_mgr.orgLogo?`<div style="width:26px;height:26px;border-radius:50%;overflow:hidden;border:2px solid var(--s300);flex-shrink:0"><img src="${_mgr.orgLogo}" style="width:100%;height:100%;object-fit:cover" alt=""></div>`:'';
     /* Universe strip */
     const _uniStrip=getUniverseStripHtml(ev);
-    /* Badge order: Type > Multi-day > Level > Recurring > Price > Confirm > Closed (universe removed — shown in vertical strip) */
+    /* Partner display on time line: 0=org only, 1=org+partner, 2+=org+badge */
+    const _partnerCount=ev.partnerIds?ev.partnerIds.length:0;
+    const _partnerHtml=(()=>{
+      if(_partnerCount===0)return '';
+      if(_partnerCount===1){
+        const pMgr=store.managers.find(m=>m.id===ev.partnerIds[0]);
+        return pMgr?' · <a style="color:#a855f7;cursor:pointer;text-decoration:none" onclick="event.stopPropagation();showOrgPublicProfile(\''+ev.partnerIds[0]+'\')" onmouseover="this.style.textDecoration=\'underline\'" onmouseout="this.style.textDecoration=\'none\'">'+escHtml(pMgr.orgName)+'</a>':'';
+      }
+      return ' <span class="badge" style="background:var(--purple-bg);color:var(--purple);cursor:pointer;font-size:.65rem;padding:1px 8px;white-space:nowrap" onclick="event.stopPropagation();showEventPartners(\''+ev.id+'\')">+'+_partnerCount+' partner</span>';
+    })();
+    /* Time line: startTime–endTime from first day (uses sessions if needed) */
+    const _startTime=d0?.startTime||(d0?.sessions&&d0.sessions.length?d0.sessions.reduce((m,s)=>s.startTime<m?s.startTime:m,'23:59'):'');
+    const _endTime=d0?.endTime||(d0?.sessions&&d0.sessions.length?d0.sessions.reduce((m,s)=>s.endTime>m?s.endTime:m,'00:00'):'');
+    /* Badge order: Type > Level > Price > Confirm > Closed */
     return `<div class="card-hover mb-4" style="border-radius:16px;overflow:hidden;padding:0" onclick="showEventDetail('${ev.id}'${ev._recDate?`,'${ev._recDate}'`:''})">
       <div style="display:flex;align-items:stretch">
         ${_uniStrip}
@@ -10293,14 +10319,10 @@ function renderUserEvents(){
               ${_orgLogoHtml}<h3 class="font-semibold text-white" style="margin-bottom:0;font-size:.95rem;line-height:1.3">${escHtml(ev.title)}</h3>
             </div>
             <div class="flex gap-2 mt-1 flex-wrap" style="row-gap:4px">
-              <span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>${daysBadge}${levelBadges}${recBadge}${pricingBadge}${confirmBadge}${bookClosedBadge}
+              <span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>${levelBadges}${pricingBadge}${confirmBadge}${bookClosedBadge}
             </div>
-            <div style="display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px;font-size:.72rem;color:var(--txt3)">
-              <span>📅 ${dateRange}</span><span>🕐 ${d0?.startTime||''} – ${d0?.endTime||''}</span><span>📍 ${escHtml(ev.location)}</span>
-            </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:3px">
-              <div style="font-size:.7rem;color:var(--txt3)">con ${escHtml(ev.teacher)} · <a style="color:var(--brand-l);cursor:pointer;text-decoration:none" onclick="event.stopPropagation();showOrgPublicProfile('${ev.managerId}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${escHtml(ev.orgName)}</a>${ev.partnerIds&&ev.partnerIds.length?' <span style="color:#a855f7">+ '+ev.partnerIds.length+' partner</span>':''}</div>
-              <button class="btn btn-ghost btn-sm" style="flex-shrink:0;padding:4px 8px;font-size:.75rem;color:var(--brand-l);opacity:.7" onclick="event.stopPropagation();openShareModal('${ev.id}')" title="Condividi evento">📤</button>
+            <div style="margin-top:8px;font-size:.78rem;color:var(--txt2)">
+              🕐 dalle ${_startTime} alle ${_endTime} · <a style="color:var(--brand-l);cursor:pointer;text-decoration:none" onclick="event.stopPropagation();showOrgPublicProfile('${ev.managerId}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${escHtml(ev.orgName)}</a>${_partnerHtml}
             </div>${_deadlineBanner}
           </div>
         </div>
@@ -12148,6 +12170,30 @@ function collectCheckinBookingData(ev,prefix){
 /* ==============================
    ORG PUBLIC PROFILE OVERLAY
 ============================== */
+/* Show event partners overlay (for 2+ partners on card) */
+function showEventPartners(evId){
+  const ev=store.events.find(e=>e.id===evId);
+  if(!ev||!ev.partnerIds||!ev.partnerIds.length)return;
+  const capofila=store.managers.find(m=>m.id===ev.managerId);
+  let html='<div style="text-align:center"><h4 style="color:var(--brand-l);font-size:.9rem;margin-bottom:12px">Partner dell\'evento</h4>';
+  /* Capofila */
+  if(capofila){
+    html+='<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;background:var(--s200);margin-bottom:6px;cursor:pointer" onclick="closeModal();showOrgPublicProfile(\''+capofila.id+'\')">';
+    html+=capofila.orgLogo?'<img src="'+capofila.orgLogo+'" style="width:28px;height:28px;border-radius:50%;object-fit:cover">':'<span style="font-size:1rem">🏢</span>';
+    html+='<div style="text-align:left"><div style="font-weight:600;color:var(--brand-l);font-size:.8rem">'+escHtml(capofila.orgName)+'</div><div style="font-size:.65rem;color:var(--txt3)">Organizzatore capofila</div></div></div>';
+  }
+  /* Partners */
+  ev.partnerIds.forEach(pid=>{
+    const pMgr=store.managers.find(m=>m.id===pid);
+    if(!pMgr)return;
+    html+='<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;background:var(--s200);margin-bottom:6px;cursor:pointer" onclick="closeModal();showOrgPublicProfile(\''+pMgr.id+'\')">';
+    html+=pMgr.orgLogo?'<img src="'+pMgr.orgLogo+'" style="width:28px;height:28px;border-radius:50%;object-fit:cover">':'<span style="font-size:1rem">🏢</span>';
+    html+='<div style="text-align:left"><div style="font-weight:600;color:#a855f7;font-size:.8rem">'+escHtml(pMgr.orgName)+'</div><div style="font-size:.65rem;color:var(--txt3)">Partner</div></div></div>';
+  });
+  html+='</div>';
+  openGenericModal('<div style="padding:20px">'+html+'</div>');
+}
+
 function showOrgPublicProfile(managerId){
   const mgr=store.managers.find(m=>m.id===managerId);
   if(!mgr){showToast('Organizzatore non trovato','error');return;}
@@ -14116,13 +14162,13 @@ async function exportFullBackup(){
   if(store.currentUser.role!=='master'){showToast('Solo il Master può eseguire backup','error');return;}
   showToast('Preparazione backup in corso...');
   try{
-    const collections=['users','managers','events','bookings','communityJams','attendances','universes','subscriptionTypes','subscriptions'];
+    const collections=['users','managers','events','bookings','communityJams','attendances','universes','subscriptionTypes','subscriptions','pendingSubTokens'];
     const backup={
       _meta:{
         appName:'BodyEvents',
         exportDate:new Date().toISOString(),
         exportedBy:store.currentUser.email,
-        version:'2.14.8',
+        version:'V3.0.0',
         collections:collections
       }
     };
@@ -14139,6 +14185,7 @@ async function exportFullBackup(){
     a.href=url;a.download='bodyevents_backup_'+date+'.json';
     document.body.appendChild(a);a.click();document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    localStorage.setItem('bodyevents_last_backup',new Date().toISOString());
     showToast('💾 Backup scaricato con successo! ('+backup._meta.collections.length+' collezioni)');
   }catch(e){
     showToast('Errore backup: '+e.message,'error');
@@ -14214,6 +14261,19 @@ function renderAdminDashboard(){
     ${archiviati?'<div class="stat-card"><div class="value" style="color:#6366f1">'+archiviati+'</div><div class="label">Archiviati</div></div>':''}
     ${partnerEvts.length?'<div class="stat-card"><div class="value" style="color:#a855f7">'+partnerEvts.length+'</div><div class="label">🤝 Partner</div></div>':''}
   `;
+
+  // === BACKUP REMINDER (master only) ===
+  if(isMaster){
+    const lastBackup=localStorage.getItem('bodyevents_last_backup');
+    const daysSinceBackup=lastBackup?Math.floor((Date.now()-new Date(lastBackup).getTime())/(1000*60*60*24)):999;
+    if(daysSinceBackup>=7){
+      const reminderEl=document.createElement('div');
+      reminderEl.style.cssText='background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.25);border-radius:12px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;cursor:pointer';
+      reminderEl.onclick=()=>exportFullBackup();
+      reminderEl.innerHTML='<span style="font-size:1.2rem">⚠️</span><div style="flex:1"><div style="font-size:.85rem;font-weight:600;color:var(--yellow)">'+(lastBackup?'Ultimo backup: '+Math.floor(daysSinceBackup)+' giorni fa':'Nessun backup effettuato')+'</div><div style="font-size:.75rem;color:var(--txt3)">Clicca per scaricare un backup completo dei dati</div></div>';
+      c.parentElement.insertBefore(reminderEl,c.nextSibling);
+    }
+  }
 
   // === FINANCIAL METRICS (from archived events only) ===
   const fc=document.getElementById('admin-dash-financial');
