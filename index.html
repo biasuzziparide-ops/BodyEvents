@@ -10813,32 +10813,104 @@ function renderUserDashboard(){
     // Session info line
     const _sessInfoLine=_cardSessionLabel?`<div class="text-xs txt3 mt-1">📋 Sessione: "${_cardSessionLabel}"</div>`:((b.scope==='sessioni'||b.scope==='sessione')&&b.items?'<div class="text-xs txt3 mt-1">📋 '+(b.items.filter(it=>it.type==='sessione').length||1)+' sessione/i</div>':'');
 
-    // Payment info and links
-    let paymentInfoLine='';
-
-    html+=`<div class="card mb-4 card-hover" style="border-color:${borderColor};background:${bgColor};position:relative;overflow:hidden;cursor:pointer" onclick="showEventDetail('${ev.id}'${b.recurringDate?`,'${b.recurringDate}'`:''})">
-      ${alertStamp}
-      ${i===0&&!hasAlert?'<div class="text-xs txt3 mb-2" style="text-transform:uppercase;letter-spacing:1px;position:relative;z-index:2">Prossimo evento</div>':''}
-      <div class="flex gap-4" style="align-items:flex-start;position:relative;z-index:2">
-        <div style="flex-shrink:0;width:56px;height:56px;border-radius:12px;background:var(--brand-bg);display:flex;flex-direction:column;align-items:center;justify-content:center">
-          <span style="font-size:1.3rem;font-weight:700;color:var(--brand-l)">${dayNum}</span>
-          <span style="font-size:.6rem;color:rgba(240,171,252,.5)">${monthStr}</span>
-        </div>
-        <div class="flex-1">
-          <h3 class="font-semibold text-white">${escHtml(ev.title)}</h3>
-          ${cardDateTimeLine}
-          ${cardPriceLine}
-          ${paymentInfoLine}
-          ${b.recurringDate?'<div class="text-xs mt-1" style="color:var(--yellow)">🔄 Evento ricorrente</div>':''}
-          ${_sessInfoLine}
-          <div class="flex gap-2 mt-2">
-            <span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>
-            ${b.depositStatus==='pending'?'<span class="badge badge-yellow">⏳ In attesa di anticipo</span>':'<span class="badge badge-pubblicato">Confermata</span>'}
+    // === Build Home-style card ===
+    // Thumbnail data
+    const _thumbData=(ev.imageThumb||ev.image)?{src:ev.imageThumb?.src||ev.image,zoom:ev.imageThumb?.zoom||100,posX:ev.imageThumb?.posX||0,posY:ev.imageThumb?.posY||0}:null;
+    const _thumbPos=_thumbData?(()=>{const s=_thumbData.zoom/100;const denom=72*s-72;const px=denom>0?Math.round(Math.abs(_thumbData.posX)/denom*100):50;const py=denom>0?Math.round(Math.abs(_thumbData.posY)/denom*100):50;return `object-position:${isNaN(px)?50:px}% ${isNaN(py)?50:py}%`})():'';
+    const _yearStr=dd?dd.getFullYear():'';
+    // Multi-day date display
+    const _isMultiDay=ev.days.length>1;
+    const _lastDay=_isMultiDay?ev.days[ev.days.length-1]:null;
+    const _lastDd=_lastDay?new Date(_lastDay.date+'T00:00:00'):null;
+    const _lastMonthStr=_lastDd?MONTHS_IT[_lastDd.getMonth()]:'';
+    const _sameMonth=_isMultiDay&&dd&&_lastDd&&dd.getMonth()===_lastDd.getMonth()&&dd.getFullYear()===_lastDd.getFullYear();
+    const _dateBlockContent=_isMultiDay?(_sameMonth
+      ?`<span style="font-size:1.4rem;font-weight:800;color:#fff;line-height:1.1">${dayNum}–${_lastDd.getDate()}</span>
+            <span style="font-size:.7rem;font-weight:700;color:rgba(240,171,252,.65);text-transform:uppercase;line-height:1;letter-spacing:.5px">${monthStr}</span>
+            <span style="font-size:.55rem;font-weight:500;color:rgba(240,171,252,.35);line-height:1;margin-top:2px">${_yearStr}</span>`
+      :`<span style="font-size:.85rem;font-weight:700;color:#fff;line-height:1.1">${dayNum} ${monthStr}</span>
+            <span style="font-size:.55rem;color:rgba(240,171,252,.5);line-height:1;margin:1px 0">↓</span>
+            <span style="font-size:.85rem;font-weight:700;color:#fff;line-height:1.1">${_lastDd.getDate()} ${_lastMonthStr}</span>
+            <span style="font-size:.55rem;font-weight:500;color:rgba(240,171,252,.35);line-height:1;margin-top:2px">${_yearStr}</span>`)
+      :`<span style="font-size:1.6rem;font-weight:800;color:#fff;line-height:1.1">${dayNum}</span>
+            <span style="font-size:.7rem;font-weight:700;color:rgba(240,171,252,.65);text-transform:uppercase;line-height:1;letter-spacing:.5px">${monthStr}</span>
+            <span style="font-size:.55rem;font-weight:500;color:rgba(240,171,252,.35);line-height:1;margin-top:2px">${_yearStr}</span>`;
+    // Recurring indicator
+    const _recIndicator=ev.recurrence?'<span class="rec-indicator" title="Evento ricorrente">↻</span>':'';
+    // Thumb + date block (like Home cards)
+    const _fullImgSrc=(ev.image||_thumbData?.src||'').replace(/'/g,"\\'");
+    const cardThumb=_thumbData
+      ?`<div style="flex-shrink:0;display:flex;flex-direction:column;align-self:stretch;width:80px">
+          <div style="width:80px;flex:0 0 auto;min-height:48px;border-radius:12px 12px 0 0;overflow:hidden;cursor:zoom-in" onclick="event.stopPropagation();openFullscreenImage('${_fullImgSrc}','Evento')"><img src="${_thumbData.src}" style="width:100%;display:block;object-fit:cover;${_thumbPos}" alt=""></div>
+          <div class="date-block" style="position:relative;width:80px;flex:1 0 auto;min-height:48px;border-radius:0 0 12px 12px;background:linear-gradient(160deg,rgba(217,70,239,.14),rgba(168,85,247,.08));border:1px solid rgba(217,70,239,.15);border-top:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:6px 0">
+            ${_dateBlockContent}${_recIndicator}
           </div>
+        </div>`
+      :`<div style="flex-shrink:0;width:80px;align-self:stretch;display:flex;align-items:center;justify-content:center">
+          <div class="date-block" style="position:relative;width:80px;border-radius:12px;background:linear-gradient(160deg,rgba(217,70,239,.14),rgba(168,85,247,.08));border:1px solid rgba(217,70,239,.15);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:14px 0">
+            ${_dateBlockContent}${_recIndicator}
+          </div>
+        </div>`;
+    // Org logo
+    const _mgr=store.managers.find(m=>m.id===ev.managerId);
+    const _orgLogoHtml=_mgr&&_mgr.orgLogo?`<div style="width:26px;height:26px;border-radius:50%;overflow:hidden;border:2px solid var(--s300);flex-shrink:0"><img src="${_mgr.orgLogo}" style="width:100%;height:100%;object-fit:cover" alt=""></div>`:'';
+    // Universe strip
+    const _uniStrip=getUniverseStripHtml(ev);
+    // Time line
+    const _startTime=d0?.startTime||(d0?.sessions&&d0.sessions.length?d0.sessions.reduce((m,s)=>s.startTime<m?s.startTime:m,'23:59'):'');
+    const _endTime=d0?.endTime||(d0?.sessions&&d0.sessions.length?d0.sessions.reduce((m,s)=>s.endTime>m?s.endTime:m,'00:00'):'');
+    // Status badge
+    const _statusBadge=b.depositStatus==='pending'?'<span class="badge badge-yellow">⏳ In attesa di anticipo</span>':'<span class="badge badge-pubblicato">✅ Confermata</span>';
+    // Level badges
+    const _bkLevelBadges=getEventLevelBadges(ev);
+    // Partner display
+    const _partnerCount=ev.partnerIds?ev.partnerIds.length:0;
+    const _partnerHtml=(()=>{
+      if(_partnerCount===0)return '';
+      if(_partnerCount===1){
+        const pMgr=store.managers.find(m=>m.id===ev.partnerIds[0]);
+        return pMgr?' · <a style="color:#a855f7;cursor:pointer;text-decoration:none" onclick="event.stopPropagation();showOrgPublicProfile(\''+ev.partnerIds[0]+'\')" onmouseover="this.style.textDecoration=\'underline\'" onmouseout="this.style.textDecoration=\'none\'">'+escHtml(pMgr.orgName)+'</a>':'';
+      }
+      return ' <span class="badge" style="background:var(--purple-bg);color:var(--purple);cursor:pointer;font-size:.65rem;padding:1px 8px;white-space:nowrap" onclick="event.stopPropagation();showEventPartners(\''+ev.id+'\')">+'+_partnerCount+' partner</span>';
+    })();
+    // Inline time highlight for modificato
+    let _timeLineHtml;
+    if(hlTime){
+      _timeLineHtml=`🕐 dalle <span style="background:rgba(249,115,22,.15);color:var(--orange);font-weight:700;padding:1px 4px;border-radius:3px">${_startTime}</span> alle <span style="background:rgba(249,115,22,.15);color:var(--orange);font-weight:700;padding:1px 4px;border-radius:3px">${_endTime}</span>`;
+    }else{
+      _timeLineHtml=`🕐 dalle ${_startTime} alle ${_endTime}`;
+    }
+    // Cancel button
+    const _cancelBtn=(!hasAlert||alertType!=='cancellato')?`<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();cancelUserBooking('${b.id}')">Cancella prenotazione</button>`:'';
+    // Cancel button inline (no alert) or below banner (with alert)
+    const _cancelInline=!hasAlert&&_cancelBtn?`<div style="margin-top:10px">${_cancelBtn}</div>`:'';
+    const _cancelBelow=hasAlert&&_cancelBtn?`<div style="display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(168,85,247,.12)">${_cancelBtn}</div>`:'';
+
+    html+=`<div class="card-hover mb-4" style="border-radius:16px;overflow:hidden;padding:0;border-color:${borderColor};background:${bgColor};position:relative${alertType==='cancellato'?';opacity:.8':''}" onclick="showEventDetail('${ev.id}'${b.recurringDate?`,'${b.recurringDate}'`:''})">
+      ${alertStamp}
+      <div style="display:flex;align-items:stretch;position:relative;z-index:2">
+        ${_uniStrip}
+        <div style="flex:1;min-width:0;padding:14px 16px;display:flex;flex-direction:column;gap:0">
+          ${i===0&&!hasAlert?'<div style="font-size:.65rem;color:var(--txt3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Prossimo evento</div>':''}
+          <div style="display:flex;gap:14px;align-items:flex-start">
+            ${cardThumb}
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+                ${_orgLogoHtml}<h3 style="margin:0;font-size:.95rem;font-weight:600;color:#fff;line-height:1.3;overflow-wrap:break-word;word-break:break-word;min-width:0">${escHtml(ev.title)}</h3>
+              </div>
+              <div style="display:flex;gap:4px;flex-wrap:wrap;row-gap:4px;margin-top:4px">
+                <span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>${_bkLevelBadges}${_statusBadge}
+              </div>
+              <div style="margin-top:8px;font-size:.78rem;color:var(--txt2)">
+                ${_timeLineHtml} · <a style="color:var(--brand-l);cursor:pointer;text-decoration:none" onclick="event.stopPropagation();showOrgPublicProfile('${ev.managerId}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${escHtml(ev.orgName||(_mgr?_mgr.orgName:''))}</a>${_partnerHtml}
+              </div>
+              ${_cancelInline}
+            </div>
+          </div>
+          ${alertBanner}
+          ${_cancelBelow}
         </div>
       </div>
-      ${alertBanner}
-      ${!hasAlert||alertType!=='cancellato'?'<div class="flex gap-2 mt-4" style="border-top:1px solid var(--s300);padding-top:12px;position:relative;z-index:2"><button class="btn btn-danger btn-sm" onclick="event.stopPropagation();cancelUserBooking(\''+b.id+'\')">Cancella prenotazione</button></div>':''}
     </div>`;
   });
 
@@ -10853,19 +10925,48 @@ function renderUserDashboard(){
       const dd=_dashDate?new Date(_dashDate+'T00:00:00'):null;
       const dayNum=dd?dd.getDate():'';
       const monthStr=dd?MONTHS_IT[dd.getMonth()]:'';
-      const tierLabel=b.tier==='alto'?'Sostenitore':b.tier==='medio'?'Standard':'Ridotto';
-      const _dispDate=fmtDate(_dashDate||d0?.date);
-      const _dispTime=(d0?.startTime||'')+' — '+(d0?.endTime||'');
-      html+=`<div class="card mb-4" style="border-color:var(--s300);background:rgba(0,0,0,.2);opacity:.7;cursor:pointer" onclick="showEventDetail('${ev.id}'${b.recurringDate?`,'${b.recurringDate}'`:''})">
-        <div class="flex gap-4" style="align-items:flex-start">
-          <div style="flex-shrink:0;width:48px;height:48px;border-radius:10px;background:var(--s200);display:flex;flex-direction:column;align-items:center;justify-content:center">
-            <span style="font-size:1.1rem;font-weight:700;color:var(--txt3)">${dayNum}</span>
-            <span style="font-size:.55rem;color:var(--txt3)">${monthStr}</span>
-          </div>
-          <div class="flex-1">
-            <h4 class="font-semibold text-white" style="text-decoration:line-through">${escHtml(ev.title)}</h4>
-            <div class="text-xs txt3 mt-1">📅 ${_dispDate} · ${_dispTime}</div>
-            <div class="text-xs txt3 mt-1">💰 ${tierLabel} — €${b.amount}</div>
+      const _yearStr=dd?dd.getFullYear():'';
+      const _startTime=d0?.startTime||(d0?.sessions&&d0.sessions.length?d0.sessions.reduce((m,s)=>s.startTime<m?s.startTime:m,'23:59'):'');
+      const _endTime=d0?.endTime||(d0?.sessions&&d0.sessions.length?d0.sessions.reduce((m,s)=>s.endTime>m?s.endTime:m,'00:00'):'');
+      // Thumb
+      const _pThumbData=(ev.imageThumb||ev.image)?{src:ev.imageThumb?.src||ev.image,zoom:ev.imageThumb?.zoom||100,posX:ev.imageThumb?.posX||0,posY:ev.imageThumb?.posY||0}:null;
+      const _pThumbPos=_pThumbData?(()=>{const s=_pThumbData.zoom/100;const denom=72*s-72;const px=denom>0?Math.round(Math.abs(_pThumbData.posX)/denom*100):50;const py=denom>0?Math.round(Math.abs(_pThumbData.posY)/denom*100):50;return `object-position:${isNaN(px)?50:px}% ${isNaN(py)?50:py}%`})():'';
+      const _pDateContent=`<span style="font-size:1.6rem;font-weight:800;color:var(--txt3);line-height:1.1">${dayNum}</span>
+            <span style="font-size:.7rem;font-weight:700;color:rgba(240,171,252,.35);text-transform:uppercase;line-height:1;letter-spacing:.5px">${monthStr}</span>
+            <span style="font-size:.55rem;font-weight:500;color:rgba(240,171,252,.2);line-height:1;margin-top:2px">${_yearStr}</span>`;
+      const _pCardThumb=_pThumbData
+        ?`<div style="flex-shrink:0;display:flex;flex-direction:column;align-self:stretch;width:80px">
+            <div style="width:80px;flex:0 0 auto;min-height:48px;border-radius:12px 12px 0 0;overflow:hidden;filter:grayscale(.6) brightness(.7)"><img src="${_pThumbData.src}" style="width:100%;display:block;object-fit:cover;${_pThumbPos}" alt=""></div>
+            <div style="position:relative;width:80px;flex:1 0 auto;min-height:48px;border-radius:0 0 12px 12px;background:linear-gradient(160deg,rgba(100,80,120,.12),rgba(80,60,100,.06));border:1px solid rgba(120,90,140,.1);border-top:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:6px 0">
+              ${_pDateContent}
+            </div>
+          </div>`
+        :`<div style="flex-shrink:0;width:80px;align-self:stretch;display:flex;align-items:center;justify-content:center">
+            <div style="position:relative;width:80px;border-radius:12px;background:linear-gradient(160deg,rgba(100,80,120,.12),rgba(80,60,100,.06));border:1px solid rgba(120,90,140,.1);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:14px 0">
+              ${_pDateContent}
+            </div>
+          </div>`;
+      // Org logo
+      const _pMgr=store.managers.find(m=>m.id===ev.managerId);
+      const _pOrgLogo=_pMgr&&_pMgr.orgLogo?`<div style="width:22px;height:22px;border-radius:50%;overflow:hidden;border:2px solid var(--s300);flex-shrink:0;opacity:.6"><img src="${_pMgr.orgLogo}" style="width:100%;height:100%;object-fit:cover" alt=""></div>`:'';
+      // Universe strip (muted)
+      const _pUniStrip=getUniverseStripHtml(ev);
+      html+=`<div class="card-hover mb-4" style="border-radius:16px;overflow:hidden;padding:0;border-color:var(--s300);opacity:.6;cursor:pointer" onclick="showEventDetail('${ev.id}'${b.recurringDate?`,'${b.recurringDate}'`:''})">
+        <div style="display:flex;align-items:stretch">
+          ${_pUniStrip}
+          <div style="flex:1;min-width:0;padding:14px 16px;display:flex;gap:14px;align-items:flex-start">
+            ${_pCardThumb}
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+                ${_pOrgLogo}<h3 style="margin:0;font-size:.95rem;font-weight:600;color:var(--txt3);line-height:1.3;overflow-wrap:break-word;word-break:break-word;min-width:0">${escHtml(ev.title)}</h3>
+              </div>
+              <div style="display:flex;gap:4px;flex-wrap:wrap;row-gap:4px;margin-top:4px">
+                <span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)};opacity:.6">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>
+              </div>
+              <div style="margin-top:8px;font-size:.78rem;color:var(--txt3)">
+                🕐 dalle ${_startTime} alle ${_endTime} · ${escHtml(ev.orgName||(_pMgr?_pMgr.orgName:''))}
+              </div>
+            </div>
           </div>
         </div>
       </div>`;
