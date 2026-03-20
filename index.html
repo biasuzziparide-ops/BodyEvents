@@ -1423,8 +1423,8 @@ textarea.input{resize:none;font-family:inherit}
       <div class="mb-4">
         <div><label class="label">Referente</label><input class="input" id="ne-teacher" placeholder="es. Nome Referente"></div>
       </div>
-      <div class="mb-3"><label class="label">📍 Location / Indirizzo *</label><input class="input" id="ne-location" placeholder="es. Parco degli Alberi, Via Roma, Treviso"></div>
-      <div class="mb-4"><label class="label">🔗 Link Google Maps</label><input class="input" id="ne-location-url" placeholder="https://maps.google.com/..."></div>
+      <div class="mb-3"><label class="label">📍 Location / Indirizzo *</label><input class="input" id="ne-location" placeholder="es. Parco degli Alberi, Via Roma, Treviso" onpaste="setTimeout(()=>_autoDetectMapsLink('ne-location','ne-location-url'),100)" oninput="_autoDetectMapsLink('ne-location','ne-location-url')"></div>
+      <div class="mb-4"><label class="label">🔗 Link Google Maps</label><input class="input" id="ne-location-url" placeholder="https://maps.google.com/..." onpaste="setTimeout(()=>_checkAndResolveMapUrl('ne-location-url'),100)"><div id="ne-location-url-hint" class="text-xs txt3" style="margin-top:4px;display:none"></div></div>
       <div class="grid grid-2 gap-3 mb-4">
         <div><label class="label">📅 Data inizio evento *</label><input class="input" id="ne-event-start-date" type="date" onchange="syncEventDates('start');updateBookingDeadlineDefault()"></div>
         <div><label class="label">📅 Data fine evento *</label><input class="input" id="ne-event-end-date" type="date" onchange="syncEventDates('end')"></div>
@@ -11208,6 +11208,110 @@ function extractCoordsFromUrl(url){
 }
 
 /* Try all possible location URLs for an event (event-level + session-level) */
+// V3.1.5: Auto-detect Google Maps links pasted in the location text field
+function _autoDetectMapsLink(locId,urlId){
+  const locEl=document.getElementById(locId);
+  const urlEl=document.getElementById(urlId);
+  if(!locEl||!urlEl)return;
+  const val=locEl.value.trim();
+  // Check if value looks like a maps URL
+  if(val.match(/^https?:\/\/.*(google\.com\/maps|maps\.google|maps\.app\.goo\.gl|goo\.gl\/maps)/i)){
+    // Move to URL field (only if URL field is empty)
+    if(!urlEl.value.trim()){
+      urlEl.value=val;
+      locEl.value='';
+      locEl.focus();
+      // Check if coords can be extracted directly
+      const coords=extractCoordsFromUrl(val);
+      if(coords){
+        showToast('Link Maps rilevato — coordinate estratte');
+        locEl.placeholder='Inserisci il nome del luogo';
+      } else if(val.match(/maps\.app\.goo\.gl|goo\.gl\/maps/i)){
+        // Short link — try to resolve it
+        _resolveShortMapsUrl(val,urlEl);
+        locEl.placeholder='Inserisci il nome del luogo';
+      } else {
+        showToast('Link Maps spostato nel campo corretto');
+        locEl.placeholder='Inserisci il nome del luogo';
+      }
+    }
+  }
+}
+
+// Resolve short Google Maps URLs (maps.app.goo.gl) to full URLs with coordinates
+function _resolveShortMapsUrl(shortUrl,urlEl){
+  _resolveViaPopup(shortUrl,urlEl);
+}
+
+// Check and resolve Maps URL pasted directly in the URL field
+function _checkAndResolveMapUrl(urlId){
+  const urlEl=document.getElementById(urlId);if(!urlEl)return;
+  const val=urlEl.value.trim();
+  const hint=document.getElementById(urlId+'-hint');
+  if(!val){if(hint)hint.style.display='none';return;}
+  // Check if it's a short link
+  if(val.match(/maps\.app\.goo\.gl|goo\.gl\/maps/i)){
+    const coords=extractCoordsFromUrl(val);
+    if(coords){
+      if(hint){hint.style.display='block';hint.innerHTML='<span style="color:var(--green)">✅ Coordinate trovate</span>';}
+      return;
+    }
+    // Short link without coords — resolve via popup
+    if(hint){hint.style.display='block';hint.innerHTML='<span style="color:var(--yellow)">⏳ Link breve rilevato — risoluzione in corso...</span>';}
+    _resolveViaPopup(val,urlEl);
+  } else if(val.match(/google\.com\/maps|maps\.google/i)){
+    const coords=extractCoordsFromUrl(val);
+    if(coords){
+      if(hint){hint.style.display='block';hint.innerHTML='<span style="color:var(--green)">✅ Coordinate trovate nel link</span>';}
+    } else {
+      if(hint){hint.style.display='block';hint.innerHTML='<span style="color:var(--yellow)">⚠️ Link Maps senza coordinate visibili. Prova con l\'URL lungo dalla barra indirizzi del browser.</span>';}
+    }
+  } else {
+    if(hint)hint.style.display='none';
+  }
+}
+
+// Open short URL in popup, capture the final redirected URL with coordinates
+function _resolveViaPopup(shortUrl,urlEl){
+  const hint=document.getElementById('ne-location-url-hint');
+  const popup=window.open(shortUrl,'_mapsResolve','width=100,height=100,left=-9999,top=-9999');
+  if(!popup){
+    // Popup blocked by browser
+    if(hint){hint.style.display='block';hint.innerHTML='<span style="color:var(--red)">⚠️ Popup bloccato. <a href="'+shortUrl+'" target="_blank" style="color:var(--brand-l)">Apri il link</a>, copia l\'URL lungo dalla barra indirizzi e incollalo qui.</span>';}
+    return;
+  }
+  let attempts=0;
+  const maxAttempts=30; // 15 seconds max
+  const checker=setInterval(()=>{
+    attempts++;
+    try{
+      const popupUrl=popup.location.href;
+      // Wait until redirect completes (URL changes from short link)
+      if(popupUrl&&!popupUrl.includes('maps.app.goo.gl')&&!popupUrl.includes('goo.gl/maps')&&popupUrl!=='about:blank'){
+        clearInterval(checker);
+        popup.close();
+        const coords=extractCoordsFromUrl(popupUrl);
+        if(coords){
+          urlEl.value=popupUrl;
+          if(hint){hint.style.display='block';hint.innerHTML='<span style="color:var(--green)">✅ Link risolto — coordinate estratte!</span>';}
+          showToast('Link breve risolto automaticamente!');
+        } else {
+          urlEl.value=popupUrl;
+          if(hint){hint.style.display='block';hint.innerHTML='<span style="color:var(--yellow)">⚠️ Link risolto ma coordinate non trovate. Prova a copiare l\'URL dalla barra indirizzi di Maps.</span>';}
+        }
+        return;
+      }
+    }catch(e){
+      // Cross-origin: popup still on goo.gl domain, waiting for redirect to google.com
+    }
+    if(attempts>=maxAttempts){
+      clearInterval(checker);
+      try{popup.close();}catch(e){}
+      if(hint){hint.style.display='block';hint.innerHTML='<span style="color:var(--red)">⚠️ Impossibile risolvere il link breve. <a href="'+shortUrl+'" target="_blank" style="color:var(--brand-l)">Apri il link manualmente</a>, copia l\'URL lungo dalla barra indirizzi e incollalo qui.</span>';}
+    }
+  },500);
+}
+
 function resolveEventCoords(ev){
   // 1. Direct coords on event
   if(ev.coords&&ev.coords.lat&&ev.coords.lng)return ev.coords;
@@ -11224,6 +11328,11 @@ function resolveEventCoords(ev){
         }
       }
     }
+  }
+  // 4. V3.1.5: Fallback — check if location field itself contains a Maps URL
+  if(ev.location&&ev.location.match(/^https?:\/\//)){
+    const fromLocText=extractCoordsFromUrl(ev.location);
+    if(fromLocText)return fromLocText;
   }
   return null;
 }
@@ -11246,6 +11355,76 @@ async function geocodeAddress(address){
     _geocodeCache[key]=null;
     return null;
   }catch(e){_geocodeCache[key]=null;return null;}
+}
+
+// V3.1.5: Map marker/popup builder helpers (support single + grouped markers)
+function _buildMapMarker(ev){
+  const univIds=ev.universeIds||[ev.universeId].filter(Boolean);
+  const univ=univIds.length?store.universes.find(u=>u.id===univIds[0]):null;
+  const color=univ?univ.color:(MARKER_COLORS[ev.type]||'#d946ef');
+  const isCommunity=!!ev._isCommunity;
+  const letter=getMarkerLetter(ev.type);
+  let markerHtml='';
+  if(univIds.length>1){
+    const colors=univIds.map(id=>getUniverseColor(id));
+    const n=colors.length;const conicStops=colors.map((c,i)=>c+' '+Math.round(i/n*360)+'deg '+Math.round((i+1)/n*360)+'deg').join(',');
+    if(isCommunity){
+      markerHtml='<div class="map-marker-outline" style="border-color:'+colors[0]+';background:conic-gradient('+conicStops+') !important;-webkit-background-clip:padding-box;color:'+colors[0]+'">'+letter+'</div>';
+    }else{
+      markerHtml='<div class="map-marker" style="background:conic-gradient('+conicStops+')">'+letter+'</div>';
+    }
+  }else if(isCommunity){
+    markerHtml='<div class="map-marker-outline" style="border-color:'+color+';color:'+color+'">'+letter+'</div>';
+  }else{
+    markerHtml='<div class="map-marker" style="background:'+color+'">'+letter+'</div>';
+  }
+  return {markerHtml,color,univ,isCommunity};
+}
+
+function _buildMapPopupSingle(ev){
+  const univIds=ev.universeIds||[ev.universeId].filter(Boolean);
+  const univ=univIds.length?store.universes.find(u=>u.id===univIds[0]):null;
+  const isCommunity=!!ev._isCommunity;
+  const d0=ev.days&&ev.days[0];
+  const dateStr=d0?fmtDate(d0.date):'';
+  const timeStr=d0?(d0.startTime+' — '+d0.endTime):'';
+  const priceStr=isCommunity?'Gratuito':'da €'+minPrice(ev);
+  const sourceBadge=isCommunity?'<span style="font-size:.6rem;padding:2px 6px;border-radius:6px;background:rgba(255,255,255,.04);color:#b0b0c0;border:1px dashed rgba(255,255,255,.12)">🤝 Community</span>':'<span style="font-size:.6rem;padding:2px 6px;border-radius:6px;background:rgba(255,255,255,.04);color:#b0b0c0;border:1px solid rgba(255,255,255,.08)">🏷️ Organizzato</span>';
+  const detailFn=isCommunity?'showJamDetail':'showEventDetail';
+  return '<div>'+
+    '<div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap">'+
+      '<span class="badge '+badgeType(ev.type)+'" style="font-size:.65rem;'+badgeTypeStyle(ev.type)+'">'+getEventTypeIcon(ev.type)+' '+getEventTypeLabel(ev.type)+'</span>'+
+      (univ?'<span style="font-size:.65rem;padding:2px 8px;border-radius:8px;background:'+univ.color+'25;color:'+univ.color+'">'+univ.emoji+' '+univ.name+'</span>':'')+
+      sourceBadge+
+    '</div>'+
+    '<div class="map-popup-title">'+ev.title+'</div>'+
+    '<div class="map-popup-meta">📅 '+dateStr+'</div>'+
+    '<div class="map-popup-meta">🕐 '+timeStr+'</div>'+
+    '<div class="map-popup-meta">📍 '+ev.location+'</div>'+
+    '<div class="map-popup-meta">👤 '+ev.teacher+' · '+priceStr+'</div>'+
+    '<button class="map-popup-btn" onclick="'+detailFn+'(\''+ev.id+'\')">Vedi dettaglio →</button>'+
+  '</div>';
+}
+
+function _buildMapPopupCompact(ev){
+  const univIds=ev.universeIds||[ev.universeId].filter(Boolean);
+  const univ=univIds.length?store.universes.find(u=>u.id===univIds[0]):null;
+  const isCommunity=!!ev._isCommunity;
+  const d0=ev.days&&ev.days[0];
+  const dateStr=d0?fmtDate(d0.date):'';
+  const timeStr=d0?(d0.startTime+' — '+d0.endTime):'';
+  const detailFn=isCommunity?'showJamDetail':'showEventDetail';
+  const color=univ?univ.color:(MARKER_COLORS[ev.type]||'#d946ef');
+  return '<div style="cursor:pointer;padding:4px 0" onclick="'+detailFn+'(\''+ev.id+'\')">'+
+    '<div style="display:flex;align-items:center;gap:8px">'+
+      '<div style="width:8px;height:8px;border-radius:50%;background:'+color+';flex-shrink:0"></div>'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-size:.82rem;font-weight:600;color:var(--txt1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+escHtml(ev.title)+'</div>'+
+        '<div style="font-size:.7rem;color:var(--txt3)">📅 '+dateStr+' · 🕐 '+timeStr+'</div>'+
+      '</div>'+
+      '<span style="font-size:.7rem;color:var(--brand-l)">→</span>'+
+    '</div>'+
+  '</div>';
 }
 
 /* Geocode all events that need it, then render map */
@@ -11279,8 +11458,21 @@ async function geocodeAndRenderMap(){
   for(const ev of allEvts){
     // Try sync resolution first
     let coords=resolveEventCoords(ev);
+    // V3.1.5: If no coords, try resolving short Maps URL in location or locationUrl fields
+    if(!coords){
+      const urlToResolve=ev.locationUrl||ev.location||'';
+      if(urlToResolve.match(/maps\.app\.goo\.gl|goo\.gl\/maps/i)){
+        try{
+          const resp=await fetch(urlToResolve,{method:'HEAD',redirect:'follow'});
+          if(resp.url&&resp.url!==urlToResolve){
+            coords=extractCoordsFromUrl(resp.url);
+            if(coords){ev.locationUrl=resp.url;} // update in memory for future
+          }
+        }catch(e){/* CORS blocked */}
+      }
+    }
     // If no coords, try geocoding the address
-    if(!coords&&ev.location){
+    if(!coords&&ev.location&&!ev.location.match(/^https?:\/\//)){
       if(geocodeCount<15){// Limit API calls per render
         coords=await geocodeAddress(ev.location);
         geocodeCount++;
@@ -11296,57 +11488,55 @@ async function geocodeAndRenderMap(){
       }
     }
     if(!coords)continue;
-    const {lat,lng}=coords;
-    bounds.push([lat,lng]);
-    const univIds=ev.universeIds||[ev.universeId].filter(Boolean);
-    const univ=univIds.length?store.universes.find(u=>u.id===univIds[0]):null;
-    const color=univ?univ.color:(MARKER_COLORS[ev.type]||'#d946ef');
-    const isCommunity=!!ev._isCommunity;
-    const letter=getMarkerLetter(ev.type);
-    let markerHtml='';
-    if(univIds.length>1){
-      // Multi-universe: conic-gradient marker
-      const colors=univIds.map(id=>getUniverseColor(id));
-      const n=colors.length;const conicStops=colors.map((c,i)=>c+' '+Math.round(i/n*360)+'deg '+Math.round((i+1)/n*360)+'deg').join(',');
-      if(isCommunity){
-        markerHtml='<div class="map-marker-outline" style="border-color:'+colors[0]+';background:conic-gradient('+conicStops+') !important;-webkit-background-clip:padding-box;color:'+colors[0]+'">'+letter+'</div>';
-      }else{
-        markerHtml='<div class="map-marker" style="background:conic-gradient('+conicStops+')">'+letter+'</div>';
-      }
-    }else if(isCommunity){
-      markerHtml='<div class="map-marker-outline" style="border-color:'+color+';color:'+color+'">'+letter+'</div>';
-    }else{
-      markerHtml='<div class="map-marker" style="background:'+color+'">'+letter+'</div>';
-    }
-    const icon=L.divIcon({
-      className:'',
-      html:markerHtml,
-      iconSize:[32,32],iconAnchor:[16,16],popupAnchor:[0,-20]
-    });
-    const d0=ev.days&&ev.days[0];
-    const dateStr=d0?fmtDate(d0.date):'';
-    const timeStr=d0?(d0.startTime+' — '+d0.endTime):'';
-    const priceStr=isCommunity?'Gratuito':'da €'+minPrice(ev);
-    const sourceBadge=isCommunity?'<span style="font-size:.6rem;padding:2px 6px;border-radius:6px;background:rgba(255,255,255,.04);color:#b0b0c0;border:1px dashed rgba(255,255,255,.12)">🤝 Community</span>':'<span style="font-size:.6rem;padding:2px 6px;border-radius:6px;background:rgba(255,255,255,.04);color:#b0b0c0;border:1px solid rgba(255,255,255,.08)">🏷️ Organizzato</span>';
-    const detailFn=isCommunity?'showJamDetail':'showEventDetail';
-    const popup=L.popup({maxWidth:260,closeButton:true}).setContent(
-      '<div>'+
-        '<div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap">'+
-          '<span class="badge '+badgeType(ev.type)+'" style="font-size:.65rem;'+badgeTypeStyle(ev.type)+'">'+getEventTypeIcon(ev.type)+' '+getEventTypeLabel(ev.type)+'</span>'+
-          (univ?'<span style="font-size:.65rem;padding:2px 8px;border-radius:8px;background:'+univ.color+'25;color:'+univ.color+'">'+univ.emoji+' '+univ.name+'</span>':'')+
-          sourceBadge+
-        '</div>'+
-        '<div class="map-popup-title">'+ev.title+'</div>'+
-        '<div class="map-popup-meta">📅 '+dateStr+'</div>'+
-        '<div class="map-popup-meta">🕐 '+timeStr+'</div>'+
-        '<div class="map-popup-meta">📍 '+ev.location+'</div>'+
-        '<div class="map-popup-meta">👤 '+ev.teacher+' · '+priceStr+'</div>'+
-        '<button class="map-popup-btn" onclick="'+detailFn+'(\''+ev.id+'\')">Vedi dettaglio →</button>'+
-      '</div>'
-    );
-    const marker=L.marker([lat,lng],{icon}).addTo(eventsMap).bindPopup(popup);
-    mapMarkers.push(marker);
+    ev._resolvedCoords=coords;
   }
+
+  // V3.1.5: Group events by location to handle overlapping markers
+  const _locGroups={};
+  for(const ev of allEvts){
+    if(!ev._resolvedCoords)continue;
+    const {lat,lng}=ev._resolvedCoords;
+    // Round to 5 decimals (~1m precision) for grouping
+    const key=lat.toFixed(5)+','+lng.toFixed(5);
+    if(!_locGroups[key])_locGroups[key]={lat,lng,events:[]};
+    _locGroups[key].events.push(ev);
+  }
+
+  Object.values(_locGroups).forEach(group=>{
+    const {lat,lng,events:gEvts}=group;
+    bounds.push([lat,lng]);
+
+    if(gEvts.length===1){
+      // Single event at this location — render normally
+      const ev=gEvts[0];
+      const mData=_buildMapMarker(ev);
+      const icon=L.divIcon({className:'',html:mData.markerHtml,iconSize:[32,32],iconAnchor:[16,16],popupAnchor:[0,-20]});
+      const popup=L.popup({maxWidth:280,closeButton:true}).setContent(_buildMapPopupSingle(ev));
+      const marker=L.marker([lat,lng],{icon}).addTo(eventsMap).bindPopup(popup);
+      mapMarkers.push(marker);
+    } else {
+      // Multiple events at same location — spread markers in a circle so each is visible
+      const n=gEvts.length;
+      // Offset radius in degrees (~15-25m depending on latitude, enough to separate visually)
+      const radius=0.00018+(n>4?0.00006*(n-4):0);
+      gEvts.forEach((ev,i)=>{
+        const angle=(2*Math.PI*i/n)-(Math.PI/2); // start from top
+        const offsetLat=lat+radius*Math.cos(angle);
+        const offsetLng=lng+radius*Math.sin(angle)/Math.cos(lat*Math.PI/180); // correct for latitude
+        const mData=_buildMapMarker(ev);
+        const icon=L.divIcon({className:'',html:mData.markerHtml,iconSize:[32,32],iconAnchor:[16,16],popupAnchor:[0,-20]});
+        const popup=L.popup({maxWidth:280,closeButton:true}).setContent(_buildMapPopupSingle(ev));
+        const marker=L.marker([offsetLat,offsetLng],{icon}).addTo(eventsMap).bindPopup(popup);
+        mapMarkers.push(marker);
+      });
+      // Also add a subtle ring behind to show they're grouped
+      const ringHtml='<div style="width:'+Math.round(32+n*8)+'px;height:'+Math.round(32+n*8)+'px;border-radius:50%;border:2px dashed rgba(168,85,247,.3);background:rgba(168,85,247,.04);display:flex;align-items:center;justify-content:center;pointer-events:none"></div>';
+      const ringSize=32+n*8;
+      const ringIcon=L.divIcon({className:'',html:ringHtml,iconSize:[ringSize,ringSize],iconAnchor:[ringSize/2,ringSize/2]});
+      const ringMarker=L.marker([lat,lng],{icon:ringIcon,interactive:false,zIndexOffset:-1000}).addTo(eventsMap);
+      mapMarkers.push(ringMarker);
+    }
+  });
   // Remove loading
   if(loadingEl)loadingEl.remove();
   if(bounds.length>1){
@@ -15799,7 +15989,7 @@ function collectFormData(){
     level:'auto', // V2.13.0: computed from sessions via getComputedEventLevel()
     location:document.getElementById('ne-location').value||'',
     locationUrl:document.getElementById('ne-location-url').value||'',
-    coords:extractCoordsFromUrl(document.getElementById('ne-location-url').value||''),
+    coords:extractCoordsFromUrl(document.getElementById('ne-location-url').value||'')||extractCoordsFromUrl(document.getElementById('ne-location').value||''),
     teacher:document.getElementById('ne-teacher').value||store.currentUser.username,
     maxSpots:0,
     image:evImages.thumb?.src||evImages.header?.src||null,
