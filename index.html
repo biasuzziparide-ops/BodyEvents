@@ -123,7 +123,7 @@ textarea.input{resize:none;font-family:inherit}
 .hamburger{display:none;background:none;border:none;color:var(--txt3);cursor:pointer;padding:8px;min-width:44px;min-height:44px;font-size:1.4rem;display:none;align-items:center;justify-content:center}
 .mobile-menu{display:none;background:var(--s50);border-top:1px solid var(--s300);padding:8px 16px 16px;position:relative;z-index:42}
 .mobile-menu.open{display:block}
-.mobile-backdrop{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:41}
+.mobile-backdrop{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:39}
 .mobile-backdrop.open{display:block}
 .mobile-menu .mm-group{padding:8px 0}
 .mobile-menu .mm-group+.mm-group{border-top:1px solid var(--s300)}
@@ -2644,7 +2644,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.1.5';
+const APP_VERSION='V3.1.6';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -3632,6 +3632,17 @@ function renderInfoPage(){
     usersSec+=tip('💡','<strong style="color:#6366f1">Vuoi diventare organizzatore?</strong> Scrivi a <strong style="color:#6366f1">'+escHtml(masterEmail)+'</strong> per richiedere l\'approvazione.');
   }
   html+=sec(usersSec);
+
+  // === COSTI DELLA PIATTAFORMA ===
+  let costiSec=h2('🪙','Costi della piattaforma');
+  costiSec+=p('BodyEvents è <strong style="color:var(--txt1)">completamente gratuita</strong> — nessun costo per registrarsi, prenotare eventi o utilizzare qualsiasi funzionalità della piattaforma.');
+  costiSec+=p('Se un giorno la piattaforma dovesse crescere davvero — migliaia di utenti, decine o centinaia di eventi dislocati in diversi luoghi, più organizzatori che collaborano tra loro — i costi di gestione (server, database, aggiornamenti, servizi software di hosting) potrebbero rendere necessario chiedere un piccolo contributo agli iscritti. Non possiamo sapere quanto, ora, ma magari qualcosa di simile al prezzo di un caffè al mese.');
+  costiSec+='<div style="background:var(--s100);border:1px solid var(--s300);border-radius:12px;padding:16px 18px;margin:12px 0;font-size:.86rem;color:var(--txt2);line-height:1.6;font-style:italic">';
+  costiSec+='Se il valore che BodyEvents ti darà a quel punto — trovare eventi vicino a te, prenotarti con un tap, scoprire nuove community e nuovi organizzatori, avere tutto in un unico posto, non perdere mai un\'occasione — non raggiungerà mai nemmeno il valore di <strong style="color:var(--txt1);font-style:normal">un caffè al mese</strong> per te, allora forse non vale nemmeno la pena cominciare!';
+  costiSec+='</div>';
+  costiSec+=p('Di una cosa puoi stare certo: se e quando cambierà qualcosa, sarà comunicato con la stessa trasparenza con cui te ne parliamo oggi.');
+  costiSec+=p('<strong style="color:var(--txt1)">Intanto, benvenuto!</strong>');
+  html+=sec(costiSec);
 
   // === FEEDBACK ===
   let feedbackSec='<div style="font-size:1.05rem;font-weight:700;color:var(--txt1);margin-bottom:4px;display:flex;align-items:center;gap:8px">💬 Aiutaci a migliorare</div>';
@@ -11488,6 +11499,15 @@ async function geocodeAndRenderMap(){
       }
     }
     if(!coords)continue;
+    // V3.1.6: Persist resolved coords back to Firestore if not already saved on the event
+    if(coords&&(!ev.coords||!ev.coords.lat||!ev.coords.lng)){
+      ev.coords=coords;
+      if(ev.id&&!ev._isCommunity){
+        fbDb.collection('events').doc(ev.id).update({coords}).catch(()=>{});
+      } else if(ev.id&&ev._isCommunity){
+        fbDb.collection('communityJams').doc(ev.id).update({coords}).catch(()=>{});
+      }
+    }
     ev._resolvedCoords=coords;
   }
 
@@ -11529,12 +11549,10 @@ async function geocodeAndRenderMap(){
         const marker=L.marker([offsetLat,offsetLng],{icon}).addTo(eventsMap).bindPopup(popup);
         mapMarkers.push(marker);
       });
-      // Also add a subtle ring behind to show they're grouped
-      const ringHtml='<div style="width:'+Math.round(32+n*8)+'px;height:'+Math.round(32+n*8)+'px;border-radius:50%;border:2px dashed rgba(168,85,247,.3);background:rgba(168,85,247,.04);display:flex;align-items:center;justify-content:center;pointer-events:none"></div>';
-      const ringSize=32+n*8;
-      const ringIcon=L.divIcon({className:'',html:ringHtml,iconSize:[ringSize,ringSize],iconAnchor:[ringSize/2,ringSize/2]});
-      const ringMarker=L.marker([lat,lng],{icon:ringIcon,interactive:false,zIndexOffset:-1000}).addTo(eventsMap);
-      mapMarkers.push(ringMarker);
+      // Also add a subtle ring behind to show they're grouped (L.circle scales with zoom)
+      const ringRadius=15+n*5; // meters
+      const ring=L.circle([lat,lng],{radius:ringRadius,color:'rgba(168,85,247,.3)',weight:2,dashArray:'6,4',fill:true,fillColor:'rgba(168,85,247,.04)',fillOpacity:1,interactive:false}).addTo(eventsMap);
+      mapMarkers.push(ring);
     }
   });
   // Remove loading
