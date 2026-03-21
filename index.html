@@ -6259,28 +6259,40 @@ function openRegistryUserDetail(uid){
   const email=user.email||'';
   const logo=user.profileLogo||null;
   const initials=name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
-  // Find active bookings (non-cancelled) for this user, for events visible to current manager
+  // Find ALL bookings for this user, for events visible to current manager
   const mgr=store.currentUser;
   const isMaster=mgr.role==='master';
   const _uidIsEmail=uid.includes('@');
   const _realUserId=user.id||uid;
-  const activeBookings=store.bookings.filter(b=>{
+  const today=localDateStr(new Date());
+  const allVisibleBookings=store.bookings.filter(b=>{
     const matchUser=b.userId===_realUserId||b.userId===uid||(_uidIsEmail&&b.email===uid);
-    if(!matchUser||b.status==='cancellata')return false;
+    if(!matchUser)return false;
     const ev=store.events.find(e=>e.id===b.eventId);
     if(!ev)return false;
-    // Only show events visible to current organizer (or all if master)
     if(!isMaster&&!isEventVisibleToManager(ev,mgr.id))return false;
-    // Only show events that are currently active (published or concluded)
-    if(ev.status!=='pubblicato'&&ev.status!=='concluso')return false;
     return true;
   });
-  // Group by event
-  const byEvent={};
-  activeBookings.forEach(b=>{
-    if(!byEvent[b.eventId])byEvent[b.eventId]=[];
-    byEvent[b.eventId].push(b);
+  // Split into 3 categories
+  const _activeBookings=[];const _closedBookings=[];const _cancelledBookings=[];
+  allVisibleBookings.forEach(b=>{
+    if(b.status==='cancellata'){_cancelledBookings.push(b);return;}
+    const ev=store.events.find(e=>e.id===b.eventId);if(!ev)return;
+    // Determine if this booking is for a future or past date
+    let bookingDate=b.recurringDate||null;
+    if(!bookingDate&&ev.days&&ev.days.length){
+      bookingDate=ev.days[ev.days.length-1].date; // last day of event
+    }
+    const isFuture=bookingDate&&bookingDate>=today;
+    const isEventConcluded=ev.status==='concluso'||ev.status==='archiviato';
+    if(isEventConcluded||!isFuture){_closedBookings.push(b);}
+    else{_activeBookings.push(b);}
   });
+  // Sort: active by date ascending, closed by date descending
+  const _getBookDate=b=>{const ev=store.events.find(e=>e.id===b.eventId);return b.recurringDate||(ev&&ev.days&&ev.days[0]?ev.days[0].date:'')||'';};
+  _activeBookings.sort((a,b)=>_getBookDate(a).localeCompare(_getBookDate(b)));
+  _closedBookings.sort((a,b)=>_getBookDate(b).localeCompare(_getBookDate(a)));
+  _cancelledBookings.sort((a,b)=>_getBookDate(b).localeCompare(_getBookDate(a)));
 
   // Find active subscriptions
   const activeSubs=store.subscriptions.filter(s=>{
@@ -6302,50 +6314,59 @@ function openRegistryUserDetail(uid){
   h+='<div><div style="font-size:1.1rem;font-weight:700;color:var(--txt1)">'+escHtml(name)+'</div>';
   h+='<div style="font-size:.82rem;color:var(--txt3)">'+escHtml(email)+'</div></div></div>';
 
-  // Active bookings section
-  h+='<div style="margin-bottom:16px">';
-  h+='<div style="font-size:.85rem;font-weight:700;color:var(--txt1);margin-bottom:10px;display:flex;align-items:center;gap:6px">📅 Eventi con iscrizione attiva ('+activeBookings.length+')</div>';
-  if(activeBookings.length===0){
-    h+='<div style="background:var(--s100);border:1px solid var(--s300);border-radius:12px;padding:16px;text-align:center;color:var(--txt3);font-size:.84rem">Nessuna iscrizione attiva al momento</div>';
-  } else {
-    Object.keys(byEvent).forEach(evId=>{
-      const ev=store.events.find(e=>e.id===evId);if(!ev)return;
-      const bks=byEvent[evId];
-      bks.forEach(b=>{
-        const evType=ev.eventType||ev.type||'';
-        const typeIcon=evType==='jam'?'🤝':evType==='lezione'?'📚':evType==='workshop'?'🛠️':evType==='social'?'🎉':'📋';
-        const dateStr=ev.days&&ev.days[0]?fmtDateShort(ev.days[0].date):'';
-        const recLabel=b.recurringDate?' <span style="font-size:.7rem;color:var(--txt3)">('+fmtDateShort(b.recurringDate)+')</span>':'';
-        const statusBg=ev.status==='pubblicato'?'rgba(16,185,129,.1)':'rgba(99,102,241,.1)';
-        const statusColor=ev.status==='pubblicato'?'var(--green)':'#6366f1';
-        const statusLabel=ev.status==='pubblicato'?'In corso':'Concluso';
-        // Payment info
-        let payInfo='';
-        if(ev.pricingMode!=='free'){
-          if(b.gift)payInfo='<span style="color:var(--purple);font-size:.72rem">🎁 Regalo</span>';
-          else if(b.paymentStatus==='pagato')payInfo='<span style="color:var(--green);font-size:.72rem">💰 Pagato €'+(b.amount||0)+'</span>';
-          else if(b.paymentStatus==='gratuito'||b.paymentStatus==='abbonamento')payInfo='<span style="color:var(--green);font-size:.72rem">🎟️ '+(b.paymentStatus==='abbonamento'?'Abbonamento':'Gratuito')+'</span>';
-          else payInfo='<span style="color:var(--yellow);font-size:.72rem">⏳ Da pagare €'+(b.amount||0)+'</span>';
-        }
-        // Role
-        const roleStr=b.role?'<span style="font-size:.72rem;color:'+_roleColor(b.role)+'">'+_roleName(b.role)+'</span>':'';
-
-        h+='<div style="background:var(--s100);border:1px solid var(--s300);border-radius:12px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor=\'var(--brand)\'" onmouseout="this.style.borderColor=\'var(--s300)\'" onclick="event.stopPropagation();this.closest(\'.overlay\').remove();showAdminEventDetail(\''+evId+'\')">';
-        h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">';
-        h+='<span style="font-size:1rem">'+typeIcon+'</span>';
-        h+='<span style="font-size:.88rem;font-weight:600;color:var(--txt1);flex:1">'+escHtml(ev.title)+'</span>';
-        h+='<span style="font-size:.68rem;padding:2px 8px;border-radius:6px;background:'+statusBg+';color:'+statusColor+';font-weight:600">'+statusLabel+'</span>';
-        h+='</div>';
-        h+='<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:.78rem;color:var(--txt3)">';
-        h+='<span>📅 '+dateStr+'</span>'+recLabel;
-        if(roleStr)h+='<span>'+roleStr+'</span>';
-        if(payInfo)h+='<span>'+payInfo+'</span>';
-        h+='</div>';
-        h+='</div>';
-      });
-    });
+  // Helper: render a booking card
+  function _regBookCard(b,showCancel){
+    const ev=store.events.find(e=>e.id===b.eventId);if(!ev)return '';
+    const evType=ev.eventType||ev.type||'';
+    const typeIcon=evType==='jam'?'🤝':evType==='lezione'?'📚':evType==='workshop'?'🛠️':evType==='social'?'🎉':'📋';
+    const dateStr=b.recurringDate?fmtDateShort(b.recurringDate):(ev.days&&ev.days[0]?fmtDateShort(ev.days[0].date):'');
+    const recLabel=b.recurringDate&&ev.recurrence?' <span style="font-size:.68rem;color:var(--txt3)">(ricorrente)</span>':'';
+    let payInfo='';
+    if(ev.pricingMode!=='free'&&!showCancel){
+      if(b.gift)payInfo='<span style="color:var(--purple);font-size:.72rem">🎁 Regalo</span>';
+      else if(b.paymentStatus==='pagato')payInfo='<span style="color:var(--green);font-size:.72rem">💰 €'+(b.amount||0)+'</span>';
+      else if(b.paymentStatus==='gratuito'||b.paymentStatus==='abbonamento')payInfo='<span style="color:var(--green);font-size:.72rem">🎟️ '+(b.paymentStatus==='abbonamento'?'Abb.':'Gratis')+'</span>';
+      else payInfo='<span style="color:var(--yellow);font-size:.72rem">⏳ €'+(b.amount||0)+'</span>';
+    }
+    const roleStr=b.role?'<span style="font-size:.72rem;color:'+_roleColor(b.role)+'">'+_roleName(b.role)+'</span>':'';
+    const borderLeft=showCancel?';border-left:3px solid var(--red)':'';
+    let c='<div style="background:var(--s100);border:1px solid var(--s300);border-radius:12px;padding:10px 14px;margin-bottom:6px;cursor:pointer;transition:border-color .15s'+borderLeft+'" onmouseover="this.style.borderColor=\'var(--brand)\'" onmouseout="this.style.borderColor=\'var(--s300)\'" onclick="event.stopPropagation();this.closest(\'.overlay\').remove();showAdminEventDetail(\''+ev.id+'\')">';
+    c+='<div style="display:flex;align-items:center;gap:8px">';
+    c+='<span style="font-size:1rem">'+typeIcon+'</span>';
+    c+='<span style="font-size:.84rem;font-weight:600;color:var(--txt1);flex:1">'+escHtml(ev.title)+'</span>';
+    c+='</div>';
+    c+='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:.76rem;color:var(--txt3);margin-top:3px">';
+    c+='<span>📅 '+dateStr+'</span>'+recLabel;
+    if(roleStr)c+='<span>'+roleStr+'</span>';
+    if(payInfo)c+='<span>'+payInfo+'</span>';
+    c+='</div></div>';
+    return c;
   }
+
+  // === ACTIVE BOOKINGS (future events) ===
+  h+='<div style="margin-bottom:16px">';
+  h+='<div style="font-size:.85rem;font-weight:700;color:var(--green);margin-bottom:8px;display:flex;align-items:center;gap:6px">🟢 Prenotazioni attive ('+_activeBookings.length+')</div>';
+  if(_activeBookings.length===0){
+    h+='<div style="background:var(--s100);border:1px solid var(--s300);border-radius:10px;padding:12px;text-align:center;color:var(--txt3);font-size:.82rem">Nessuna prenotazione per eventi futuri</div>';
+  } else {_activeBookings.forEach(b=>{h+=_regBookCard(b,false);});}
   h+='</div>';
+
+  // === CLOSED BOOKINGS (past events) ===
+  if(_closedBookings.length>0){
+    h+='<div style="margin-bottom:16px">';
+    h+='<div style="font-size:.85rem;font-weight:700;color:var(--txt3);margin-bottom:8px;display:flex;align-items:center;gap:6px">⚪ Prenotazioni concluse ('+_closedBookings.length+')</div>';
+    _closedBookings.forEach(b=>{h+=_regBookCard(b,false);});
+    h+='</div>';
+  }
+
+  // === CANCELLED BOOKINGS ===
+  if(_cancelledBookings.length>0){
+    h+='<div style="margin-bottom:16px">';
+    h+='<div style="font-size:.85rem;font-weight:700;color:var(--red);margin-bottom:8px;display:flex;align-items:center;gap:6px;cursor:pointer" onclick="const t=this.nextElementSibling;t.style.display=t.style.display===\'none\'?\'block\':\'none\'">🔴 Prenotazioni cancellate ('+_cancelledBookings.length+') <span style="font-size:.7rem;color:var(--txt3)">▾</span></div>';
+    h+='<div style="display:none">';
+    _cancelledBookings.forEach(b=>{h+=_regBookCard(b,true);});
+    h+='</div></div>';
+  }
 
   // Active subscriptions
   if(activeSubs.length>0){
@@ -6371,7 +6392,7 @@ function openRegistryUserDetail(uid){
 
   // Diagnostic: all bookings in local store for this user (debug)
   const allUserBookings=store.bookings.filter(b=>b.userId===_realUserId||b.userId===uid||(_uidIsEmail&&b.email===uid));
-  if(allUserBookings.length!==activeBookings.length){
+  if(allUserBookings.length!==allVisibleBookings.length){
     h+='<div style="margin-bottom:16px">';
     h+='<div style="font-size:.78rem;font-weight:600;color:var(--txt3);margin-bottom:6px">🔍 Tutte le prenotazioni in memoria ('+allUserBookings.length+' totali)</div>';
     allUserBookings.forEach(b=>{
@@ -9381,9 +9402,22 @@ function _doBookNormal(){
 
   // === CROSS-EVENT OVERLAP DETECTION ===
   // Build time slots for the current selection
+  // V3.1.6: For recurring events, use the actual booking date instead of template date
   const _newSlots=[];
   ev.days.forEach((day,di)=>{
-    const dayDate=day.date;
+    let dayDate=day.date;
+    if(ev.recurrence&&ev.recurrence.active&&currentBookingRecDate){
+      // Single-day recurring: use the actual recurring date
+      if(ev.days.length===1){dayDate=currentBookingRecDate;}
+      else{
+        // Multi-day: offset from first template date
+        const templateStart=new Date(ev.days[0].date+'T00:00:00');
+        const thisDay=new Date(day.date+'T00:00:00');
+        const offsetMs=thisDay-templateStart;
+        const recBase=new Date(currentBookingRecDate+'T00:00:00');
+        dayDate=localDateStr(new Date(recBase.getTime()+offsetMs));
+      }
+    }
     // Event-level selection → all days
     if(selectedTiers['tier-evfull-'+ev.id]||selectedTiers['tier-ebev-'+ev.id]||selectedTiers['tier-lev-'+ev.id]){
       if(day.sessions&&day.sessions.length){
@@ -9416,33 +9450,42 @@ function _doBookNormal(){
       const bkEv=store.events.find(e=>e.id===bk.eventId);
       if(!bkEv||!bkEv.days)continue;
       // Build time slots for existing booking
+      // V3.1.6: For recurring bookings, use actual recurringDate instead of template date
       const _existSlots=[];
       const bkScope=bk.scope||'evento';
       const bkSessIds=bk.sessions||[];
-      bkEv.days.forEach(d=>{
+      bkEv.days.forEach((d,dIdx)=>{
+        let dDate=d.date;
+        if(bk.recurringDate&&bkEv.recurrence&&bkEv.recurrence.active){
+          if(bkEv.days.length===1){dDate=bk.recurringDate;}
+          else{
+            const tplStart=new Date(bkEv.days[0].date+'T00:00:00');
+            const thisD=new Date(d.date+'T00:00:00');
+            const offMs=thisD-tplStart;
+            const recB=new Date(bk.recurringDate+'T00:00:00');
+            dDate=localDateStr(new Date(recB.getTime()+offMs));
+          }
+        }
         if(bkScope==='evento'){
-          // Booked whole event → all sessions/days
           if(d.sessions&&d.sessions.length){
-            d.sessions.forEach(s=>{if(s.startTime&&s.endTime)_existSlots.push({date:d.date,start:s.startTime,end:s.endTime,evTitle:bkEv.title,label:s.name});});
+            d.sessions.forEach(s=>{if(s.startTime&&s.endTime)_existSlots.push({date:dDate,start:s.startTime,end:s.endTime,evTitle:bkEv.title,label:s.name});});
           }else if(d.startTime&&d.endTime){
-            _existSlots.push({date:d.date,start:d.startTime,end:d.endTime,evTitle:bkEv.title,label:bkEv.title});
+            _existSlots.push({date:dDate,start:d.startTime,end:d.endTime,evTitle:bkEv.title,label:bkEv.title});
           }
         }else if(bkScope==='giornata'){
-          // Check if this day was booked (look in items for matching date)
           const dayBooked=bk.items&&bk.items.some(it=>(it.type||'').includes('giornata')&&it.date===fmtDateShort(d.date));
           if(dayBooked){
             if(d.sessions&&d.sessions.length){
-              d.sessions.forEach(s=>{if(s.startTime&&s.endTime)_existSlots.push({date:d.date,start:s.startTime,end:s.endTime,evTitle:bkEv.title,label:s.name});});
+              d.sessions.forEach(s=>{if(s.startTime&&s.endTime)_existSlots.push({date:dDate,start:s.startTime,end:s.endTime,evTitle:bkEv.title,label:s.name});});
             }else if(d.startTime&&d.endTime){
-              _existSlots.push({date:d.date,start:d.startTime,end:d.endTime,evTitle:bkEv.title,label:bkEv.title});
+              _existSlots.push({date:dDate,start:d.startTime,end:d.endTime,evTitle:bkEv.title,label:bkEv.title});
             }
           }
         }else{
-          // Session-level → use booked session IDs
           if(d.sessions){
             d.sessions.forEach(s=>{
               if(bkSessIds.includes(s.id)&&s.startTime&&s.endTime){
-                _existSlots.push({date:d.date,start:s.startTime,end:s.endTime,evTitle:bkEv.title,label:s.name});
+                _existSlots.push({date:dDate,start:s.startTime,end:s.endTime,evTitle:bkEv.title,label:s.name});
               }
             });
           }
@@ -13939,6 +13982,7 @@ async function renderCostManagement(evId){
       if(hasPartners){
         const sm=item.splitMode||'equal';
         if(!readOnly){
+          html+='<div>';
           html+='<select style="background:var(--s100);border:1px solid var(--s300);border-radius:6px;padding:3px 4px;color:var(--txt2);font-size:.7rem;width:100%" onchange="updateCostItemSplit(\''+evId+'\',\''+section.id+'\',\''+item.id+'\',this.value)">';
           html+='<option value="equal"'+(sm==='equal'?' selected':'')+'>Equa</option>';
           allParticipants.forEach(pid=>{
@@ -13946,8 +13990,24 @@ async function renderCostManagement(evId){
           });
           html+='<option value="custom"'+(sm==='custom'?' selected':'')+'>Personalizzata</option>';
           html+='</select>';
+          if(sm==='custom'){
+            const splits=item.splits||{};
+            const splitsTotal=allParticipants.reduce((s,p)=>s+(splits[p]||0),0);
+            html+='<div style="margin-top:4px;padding:6px;background:var(--s200);border-radius:6px;font-size:.7rem">';
+            allParticipants.forEach(pid=>{
+              const pName=getPartnerName(pid);
+              const pPct=splits[pid]||0;
+              html+='<div style="display:flex;align-items:center;gap:4px;margin-bottom:3px">';
+              html+='<span style="flex:1;color:var(--txt2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+escHtml(pName)+'">'+escHtml(pName)+'</span>';
+              html+='<input type="number" value="'+pPct+'" min="0" max="100" step="1" style="width:50px;background:var(--s100);border:1px solid var(--s300);border-radius:4px;padding:2px 4px;color:var(--txt1);font-size:.72rem;text-align:center" onchange="updateCostItemCustomSplit(\''+evId+'\',\''+section.id+'\',\''+item.id+'\',\''+pid+'\',parseFloat(this.value)||0)">%';
+              html+='</div>';
+            });
+            html+='<div style="text-align:right;margin-top:2px;color:'+(Math.abs(splitsTotal-100)<0.01?'var(--green)':'var(--red)')+';font-weight:600;font-size:.68rem">Tot: '+Math.round(splitsTotal)+'%</div>';
+            html+='</div>';
+          }
+          html+='</div>';
         } else {
-          html+='<span class="text-xs" style="text-align:center;color:var(--txt3)">'+(sm==='equal'?'Equa':sm.startsWith('solo_')?getPartnerName(sm.replace('solo_','')):'Custom')+'</span>';
+          html+='<span class="text-xs" style="text-align:center;color:var(--txt3)">'+(sm==='equal'?'Equa':sm.startsWith('solo_')?getPartnerName(sm.replace('solo_','')):'Personalizzata')+'</span>';
         }
       }
 
@@ -13978,11 +14038,12 @@ async function renderCostManagement(evId){
     // Headers
     html+='<div style="display:grid;grid-template-columns:2.5fr 1fr'+(hasPartners?' 1.5fr':'')+';gap:8px;padding:4px 0;font-size:.68rem;color:var(--txt3);text-transform:uppercase;letter-spacing:.3px">';
     html+='<span>Sessione</span><span style="text-align:center">Costo €</span>';
-    if(hasPartners)html+='<span style="text-align:center">Assegnato a</span>';
+    if(hasPartners)html+='<span style="text-align:center">Ripartizione</span>';
     html+='</div>';
 
     allSessions.forEach(s=>{
-      const sc=costs.sessions?.[s.id]||{amount:0,assignedTo:null};
+      const sc=costs.sessions?.[s.id]||{amount:0,assignedTo:null,splitMode:'assigned'};
+      const scSm=sc.splitMode||'assigned';
       html+='<div style="display:grid;grid-template-columns:2.5fr 1fr'+(hasPartners?' 1.5fr':'')+';gap:8px;padding:8px 0;border-bottom:1px solid var(--s200);align-items:center">';
       html+='<div><div class="text-sm" style="color:var(--txt1);font-weight:500">'+escHtml(s.name)+'</div><div class="text-xs txt3">'+fmtDateShort(s.day)+' · '+s.startTime+'-'+s.endTime+(s.teacher?' · '+escHtml(s.teacher):'')+'</div></div>';
 
@@ -13994,14 +14055,19 @@ async function renderCostManagement(evId){
 
       if(hasPartners){
         if(!readOnly){
-          html+='<select style="background:var(--s100);border:1px solid var(--s300);border-radius:6px;padding:3px 4px;color:var(--txt2);font-size:.72rem;width:100%" onchange="updateSessionCost(\''+evId+'\',\''+s.id+'\',\'assignedTo\',this.value||null)">';
-          html+='<option value=""'+((!sc.assignedTo)?' selected':'')+'>Capofila (default)</option>';
-          partners.forEach(pid=>{
-            html+='<option value="'+pid+'"'+(sc.assignedTo===pid?' selected':'')+'>'+escHtml(getPartnerName(pid))+'</option>';
+          html+='<select style="background:var(--s100);border:1px solid var(--s300);border-radius:6px;padding:3px 4px;color:var(--txt2);font-size:.72rem;width:100%" onchange="updateSessionCost(\''+evId+'\',\''+s.id+'\',\'splitMode\',this.value)">';
+          html+='<option value="equal"'+(scSm==='equal'?' selected':'')+'>Equa</option>';
+          allParticipants.forEach(pid=>{
+            html+='<option value="solo_'+pid+'"'+(scSm==='solo_'+pid?' selected':'')+'>100% '+escHtml(getPartnerName(pid))+'</option>';
           });
+          // Backward compat: if old data has assignedTo but no splitMode, show as solo_assignee
+          if(scSm==='assigned'){
+            const assignee=sc.assignedTo||ev.managerId;
+            html+='<option value="solo_'+assignee+'" selected>100% '+escHtml(getPartnerName(assignee))+'</option>';
+          }
           html+='</select>';
         } else {
-          html+='<span class="text-xs" style="text-align:center;color:var(--txt3)">'+(sc.assignedTo?getPartnerName(sc.assignedTo):'Capofila')+'</span>';
+          html+='<span class="text-xs" style="text-align:center;color:var(--txt3)">'+(scSm==='equal'?'Equa':scSm.startsWith('solo_')?getPartnerName(scSm.replace('solo_','')):(sc.assignedTo?getPartnerName(sc.assignedTo):'Capofila'))+'</span>';
         }
       }
       html+='</div>';
@@ -14098,9 +14164,12 @@ function _buildCostSummary(ev,costs,isCapo,hasPartners,allParticipants,getPartne
 
         // Costs assigned to this participant
         let pCosts=0;
-        // Session costs assigned
+        // Session costs (with splitMode support)
         Object.entries(costs.sessions||{}).forEach(([sid,sc])=>{
-          if((sc.assignedTo||ev.managerId)===pid)pCosts+=(sc.amount||0);
+          const scSm=sc.splitMode||'assigned';
+          if(scSm==='equal'){pCosts+=Math.round((sc.amount||0)/allParticipants.length*100)/100;}
+          else if(scSm==='solo_'+pid){pCosts+=(sc.amount||0);}
+          else if(scSm==='assigned'&&(sc.assignedTo||ev.managerId)===pid){pCosts+=(sc.amount||0);}
         });
         // General costs share
         (costs.sections||[]).forEach(sec=>{
@@ -14109,6 +14178,7 @@ function _buildCostSummary(ev,costs,isCapo,hasPartners,allParticipants,getPartne
             const sm=item.splitMode||'equal';
             if(sm==='equal')pCosts+=Math.round(itemTotal/allParticipants.length*100)/100;
             else if(sm==='solo_'+pid)pCosts+=itemTotal;
+            else if(sm==='custom'&&item.splits)pCosts+=Math.round(itemTotal*(item.splits[pid]||0)/100*100)/100;
           });
         });
         pCosts=Math.round(pCosts*100)/100;
@@ -14131,7 +14201,10 @@ function _buildCostSummary(ev,costs,isCapo,hasPartners,allParticipants,getPartne
     const myRevenue=Math.round(totalRevenue*revPct/100);
     let myCosts=0;
     Object.entries(costs.sessions||{}).forEach(([sid,sc])=>{
-      if(sc.assignedTo===myId)myCosts+=(sc.amount||0);
+      const scSm=sc.splitMode||'assigned';
+      if(scSm==='equal'){myCosts+=Math.round((sc.amount||0)/allParticipants.length*100)/100;}
+      else if(scSm==='solo_'+myId){myCosts+=(sc.amount||0);}
+      else if(scSm==='assigned'&&sc.assignedTo===myId){myCosts+=(sc.amount||0);}
     });
     (costs.sections||[]).forEach(sec=>{
       (sec.items||[]).forEach(item=>{
@@ -14139,6 +14212,7 @@ function _buildCostSummary(ev,costs,isCapo,hasPartners,allParticipants,getPartne
         const sm=item.splitMode||'equal';
         if(sm==='equal')myCosts+=Math.round(itemTotal/allParticipants.length*100)/100;
         else if(sm==='solo_'+myId)myCosts+=itemTotal;
+        else if(sm==='custom'&&item.splits)myCosts+=Math.round(itemTotal*(item.splits[myId]||0)/100*100)/100;
       });
     });
     myCosts=Math.round(myCosts*100)/100;
@@ -14234,16 +14308,60 @@ function updateCostItem(evId,secId,itemId,field,value){
 function updateCostItemSplit(evId,secId,itemId,value){
   const ev=store.events.find(e=>e.id===evId);if(!ev||!ev.eventCosts)return;
   const sec=ev.eventCosts.sections.find(s=>s.id===secId);if(!sec)return;
-  const item=sec.items.find(i=>i.id===itemId);if(item)item.splitMode=value;
+  const item=sec.items.find(i=>i.id===itemId);if(!item)return;
+  item.splitMode=value;
+  if(value==='custom'&&(!item.splits||Object.keys(item.splits).length===0)){
+    // Initialize equal splits when switching to custom
+    const allParts=[ev.managerId,...(ev.partnerIds||[])];
+    item.splits={};
+    const each=Math.round(100/allParts.length*100)/100;
+    allParts.forEach(pid=>{item.splits[pid]=each;});
+    // Fix rounding
+    const total=allParts.reduce((s,p)=>s+(item.splits[p]||0),0);
+    if(Math.abs(total-100)>0.01)item.splits[allParts[0]]=Math.round((item.splits[allParts[0]]+(100-total))*100)/100;
+  }
   _autoSaveCosts(evId);
-  _refreshCostSummary(evId);
+  renderCostManagement(evId);
+}
+
+function updateCostItemCustomSplit(evId,secId,itemId,pid,pct){
+  const ev=store.events.find(e=>e.id===evId);if(!ev||!ev.eventCosts)return;
+  const sec=ev.eventCosts.sections.find(s=>s.id===secId);if(!sec)return;
+  const item=sec.items.find(i=>i.id===itemId);if(!item)return;
+  if(!item.splits)item.splits={};
+  const allParts=[ev.managerId,...(ev.partnerIds||[])];
+  const others=allParts.filter(p=>p!==pid);
+  pct=Math.max(0,Math.min(100,pct));
+  item.splits[pid]=pct;
+  // Auto-adjust others to total 100%
+  const remaining=Math.max(0,100-pct);
+  const othersOldTotal=others.reduce((s,p)=>s+(item.splits[p]||0),0);
+  if(othersOldTotal>0){
+    others.forEach(p=>{item.splits[p]=Math.round((item.splits[p]||0)/othersOldTotal*remaining*100)/100;});
+  } else {
+    others.forEach(p=>{item.splits[p]=Math.round(remaining/others.length*100)/100;});
+  }
+  // Fix rounding
+  const realTotal=allParts.reduce((s,p)=>s+(item.splits[p]||0),0);
+  if(Math.abs(realTotal-100)>0.01&&others.length>0){
+    item.splits[others[0]]=Math.round((item.splits[others[0]]+(100-realTotal))*100)/100;
+  }
+  _autoSaveCosts(evId);
+  renderCostManagement(evId);
 }
 
 function updateSessionCost(evId,sessionId,field,value){
   const ev=store.events.find(e=>e.id===evId);if(!ev||!ev.eventCosts)return;
   if(!ev.eventCosts.sessions)ev.eventCosts.sessions={};
-  if(!ev.eventCosts.sessions[sessionId])ev.eventCosts.sessions[sessionId]={amount:0,assignedTo:null};
-  ev.eventCosts.sessions[sessionId][field]=value;
+  if(!ev.eventCosts.sessions[sessionId])ev.eventCosts.sessions[sessionId]={amount:0,assignedTo:null,splitMode:'assigned'};
+  if(field==='splitMode'){
+    // New splitMode system: 'equal' or 'solo_[pid]'
+    ev.eventCosts.sessions[sessionId].splitMode=value;
+    if(value==='equal'){ev.eventCosts.sessions[sessionId].assignedTo=null;}
+    else if(value.startsWith('solo_')){ev.eventCosts.sessions[sessionId].assignedTo=value.replace('solo_','');}
+  } else {
+    ev.eventCosts.sessions[sessionId][field]=value;
+  }
   _autoSaveCosts(evId);
   _refreshCostSummary(evId);
 }
@@ -14251,7 +14369,29 @@ function updateSessionCost(evId,sessionId,field,value){
 function updateRevenueShare(evId,pid,pct){
   const ev=store.events.find(e=>e.id===evId);if(!ev||!ev.eventCosts)return;
   if(!ev.eventCosts.revenueSharing)ev.eventCosts.revenueSharing={};
-  ev.eventCosts.revenueSharing[pid]=pct;
+  const rs=ev.eventCosts.revenueSharing;
+  const allParts=[ev.managerId,...(ev.partnerIds||[])];
+  const others=allParts.filter(p=>p!==pid);
+  // Clamp to 0-100
+  pct=Math.max(0,Math.min(100,pct));
+  rs[pid]=pct;
+  // Auto-adjust others to total 100%
+  const remaining=Math.max(0,100-pct);
+  const othersOldTotal=others.reduce((s,p)=>s+(rs[p]||0),0);
+  if(othersOldTotal>0){
+    // Distribute proportionally based on previous values
+    others.forEach(p=>{
+      rs[p]=Math.round((rs[p]||0)/othersOldTotal*remaining*100)/100;
+    });
+  } else {
+    // All others are 0 — distribute equally
+    others.forEach(p=>{rs[p]=Math.round(remaining/others.length*100)/100;});
+  }
+  // Fix rounding: adjust first other to make total exactly 100
+  const realTotal=allParts.reduce((s,p)=>s+(rs[p]||0),0);
+  if(Math.abs(realTotal-100)>0.01&&others.length>0){
+    rs[others[0]]=Math.round((rs[others[0]]+(100-realTotal))*100)/100;
+  }
   _autoSaveCosts(evId);
   renderCostManagement(evId);
 }
@@ -14911,12 +15051,15 @@ async function renderAdminDashboard(){
           const sm=item.splitMode||'equal';
           if(sm==='equal')total+=Math.round(itemTotal/allParts.length*100)/100;
           else if(sm==='solo_'+myId)total+=itemTotal;
+          else if(sm==='custom'&&item.splits)total+=Math.round(itemTotal*(item.splits[myId]||0)/100*100)/100;
         });
       });
-      // Session costs
+      // Session costs (with splitMode support)
       Object.entries(costs.sessions||{}).forEach(([sid,sc])=>{
-        const assignee=sc.assignedTo||ev.managerId;
-        if(assignee===myId)total+=(sc.amount||0);
+        const scSm=sc.splitMode||'assigned';
+        if(scSm==='equal'){total+=Math.round((sc.amount||0)/allParts.length*100)/100;}
+        else if(scSm==='solo_'+myId){total+=(sc.amount||0);}
+        else if(scSm==='assigned'){const assignee=sc.assignedTo||ev.managerId;if(assignee===myId)total+=(sc.amount||0);}
       });
       return Math.round(total*100)/100;
     }
