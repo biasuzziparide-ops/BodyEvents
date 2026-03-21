@@ -17578,7 +17578,7 @@ async function renderAdminBookings(){
         <td><div class="flex items-center gap-2"><div class="avatar ${avatarCls}" ${avatarStyle}>${b.initials}</div><div><div class="font-medium text-white text-sm" style="${nameStyle}">${escHtml(b.userName)}</div><div class="text-xs txt3">${escHtml(b.email)}</div></div></div></td>
         <td class="text-sm">${getEvTitle(b.eventId)}</td>
         <td class="text-sm">${getSessionNames(b.eventId,b.sessions)}</td>
-        <td style="white-space:nowrap"><span style="font-size:.72rem;padding:2px 5px;border-radius:4px;background:${b.tier==='alto'?'rgba(234,179,8,.12);color:var(--yellow)':b.tier==='basso'?'rgba(59,130,246,.12);color:var(--blue)':'rgba(168,85,247,.12);color:var(--purple)'">${{alto:'✦ Sost.',medio:'● Std',basso:'○ Rid.'}[b.tier]||'● Std'}</span></td>
+        <td style="white-space:nowrap"><span style="font-size:.72rem;padding:2px 5px;border-radius:4px;background:${b.tier==='alto'?'rgba(234,179,8,.12);color:var(--yellow)':b.tier==='basso'?'rgba(59,130,246,.12);color:var(--blue)':'rgba(168,85,247,.12);color:var(--purple)'">${({alto:'✦ Sost.',medio:'● Std',basso:'○ Rid.'})[b.tier]||'● Std'}</span></td>
         <td class="font-medium ${isCancelled?'txt3':''}">${amountHtml} ${giftBtn}</td>
         <td>${payHtml}</td>
         <td>${depositHtml}</td>
