@@ -3127,6 +3127,7 @@ function _loadDeferredAdminData(){
       // Re-render current admin view now that data is available
       if(currentView==='admin')renderAdminDashboard();
       else if(currentView==='admin-events')renderAdminEvents();
+      else if(currentView==='admin-insurances')renderAdminInsurances();
     })
     .catch(e=>console.error('Deferred admin data load error:',e));
 }
@@ -3712,6 +3713,7 @@ async function loadAllData(forceReload){
   try{
     const app=document.getElementById('app');
     if(app&&!_dataLoaded)app.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:60vh;flex-direction:column;gap:16px"><div class="spinner"></div><p class="txt2">Caricamento dati...</p></div>';
+    console.log('[BE_INIT] loadAllData: starting essential collections load...');
     // V3.1.5: Load only essential collections at startup (managers, events, universes, communityJams)
     // Heavy collections (bookings, attendances, subscriptions, users) are loaded on-demand via ensure*() functions
     const [managersSnap,eventsSnap,jamsSnap,universesSnap]=await Promise.all([
@@ -3736,9 +3738,9 @@ async function loadAllData(forceReload){
       fsSet('universes','univ_acro',acroUniv).catch(console.error);
     }
     _dataLoaded=true;
-    // Data loaded successfully
+    console.log('[BE_INIT] loadAllData: completed. Managers:',store.managers.length,', Events:',store.events.length);
   }catch(e){
-    console.error('loadAllData error:',e);
+    console.error('[BE_INIT] loadAllData CRITICAL error:',e);
     showToast('Errore caricamento dati: '+e.message,'error');
   }finally{_dataLoadingPromise=null;}
   })();
@@ -6505,12 +6507,13 @@ function populateSubTypeCheckboxes(){
 }
 
 // V3.1.7: Populate insurance checkboxes in event form
-function populateInsuranceCheckboxes(){
+async function populateInsuranceCheckboxes(){
   const c=document.getElementById('ne-insurance-types');if(!c)return;
+  if(!_insurancesLoaded){try{await ensureInsurancesLoaded();}catch(e){console.warn('Insurance load for form skipped:',e.message);}}
   const mgr=store.managers.find(m=>m.id===store.currentUser?.id);
   const affiliated=mgr?.affiliatedInsurances||[];
   const prevSelected=new Set(Array.from(c.querySelectorAll('.ne-ins-sel.selected')).map(b=>b.dataset.id));
-  const myIns=store.insurances.filter(i=>affiliated.includes(i.id)&&i.status==='active');
+  const myIns=(store.insurances||[]).filter(i=>affiliated.includes(i.id)&&i.status==='active');
   if(!myIns.length){c.innerHTML='<span class="text-xs txt3">Nessuna assicurazione affiliata. <a href="#" onclick="go(\'admin-insurances\');return false" style="color:var(--brand-l)">Gestisci →</a></span>';return;}
   let html='';
   myIns.forEach(ins=>{
@@ -7917,8 +7920,9 @@ async function resetPassword(){
 let _loadingUserInProgress=false;
 async function loadCurrentUser(uid){
   // Guard: prevent concurrent calls (e.g. onAuthStateChanged + loginWithGoogle racing)
-  if(_loadingUserInProgress){console.log('loadCurrentUser already in progress, skipping');return;}
+  if(_loadingUserInProgress){console.log('[BE_INIT] loadCurrentUser already in progress, skipping');return;}
   _loadingUserInProgress=true;
+  console.log('[BE_INIT] loadCurrentUser started for uid:',uid);
   try{
   // Load all data from Firestore first
   await loadAllData();
@@ -13723,7 +13727,7 @@ function showEventDetail(evId,recDate){
     } else if(_insPrice>0){
       daysHtml+=`<div class="card mb-4" style="background:rgba(245,158,11,.05);border-color:rgba(245,158,11,.25);padding:12px 14px">
         <div class="flex items-center gap-2"><span style="font-size:1rem">🛡️</span><span class="font-semibold text-sm" style="color:var(--warn)">Assicurazione richiesta</span></div>
-        <p class="text-xs mt-1" style="color:var(--txt2);line-height:1.5">${escHtml(ev.insurance.description||'Questo evento richiede un\'assicurazione.')} Assicurazioni accettate: <strong>${escHtml(_insNames)}</strong>. Senza assicurazione verrà applicato un sovrapprezzo di <strong style="color:var(--warn)">€${_insPrice}</strong>.</p></div>`;
+        <p class="text-xs mt-1" style="color:var(--txt2);line-height:1.5">${escHtml(ev.insurance.description||"Questo evento richiede un'assicurazione.")} Assicurazioni accettate: <strong>${escHtml(_insNames)}</strong>. Senza assicurazione verrà applicato un sovrapprezzo di <strong style="color:var(--warn)">€${_insPrice}</strong>.</p></div>`;
     }
   }
   ev.days.forEach((day,di)=>{
@@ -15754,7 +15758,7 @@ async function renderAdminDashboard(){
   const c=document.getElementById('admin-dash-stats');if(!c)return;
   if(!_bookingsLoaded||!_usersFullyLoaded){
     _showDeferredLoading(c);
-    await Promise.all([ensureBookingsLoaded(),ensureUsersLoaded(),ensureAttendancesLoaded()]);
+    await Promise.all([ensureBookingsLoaded(),ensureUsersLoaded(),ensureAttendancesLoaded(),ensureInsurancesLoaded()]);
     if(currentView!=='admin')return;
   }
   const u=store.currentUser;
@@ -16282,7 +16286,8 @@ function syncToggleBtns(){
     ['ne-sub-bookable','ne-sub-bookable-btn'],
     ['ne-sub-discount','ne-sub-discount-btn'],
     ['ne-loyalty-discount','ne-loyalty-discount-btn'],
-    ['ne-deposit-required','ne-deposit-required-btn']
+    ['ne-deposit-required','ne-deposit-required-btn'],
+    ['ne-insurance-required','ne-insurance-required-btn']
   ];
   pairs.forEach(([cbId,btnId])=>{
     const cb=document.getElementById(cbId);const btn=document.getElementById(btnId);
@@ -19957,6 +19962,8 @@ function dismissAuthSplash(){
   if(sp){sp.style.opacity='0';setTimeout(()=>sp.remove(),300);}
 }
 fbAuth.onAuthStateChanged(async(user)=>{
+  console.log('[BE_INIT] onAuthStateChanged fired, user:', user ? user.uid : 'null');
+  try{
   if(user){
     // Skip if registration is handling things (it manages its own flow)
     if(_registrationInProgress) return;
@@ -19972,7 +19979,9 @@ fbAuth.onAuthStateChanged(async(user)=>{
         window.history.replaceState(null,'',window.location.pathname);
       }catch(e){showToast('Errore magic link: '+e.message,'error');dismissAuthSplash();return;}
     }
+    console.log('[BE_INIT] Calling loadCurrentUser...');
     await loadCurrentUser(user.uid);
+    console.log('[BE_INIT] loadCurrentUser completed');
     dismissAuthSplash();
   } else {
     // No user logged in — show login page
@@ -19997,6 +20006,7 @@ fbAuth.onAuthStateChanged(async(user)=>{
       }).catch(()=>{showToast('Errore nel recupero dati organizzatore','error');});
     }
   }
+  }catch(_authErr){console.error('[BE_INIT] CRITICAL ERROR in onAuthStateChanged:',_authErr);dismissAuthSplash();document.getElementById('view-login').classList.add('active');showToast('Errore inizializzazione: '+_authErr.message,'error');}
 });
 // Safety: dismiss splash after 15s max (in case auth hangs)
 // Also show login view as fallback so user isn't stuck on blank screen
