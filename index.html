@@ -123,7 +123,7 @@ textarea.input{resize:none;font-family:inherit}
 .hamburger{display:none;background:none;border:none;color:var(--txt3);cursor:pointer;padding:8px;min-width:44px;min-height:44px;font-size:1.4rem;display:none;align-items:center;justify-content:center}
 .mobile-menu{display:none;background:var(--s50);border-top:1px solid var(--s300);padding:8px 16px 16px;position:relative;z-index:42}
 .mobile-menu.open{display:block}
-.mobile-backdrop{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:41}
+.mobile-backdrop{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);z-index:39}
 .mobile-backdrop.open{display:block}
 .mobile-menu .mm-group{padding:8px 0}
 .mobile-menu .mm-group+.mm-group{border-top:1px solid var(--s300)}
@@ -470,6 +470,7 @@ textarea.input{resize:none;font-family:inherit}
         <div class="mtn-item" data-view="admin-checkin" onclick="go('admin-checkin')"><span>📱</span><span class="mtn-label">Presenze</span></div>
         <div class="mtn-item" data-view="admin-subscriptions" onclick="go('admin-subscriptions')"><span>💳</span><span class="mtn-label">Abbon.</span></div>
         <div class="mtn-item" data-view="admin-registry" onclick="go('admin-registry')"><span>📋</span><span class="mtn-label">Anagr.</span></div>
+        <div class="mtn-item" data-view="admin-insurances" onclick="go('admin-insurances')"><span>🛡️</span><span class="mtn-label">Assic.</span></div>
         <div class="mtn-item" data-view="admin" onclick="go('admin')"><span>📊</span><span class="mtn-label">Dash</span></div>
       </div>
     </div>
@@ -494,6 +495,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="mqb-item" data-view="admin-checkin" onclick="go('admin-checkin');closeMobileAdmin()"><span class="mqb-icon">📱</span><span class="mqb-label">Presenze</span></div>
       <div class="mqb-item" data-view="admin-subscriptions" onclick="go('admin-subscriptions');closeMobileAdmin()"><span class="mqb-icon">💳</span><span class="mqb-label">Abbonamenti</span></div>
       <div class="mqb-item" data-view="admin-registry" onclick="go('admin-registry');closeMobileAdmin()"><span class="mqb-icon">📋</span><span class="mqb-label">Anagrafica</span></div>
+      <div class="mqb-item" data-view="admin-insurances" onclick="go('admin-insurances');closeMobileAdmin()"><span class="mqb-icon">🛡️</span><span class="mqb-label">Assicurazioni</span></div>
       <div class="mqb-item" data-view="admin" onclick="go('admin');closeMobileAdmin()"><span class="mqb-icon">📊</span><span class="mqb-label">Dashboard</span></div>
     </div>
   </div>
@@ -914,6 +916,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-checkin')">📱 Presenze e Check-in</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
+      <div class="sidebar-link" onclick="go('admin-insurances')">🛡️ Assicurazioni</div>
       <div class="sidebar-link active" onclick="go('admin')">📊 Dashboard</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
@@ -962,6 +965,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-checkin')">📱 Presenze e Check-in</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
+      <div class="sidebar-link" onclick="go('admin-insurances')">🛡️ Assicurazioni</div>
       <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
@@ -993,6 +997,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-checkin')">📱 Presenze e Check-in</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
+      <div class="sidebar-link" onclick="go('admin-insurances')">🛡️ Assicurazioni</div>
       <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only active" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
@@ -1023,6 +1028,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-checkin')">📱 Presenze e Check-in</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
+      <div class="sidebar-link" onclick="go('admin-insurances')">🛡️ Assicurazioni</div>
       <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
@@ -1070,6 +1076,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-checkin')">📱 Presenze e Check-in</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
+      <div class="sidebar-link" onclick="go('admin-insurances')">🛡️ Assicurazioni</div>
       <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
@@ -1156,6 +1163,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-checkin')">📱 Presenze e Check-in</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
+      <div class="sidebar-link" onclick="go('admin-insurances')">🛡️ Assicurazioni</div>
       <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
@@ -1311,6 +1319,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-checkin')">📱 Presenze e Check-in</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
+      <div class="sidebar-link" onclick="go('admin-insurances')">🛡️ Assicurazioni</div>
       <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
@@ -1369,6 +1378,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-checkin')">📱 Presenze e Check-in</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
+      <div class="sidebar-link" onclick="go('admin-insurances')">🛡️ Assicurazioni</div>
       <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
@@ -1693,6 +1703,27 @@ textarea.input{resize:none;font-family:inherit}
         </div>
       </div>
 
+      <!-- V3.1.7: Assicurazione richiesta -->
+      <div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--s300)" id="ne-insurance-wrap">
+        <h4 class="text-sm font-semibold mb-3" style="color:var(--txt2)">🛡️ Assicurazione</h4>
+        <div style="margin-bottom:12px">
+          <button type="button" id="ne-insurance-required-btn" class="btn btn-sm" style="background:var(--s200);color:var(--txt2);border:1px solid var(--s400);font-size:.8rem;padding:8px 16px;border-radius:10px;transition:all .2s" onclick="toggleOptionBtn('ne-insurance-required',this,'ne-insurance-opts')">
+            🛡️ Richiedi assicurazione
+          </button>
+          <input type="checkbox" id="ne-insurance-required" style="display:none">
+        </div>
+        <div id="ne-insurance-opts" class="hidden" style="background:var(--s100);border:1px solid var(--s300);border-radius:10px;padding:12px">
+          <label class="label">Assicurazioni accettate</label>
+          <div id="ne-insurance-types" class="flex flex-wrap gap-2 mb-3"></div>
+          <div class="grid grid-2 gap-3 mb-3">
+            <div><label class="label">Sovrapprezzo non assicurati (€)</label><input class="input" id="ne-insurance-price" type="number" min="0" step="0.5" placeholder="es. 5"></div>
+            <div><label class="label">Descrizione (visibile a utenti)</label><input class="input" id="ne-insurance-desc" placeholder="es. Copertura infortuni obbligatoria"></div>
+          </div>
+          <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--txt2);cursor:pointer"><input type="checkbox" id="ne-insurance-survey-enabled"> Richiedi compilazione questionario assicurativo</label>
+          <p class="text-xs txt3 mt-2" style="line-height:1.4">Se attivato, i partecipanti senza assicurazione pagheranno il sovrapprezzo indicato. Gli utenti con assicurazione attiva tra quelle selezionate non pagano il sovrapprezzo.</p>
+        </div>
+      </div>
+
       <!-- Anticipo per conferma prenotazione — toggle button -->
       <div style="margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--s300)" id="ne-deposit-wrap">
         <h4 class="text-sm font-semibold mb-3" style="color:var(--txt2)">🔒 Anticipo per conferma prenotazione</h4>
@@ -1780,6 +1811,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-checkin')">📱 Presenze e Check-in</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
+      <div class="sidebar-link" onclick="go('admin-insurances')">🛡️ Assicurazioni</div>
       <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
@@ -1829,6 +1861,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link active" onclick="go('admin-checkin')">📱 Presenze e Check-in</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
+      <div class="sidebar-link" onclick="go('admin-insurances')">🛡️ Assicurazioni</div>
       <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
@@ -1954,6 +1987,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-checkin')">📱 Presenze e Check-in</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
+      <div class="sidebar-link" onclick="go('admin-insurances')">🛡️ Assicurazioni</div>
       <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
@@ -1990,6 +2024,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-checkin')">📱 Presenze e Check-in</div>
       <div class="sidebar-link active" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
+      <div class="sidebar-link" onclick="go('admin-insurances')">🛡️ Assicurazioni</div>
       <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
@@ -2028,6 +2063,7 @@ textarea.input{resize:none;font-family:inherit}
       <div class="sidebar-link" onclick="go('admin-checkin')">📱 Presenze e Check-in</div>
       <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
       <div class="sidebar-link active" onclick="go('admin-registry')">📋 Anagrafica</div>
+      <div class="sidebar-link" onclick="go('admin-insurances')">🛡️ Assicurazioni</div>
       <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
@@ -2057,6 +2093,35 @@ textarea.input{resize:none;font-family:inherit}
         </table>
       </div>
     </div>
+  </main>
+</div>
+</div>
+
+<!-- ============================================================ -->
+<!-- VIEW: ADMIN INSURANCES (Assicurazioni) — V3.1.7 -->
+<!-- ============================================================ -->
+<div class="view" id="view-admin-insurances">
+<div class="admin-wrap">
+  <aside class="sidebar">
+    <div class="sidebar-title sidebar-org-btn" style="cursor:pointer" onclick="go('admin-org-profile')"><div class="icon sidebar-org-icon">🛡️</div><div><div class="font-semibold text-white sidebar-org-name">Organizzatore</div><div class="text-xs txt3">Gestione</div></div></div>
+    <nav class="sidebar-nav">
+      <div class="sidebar-link" onclick="go('admin-events')">📅 Eventi</div>
+      <div class="sidebar-link" onclick="go('admin-checkin')">📱 Presenze e Check-in</div>
+      <div class="sidebar-link" onclick="go('admin-subscriptions')">💳 Abbonamenti</div>
+      <div class="sidebar-link" onclick="go('admin-registry')">📋 Anagrafica</div>
+      <div class="sidebar-link active" onclick="go('admin-insurances')">🛡️ Assicurazioni</div>
+      <div class="sidebar-link" onclick="go('admin')">📊 Dashboard</div>
+      <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
+      <div class="sidebar-link master-only" onclick="go('admin-community-events')">📅 Eventi Organizzati</div>
+      <div class="sidebar-link master-only" onclick="go('admin-community-jams')">🤝 Community Events</div>
+      <div class="sidebar-link master-only" onclick="go('admin-users')">👥 Gestione Utenti</div>
+      <div class="sidebar-link master-only" onclick="go('admin-universes')">🌌 Universi</div>
+    </nav>
+  </aside>
+  <main class="admin-content">
+    <h1 class="page-title">🛡️ Assicurazioni</h1>
+    <p class="page-sub mb-6">Gestisci le assicurazioni affiliate e assegnale ai tuoi partecipanti</p>
+    <div id="admin-insurances-container"></div>
   </main>
 </div>
 </div>
@@ -2644,7 +2709,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.1.5';
+const APP_VERSION='V3.1.7';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -2984,7 +3049,8 @@ const store={
   subscriptionTypes:[],
   attendances:{},
   communityJams:[],
-  universes:[]
+  universes:[],
+  insurances:[]
 };
 
 /* ==============================
@@ -2995,6 +3061,7 @@ let _attendancesLoaded=false;
 let _subscriptionsLoaded=false;
 let _usersFullyLoaded=false;
 let _userOwnBookingsLoaded=false;
+let _insurancesLoaded=false;
 
 async function ensureBookingsLoaded(){
   if(_bookingsLoaded)return;
@@ -3044,13 +3111,23 @@ async function ensureUsersLoaded(){
   _usersFullyLoaded=true;
 }
 
+async function ensureInsurancesLoaded(){
+  if(_insurancesLoaded)return;
+  try{
+    const snap=await fbDb.collection('insurances').get();
+    store.insurances=[];snap.forEach(doc=>{store.insurances.push(doc.data());});
+  }catch(e){console.warn('Insurances load skipped:',e.message);store.insurances=[];}
+  _insurancesLoaded=true;
+}
+
 // Background loader for admin/organizer: starts loading heavy collections in parallel
 function _loadDeferredAdminData(){
-  Promise.all([ensureBookingsLoaded(),ensureUsersLoaded(),ensureAttendancesLoaded(),ensureSubscriptionsLoaded()])
+  Promise.all([ensureBookingsLoaded(),ensureUsersLoaded(),ensureAttendancesLoaded(),ensureSubscriptionsLoaded(),ensureInsurancesLoaded()])
     .then(()=>{
       // Re-render current admin view now that data is available
       if(currentView==='admin')renderAdminDashboard();
       else if(currentView==='admin-events')renderAdminEvents();
+      else if(currentView==='admin-insurances')renderAdminInsurances();
     })
     .catch(e=>console.error('Deferred admin data load error:',e));
 }
@@ -3077,6 +3154,535 @@ async function fsDelete(col,id){
   try{await fbDb.collection(col).doc(id).delete();}
   catch(e){console.error('fsDelete error:',col,id,e);showToast('Errore eliminazione dati','error');}
 }
+/* ==============================
+   INSURANCE SYSTEM (V3.1.7)
+   ============================== */
+// Insurance entity: {id, name, description, provider, createdBy, validFrom, validTo, createdAt, status:'active'|'archived'}
+// Manager affiliation: manager.affiliatedInsurances = ['ins_abc','ins_xyz']
+// Manager survey template: manager.insuranceSurvey = [{id,question,type:'text'|'select'|'boolean',options:[],required:bool}]
+// User assignment: user.assignedInsurances = [{insuranceId, assignedBy, assignedAt, expiresAt, surveyAnswers:{}}]
+// Event requirement: ev.insurance = {enabled:bool, requiredInsuranceIds:[], price:number, description:'', surveyEnabled:bool}
+
+function getUserActiveInsurances(userId,managerAffiliatedIds){
+  const user=store.users.find(u=>u.id===userId);
+  if(!user||!user.assignedInsurances)return [];
+  const now=new Date().toISOString();
+  return user.assignedInsurances.filter(a=>{
+    if(a.expiresAt&&a.expiresAt<now)return false;
+    if(managerAffiliatedIds&&!managerAffiliatedIds.includes(a.insuranceId))return false;
+    const ins=store.insurances.find(i=>i.id===a.insuranceId);
+    return ins&&ins.status==='active';
+  });
+}
+
+function isUserInsured(userId,requiredInsuranceIds){
+  if(!requiredInsuranceIds||!requiredInsuranceIds.length)return true;
+  const user=store.users.find(u=>u.id===userId);
+  if(!user||!user.assignedInsurances)return false;
+  const now=new Date().toISOString();
+  return requiredInsuranceIds.some(reqId=>
+    user.assignedInsurances.some(a=>a.insuranceId===reqId&&(!a.expiresAt||a.expiresAt>=now))
+  );
+}
+
+function getInsuranceName(insId){
+  const ins=store.insurances.find(i=>i.id===insId);
+  return ins?ins.name:'Assicurazione sconosciuta';
+}
+
+function getInsuranceStatusBadge(assignment){
+  if(!assignment)return '';
+  const now=new Date().toISOString();
+  const exp=assignment.expiresAt;
+  if(exp&&exp<now)return '<span style="font-size:.68rem;padding:2px 6px;border-radius:4px;background:rgba(239,68,68,.12);color:var(--red);font-weight:600">Scaduta</span>';
+  // Expiring within 30 days
+  if(exp){
+    const daysLeft=Math.ceil((new Date(exp)-new Date())/(1000*60*60*24));
+    if(daysLeft<=30)return '<span style="font-size:.68rem;padding:2px 6px;border-radius:4px;background:rgba(245,158,11,.12);color:var(--warn);font-weight:600">Scade tra '+daysLeft+'gg</span>';
+  }
+  return '<span style="font-size:.68rem;padding:2px 6px;border-radius:4px;background:rgba(16,185,129,.12);color:var(--green);font-weight:600">Attiva</span>';
+}
+
+async function createInsurance(name,description,provider,createdBy){
+  const ins={id:genId('ins'),name,description:description||'',provider:provider||'',createdBy,createdAt:new Date().toISOString(),status:'active'};
+  store.insurances.push(ins);
+  await fsSet('insurances',ins.id,ins);
+  return ins;
+}
+
+async function updateInsurance(insId,updates){
+  const ins=store.insurances.find(i=>i.id===insId);
+  if(!ins)return null;
+  Object.assign(ins,updates);
+  await fsUpdate('insurances',insId,updates);
+  return ins;
+}
+
+async function archiveInsurance(insId){
+  return updateInsurance(insId,{status:'archived'});
+}
+
+async function affiliateInsuranceToManager(managerId,insuranceId){
+  const mgr=store.managers.find(m=>m.id===managerId);
+  if(!mgr)return;
+  if(!mgr.affiliatedInsurances)mgr.affiliatedInsurances=[];
+  if(mgr.affiliatedInsurances.includes(insuranceId))return;
+  mgr.affiliatedInsurances.push(insuranceId);
+  await fsUpdate('managers',managerId,{affiliatedInsurances:mgr.affiliatedInsurances});
+}
+
+async function unaffiliateInsuranceFromManager(managerId,insuranceId){
+  const mgr=store.managers.find(m=>m.id===managerId);
+  if(!mgr||!mgr.affiliatedInsurances)return;
+  mgr.affiliatedInsurances=mgr.affiliatedInsurances.filter(id=>id!==insuranceId);
+  await fsUpdate('managers',managerId,{affiliatedInsurances:mgr.affiliatedInsurances});
+}
+
+async function assignInsuranceToUser(userId,insuranceId,assignedBy,expiresAt,surveyAnswers){
+  const user=store.users.find(u=>u.id===userId);
+  if(!user)return null;
+  if(!user.assignedInsurances)user.assignedInsurances=[];
+  // Prevent duplicate active assignment of same insurance
+  const existing=user.assignedInsurances.find(a=>a.insuranceId===insuranceId&&(!a.expiresAt||a.expiresAt>=new Date().toISOString()));
+  if(existing)return existing;
+  const assignment={insuranceId,assignedBy,assignedAt:new Date().toISOString(),expiresAt:expiresAt||null,surveyAnswers:surveyAnswers||{}};
+  user.assignedInsurances.push(assignment);
+  await fsUpdate('users',userId,{assignedInsurances:user.assignedInsurances});
+  return assignment;
+}
+
+async function removeInsuranceFromUser(userId,insuranceId){
+  const user=store.users.find(u=>u.id===userId);
+  if(!user||!user.assignedInsurances)return;
+  user.assignedInsurances=user.assignedInsurances.filter(a=>a.insuranceId!==insuranceId);
+  await fsUpdate('users',userId,{assignedInsurances:user.assignedInsurances});
+}
+
+async function renewInsuranceForUser(userId,insuranceId,newExpiresAt){
+  const user=store.users.find(u=>u.id===userId);
+  if(!user||!user.assignedInsurances)return;
+  const a=user.assignedInsurances.find(x=>x.insuranceId===insuranceId);
+  if(a){a.expiresAt=newExpiresAt;a.assignedAt=new Date().toISOString();}
+  await fsUpdate('users',userId,{assignedInsurances:user.assignedInsurances});
+}
+
+async function saveManagerInsuranceSurvey(managerId,surveyQuestions){
+  const mgr=store.managers.find(m=>m.id===managerId);
+  if(!mgr)return;
+  mgr.insuranceSurvey=surveyQuestions;
+  await fsUpdate('managers',managerId,{insuranceSurvey:mgr.insuranceSurvey});
+}
+
+/* ==============================
+   INSURANCE ADMIN UI (V3.1.7)
+   ============================== */
+async function renderAdminInsurances(){
+  const container=document.getElementById('admin-insurances-container');
+  if(!container)return;
+  await ensureInsurancesLoaded();
+  await ensureUsersLoaded();
+  const mgr=store.managers.find(m=>m.id===store.currentUser?.id);
+  if(!mgr){container.innerHTML='<div class="card" style="padding:24px;text-align:center;color:var(--txt3)">Accesso riservato agli organizzatori.</div>';return;}
+  const isMaster=mgr.role==='master';
+  const affiliated=mgr.affiliatedInsurances||[];
+  const myInsurances=store.insurances.filter(ins=>affiliated.includes(ins.id)&&ins.status==='active');
+  const allActive=store.insurances.filter(ins=>ins.status==='active');
+  const availableToAffiliate=allActive.filter(ins=>!affiliated.includes(ins.id));
+
+  // Count insured users per insurance
+  const insuredCounts={};
+  myInsurances.forEach(ins=>{insuredCounts[ins.id]=0;});
+  store.users.forEach(u=>{
+    if(!u.assignedInsurances)return;
+    u.assignedInsurances.forEach(a=>{
+      if(insuredCounts[a.insuranceId]!==undefined&&(!a.expiresAt||a.expiresAt>=new Date().toISOString()))insuredCounts[a.insuranceId]++;
+    });
+  });
+
+  let h='';
+
+  // === STATS CARDS ===
+  h+='<div class="grid grid-3 gap-3 mb-6">';
+  h+='<div class="card" style="padding:16px;text-align:center"><div style="font-size:1.8rem;font-weight:800;color:var(--brand-l)">'+myInsurances.length+'</div><div style="font-size:.78rem;color:var(--txt3)">Assicurazioni affiliate</div></div>';
+  const totalInsured=Object.values(insuredCounts).reduce((s,v)=>s+v,0);
+  h+='<div class="card" style="padding:16px;text-align:center"><div style="font-size:1.8rem;font-weight:800;color:var(--green)">'+totalInsured+'</div><div style="font-size:.78rem;color:var(--txt3)">Utenti assicurati</div></div>';
+  // Count expiring within 30 days
+  const now=new Date();const in30=new Date(now.getTime()+30*24*60*60*1000).toISOString();
+  let expiringSoon=0;
+  store.users.forEach(u=>{
+    if(!u.assignedInsurances)return;
+    u.assignedInsurances.forEach(a=>{if(affiliated.includes(a.insuranceId)&&a.expiresAt&&a.expiresAt>=now.toISOString()&&a.expiresAt<=in30)expiringSoon++;});
+  });
+  h+='<div class="card" style="padding:16px;text-align:center"><div style="font-size:1.8rem;font-weight:800;color:var(--warn)">'+expiringSoon+'</div><div style="font-size:.78rem;color:var(--txt3)">In scadenza (30gg)</div></div>';
+  h+='</div>';
+
+  // === ACTIONS BAR ===
+  h+='<div class="flex gap-2 mb-4" style="flex-wrap:wrap">';
+  h+='<button class="btn btn-sm" style="background:var(--brand);color:#fff;font-size:.78rem" onclick="showCreateInsuranceModal()">➕ Nuova Assicurazione</button>';
+  if(availableToAffiliate.length>0){
+    h+='<button class="btn btn-sm" style="background:rgba(99,102,241,.12);color:var(--brand-l);border:1px solid rgba(99,102,241,.3);font-size:.78rem" onclick="showAffiliateInsuranceModal()">🔗 Affilia Esistente ('+availableToAffiliate.length+')</button>';
+  }
+  h+='<button class="btn btn-sm" style="background:rgba(168,85,247,.12);color:var(--purple);border:1px solid rgba(168,85,247,.3);font-size:.78rem" onclick="showInsuranceSurveyModal()">📝 Questionario</button>';
+  h+='</div>';
+
+  // === MY AFFILIATED INSURANCES ===
+  if(myInsurances.length===0){
+    h+='<div class="card" style="padding:32px;text-align:center"><div style="font-size:2rem;margin-bottom:12px">🛡️</div><div style="color:var(--txt2);font-size:.9rem;font-weight:600">Nessuna assicurazione affiliata</div><div style="color:var(--txt3);font-size:.82rem;margin-top:4px">Crea una nuova assicurazione o affiliane una esistente per iniziare.</div></div>';
+  } else {
+    myInsurances.forEach(ins=>{
+      const count=insuredCounts[ins.id]||0;
+      h+='<div class="card mb-3" style="padding:16px">';
+      h+='<div style="display:flex;align-items:center;gap:12px">';
+      h+='<div style="width:42px;height:42px;border-radius:12px;background:rgba(99,102,241,.12);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">🛡️</div>';
+      h+='<div style="flex:1;min-width:0">';
+      h+='<div style="font-size:.92rem;font-weight:700;color:var(--txt1)">'+escHtml(ins.name)+'</div>';
+      if(ins.description)h+='<div style="font-size:.78rem;color:var(--txt3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escHtml(ins.description)+'</div>';
+      if(ins.provider)h+='<div style="font-size:.72rem;color:var(--txt3);margin-top:2px">Provider: <strong>'+escHtml(ins.provider)+'</strong></div>';
+      h+='</div>';
+      h+='<div style="text-align:right;flex-shrink:0">';
+      h+='<div style="font-size:1.2rem;font-weight:800;color:var(--green)">'+count+'</div>';
+      h+='<div style="font-size:.68rem;color:var(--txt3)">assicurati</div>';
+      h+='</div>';
+      h+='</div>';
+      // Action buttons
+      h+='<div style="display:flex;gap:6px;margin-top:12px;border-top:1px solid var(--s300);padding-top:10px;flex-wrap:wrap">';
+      h+='<button class="btn btn-sm" style="font-size:.72rem;background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="showAssignInsuranceModal(\''+ins.id+'\')">👤 Assegna utente</button>';
+      h+='<button class="btn btn-sm" style="font-size:.72rem;background:rgba(99,102,241,.08);color:var(--brand-l);border:1px solid rgba(99,102,241,.2)" onclick="showInsuranceUsersModal(\''+ins.id+'\')">📋 Vedi assicurati ('+count+')</button>';
+      h+='<button class="btn btn-sm" style="font-size:.72rem;background:rgba(245,158,11,.08);color:var(--warn);border:1px solid rgba(245,158,11,.2)" onclick="showEditInsuranceModal(\''+ins.id+'\')">✏️ Modifica</button>';
+      h+='<button class="btn btn-sm" style="font-size:.72rem;background:rgba(239,68,68,.08);color:var(--red);border:1px solid rgba(239,68,68,.2)" onclick="confirmUnaffiliateInsurance(\''+ins.id+'\')">🔗 Scollega</button>';
+      h+='</div>';
+      h+='</div>';
+    });
+  }
+
+  container.innerHTML=h;
+}
+
+// === CREATE INSURANCE MODAL ===
+function showCreateInsuranceModal(){
+  const overlay=document.createElement('div');overlay.className='overlay';
+  let h='<div class="dialog" style="max-width:480px;width:92%">';
+  h+='<h2 style="font-size:1.05rem;font-weight:700;color:var(--txt1);margin-bottom:16px">➕ Nuova Assicurazione</h2>';
+  h+='<div class="mb-3"><label class="label">Nome *</label><input type="text" id="ins-create-name" class="input" placeholder="Es. Assicurazione AcroYoga 2026"></div>';
+  h+='<div class="mb-3"><label class="label">Descrizione</label><textarea id="ins-create-desc" class="input" rows="2" placeholder="Dettagli copertura..."></textarea></div>';
+  h+='<div class="mb-3"><label class="label">Provider / Compagnia</label><input type="text" id="ins-create-provider" class="input" placeholder="Es. UnipolSai"></div>';
+  h+='<div class="flex gap-2 mt-4">';
+  h+='<button class="btn" style="background:var(--brand);color:#fff;flex:1" onclick="doCreateInsurance(this)">Crea e Affilia</button>';
+  h+='<button class="btn btn-secondary" onclick="this.closest(\'.overlay\').remove()">Annulla</button>';
+  h+='</div></div>';
+  overlay.innerHTML=h;
+  overlay.onclick=e=>{if(e.target===overlay)overlay.remove();};
+  document.body.appendChild(overlay);
+}
+
+async function doCreateInsurance(btn){
+  const name=document.getElementById('ins-create-name')?.value?.trim();
+  if(!name){showToast('Inserisci un nome','error');return;}
+  btn.disabled=true;btn.textContent='Creazione...';
+  const desc=document.getElementById('ins-create-desc')?.value?.trim()||'';
+  const provider=document.getElementById('ins-create-provider')?.value?.trim()||'';
+  const ins=await createInsurance(name,desc,provider,store.currentUser.id);
+  if(ins){
+    await affiliateInsuranceToManager(store.currentUser.id,ins.id);
+    showToast('Assicurazione creata e affiliata!');
+  }
+  btn.closest('.overlay')?.remove();
+  renderAdminInsurances();
+}
+
+// === AFFILIATE EXISTING INSURANCE MODAL ===
+function showAffiliateInsuranceModal(){
+  const mgr=store.managers.find(m=>m.id===store.currentUser?.id);
+  if(!mgr)return;
+  const affiliated=mgr.affiliatedInsurances||[];
+  const available=store.insurances.filter(ins=>ins.status==='active'&&!affiliated.includes(ins.id));
+  if(!available.length){showToast('Nessuna assicurazione disponibile');return;}
+  const overlay=document.createElement('div');overlay.className='overlay';
+  let h='<div class="dialog" style="max-width:480px;width:92%">';
+  h+='<h2 style="font-size:1.05rem;font-weight:700;color:var(--txt1);margin-bottom:16px">🔗 Affilia Assicurazione Esistente</h2>';
+  h+='<p style="font-size:.82rem;color:var(--txt3);margin-bottom:12px">Seleziona un\'assicurazione da affiliare al tuo gruppo:</p>';
+  available.forEach(ins=>{
+    h+='<div class="card mb-2" style="padding:12px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor=\'var(--brand)\'" onmouseout="this.style.borderColor=\'var(--s300)\'" onclick="doAffiliateInsurance(\''+ins.id+'\',this)">';
+    h+='<div style="font-size:.88rem;font-weight:600;color:var(--txt1)">🛡️ '+escHtml(ins.name)+'</div>';
+    if(ins.description)h+='<div style="font-size:.75rem;color:var(--txt3);margin-top:2px">'+escHtml(ins.description)+'</div>';
+    h+='</div>';
+  });
+  h+='<button class="btn btn-secondary btn-sm mt-3" onclick="this.closest(\'.overlay\').remove()">Chiudi</button>';
+  h+='</div>';
+  overlay.innerHTML=h;
+  overlay.onclick=e=>{if(e.target===overlay)overlay.remove();};
+  document.body.appendChild(overlay);
+}
+
+async function doAffiliateInsurance(insId,el){
+  el.style.opacity='.5';el.style.pointerEvents='none';
+  await affiliateInsuranceToManager(store.currentUser.id,insId);
+  showToast('Assicurazione affiliata!');
+  el.closest('.overlay')?.remove();
+  renderAdminInsurances();
+}
+
+// === EDIT INSURANCE MODAL ===
+function showEditInsuranceModal(insId){
+  const ins=store.insurances.find(i=>i.id===insId);
+  if(!ins)return;
+  const overlay=document.createElement('div');overlay.className='overlay';
+  let h='<div class="dialog" style="max-width:480px;width:92%">';
+  h+='<h2 style="font-size:1.05rem;font-weight:700;color:var(--txt1);margin-bottom:16px">✏️ Modifica Assicurazione</h2>';
+  h+='<div class="mb-3"><label class="label">Nome</label><input type="text" id="ins-edit-name" class="input" value="'+escHtml(ins.name)+'"></div>';
+  h+='<div class="mb-3"><label class="label">Descrizione</label><textarea id="ins-edit-desc" class="input" rows="2">'+escHtml(ins.description||'')+'</textarea></div>';
+  h+='<div class="mb-3"><label class="label">Provider</label><input type="text" id="ins-edit-provider" class="input" value="'+escHtml(ins.provider||'')+'"></div>';
+  h+='<div class="flex gap-2 mt-4">';
+  h+='<button class="btn" style="background:var(--brand);color:#fff;flex:1" onclick="doEditInsurance(\''+insId+'\',this)">Salva</button>';
+  h+='<button class="btn btn-secondary" onclick="this.closest(\'.overlay\').remove()">Annulla</button>';
+  h+='</div></div>';
+  overlay.innerHTML=h;
+  overlay.onclick=e=>{if(e.target===overlay)overlay.remove();};
+  document.body.appendChild(overlay);
+}
+
+async function doEditInsurance(insId,btn){
+  btn.disabled=true;btn.textContent='Salvataggio...';
+  const name=document.getElementById('ins-edit-name')?.value?.trim();
+  if(!name){showToast('Nome obbligatorio','error');btn.disabled=false;btn.textContent='Salva';return;}
+  await updateInsurance(insId,{
+    name,
+    description:document.getElementById('ins-edit-desc')?.value?.trim()||'',
+    provider:document.getElementById('ins-edit-provider')?.value?.trim()||''
+  });
+  showToast('Assicurazione aggiornata!');
+  btn.closest('.overlay')?.remove();
+  renderAdminInsurances();
+}
+
+// === UNAFFILIATE INSURANCE ===
+async function confirmUnaffiliateInsurance(insId){
+  const ins=store.insurances.find(i=>i.id===insId);
+  if(!ins)return;
+  if(!confirm('Scollegare "'+ins.name+'" dal tuo gruppo?\n\nGli utenti con questa assicurazione non perderanno la copertura, ma non potrai più gestirla da qui.'))return;
+  await unaffiliateInsuranceFromManager(store.currentUser.id,insId);
+  showToast('Assicurazione scollegata');
+  renderAdminInsurances();
+}
+
+// === ASSIGN INSURANCE TO USER MODAL ===
+function showAssignInsuranceModal(insId){
+  const ins=store.insurances.find(i=>i.id===insId);
+  if(!ins)return;
+  const mgr=store.managers.find(m=>m.id===store.currentUser?.id);
+  // Get registry users
+  const regEntries=mgr?.registry?.entries||[];
+  const overlay=document.createElement('div');overlay.className='overlay';
+  let h='<div class="dialog" style="max-width:520px;width:92%;max-height:85vh;overflow-y:auto">';
+  h+='<h2 style="font-size:1.05rem;font-weight:700;color:var(--txt1);margin-bottom:4px">👤 Assegna: '+escHtml(ins.name)+'</h2>';
+  h+='<p style="font-size:.78rem;color:var(--txt3);margin-bottom:12px">Seleziona gli utenti a cui assegnare questa assicurazione</p>';
+  h+='<div class="mb-3"><label class="label">Data scadenza</label><input type="date" id="ins-assign-expiry" class="input" value="'+(new Date(Date.now()+365*24*60*60*1000).toISOString().split('T')[0])+'"></div>';
+  h+='<div class="mb-3"><input type="text" id="ins-assign-search" class="input" placeholder="🔍 Cerca utente..." oninput="filterInsAssignList(this.value,\''+insId+'\')"></div>';
+  h+='<div id="ins-assign-list" style="max-height:300px;overflow-y:auto">';
+  // List all users from registry + store.users
+  const allUsers=new Map();
+  regEntries.forEach(e=>{allUsers.set(e.uid,{id:e.uid,name:e.name,email:e.email||e.uid});});
+  store.users.forEach(u=>{if(!allUsers.has(u.id))allUsers.set(u.id,{id:u.id,name:u.username||u.name||u.email,email:u.email});});
+  const now=new Date().toISOString();
+  allUsers.forEach((u,uid)=>{
+    const already=(store.users.find(x=>x.id===uid)?.assignedInsurances||[]).some(a=>a.insuranceId===insId&&(!a.expiresAt||a.expiresAt>=now));
+    h+='<div class="ins-assign-row" data-name="'+(u.name||'').toLowerCase()+'" data-email="'+(u.email||'').toLowerCase()+'" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--s300);'+(already?'opacity:.5':'')+'">';
+    h+='<div style="flex:1;min-width:0"><div style="font-size:.84rem;font-weight:500;color:var(--txt1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escHtml(u.name||uid)+'</div>';
+    h+='<div style="font-size:.72rem;color:var(--txt3)">'+escHtml(u.email||'')+'</div></div>';
+    if(already){
+      h+='<span style="font-size:.7rem;color:var(--green);font-weight:600">✓ Assicurato</span>';
+    } else {
+      h+='<button class="btn btn-sm" style="font-size:.7rem;background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3);flex-shrink:0" onclick="doAssignInsuranceToUser(\''+uid+'\',\''+insId+'\',this)">Assegna</button>';
+    }
+    h+='</div>';
+  });
+  h+='</div>';
+  h+='<button class="btn btn-secondary btn-sm mt-3" onclick="this.closest(\'.overlay\').remove()">Chiudi</button>';
+  h+='</div>';
+  overlay.innerHTML=h;
+  overlay.onclick=e=>{if(e.target===overlay)overlay.remove();};
+  document.body.appendChild(overlay);
+}
+
+function filterInsAssignList(query,insId){
+  const q=query.toLowerCase();
+  document.querySelectorAll('.ins-assign-row').forEach(row=>{
+    const name=row.dataset.name||'';const email=row.dataset.email||'';
+    row.style.display=(name.includes(q)||email.includes(q))?'flex':'none';
+  });
+}
+
+async function doAssignInsuranceToUser(userId,insId,btn){
+  btn.disabled=true;btn.textContent='...';
+  const expiry=document.getElementById('ins-assign-expiry')?.value||null;
+  const expiresAt=expiry?new Date(expiry+'T23:59:59').toISOString():null;
+  await assignInsuranceToUser(userId,insId,store.currentUser.id,expiresAt,{});
+  btn.textContent='✓ Assicurato';btn.style.background='rgba(16,185,129,.2)';btn.style.color='var(--green)';
+  showToast('Assicurazione assegnata!');
+}
+
+// === VIEW INSURED USERS MODAL ===
+function showInsuranceUsersModal(insId){
+  const ins=store.insurances.find(i=>i.id===insId);
+  if(!ins)return;
+  const now=new Date().toISOString();
+  const insuredUsers=[];
+  store.users.forEach(u=>{
+    if(!u.assignedInsurances)return;
+    const assignment=u.assignedInsurances.find(a=>a.insuranceId===insId);
+    if(assignment)insuredUsers.push({user:u,assignment});
+  });
+  const overlay=document.createElement('div');overlay.className='overlay';
+  let h='<div class="dialog" style="max-width:520px;width:92%;max-height:85vh;overflow-y:auto">';
+  h+='<h2 style="font-size:1.05rem;font-weight:700;color:var(--txt1);margin-bottom:4px">📋 Assicurati: '+escHtml(ins.name)+'</h2>';
+  h+='<p style="font-size:.78rem;color:var(--txt3);margin-bottom:12px">'+insuredUsers.length+' utenti con questa assicurazione</p>';
+  if(!insuredUsers.length){
+    h+='<div style="text-align:center;color:var(--txt3);padding:24px;font-size:.88rem">Nessun utente assicurato</div>';
+  } else {
+    insuredUsers.forEach(({user:u,assignment:a})=>{
+      const name=u.username||u.name||u.email;
+      const isExpired=a.expiresAt&&a.expiresAt<now;
+      const statusBadge=getInsuranceStatusBadge(a);
+      h+='<div style="display:flex;align-items:center;gap:10px;padding:10px;border-bottom:1px solid var(--s300);'+(isExpired?'opacity:.6':'')+'">';
+      h+='<div style="flex:1;min-width:0"><div style="font-size:.84rem;font-weight:500;color:var(--txt1)">'+escHtml(name)+'</div>';
+      h+='<div style="font-size:.72rem;color:var(--txt3)">'+escHtml(u.email||'')+' · Scade: '+(a.expiresAt?fmtDateShort(a.expiresAt.split('T')[0]):'Mai')+'</div></div>';
+      h+=statusBadge;
+      h+='<div style="display:flex;gap:4px;flex-shrink:0">';
+      if(isExpired){
+        h+='<button class="btn btn-sm" style="font-size:.65rem;background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="doRenewInsurance(\''+u.id+'\',\''+insId+'\',this)">🔄 Rinnova</button>';
+      }
+      h+='<button class="btn btn-sm" style="font-size:.65rem;background:rgba(239,68,68,.08);color:var(--red);border:1px solid rgba(239,68,68,.2)" onclick="doRemoveInsurance(\''+u.id+'\',\''+insId+'\',this)">✕</button>';
+      h+='</div></div>';
+    });
+  }
+  h+='<button class="btn btn-secondary btn-sm mt-3" onclick="this.closest(\'.overlay\').remove()">Chiudi</button>';
+  h+='</div>';
+  overlay.innerHTML=h;
+  overlay.onclick=e=>{if(e.target===overlay)overlay.remove();};
+  document.body.appendChild(overlay);
+}
+
+async function doRemoveInsurance(userId,insId,btn){
+  if(!confirm('Rimuovere questa assicurazione dall\'utente?'))return;
+  btn.disabled=true;
+  await removeInsuranceFromUser(userId,insId);
+  showToast('Assicurazione rimossa');
+  btn.closest('.overlay')?.remove();
+  renderAdminInsurances();
+}
+
+async function doRenewInsurance(userId,insId,btn){
+  const newExpiry=prompt('Nuova data scadenza (YYYY-MM-DD):',new Date(Date.now()+365*24*60*60*1000).toISOString().split('T')[0]);
+  if(!newExpiry)return;
+  btn.disabled=true;btn.textContent='...';
+  await renewInsuranceForUser(userId,insId,new Date(newExpiry+'T23:59:59').toISOString());
+  showToast('Assicurazione rinnovata!');
+  btn.closest('.overlay')?.remove();
+  renderAdminInsurances();
+}
+
+// === INSURANCE SURVEY MODAL ===
+function showInsuranceSurveyModal(){
+  const mgr=store.managers.find(m=>m.id===store.currentUser?.id);
+  if(!mgr)return;
+  const survey=mgr.insuranceSurvey||[];
+  const overlay=document.createElement('div');overlay.className='overlay';
+  let h='<div class="dialog" style="max-width:520px;width:92%;max-height:85vh;overflow-y:auto">';
+  h+='<h2 style="font-size:1.05rem;font-weight:700;color:var(--txt1);margin-bottom:4px">📝 Questionario Assicurativo</h2>';
+  h+='<p style="font-size:.78rem;color:var(--txt3);margin-bottom:12px">Questo questionario verrà proposto agli utenti durante l\'assegnazione. Viene salvato come template predefinito per tutti i tuoi eventi.</p>';
+  h+='<div id="ins-survey-items">';
+  survey.forEach((q,i)=>{
+    h+=_renderSurveyItem(q,i);
+  });
+  h+='</div>';
+  h+='<button class="btn btn-sm mt-2" style="font-size:.75rem;background:rgba(99,102,241,.12);color:var(--brand-l);border:1px solid rgba(99,102,241,.3)" onclick="addSurveyItem()">➕ Aggiungi domanda</button>';
+  h+='<div class="flex gap-2 mt-4">';
+  h+='<button class="btn" style="background:var(--brand);color:#fff;flex:1" onclick="doSaveSurvey(this)">Salva Questionario</button>';
+  h+='<button class="btn btn-secondary" onclick="this.closest(\'.overlay\').remove()">Annulla</button>';
+  h+='</div></div>';
+  overlay.innerHTML=h;
+  overlay.onclick=e=>{if(e.target===overlay)overlay.remove();};
+  document.body.appendChild(overlay);
+}
+
+function _renderSurveyItem(q,i){
+  let h='<div class="card mb-2 ins-survey-q" data-idx="'+i+'" style="padding:10px;position:relative">';
+  h+='<button style="position:absolute;top:6px;right:8px;background:none;border:none;color:var(--red);cursor:pointer;font-size:.7rem" onclick="this.closest(\'.ins-survey-q\').remove()">✕</button>';
+  h+='<div class="mb-2"><input type="text" class="input sq-question" value="'+escHtml(q.question||'')+'" placeholder="Domanda..." style="font-size:.82rem"></div>';
+  h+='<div style="display:flex;gap:6px;align-items:center">';
+  h+='<select class="input sq-type" style="width:auto;font-size:.75rem"><option value="text"'+(q.type==='text'?' selected':'')+'>Testo</option><option value="select"'+(q.type==='select'?' selected':'')+'>Scelta</option><option value="boolean"'+(q.type==='boolean'?' selected':'')+'>Sì/No</option></select>';
+  h+='<label style="font-size:.72rem;color:var(--txt3);display:flex;align-items:center;gap:4px"><input type="checkbox" class="sq-required"'+(q.required?' checked':'')+'>Obbligatoria</label>';
+  h+='</div>';
+  if(q.type==='select')h+='<div class="mt-2"><input type="text" class="input sq-options" value="'+escHtml((q.options||[]).join(', '))+'" placeholder="Opzioni separate da virgola" style="font-size:.75rem"></div>';
+  h+='</div>';
+  return h;
+}
+
+function addSurveyItem(){
+  const container=document.getElementById('ins-survey-items');
+  if(!container)return;
+  const idx=container.querySelectorAll('.ins-survey-q').length;
+  const div=document.createElement('div');
+  div.innerHTML=_renderSurveyItem({question:'',type:'text',required:false,options:[]},idx);
+  container.appendChild(div.firstElementChild);
+}
+
+async function doSaveSurvey(btn){
+  btn.disabled=true;btn.textContent='Salvataggio...';
+  const items=document.querySelectorAll('.ins-survey-q');
+  const survey=[];
+  items.forEach((el,i)=>{
+    const question=el.querySelector('.sq-question')?.value?.trim();
+    if(!question)return;
+    const type=el.querySelector('.sq-type')?.value||'text';
+    const required=el.querySelector('.sq-required')?.checked||false;
+    const optStr=el.querySelector('.sq-options')?.value||'';
+    const options=type==='select'?optStr.split(',').map(s=>s.trim()).filter(Boolean):[];
+    survey.push({id:genId('sq'),question,type,required,options});
+  });
+  await saveManagerInsuranceSurvey(store.currentUser.id,survey);
+  showToast('Questionario salvato! ('+survey.length+' domande)');
+  btn.closest('.overlay')?.remove();
+}
+
+// === QUICK ASSIGN INSURANCE FROM USER DETAIL ===
+function showQuickAssignInsurance(userId){
+  const mgr=store.managers.find(m=>m.id===store.currentUser?.id);
+  if(!mgr)return;
+  const affiliated=mgr.affiliatedInsurances||[];
+  const user=store.users.find(u=>u.id===userId);
+  const existing=(user?.assignedInsurances||[]).filter(a=>affiliated.includes(a.insuranceId)&&(!a.expiresAt||a.expiresAt>=new Date().toISOString()));
+  const existingIds=new Set(existing.map(a=>a.insuranceId));
+  const available=store.insurances.filter(ins=>affiliated.includes(ins.id)&&ins.status==='active'&&!existingIds.has(ins.id));
+  if(!available.length){showToast('Tutte le assicurazioni sono già assegnate');return;}
+  const overlay=document.createElement('div');overlay.className='overlay';
+  let h='<div class="dialog" style="max-width:420px;width:92%">';
+  h+='<h2 style="font-size:1.05rem;font-weight:700;color:var(--txt1);margin-bottom:12px">➕ Assegna Assicurazione</h2>';
+  h+='<div class="mb-3"><label class="label">Assicurazione</label><select id="qa-ins-sel" class="input">';
+  available.forEach(ins=>{h+='<option value="'+ins.id+'">'+escHtml(ins.name)+'</option>';});
+  h+='</select></div>';
+  h+='<div class="mb-3"><label class="label">Scadenza</label><input type="date" id="qa-ins-expiry" class="input" value="'+(new Date(Date.now()+365*24*60*60*1000).toISOString().split('T')[0])+'"></div>';
+  h+='<div class="flex gap-2 mt-4">';
+  h+='<button class="btn" style="background:var(--brand);color:#fff;flex:1" onclick="doQuickAssign(\''+userId+'\',this)">Assegna</button>';
+  h+='<button class="btn btn-secondary" onclick="this.closest(\'.overlay\').remove()">Annulla</button>';
+  h+='</div></div>';
+  overlay.innerHTML=h;
+  overlay.onclick=e=>{if(e.target===overlay)overlay.remove();};
+  document.body.appendChild(overlay);
+}
+
+async function doQuickAssign(userId,btn){
+  btn.disabled=true;btn.textContent='...';
+  const insId=document.getElementById('qa-ins-sel')?.value;
+  const expiry=document.getElementById('qa-ins-expiry')?.value;
+  const expiresAt=expiry?new Date(expiry+'T23:59:59').toISOString():null;
+  await assignInsuranceToUser(userId,insId,store.currentUser.id,expiresAt,{});
+  showToast('Assicurazione assegnata!');
+  // Close both overlays and re-open user detail
+  document.querySelectorAll('.overlay').forEach(o=>o.remove());
+  openRegistryUserDetail(userId);
+}
+
 /* Safe push: add booking to store only if not already present (prevents in-memory duplicates).
    Checks BOTH by booking ID and by (eventId, userId, recurringDate) tuple for idempotency. */
 function pushBookingSafe(newBooking){
@@ -3107,6 +3713,7 @@ async function loadAllData(forceReload){
   try{
     const app=document.getElementById('app');
     if(app&&!_dataLoaded)app.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:60vh;flex-direction:column;gap:16px"><div class="spinner"></div><p class="txt2">Caricamento dati...</p></div>';
+    console.log('[BE_INIT] loadAllData: starting essential collections load...');
     // V3.1.5: Load only essential collections at startup (managers, events, universes, communityJams)
     // Heavy collections (bookings, attendances, subscriptions, users) are loaded on-demand via ensure*() functions
     const [managersSnap,eventsSnap,jamsSnap,universesSnap]=await Promise.all([
@@ -3131,9 +3738,9 @@ async function loadAllData(forceReload){
       fsSet('universes','univ_acro',acroUniv).catch(console.error);
     }
     _dataLoaded=true;
-    // Data loaded successfully
+    console.log('[BE_INIT] loadAllData: completed. Managers:',store.managers.length,', Events:',store.events.length);
   }catch(e){
-    console.error('loadAllData error:',e);
+    console.error('[BE_INIT] loadAllData CRITICAL error:',e);
     showToast('Errore caricamento dati: '+e.message,'error');
   }finally{_dataLoadingPromise=null;}
   })();
@@ -3152,8 +3759,8 @@ async function refreshData(){
   showToast('Dati aggiornati!');
 }
 
-function _resetLazyFlags(){_bookingsLoaded=false;_attendancesLoaded=false;_subscriptionsLoaded=false;_usersFullyLoaded=false;_userOwnBookingsLoaded=false;}
-function resetStoreData(){_dataLoaded=false;_resetLazyFlags();store.events=[];store.bookings=[];store.users=[];store.managers=[];store.communityJams=[];store.attendances={};store.universes=[];store.subscriptionTypes=[];store.subscriptions=[];}
+function _resetLazyFlags(){_bookingsLoaded=false;_attendancesLoaded=false;_subscriptionsLoaded=false;_usersFullyLoaded=false;_userOwnBookingsLoaded=false;_insurancesLoaded=false;}
+function resetStoreData(){_dataLoaded=false;_resetLazyFlags();store.events=[];store.bookings=[];store.users=[];store.managers=[];store.communityJams=[];store.attendances={};store.universes=[];store.subscriptionTypes=[];store.subscriptions=[];store.insurances=[];}
 
 /* ==============================
    UNIVERSI — HELPERS & FUNCTIONS
@@ -3490,6 +4097,7 @@ async function _splitConcludedRecurringDates(){
         partnerEntryPolicy:ev.partnerEntryPolicy||null,
         subscriptionBookable:ev.subscriptionBookable||null,
         subscriptionDiscount:ev.subscriptionDiscount||null,
+        insurance:ev.insurance||null,
         alert:(dateException&&dateException.type!=='split')?{type:dateException.type,message:dateException.message||'',date:dateException.date||dateStr}:null,
         confirmedByOrganizer:ev.confirmedByOrganizer||false,
         parentRecurringId:ev.id,
@@ -3826,7 +4434,7 @@ function renderInfoPageOrganizer(){
   s5+=h3('Compatibilità intelligente');
   s5+=p('Ogni abbonamento ha <strong style="color:var(--txt1)">tipologie di evento compatibili</strong> (es. solo Jam + Workshop). Di default è compatibile con tutto il tuo universo; puoi restringerlo dalla configurazione.');
   s5+=h3('Assegnazione e tracciamento');
-  s5+=p('Assegna gli abbonamenti tramite <strong style="color:var(--txt1)">QR code</strong> o direttamente dall\'anagrafica. Per ogni abbonamento puoi tracciare lo <strong style="color:var(--txt1)">stato del pagamento</strong> (pagato, da pagare, omaggio, parziale) e aggiungere note.');
+  s5+=p('Assegna gli abbonamenti tramite <strong style="color:var(--txt1)">QR code</strong> o direttamente dall\'anagrafica. Per ogni abbonamento puoi tracciare lo <strong style="color:var(--txt1)">stato del pagamento</strong> (pagato, da pagare, omaggio) e aggiungere note.');
   s5+=valueBox('🔄','<strong style="color:#10b981">Valore:</strong> gli abbonamenti si applicano automaticamente in fase di prenotazione. L\'utente vede subito lo sconto o l\'ingresso incluso, senza intervento manuale da parte tua.');
   html+='<div id="org-abbonamenti" style="scroll-margin-top:16px">'+sec(s5)+'</div>';
 
@@ -4041,6 +4649,7 @@ function confirmPartnerSelection(){
 }
 function refreshPartnerAwareSections(){
   populateSubTypeCheckboxes();
+  populateInsuranceCheckboxes();
 }
 
 function getUserSubscribedUniverseIds(){
@@ -4814,6 +5423,7 @@ async function renderAdminSubscriptions(){
   if(!_bookingsLoaded){await ensureBookingsLoaded();}
   switchSubTab('types',document.querySelector('#view-admin-subscriptions .active-toggle'));
   populateSubTypeCheckboxes();
+  populateInsuranceCheckboxes();
 }
 
 function switchSubTab(tab,btn){
@@ -4842,7 +5452,7 @@ function renderSubTypes(c){
     const univBadge=univ?'<span class="badge" style="background:'+univ.color+'22;color:'+univ.color+'">'+univ.emoji+' '+univ.name+'</span>':'';
     const activeSubs=store.subscriptions.filter(s=>s.typeId===t.id&&s.status==='active');
     const expiredSubs=store.subscriptions.filter(s=>s.typeId===t.id&&s.status==='expired');
-    const totalRevenue=store.subscriptions.filter(s=>s.typeId===t.id&&(s.paymentStatus==='pagato'||s.paymentStatus==='parziale')).reduce((sum,s)=>sum+(s.paymentAmount||0),0);
+    const totalRevenue=store.subscriptions.filter(s=>s.typeId===t.id&&s.paymentStatus==='pagato').reduce((sum,s)=>sum+(s.paymentAmount||0),0);
     const compatTypes=(t.compatibleEventTypes||[]).map(et=>{
       return '<span class="badge" style="background:var(--s300);color:var(--txt2);font-size:.7rem">'+getEventTypeLabel(et)+'</span>';
     }).join(' ');
@@ -4895,8 +5505,8 @@ function renderSubAssigned(c){
 
   // ── METRICHE ECONOMICHE ──
   const totalSold=mySubs.length;
-  const paidSubs=mySubs.filter(s=>s.paymentStatus==='pagato'||s.paymentStatus==='parziale');
-  const freeSubs=mySubs.filter(s=>s.paymentStatus==='gratuito'||s.paymentStatus==='omaggiato'||(s.paymentAmount||0)===0);
+  const paidSubs=mySubs.filter(s=>s.paymentStatus==='pagato');
+  const freeSubs=mySubs.filter(s=>s.paymentStatus==='omaggio'||s.paymentStatus==='omaggiato'||s.paymentStatus==='gratuito'||(s.paymentAmount||0)===0);
   const totalRevenue=paidSubs.reduce((sum,s)=>sum+(s.paymentAmount||0),0);
   const pendingSubs=mySubs.filter(s=>s.paymentStatus==='da_pagare'||s.paymentStatus==='prezzo_modificato');
   const pendingRevenue=pendingSubs.reduce((sum,s)=>sum+(s.paymentAmount||0),0);
@@ -4907,8 +5517,8 @@ function renderSubAssigned(c){
     const tName=sType?.name||s.typeId;
     if(!revenueByType[tName]) revenueByType[tName]={paid:0,count:0,free:0};
     revenueByType[tName].count++;
-    if(s.paymentStatus==='pagato'||s.paymentStatus==='parziale') revenueByType[tName].paid+=(s.paymentAmount||0);
-    if(s.paymentStatus==='gratuito'||s.paymentStatus==='omaggiato'||(s.paymentAmount||0)===0) revenueByType[tName].free++;
+    if(s.paymentStatus==='pagato') revenueByType[tName].paid+=(s.paymentAmount||0);
+    if(s.paymentStatus==='omaggio'||s.paymentStatus==='omaggiato'||s.paymentStatus==='gratuito'||(s.paymentAmount||0)===0) revenueByType[tName].free++;
   });
 
   let html='';
@@ -4935,7 +5545,7 @@ function renderSubAssigned(c){
   // Filters
   html+='<div class="flex gap-3 mb-4 flex-wrap">';
   html+='<select class="input" id="sub-filter-status" onchange="renderSubAssigned(document.getElementById(\'admin-sub-content\'))" style="max-width:180px;font-size:.85rem"><option value="">Tutti gli stati</option><option value="active">Attivi</option><option value="expired">Scaduti</option><option value="suspended">Sospesi</option></select>';
-  html+='<select class="input" id="sub-filter-payment" onchange="renderSubAssigned(document.getElementById(\'admin-sub-content\'))" style="max-width:180px;font-size:.85rem"><option value="">Tutti i pagamenti</option><option value="pagato">Pagato</option><option value="gratuito">Gratuito</option><option value="da_pagare">Da pagare</option><option value="parziale">Parziale</option><option value="omaggiato">Omaggio</option><option value="prezzo_modificato">Prezzo modificato</option></select>';
+  html+='<select class="input" id="sub-filter-payment" onchange="renderSubAssigned(document.getElementById(\'admin-sub-content\'))" style="max-width:180px;font-size:.85rem"><option value="">Tutti i pagamenti</option><option value="pagato">Pagato</option><option value="da_pagare">Da pagare</option><option value="omaggio">Omaggio</option><option value="prezzo_modificato">Prezzo modificato</option></select>';
   html+='<button class="btn btn-sm btn-secondary" onclick="exportSubsExcel()">📊 Esporta Excel</button>';
   html+='</div>';
 
@@ -4985,7 +5595,7 @@ function renderSubAssigned(c){
     const remaining=s.entriesTotal-s.entriesUsed;
     const pctUsed=s.entriesTotal?Math.round(s.entriesUsed/s.entriesTotal*100):0;
     const statusBadge=s.status==='active'?'<span class="badge badge-pubblicato">Attivo</span>':s.status==='expired'?'<span class="badge badge-red">Scaduto</span>':'<span class="badge badge-yellow">Sospeso</span>';
-    const payBadge=s.paymentStatus==='pagato'?'<span style="color:var(--green)">✅ Pagato</span>':s.paymentStatus==='gratuito'?'<span style="color:var(--green)">🆓 Gratuito</span>':s.paymentStatus==='parziale'?'<span style="color:var(--yellow)">⚠️ Parziale</span>':s.paymentStatus==='omaggiato'?'<span style="color:var(--purple)">🎁 Omaggio</span>':s.paymentStatus==='prezzo_modificato'?'<span style="color:var(--yellow)">💰 Prezzo modificato</span>':'<span style="color:var(--red)">❌ Da pagare</span>';
+    const payBadge=s.paymentStatus==='pagato'?'<span style="color:var(--green)">✅ Pagato</span>':(s.paymentStatus==='omaggio'||s.paymentStatus==='omaggiato'||s.paymentStatus==='gratuito')?'<span style="color:var(--purple)">🎁 Omaggio</span>':s.paymentStatus==='prezzo_modificato'?'<span style="color:var(--yellow)">💰 Prezzo modificato</span>':'<span style="color:var(--red)">❌ Da pagare</span>';
     const expDate=s.expiresAt?fmtDateShort(s.expiresAt.split('T')[0]):'∞';
     const _isDiscSub=sType&&sType.mode==='discount';
     html+='<tr style="border-bottom:1px solid var(--s300)">';
@@ -5016,7 +5626,7 @@ function renderSubAssignQR(c){
   html+='<div><label class="label">Tipologia abbonamento *</label><select class="input" id="qr-sub-type">';
   myTypes.forEach(t=>{html+='<option value="'+t.id+'">'+t.name+' ('+t.entries+' ingressi, €'+t.price+')</option>';});
   html+='</select></div>';
-  html+='<div><label class="label">Pagamento</label><select class="input" id="qr-sub-payment"><option value="da_pagare">Da pagare</option><option value="pagato">Pagato</option><option value="parziale">Parziale</option><option value="omaggiato">Omaggio</option></select></div>';
+  html+='<div><label class="label">Pagamento</label><select class="input" id="qr-sub-payment" onchange="if(this.value===\'omaggio\'){var a=document.getElementById(\'qr-sub-amount\');if(a){a.value=0;a.disabled=true;}}else{var a=document.getElementById(\'qr-sub-amount\');if(a)a.disabled=false;}"><option value="da_pagare">Da pagare</option><option value="pagato">Pagato</option><option value="omaggio">Omaggio</option></select></div>';
   html+='</div>';
   html+='<div class="mt-3"><label class="label">Importo pagato (€)</label><input class="input" id="qr-sub-amount" type="number" placeholder="0" style="max-width:180px"></div>';
   html+='<div class="mt-3"><label class="label">Note (opzionali)</label><input class="input" id="qr-sub-notes" placeholder="es. Pagamento cash"></div>';
@@ -5062,7 +5672,7 @@ async function generateSubQR(){
   if(!typeId){showToast('Seleziona una tipologia','error');return;}
   const sType=store.subscriptionTypes.find(t=>t.id===typeId);
   const payment=document.getElementById('qr-sub-payment')?.value||'da_pagare';
-  const amount=parseFloat(document.getElementById('qr-sub-amount')?.value)||0;
+  const amount=payment==='omaggio'?0:(parseFloat(document.getElementById('qr-sub-amount')?.value)||0);
   const notes=document.getElementById('qr-sub-notes')?.value||'';
   const token=genId('sqr');
   // Save pending subscription to Firestore so ANY device can redeem it
@@ -5121,6 +5731,9 @@ async function manualAssignSub(userId,userName,userEmail){
 async function createSubscription(typeId,userId,userName,userEmail,managerId,paymentStatus,paymentAmount,paymentMethod,notes){
   const sType=store.subscriptionTypes.find(t=>t.id===typeId);
   if(!sType)return null;
+  // V3.1.6: Normalize legacy payment status values
+  if(paymentStatus==='omaggiato'||paymentStatus==='gratuito')paymentStatus='omaggio';
+  if(paymentStatus==='parziale')paymentStatus='da_pagare';
   const now=new Date();
   // Expiry: absolute mode uses fixed date, relative uses validityDays from now
   let expiresAt=null;
@@ -5133,13 +5746,14 @@ async function createSubscription(typeId,userId,userName,userEmail,managerId,pay
     // Legacy fallback
     expiresAt=new Date(now.getTime()+sType.validityDays*86400000).toISOString();
   }
+  const _isOmaggio=paymentStatus==='omaggio'||(sType.price===0||sType.price===null||sType.price===undefined);
   const sub={
     id:genId('sub'),typeId,userId,userName:userName||'',userEmail:userEmail||'',managerId,
     assignedAt:now.toISOString(),expiresAt,
     entriesTotal:sType.entries||0,entriesUsed:0,
     usageHistory:[],
-    paymentStatus:(sType.price===0||sType.price===null||sType.price===undefined)?'gratuito':(paymentStatus||'da_pagare'),paymentAmount:paymentAmount||sType.price||0,
-    paymentDate:(paymentStatus==='pagato'||(sType.price===0||sType.price===null||sType.price===undefined))?now.toISOString():null,paymentMethod:paymentMethod||'',
+    paymentStatus:_isOmaggio?'omaggio':(paymentStatus||'da_pagare'),paymentAmount:_isOmaggio?0:(paymentAmount||sType.price||0),
+    paymentDate:(paymentStatus==='pagato'||_isOmaggio)?now.toISOString():null,paymentMethod:paymentMethod||'',
     notes:notes||'',status:'active',typeName:sType.name
   };
   store.subscriptions.push(sub);
@@ -5351,7 +5965,7 @@ async function saveSubType(overlay,editId){
         }
         // Propagate price change
         if(priceChanged){
-          if(sub.paymentStatus==='pagato'||sub.paymentStatus==='parziale'){
+          if(sub.paymentStatus==='pagato'){
             // Already paid — flag for review
             updates.paymentStatus='prezzo_modificato';
             updates.originalPaidAmount=sub.paymentAmount||0;
@@ -5492,7 +6106,7 @@ function showSubDetail(subId){
   html+='<div class="text-sm mt-1"><strong>Ingressi:</strong> '+remaining+'/'+s.entriesTotal+' rimanenti</div>';
   html+='<div class="text-sm mt-1"><strong>Assegnato il:</strong> '+fmtDateShort(s.assignedAt?.split('T')[0]||'')+'</div>';
   if(s.expiresAt) html+='<div class="text-sm mt-1"><strong>Scade il:</strong> '+fmtDateShort(s.expiresAt.split('T')[0])+'</div>';
-  html+='<div class="text-sm mt-1"><strong>Pagamento:</strong> '+({pagato:'✅ Pagato',da_pagare:'❌ Da pagare',parziale:'⚠️ Parziale',omaggiato:'🎁 Omaggio',prezzo_modificato:'💰 Prezzo modificato — verificare'}[s.paymentStatus]||s.paymentStatus)+(s.paymentAmount?' — €'+s.paymentAmount.toFixed(2):'')+'</div>';
+  html+='<div class="text-sm mt-1"><strong>Pagamento:</strong> '+({pagato:'✅ Pagato',da_pagare:'❌ Da pagare',omaggio:'🎁 Omaggio',omaggiato:'🎁 Omaggio',gratuito:'🎁 Omaggio',prezzo_modificato:'💰 Prezzo modificato — verificare'}[s.paymentStatus]||s.paymentStatus)+(s.paymentAmount?' — €'+s.paymentAmount.toFixed(2):'')+'</div>';
   if(s.paymentStatus==='prezzo_modificato'){
     const newPrice=sType?.price||0;
     html+='<div class="text-xs mt-1" style="color:var(--yellow);background:rgba(245,158,11,.08);padding:6px 10px;border-radius:8px;border:1px solid rgba(245,158,11,.2)">⚠️ Pagato €'+(s.originalPaidAmount||0).toFixed(2)+' — nuovo prezzo tipologia: €'+newPrice.toFixed(2)+'. Verificare differenza.</div>';
@@ -5514,7 +6128,7 @@ function showSubDetail(subId){
 
   // Action buttons
   html+='<div class="flex gap-3 mt-4 flex-wrap">';
-  if(s.paymentStatus!=='pagato') html+='<button class="btn btn-sm btn-primary" onclick="updateSubPayment(\''+s.id+'\',\'pagato\');this.closest(\'.overlay\').remove()">✅ Segna come pagato</button>';
+  if(s.paymentStatus!=='pagato'&&s.paymentStatus!=='omaggio'&&s.paymentStatus!=='omaggiato'&&s.paymentStatus!=='gratuito') html+='<button class="btn btn-sm btn-primary" onclick="updateSubPayment(\''+s.id+'\',\'pagato\');this.closest(\'.overlay\').remove()">✅ Segna come pagato</button>';
   if(s.status==='active') html+='<button class="btn btn-sm" style="background:var(--yellow-bg);color:var(--yellow)" onclick="updateSubStatus(\''+s.id+'\',\'suspended\');this.closest(\'.overlay\').remove()">⏸️ Sospendi</button>';
   if(s.status==='suspended') html+='<button class="btn btn-sm btn-primary" onclick="updateSubStatus(\''+s.id+'\',\'active\');this.closest(\'.overlay\').remove()">▶️ Riattiva</button>';
   html+='<button class="btn btn-sm" style="background:var(--red-bg);color:var(--red);border:1px solid rgba(239,68,68,.3)" onclick="confirmDeleteSubscription(\''+s.id+'\')">🗑️ Cancella</button>';
@@ -5619,7 +6233,7 @@ async function exportSubsExcel(){
      sType?.mode==='discount'?'—':(s.entriesUsed||0),
      sType?.mode==='discount'?'—':((s.entriesTotal||0)-(s.entriesUsed||0)),
      s.assignedAt?.split('T')[0]||'',s.expiresAt?.split('T')[0]||'Illimitata',
-     {pagato:'Pagato',da_pagare:'Da pagare',parziale:'Parziale',omaggiato:'Omaggio',prezzo_modificato:'Prezzo modificato'}[s.paymentStatus]||'',
+     {pagato:'Pagato',da_pagare:'Da pagare',omaggio:'Omaggio',omaggiato:'Omaggio',gratuito:'Omaggio',prezzo_modificato:'Prezzo modificato'}[s.paymentStatus]||'',
      s.paymentAmount||0,{active:'Attivo',expired:'Scaduto',suspended:'Sospeso'}[s.status]||'',s.notes||''
     ].forEach((v,ci)=>{
       const cell=row.getCell(ci+1);cell.value=v;cell.font={name:'Calibri',size:10.5};
@@ -5652,9 +6266,9 @@ function openSubTypePanel(typeId){
   const allSubs=store.subscriptions.filter(s=>s.typeId===typeId);
   const activeSubs=allSubs.filter(s=>s.status==='active');
   const expiredSubs=allSubs.filter(s=>s.status==='expired'||s.status==='suspended');
-  const totalRevenue=allSubs.filter(s=>s.paymentStatus==='pagato'||s.paymentStatus==='parziale').reduce((sum,s)=>sum+(s.paymentAmount||0),0);
+  const totalRevenue=allSubs.filter(s=>s.paymentStatus==='pagato').reduce((sum,s)=>sum+(s.paymentAmount||0),0);
   const pendingRevenue=allSubs.filter(s=>s.paymentStatus==='da_pagare'||s.paymentStatus==='prezzo_modificato').reduce((sum,s)=>sum+(s.paymentAmount||0),0);
-  const freeSubs=allSubs.filter(s=>s.paymentStatus==='gratuito'||s.paymentStatus==='omaggiato'||(s.paymentAmount||0)===0);
+  const freeSubs=allSubs.filter(s=>s.paymentStatus==='omaggio'||s.paymentStatus==='omaggiato'||s.paymentStatus==='gratuito'||(s.paymentAmount||0)===0);
   const expiryLabel=t.expiryMode==='absolute'&&t.absoluteExpiry?'📅 Scadenza fissa: '+fmtDateShort(t.absoluteExpiry):t.validityDays?'⏰ '+t.validityDays+' giorni dalla data di assegnazione':'∞ Nessuna scadenza';
 
   const o=document.createElement('div');o.className='overlay';o.id='sub-type-panel';
@@ -5688,7 +6302,7 @@ function openSubTypePanel(typeId){
 
   // Search + assign inline
   html+='<div class="card mb-4"><h4 class="font-semibold text-white mb-3 text-sm">➕ Assegna a un utente</h4>';
-  html+='<div class="flex gap-2"><input class="input" id="stp-user-search" placeholder="Cerca per nome o email..." oninput="filterStpUsers(\''+typeId+'\')" style="flex:1"><select class="input" id="stp-payment-sel" style="width:140px;font-size:.8rem"><option value="da_pagare">Da pagare</option><option value="pagato">Pagato</option><option value="omaggiato">Omaggio</option></select></div>';
+  html+='<div class="flex gap-2"><input class="input" id="stp-user-search" placeholder="Cerca per nome o email..." oninput="filterStpUsers(\''+typeId+'\')" style="flex:1"><select class="input" id="stp-payment-sel" style="width:140px;font-size:.8rem"><option value="da_pagare">Da pagare</option><option value="pagato">Pagato</option><option value="omaggio">Omaggio</option></select></div>';
   html+='<div id="stp-user-results" class="mt-2"></div></div>';
 
   // User list
@@ -5711,7 +6325,8 @@ function _renderStpUserList(subs,sType){
     const remaining=s.entriesTotal-s.entriesUsed;
     const pctUsed=s.entriesTotal?Math.round(s.entriesUsed/s.entriesTotal*100):0;
     const statusBadge=s.status==='active'?'<span class="badge badge-pubblicato" style="font-size:.7rem">Attivo</span>':s.status==='expired'?'<span class="badge badge-red" style="font-size:.7rem">Scaduto</span>':'<span class="badge badge-yellow" style="font-size:.7rem">Sospeso</span>';
-    const payBadge=s.paymentStatus==='pagato'?'<span style="color:var(--green);font-size:.75rem">✅</span>':s.paymentStatus==='prezzo_modificato'?'<span style="color:var(--yellow);font-size:.75rem">💰⚠️</span>':s.paymentStatus==='omaggiato'?'<span style="color:var(--purple);font-size:.75rem">🎁</span>':'<span style="color:var(--red);font-size:.75rem">❌</span>';
+    const _sps=s.paymentStatus||'';
+    const payBadge=_sps==='pagato'?'<span style="color:var(--green);font-size:.75rem">✅</span>':_sps==='prezzo_modificato'?'<span style="color:var(--yellow);font-size:.75rem">💰⚠️</span>':(_sps==='omaggio'||_sps==='omaggiato'||_sps==='gratuito')?'<span style="color:var(--purple);font-size:.75rem">🎁</span>':'<span style="color:var(--red);font-size:.75rem">❌</span>';
     const expDate=s.expiresAt?fmtDateShort(s.expiresAt.split('T')[0]):'∞';
     html+='<tr style="border-bottom:1px solid var(--s300);cursor:pointer" onclick="showSubDetail(\''+s.id+'\')">';
     html+='<td style="padding:8px 10px"><div class="font-medium text-white text-sm">'+(s.userName||'N/D')+'</div><div class="text-xs txt3">'+(s.userEmail||'')+'</div></td>';
@@ -5747,7 +6362,7 @@ function filterStpUsers(typeId){
 async function assignFromPanel(typeId,userId,userName,userEmail){
   const payment=document.getElementById('stp-payment-sel')?.value||'da_pagare';
   const sType=store.subscriptionTypes.find(t=>t.id===typeId);
-  const amount=payment==='pagato'?(sType?.price||0):0;
+  const amount=payment==='omaggio'?0:payment==='pagato'?(sType?.price||0):0;
   await createSubscription(typeId,userId,userName,userEmail,store.currentUser.id,payment,amount,'','Assegnazione da pannello');
   showToast('Abbonamento assegnato a '+userName+'!');
   // Refresh panel
@@ -5816,7 +6431,7 @@ async function exportSubTypeExcel(typeId){
     row.getCell(1).value=s.userName||'';
     row.getCell(2).value=s.userEmail||'';
     row.getCell(3).value=s.assignedAt?.split('T')[0]||'';
-    row.getCell(4).value={pagato:'Pagato',da_pagare:'Da pagare',parziale:'Parziale',omaggiato:'Omaggio',prezzo_modificato:'Prezzo modificato'}[s.paymentStatus]||s.paymentStatus;
+    row.getCell(4).value={pagato:'Pagato',da_pagare:'Da pagare',omaggio:'Omaggio',omaggiato:'Omaggio',gratuito:'Omaggio',prezzo_modificato:'Prezzo modificato'}[s.paymentStatus]||s.paymentStatus;
     row.getCell(5).value=t.mode==='discount'?'—':(s.entriesUsed||0);row.getCell(5).alignment={horizontal:'center'};
     row.getCell(6).value=t.mode==='discount'?'—':(s.entriesTotal||0);row.getCell(6).alignment={horizontal:'center'};
     row.getCell(7).value=s.expiresAt?s.expiresAt.split('T')[0]:'Illimitata';
@@ -5890,6 +6505,28 @@ function populateSubTypeCheckboxes(){
     c.innerHTML=html;
   });
 }
+
+// V3.1.7: Populate insurance checkboxes in event form
+async function populateInsuranceCheckboxes(){
+  const c=document.getElementById('ne-insurance-types');if(!c)return;
+  if(!_insurancesLoaded){try{await ensureInsurancesLoaded();}catch(e){console.warn('Insurance load for form skipped:',e.message);}}
+  const mgr=store.managers.find(m=>m.id===store.currentUser?.id);
+  const affiliated=mgr?.affiliatedInsurances||[];
+  const prevSelected=new Set(Array.from(c.querySelectorAll('.ne-ins-sel.selected')).map(b=>b.dataset.id));
+  const myIns=(store.insurances||[]).filter(i=>affiliated.includes(i.id)&&i.status==='active');
+  if(!myIns.length){c.innerHTML='<span class="text-xs txt3">Nessuna assicurazione affiliata. <a href="#" onclick="go(\'admin-insurances\');return false" style="color:var(--brand-l)">Gestisci →</a></span>';return;}
+  let html='';
+  myIns.forEach(ins=>{
+    const sel=prevSelected.has(ins.id);
+    const bg=sel?'rgba(99,102,241,.15)':'var(--s300)';const col=sel?'var(--brand-l)':'var(--txt2)';const bc=sel?'var(--brand)':'var(--s400)';
+    html+='<button type="button" class="ne-ins-sel btn btn-sm'+(sel?' selected':'')+'" data-id="'+ins.id+'" onclick="this.classList.toggle(\'selected\');this.style.background=this.classList.contains(\'selected\')?\'rgba(99,102,241,.15)\':\'var(--s300)\';this.style.color=this.classList.contains(\'selected\')?\'var(--brand-l)\':\'var(--txt2)\';this.style.borderColor=this.classList.contains(\'selected\')?\'var(--brand)\':\'var(--s400)\'" style="border:1px solid '+bc+';background:'+bg+';color:'+col+'">🛡️ '+escHtml(ins.name)+'</button>';
+  });
+  c.innerHTML=html;
+  // Hide/show insurance wrap based on affiliated
+  const wrap=document.getElementById('ne-insurance-wrap');
+  if(wrap)wrap.style.display=affiliated.length>0?'':'none';
+}
+
 
 // Get active subscriptions for a user
 function getUserActiveSubscriptions(userId){
@@ -6148,6 +6785,12 @@ function renderRegistryTable(reg,entries,theadId,tbodyId,listId){
   let hh='<tr style="background:var(--s200)">';
   hh+='<th style="'+thStyle+'" onclick="registrySort={col:\'name\',asc:registrySort.col===\'name\'?!registrySort.asc:true};renderAdminRegistry()">Nome'+arrow('name')+'</th>';
   hh+='<th style="'+thStyle+'" onclick="registrySort={col:\'email\',asc:registrySort.col===\'email\'?!registrySort.asc:true};renderAdminRegistry()">Email'+arrow('email')+'</th>';
+  // V3.1.7: Insurance column
+  const _mgrForIns=store.managers.find(m=>m.id===store.currentUser?.id);
+  const _mgrAffIns=_mgrForIns?.affiliatedInsurances||[];
+  if(_mgrAffIns.length>0){
+    hh+='<th style="'+thStyle+';text-align:center">🛡️ Assic.</th>';
+  }
   cols.forEach(c=>{
     const colAlign=(c.type==='number'||c.type==='boolean'||c.type==='color')?'center':'left';
     hh+='<th style="'+thStyle+';text-align:'+colAlign+';position:relative" draggable="true" data-colid="'+c.id+'" data-listid="'+listId+'" ondragstart="regColDragStart(event)" ondragover="event.preventDefault();this.style.borderLeft=\'2px solid var(--brand)\'" ondragleave="this.style.borderLeft=\'\'" ondrop="regColDrop(event,this)">';
@@ -6162,7 +6805,7 @@ function renderRegistryTable(reg,entries,theadId,tbodyId,listId){
   hh+='</tr>';
   thead.innerHTML=hh;
   // Body
-  if(!sorted.length){tbody.innerHTML='<tr><td colspan="'+(3+cols.length)+'" style="padding:24px;text-align:center;color:var(--txt3)">Nessun partecipante.</td></tr>';return;}
+  if(!sorted.length){tbody.innerHTML='<tr><td colspan="'+(3+cols.length+(_mgrAffIns.length>0?1:0))+'" style="padding:24px;text-align:center;color:var(--txt3)">Nessun partecipante.</td></tr>';return;}
   let bh='';
   sorted.forEach(entry=>{
     bh+='<tr data-uid="'+entry.uid+'" style="border-top:1px solid var(--s300)">';
@@ -6172,6 +6815,26 @@ function renderRegistryTable(reg,entries,theadId,tbodyId,listId){
     const _avatarInner=_rlogo?'<img src="'+_rlogo+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':'<span style="font-size:.65rem;font-weight:700">'+_rinitials+'</span>';
     bh+='<td style="padding:8px 10px;white-space:nowrap"><div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;border-radius:50%;background:var(--s300);display:flex;align-items:center;justify-content:center;color:var(--txt2);flex-shrink:0;overflow:hidden;font-size:.7rem">'+_avatarInner+'</div><span style="color:var(--txt1);font-weight:500;font-size:.82rem">'+escHtml(entry.name)+'</span></div></td>';
     bh+='<td style="padding:8px 10px;white-space:nowrap;color:var(--txt2);font-size:.78rem">'+escHtml(entry.email)+'</td>';
+    // V3.1.7: Insurance badges column
+    if(_mgrAffIns.length>0){
+      const _iUsr=store.users.find(x=>x.id===entry.uid);
+      const _iAssigned=(_iUsr?.assignedInsurances||[]).filter(a=>_mgrAffIns.includes(a.insuranceId));
+      const _iNow=new Date().toISOString();
+      if(_iAssigned.length===0){
+        bh+='<td style="padding:6px 10px;text-align:center"><span style="font-size:.68rem;color:var(--txt3)">—</span></td>';
+      } else {
+        bh+='<td style="padding:6px 6px;text-align:center"><div style="display:flex;gap:3px;flex-wrap:wrap;justify-content:center">';
+        _iAssigned.forEach(a=>{
+          const _iName=getInsuranceName(a.insuranceId);
+          const _iExp=a.expiresAt&&a.expiresAt<_iNow;
+          const _iWarn=a.expiresAt&&!_iExp&&a.expiresAt<=new Date(Date.now()+30*24*60*60*1000).toISOString();
+          const _iBg=_iExp?'rgba(239,68,68,.12)':_iWarn?'rgba(245,158,11,.12)':'rgba(16,185,129,.12)';
+          const _iCol=_iExp?'var(--red)':_iWarn?'var(--warn)':'var(--green)';
+          bh+='<span title="'+escHtml(_iName)+(_iExp?' (scaduta)':'')+'" style="font-size:.62rem;padding:2px 5px;border-radius:4px;background:'+_iBg+';color:'+_iCol+';font-weight:600;white-space:nowrap;cursor:default">🛡️'+(_iAssigned.length>1?' '+escHtml(_iName.substring(0,8)):'')+'</span>';
+        });
+        bh+='</div></td>';
+      }
+    }
     cols.forEach(c=>{
       const val=entry.customData?.[c.id];
       if(c.type==='boolean'){
@@ -6204,7 +6867,7 @@ function renderRegistryTable(reg,entries,theadId,tbodyId,listId){
     const footBg='rgba(99,102,241,.08)';
     const footBorder='border-top:2px solid rgba(99,102,241,.25)';
     let fh='<tr style="'+footBorder+';background:'+footBg+'">';
-    fh+='<td colspan="2" style="padding:10px 10px;font-size:.75rem;font-weight:700;color:var(--brand-l);letter-spacing:.3px">TOTALI</td>';
+    fh+='<td colspan="'+(_mgrAffIns.length>0?3:2)+'" style="padding:10px 10px;font-size:.75rem;font-weight:700;color:var(--brand-l);letter-spacing:.3px">TOTALI</td>';
     cols.forEach(c=>{
       if(c.type==='number'){
         let total=0;sorted.forEach(e=>{total+=parseFloat(e.customData?.[c.id])||0;});
@@ -6259,28 +6922,40 @@ function openRegistryUserDetail(uid){
   const email=user.email||'';
   const logo=user.profileLogo||null;
   const initials=name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
-  // Find active bookings (non-cancelled) for this user, for events visible to current manager
+  // Find ALL bookings for this user, for events visible to current manager
   const mgr=store.currentUser;
   const isMaster=mgr.role==='master';
   const _uidIsEmail=uid.includes('@');
   const _realUserId=user.id||uid;
-  const activeBookings=store.bookings.filter(b=>{
+  const today=localDateStr(new Date());
+  const allVisibleBookings=store.bookings.filter(b=>{
     const matchUser=b.userId===_realUserId||b.userId===uid||(_uidIsEmail&&b.email===uid);
-    if(!matchUser||b.status==='cancellata')return false;
+    if(!matchUser)return false;
     const ev=store.events.find(e=>e.id===b.eventId);
     if(!ev)return false;
-    // Only show events visible to current organizer (or all if master)
     if(!isMaster&&!isEventVisibleToManager(ev,mgr.id))return false;
-    // Only show events that are currently active (published or concluded)
-    if(ev.status!=='pubblicato'&&ev.status!=='concluso')return false;
     return true;
   });
-  // Group by event
-  const byEvent={};
-  activeBookings.forEach(b=>{
-    if(!byEvent[b.eventId])byEvent[b.eventId]=[];
-    byEvent[b.eventId].push(b);
+  // Split into 3 categories
+  const _activeBookings=[];const _closedBookings=[];const _cancelledBookings=[];
+  allVisibleBookings.forEach(b=>{
+    if(b.status==='cancellata'){_cancelledBookings.push(b);return;}
+    const ev=store.events.find(e=>e.id===b.eventId);if(!ev)return;
+    // Determine if this booking is for a future or past date
+    let bookingDate=b.recurringDate||null;
+    if(!bookingDate&&ev.days&&ev.days.length){
+      bookingDate=ev.days[ev.days.length-1].date; // last day of event
+    }
+    const isFuture=bookingDate&&bookingDate>=today;
+    const isEventConcluded=ev.status==='concluso'||ev.status==='archiviato';
+    if(isEventConcluded||!isFuture){_closedBookings.push(b);}
+    else{_activeBookings.push(b);}
   });
+  // Sort: active by date ascending, closed by date descending
+  const _getBookDate=b=>{const ev=store.events.find(e=>e.id===b.eventId);return b.recurringDate||(ev&&ev.days&&ev.days[0]?ev.days[0].date:'')||'';};
+  _activeBookings.sort((a,b)=>_getBookDate(a).localeCompare(_getBookDate(b)));
+  _closedBookings.sort((a,b)=>_getBookDate(b).localeCompare(_getBookDate(a)));
+  _cancelledBookings.sort((a,b)=>_getBookDate(b).localeCompare(_getBookDate(a)));
 
   // Find active subscriptions
   const activeSubs=store.subscriptions.filter(s=>{
@@ -6302,50 +6977,59 @@ function openRegistryUserDetail(uid){
   h+='<div><div style="font-size:1.1rem;font-weight:700;color:var(--txt1)">'+escHtml(name)+'</div>';
   h+='<div style="font-size:.82rem;color:var(--txt3)">'+escHtml(email)+'</div></div></div>';
 
-  // Active bookings section
-  h+='<div style="margin-bottom:16px">';
-  h+='<div style="font-size:.85rem;font-weight:700;color:var(--txt1);margin-bottom:10px;display:flex;align-items:center;gap:6px">📅 Eventi con iscrizione attiva ('+activeBookings.length+')</div>';
-  if(activeBookings.length===0){
-    h+='<div style="background:var(--s100);border:1px solid var(--s300);border-radius:12px;padding:16px;text-align:center;color:var(--txt3);font-size:.84rem">Nessuna iscrizione attiva al momento</div>';
-  } else {
-    Object.keys(byEvent).forEach(evId=>{
-      const ev=store.events.find(e=>e.id===evId);if(!ev)return;
-      const bks=byEvent[evId];
-      bks.forEach(b=>{
-        const evType=ev.eventType||ev.type||'';
-        const typeIcon=evType==='jam'?'🤝':evType==='lezione'?'📚':evType==='workshop'?'🛠️':evType==='social'?'🎉':'📋';
-        const dateStr=ev.days&&ev.days[0]?fmtDateShort(ev.days[0].date):'';
-        const recLabel=b.recurringDate?' <span style="font-size:.7rem;color:var(--txt3)">('+fmtDateShort(b.recurringDate)+')</span>':'';
-        const statusBg=ev.status==='pubblicato'?'rgba(16,185,129,.1)':'rgba(99,102,241,.1)';
-        const statusColor=ev.status==='pubblicato'?'var(--green)':'#6366f1';
-        const statusLabel=ev.status==='pubblicato'?'In corso':'Concluso';
-        // Payment info
-        let payInfo='';
-        if(ev.pricingMode!=='free'){
-          if(b.gift)payInfo='<span style="color:var(--purple);font-size:.72rem">🎁 Regalo</span>';
-          else if(b.paymentStatus==='pagato')payInfo='<span style="color:var(--green);font-size:.72rem">💰 Pagato €'+(b.amount||0)+'</span>';
-          else if(b.paymentStatus==='gratuito'||b.paymentStatus==='abbonamento')payInfo='<span style="color:var(--green);font-size:.72rem">🎟️ '+(b.paymentStatus==='abbonamento'?'Abbonamento':'Gratuito')+'</span>';
-          else payInfo='<span style="color:var(--yellow);font-size:.72rem">⏳ Da pagare €'+(b.amount||0)+'</span>';
-        }
-        // Role
-        const roleStr=b.role?'<span style="font-size:.72rem;color:'+_roleColor(b.role)+'">'+_roleName(b.role)+'</span>':'';
-
-        h+='<div style="background:var(--s100);border:1px solid var(--s300);border-radius:12px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor=\'var(--brand)\'" onmouseout="this.style.borderColor=\'var(--s300)\'" onclick="event.stopPropagation();this.closest(\'.overlay\').remove();showAdminEventDetail(\''+evId+'\')">';
-        h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">';
-        h+='<span style="font-size:1rem">'+typeIcon+'</span>';
-        h+='<span style="font-size:.88rem;font-weight:600;color:var(--txt1);flex:1">'+escHtml(ev.title)+'</span>';
-        h+='<span style="font-size:.68rem;padding:2px 8px;border-radius:6px;background:'+statusBg+';color:'+statusColor+';font-weight:600">'+statusLabel+'</span>';
-        h+='</div>';
-        h+='<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;font-size:.78rem;color:var(--txt3)">';
-        h+='<span>📅 '+dateStr+'</span>'+recLabel;
-        if(roleStr)h+='<span>'+roleStr+'</span>';
-        if(payInfo)h+='<span>'+payInfo+'</span>';
-        h+='</div>';
-        h+='</div>';
-      });
-    });
+  // Helper: render a booking card
+  function _regBookCard(b,showCancel){
+    const ev=store.events.find(e=>e.id===b.eventId);if(!ev)return '';
+    const evType=ev.eventType||ev.type||'';
+    const typeIcon=evType==='jam'?'🤝':evType==='lezione'?'📚':evType==='workshop'?'🛠️':evType==='social'?'🎉':'📋';
+    const dateStr=b.recurringDate?fmtDateShort(b.recurringDate):(ev.days&&ev.days[0]?fmtDateShort(ev.days[0].date):'');
+    const recLabel=b.recurringDate&&ev.recurrence?' <span style="font-size:.68rem;color:var(--txt3)">(ricorrente)</span>':'';
+    let payInfo='';
+    if(ev.pricingMode!=='free'&&!showCancel){
+      if(b.gift)payInfo='<span style="color:var(--purple);font-size:.72rem">🎁 Regalo</span>';
+      else if(b.paymentStatus==='pagato')payInfo='<span style="color:var(--green);font-size:.72rem">💰 €'+(b.amount||0)+'</span>';
+      else if(b.paymentStatus==='gratuito'||b.paymentStatus==='abbonamento')payInfo='<span style="color:var(--green);font-size:.72rem">🎟️ '+(b.paymentStatus==='abbonamento'?'Abb.':'Gratis')+'</span>';
+      else payInfo='<span style="color:var(--yellow);font-size:.72rem">⏳ €'+(b.amount||0)+'</span>';
+    }
+    const roleStr=b.role?'<span style="font-size:.72rem;color:'+_roleColor(b.role)+'">'+_roleName(b.role)+'</span>':'';
+    const borderLeft=showCancel?';border-left:3px solid var(--red)':'';
+    let c='<div style="background:var(--s100);border:1px solid var(--s300);border-radius:12px;padding:10px 14px;margin-bottom:6px;cursor:pointer;transition:border-color .15s'+borderLeft+'" onmouseover="this.style.borderColor=\'var(--brand)\'" onmouseout="this.style.borderColor=\'var(--s300)\'" onclick="event.stopPropagation();this.closest(\'.overlay\').remove();showAdminEventDetail(\''+ev.id+'\')">';
+    c+='<div style="display:flex;align-items:center;gap:8px">';
+    c+='<span style="font-size:1rem">'+typeIcon+'</span>';
+    c+='<span style="font-size:.84rem;font-weight:600;color:var(--txt1);flex:1">'+escHtml(ev.title)+'</span>';
+    c+='</div>';
+    c+='<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:.76rem;color:var(--txt3);margin-top:3px">';
+    c+='<span>📅 '+dateStr+'</span>'+recLabel;
+    if(roleStr)c+='<span>'+roleStr+'</span>';
+    if(payInfo)c+='<span>'+payInfo+'</span>';
+    c+='</div></div>';
+    return c;
   }
+
+  // === ACTIVE BOOKINGS (future events) ===
+  h+='<div style="margin-bottom:16px">';
+  h+='<div style="font-size:.85rem;font-weight:700;color:var(--green);margin-bottom:8px;display:flex;align-items:center;gap:6px">🟢 Prenotazioni attive ('+_activeBookings.length+')</div>';
+  if(_activeBookings.length===0){
+    h+='<div style="background:var(--s100);border:1px solid var(--s300);border-radius:10px;padding:12px;text-align:center;color:var(--txt3);font-size:.82rem">Nessuna prenotazione per eventi futuri</div>';
+  } else {_activeBookings.forEach(b=>{h+=_regBookCard(b,false);});}
   h+='</div>';
+
+  // === CLOSED BOOKINGS (past events) ===
+  if(_closedBookings.length>0){
+    h+='<div style="margin-bottom:16px">';
+    h+='<div style="font-size:.85rem;font-weight:700;color:var(--txt3);margin-bottom:8px;display:flex;align-items:center;gap:6px">⚪ Prenotazioni concluse ('+_closedBookings.length+')</div>';
+    _closedBookings.forEach(b=>{h+=_regBookCard(b,false);});
+    h+='</div>';
+  }
+
+  // === CANCELLED BOOKINGS ===
+  if(_cancelledBookings.length>0){
+    h+='<div style="margin-bottom:16px">';
+    h+='<div style="font-size:.85rem;font-weight:700;color:var(--red);margin-bottom:8px;display:flex;align-items:center;gap:6px;cursor:pointer" onclick="const t=this.nextElementSibling;t.style.display=t.style.display===\'none\'?\'block\':\'none\'">🔴 Prenotazioni cancellate ('+_cancelledBookings.length+') <span style="font-size:.7rem;color:var(--txt3)">▾</span></div>';
+    h+='<div style="display:none">';
+    _cancelledBookings.forEach(b=>{h+=_regBookCard(b,true);});
+    h+='</div></div>';
+  }
 
   // Active subscriptions
   if(activeSubs.length>0){
@@ -6361,17 +7045,55 @@ function openRegistryUserDetail(uid){
       if(isIngressi)h+='<div style="font-size:.72rem;color:var(--txt3)">Ingressi rimasti: <strong style="color:var(--green)">'+(s.remainingEntries||0)+'</strong>/'+(s.totalEntries||0)+'</div>';
       else h+='<div style="font-size:.72rem;color:var(--txt3)">Sconto: <strong style="color:var(--green)">'+(s.discountPercent||0)+'%</strong></div>';
       h+='</div>';
-      const payColor=s.paymentStatus==='pagato'?'var(--green)':s.paymentStatus==='omaggio'?'var(--purple)':'var(--yellow)';
-      const payLabel=s.paymentStatus==='pagato'?'Pagato':s.paymentStatus==='omaggio'?'Omaggio':s.paymentStatus==='parziale'?'Parziale':'Da pagare';
+      const _ps=s.paymentStatus||'';
+      const payColor=_ps==='pagato'?'var(--green)':(_ps==='omaggio'||_ps==='omaggiato'||_ps==='gratuito')?'var(--purple)':_ps==='prezzo_modificato'?'var(--yellow)':'var(--yellow)';
+      const payLabel=_ps==='pagato'?'Pagato':(_ps==='omaggio'||_ps==='omaggiato'||_ps==='gratuito')?'Omaggio':_ps==='prezzo_modificato'?'Prezzo mod.':'Da pagare';
       h+='<span style="font-size:.7rem;padding:2px 8px;border-radius:6px;background:'+payColor+'18;color:'+payColor+';font-weight:600">'+payLabel+'</span>';
       h+='</div>';
     });
     h+='</div>';
   }
 
+  // V3.1.7: Insurance section
+  const _regMgr=store.managers.find(m=>m.id===store.currentUser?.id);
+  const _regAffIns=_regMgr?.affiliatedInsurances||[];
+  if(_regAffIns.length>0){
+    const _regUser=store.users.find(u=>u.id===_realUserId);
+    const _regUserIns=(_regUser?.assignedInsurances||[]).filter(a=>_regAffIns.includes(a.insuranceId));
+    const _regNow=new Date().toISOString();
+    h+='<div style="margin-bottom:16px">';
+    h+='<div style="font-size:.85rem;font-weight:700;color:var(--brand-l);margin-bottom:10px;display:flex;align-items:center;gap:6px">🛡️ Assicurazioni ('+_regUserIns.length+')</div>';
+    if(_regUserIns.length===0){
+      h+='<div style="background:var(--s100);border:1px solid var(--s300);border-radius:10px;padding:12px;text-align:center;color:var(--txt3);font-size:.82rem">Nessuna assicurazione assegnata</div>';
+    } else {
+      _regUserIns.forEach(a=>{
+        const insName=getInsuranceName(a.insuranceId);
+        const statusBadge=getInsuranceStatusBadge(a);
+        const isExpired=a.expiresAt&&a.expiresAt<_regNow;
+        h+='<div style="background:var(--s100);border:1px solid var(--s300);border-radius:12px;padding:10px 14px;margin-bottom:6px;display:flex;align-items:center;gap:10px;'+(isExpired?'opacity:.6':'')+'">';
+        h+='<span style="font-size:1rem">🛡️</span>';
+        h+='<div style="flex:1"><div style="font-size:.84rem;font-weight:600;color:var(--txt1)">'+escHtml(insName)+'</div>';
+        h+='<div style="font-size:.72rem;color:var(--txt3)">Assegnata: '+fmtDateShort(a.assignedAt.split('T')[0])+' · Scade: '+(a.expiresAt?fmtDateShort(a.expiresAt.split('T')[0]):'Mai')+'</div></div>';
+        h+=statusBadge;
+        h+='<div style="display:flex;gap:4px;flex-shrink:0">';
+        if(isExpired){
+          h+='<button class="btn btn-sm" style="font-size:.65rem;background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="doRenewInsurance(\''+_realUserId+'\',\''+a.insuranceId+'\',this)">🔄</button>';
+        }
+        h+='<button class="btn btn-sm" style="font-size:.65rem;background:rgba(239,68,68,.08);color:var(--red);border:1px solid rgba(239,68,68,.2)" onclick="doRemoveInsurance(\''+_realUserId+'\',\''+a.insuranceId+'\',this)">✕</button>';
+        h+='</div></div>';
+      });
+    }
+    // Quick assign button
+    const _unassigned=_regAffIns.filter(iid=>!_regUserIns.some(a=>a.insuranceId===iid));
+    if(_unassigned.length>0){
+      h+='<button class="btn btn-sm mt-2" style="font-size:.72rem;background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="showQuickAssignInsurance(\''+_realUserId+'\')">➕ Assegna assicurazione</button>';
+    }
+    h+='</div>';
+  }
+
   // Diagnostic: all bookings in local store for this user (debug)
   const allUserBookings=store.bookings.filter(b=>b.userId===_realUserId||b.userId===uid||(_uidIsEmail&&b.email===uid));
-  if(allUserBookings.length!==activeBookings.length){
+  if(allUserBookings.length!==allVisibleBookings.length){
     h+='<div style="margin-bottom:16px">';
     h+='<div style="font-size:.78rem;font-weight:600;color:var(--txt3);margin-bottom:6px">🔍 Tutte le prenotazioni in memoria ('+allUserBookings.length+' totali)</div>';
     allUserBookings.forEach(b=>{
@@ -6897,7 +7619,11 @@ async function _exportRegistryXLSX(title,entries,cols){
   wb.creator='BodyEvents';wb.created=new Date();
   const ws=wb.addWorksheet('Anagrafica',{properties:{defaultRowHeight:20}});
 
-  const totalCols=2+cols.length;
+  // V3.1.7: Insurance column
+  const _xMgr=store.managers.find(m=>m.id===store.currentUser?.id);
+  const _xAffIns=_xMgr?.affiliatedInsurances||[];
+  const _xHasIns=_xAffIns.length>0;
+  const totalCols=2+cols.length+(_xHasIns?1:0);
 
   // --- Row 1: Title ---
   ws.mergeCells(1,1,1,totalCols);
@@ -6922,7 +7648,7 @@ async function _exportRegistryXLSX(title,entries,cols){
 
   // --- Row 4: Headers ---
   const headerRow=ws.getRow(4);
-  const headers=['Nome','Email',...cols.map(c=>c.name)];
+  const headers=['Nome','Email',...(_xHasIns?['Assicurazioni']:[]),...cols.map(c=>c.name)];
   headers.forEach((h,i)=>{
     const cell=headerRow.getCell(i+1);
     cell.value=h;
@@ -6938,9 +7664,22 @@ async function _exportRegistryXLSX(title,entries,cols){
     const row=ws.getRow(5+ri);
     row.getCell(1).value=e.name||'';
     row.getCell(2).value=e.email||'';
+    // V3.1.7: Insurance column
+    const _xColOffset=_xHasIns?1:0;
+    if(_xHasIns){
+      const _xUsr=store.users.find(u=>u.id===e.uid);
+      const _xAssigned=(_xUsr?.assignedInsurances||[]).filter(a=>_xAffIns.includes(a.insuranceId));
+      const _xNow=new Date().toISOString();
+      const _xNames=_xAssigned.map(a=>{
+        const name=getInsuranceName(a.insuranceId);
+        const expired=a.expiresAt&&a.expiresAt<_xNow;
+        return name+(expired?' (scaduta)':'');
+      }).join(', ');
+      row.getCell(3).value=_xNames||'—';
+    }
     cols.forEach((c,ci)=>{
       const v=e.customData?.[c.id];
-      const cell=row.getCell(3+ci);
+      const cell=row.getCell(3+_xColOffset+ci);
       if(c.type==='boolean'){cell.value=v?'Sì':'No';}
       else if(c.type==='color'){const idx=REGISTRY_COLORS.indexOf(v);cell.value=idx>=0?REGISTRY_COLOR_NAMES[idx]:'—';}
       else if(c.type==='number'){cell.value=parseFloat(v)||0;}
@@ -7181,8 +7920,9 @@ async function resetPassword(){
 let _loadingUserInProgress=false;
 async function loadCurrentUser(uid){
   // Guard: prevent concurrent calls (e.g. onAuthStateChanged + loginWithGoogle racing)
-  if(_loadingUserInProgress){console.log('loadCurrentUser already in progress, skipping');return;}
+  if(_loadingUserInProgress){console.log('[BE_INIT] loadCurrentUser already in progress, skipping');return;}
   _loadingUserInProgress=true;
+  console.log('[BE_INIT] loadCurrentUser started for uid:',uid);
   try{
   // Load all data from Firestore first
   await loadAllData();
@@ -7638,10 +8378,11 @@ function go(view){
   if(view==='checkin-booked') renderCheckinA();
   if(view==='checkin-walkin') renderCheckinB();
   if(view==='checkin-new') renderCheckinC();
-  if(view==='admin-new-event'&&!editingEventId){resetForm();_tsbShownThisSession=false;dismissTierBanner();restoreFormTitle();initEventDates();populateEventUniverseDropdown();populateSubTypeCheckboxes();prefillEventContacts();setTimeout(()=>{obShowTour('tour_new_event');setTimeout(()=>obShowInfoCard('ic_admin_new_event','admin-new-event-form'),300);},400);}
-  if(view==='admin-new-event'&&editingEventId){populateEventUniverseDropdown();populateSubTypeCheckboxes();}
+  if(view==='admin-new-event'&&!editingEventId){resetForm();_tsbShownThisSession=false;dismissTierBanner();restoreFormTitle();initEventDates();populateEventUniverseDropdown();populateSubTypeCheckboxes();populateInsuranceCheckboxes();prefillEventContacts();setTimeout(()=>{obShowTour('tour_new_event');setTimeout(()=>obShowInfoCard('ic_admin_new_event','admin-new-event-form'),300);},400);}
+  if(view==='admin-new-event'&&editingEventId){populateEventUniverseDropdown();populateSubTypeCheckboxes();populateInsuranceCheckboxes();}
   if(view==='admin-subscriptions'){renderAdminSubscriptions();}
   if(view==='admin-registry'){renderAdminRegistry();}
+  if(view==='admin-insurances'){renderAdminInsurances();}
   if(view==='admin-universes'){renderAdminUniversesView();setTimeout(()=>obShowTour('tour_admin_universes'),400);}
   if(view==='info-page'){renderInfoPage();}
   if(view==='info-page-organizer'){renderInfoPageOrganizer();}
@@ -9127,7 +9868,7 @@ async function bookWithSubscription(subId,eventId){
         sessions:_subSessionIds,scope:_subScope,tier:'medio',amount:0,totalAmount:0,
         role:selectedBookRole,recurringDate:currentBookingRecDate||null,
         status:'confermata',
-        depositStatus:null,paymentStatus:'gratuito',gift:false,subscriptionId:subId,
+        depositStatus:null,paymentStatus:'abbonamento',gift:false,subscriptionId:subId,
         surveyResponses:surveyResponses,
         bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
       };
@@ -9155,7 +9896,7 @@ async function bookWithSubscription(subId,eventId){
     sessions:_subSessionIds,scope:_subScope,tier:'medio',amount:0,totalAmount:0,
     role:getUserEffectiveRole(store.currentUser),recurringDate:currentBookingRecDate||null,
     status:'confermata',
-    depositStatus:null,paymentStatus:'gratuito',gift:false,subscriptionId:subId,
+    depositStatus:null,paymentStatus:'abbonamento',gift:false,subscriptionId:subId,
     surveyResponses:{},
     bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
   };
@@ -9381,9 +10122,22 @@ function _doBookNormal(){
 
   // === CROSS-EVENT OVERLAP DETECTION ===
   // Build time slots for the current selection
+  // V3.1.6: For recurring events, use the actual booking date instead of template date
   const _newSlots=[];
   ev.days.forEach((day,di)=>{
-    const dayDate=day.date;
+    let dayDate=day.date;
+    if(ev.recurrence&&ev.recurrence.active&&currentBookingRecDate){
+      // Single-day recurring: use the actual recurring date
+      if(ev.days.length===1){dayDate=currentBookingRecDate;}
+      else{
+        // Multi-day: offset from first template date
+        const templateStart=new Date(ev.days[0].date+'T00:00:00');
+        const thisDay=new Date(day.date+'T00:00:00');
+        const offsetMs=thisDay-templateStart;
+        const recBase=new Date(currentBookingRecDate+'T00:00:00');
+        dayDate=localDateStr(new Date(recBase.getTime()+offsetMs));
+      }
+    }
     // Event-level selection → all days
     if(selectedTiers['tier-evfull-'+ev.id]||selectedTiers['tier-ebev-'+ev.id]||selectedTiers['tier-lev-'+ev.id]){
       if(day.sessions&&day.sessions.length){
@@ -9416,33 +10170,42 @@ function _doBookNormal(){
       const bkEv=store.events.find(e=>e.id===bk.eventId);
       if(!bkEv||!bkEv.days)continue;
       // Build time slots for existing booking
+      // V3.1.6: For recurring bookings, use actual recurringDate instead of template date
       const _existSlots=[];
       const bkScope=bk.scope||'evento';
       const bkSessIds=bk.sessions||[];
-      bkEv.days.forEach(d=>{
+      bkEv.days.forEach((d,dIdx)=>{
+        let dDate=d.date;
+        if(bk.recurringDate&&bkEv.recurrence&&bkEv.recurrence.active){
+          if(bkEv.days.length===1){dDate=bk.recurringDate;}
+          else{
+            const tplStart=new Date(bkEv.days[0].date+'T00:00:00');
+            const thisD=new Date(d.date+'T00:00:00');
+            const offMs=thisD-tplStart;
+            const recB=new Date(bk.recurringDate+'T00:00:00');
+            dDate=localDateStr(new Date(recB.getTime()+offMs));
+          }
+        }
         if(bkScope==='evento'){
-          // Booked whole event → all sessions/days
           if(d.sessions&&d.sessions.length){
-            d.sessions.forEach(s=>{if(s.startTime&&s.endTime)_existSlots.push({date:d.date,start:s.startTime,end:s.endTime,evTitle:bkEv.title,label:s.name});});
+            d.sessions.forEach(s=>{if(s.startTime&&s.endTime)_existSlots.push({date:dDate,start:s.startTime,end:s.endTime,evTitle:bkEv.title,label:s.name});});
           }else if(d.startTime&&d.endTime){
-            _existSlots.push({date:d.date,start:d.startTime,end:d.endTime,evTitle:bkEv.title,label:bkEv.title});
+            _existSlots.push({date:dDate,start:d.startTime,end:d.endTime,evTitle:bkEv.title,label:bkEv.title});
           }
         }else if(bkScope==='giornata'){
-          // Check if this day was booked (look in items for matching date)
           const dayBooked=bk.items&&bk.items.some(it=>(it.type||'').includes('giornata')&&it.date===fmtDateShort(d.date));
           if(dayBooked){
             if(d.sessions&&d.sessions.length){
-              d.sessions.forEach(s=>{if(s.startTime&&s.endTime)_existSlots.push({date:d.date,start:s.startTime,end:s.endTime,evTitle:bkEv.title,label:s.name});});
+              d.sessions.forEach(s=>{if(s.startTime&&s.endTime)_existSlots.push({date:dDate,start:s.startTime,end:s.endTime,evTitle:bkEv.title,label:s.name});});
             }else if(d.startTime&&d.endTime){
-              _existSlots.push({date:d.date,start:d.startTime,end:d.endTime,evTitle:bkEv.title,label:bkEv.title});
+              _existSlots.push({date:dDate,start:d.startTime,end:d.endTime,evTitle:bkEv.title,label:bkEv.title});
             }
           }
         }else{
-          // Session-level → use booked session IDs
           if(d.sessions){
             d.sessions.forEach(s=>{
               if(bkSessIds.includes(s.id)&&s.startTime&&s.endTime){
-                _existSlots.push({date:d.date,start:s.startTime,end:s.endTime,evTitle:bkEv.title,label:s.name});
+                _existSlots.push({date:dDate,start:s.startTime,end:s.endTime,evTitle:bkEv.title,label:s.name});
               }
             });
           }
@@ -9556,6 +10319,14 @@ function _doBookNormal(){
       totalAmount+=it.price;
     });
   }
+  // V3.1.7: Insurance surcharge for uninsured users
+  let _insuranceSurcharge=0;
+  if(ev.insurance?.enabled&&ev.insurance.requiredInsuranceIds?.length&&ev.insurance.price>0){
+    if(!isUserInsured(store.currentUser.id,ev.insurance.requiredInsuranceIds)){
+      _insuranceSurcharge=ev.insurance.price;
+      totalAmount+=_insuranceSurcharge;
+    }
+  }
   if(!hasSelection){
     showToast('Seleziona almeno un tier di prezzo prima di prenotare!','error');
     return;
@@ -9567,6 +10338,15 @@ function _doBookNormal(){
       <div style="flex-shrink:0;text-align:right"><div class="text-sm font-bold text-white">€${it.price}</div><div style="margin-top:2px"><span class="badge badge-pubblicato" style="font-size:.65rem">${it.tier}</span></div></div>
     </div>
   </div>`).join('');
+  // V3.1.7: Add insurance surcharge line to summary
+  if(_insuranceSurcharge>0){
+    summaryCards+=`<div style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.25);border-radius:10px;padding:10px 14px;margin-bottom:8px">
+      <div class="flex items-center justify-between" style="gap:8px">
+        <div style="flex:1"><div class="text-sm font-medium" style="color:var(--warn)">🛡️ Sovrapprezzo assicurazione</div><div class="text-xs txt3" style="margin-top:2px">${escHtml(ev.insurance.description||'Assicurazione non presente')}</div></div>
+        <div style="flex-shrink:0"><div class="text-sm font-bold" style="color:var(--warn)">€${_insuranceSurcharge}</div></div>
+      </div>
+    </div>`;
+  }
   let depositHtml='';
   const needsDeposit=ev.deposit&&ev.deposit.required&&ev.deposit.amount>0;
   if(needsDeposit){
@@ -9694,6 +10474,7 @@ function _doBookNormal(){
       depositStatus:needsDeposit?'pending':null,
       paymentStatus:null,
       gift:false,
+      insuranceSurcharge:_insuranceSurcharge||0,
       surveyResponses:surveyResponses,
       bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
     };
@@ -10068,7 +10849,7 @@ function toggleAttendance(bookingId,checkedIn){
 // Set booking payment status (only capofila)
 function setBookingPayment(bookingId,status){
   const b=store.bookings.find(bk=>bk.id===bookingId);if(!b)return;
-  if(status==='regalo'){b.gift=true;b.paymentStatus='regalo';}
+  if(status==='regalo'){b.gift=true;b.paymentStatus='gratuito';b.amount=0;b.totalAmount=0;}
   else{b.paymentStatus=status;}
   fsSet('bookings',b.id,b).catch(console.error);
   renderAttendance();
@@ -11499,6 +12280,15 @@ async function geocodeAndRenderMap(){
       }
     }
     if(!coords)continue;
+    // V3.1.6: Persist resolved coords back to Firestore if not already saved on the event
+    if(coords&&(!ev.coords||!ev.coords.lat||!ev.coords.lng)){
+      ev.coords=coords;
+      if(ev.id&&!ev._isCommunity){
+        fbDb.collection('events').doc(ev.id).update({coords}).catch(()=>{});
+      } else if(ev.id&&ev._isCommunity){
+        fbDb.collection('communityJams').doc(ev.id).update({coords}).catch(()=>{});
+      }
+    }
     ev._resolvedCoords=coords;
   }
 
@@ -11540,12 +12330,10 @@ async function geocodeAndRenderMap(){
         const marker=L.marker([offsetLat,offsetLng],{icon}).addTo(eventsMap).bindPopup(popup);
         mapMarkers.push(marker);
       });
-      // Also add a subtle ring behind to show they're grouped
-      const ringHtml='<div style="width:'+Math.round(32+n*8)+'px;height:'+Math.round(32+n*8)+'px;border-radius:50%;border:2px dashed rgba(168,85,247,.3);background:rgba(168,85,247,.04);display:flex;align-items:center;justify-content:center;pointer-events:none"></div>';
-      const ringSize=32+n*8;
-      const ringIcon=L.divIcon({className:'',html:ringHtml,iconSize:[ringSize,ringSize],iconAnchor:[ringSize/2,ringSize/2]});
-      const ringMarker=L.marker([lat,lng],{icon:ringIcon,interactive:false,zIndexOffset:-1000}).addTo(eventsMap);
-      mapMarkers.push(ringMarker);
+      // Also add a subtle ring behind to show they're grouped (L.circle scales with zoom)
+      const ringRadius=15+n*5; // meters
+      const ring=L.circle([lat,lng],{radius:ringRadius,color:'rgba(168,85,247,.3)',weight:2,dashArray:'6,4',fill:true,fillColor:'rgba(168,85,247,.04)',fillOpacity:1,interactive:false}).addTo(eventsMap);
+      mapMarkers.push(ring);
     }
   });
   // Remove loading
@@ -12546,6 +13334,17 @@ function buildFullPricingHtml(ev,prefix){
       <div class="flex items-center gap-2"><span style="font-size:1.1rem">${_discIcon}</span><span class="font-medium text-sm" style="color:var(--green)">${_discLabel}: -${subDiscPct}% su tutti i prezzi</span></div>
       <p class="text-xs txt3 mt-1">${_discDesc}</p></div>`;
   }
+  // V3.1.6: Tier explanation banner
+  const _fpHasTiers=(()=>{
+    const _ck=t=>t&&Object.values(t).filter(v=>v!=null&&v!==''&&v!==0).length>1;
+    if(_ck(ev.tiers))return true;
+    return ev.days.some(d=>_ck(d.tiers)||(d.sessions||[]).some(s=>_ck(s.tiers)));
+  })();
+  if(_fpHasTiers){
+    html+=`<div class="card mb-2" style="background:rgba(168,85,247,.05);border-color:rgba(168,85,247,.25);padding:8px 10px">
+      <div style="font-size:.7rem;font-weight:600;color:var(--brand-l);margin-bottom:2px">💜 Prezzi a scelta libera</div>
+      <p style="font-size:.68rem;color:var(--txt2);line-height:1.5">3 livelli: <strong style="color:var(--yellow)">✦ Sostenitore</strong>, <strong style="color:var(--brand-l)">● Standard</strong>, <strong style="color:var(--blue)">○ Ridotto</strong>. L'esperienza è identica per tutti.</p></div>`;
+  }
   // Render each day with sessions and tiers
   ev.days.forEach((day,di)=>{
     html+=`<div class="card mb-2" style="border-color:var(--brand);background:rgba(217,70,239,.03);padding:10px 14px">
@@ -12900,6 +13699,36 @@ function showEventDetail(evId,recDate){
     daysHtml+=`<div class="card mb-4" style="background:rgba(16,185,129,.06);border-color:var(--green);padding:14px">
       <div class="flex items-center gap-2"><span style="font-size:1.3rem">${_dIcon}</span><span class="font-semibold" style="color:var(--green)">${_dLabel}: -${_sdPct}% su tutti i prezzi</span></div>
       <p class="text-xs txt3 mt-1">${_dDesc}</p></div>`;
+  }
+  // V3.1.6: Tier explanation banner for users when multi-tier pricing is active
+  if(!skipPricing){
+    const _hasTiers=(()=>{
+      const _checkT=t=>t&&Object.values(t).filter(v=>v!=null&&v!==''&&v!==0).length>1;
+      if(_checkT(ev.tiers))return true;
+      return ev.days.some(d=>_checkT(d.tiers)||(d.sessions||[]).some(s=>_checkT(s.tiers)));
+    })();
+    if(_hasTiers){
+      daysHtml+=`<div class="card mb-4" style="background:rgba(168,85,247,.05);border-color:rgba(168,85,247,.25);padding:12px 14px">
+        <div class="flex items-center gap-2 mb-1"><span style="font-size:1rem">💜</span><span class="font-semibold text-sm" style="color:var(--brand-l)">Prezzi a scelta libera</span></div>
+        <p class="text-xs" style="color:var(--txt2);line-height:1.6">Questo evento offre 3 livelli di prezzo: <strong style="color:var(--yellow)">✦ Sostenitore</strong>, <strong style="color:var(--brand-l)">● Standard</strong> e <strong style="color:var(--blue)">○ Ridotto</strong>. L'esperienza è identica per tutti: scegli in base alle tue possibilità. Chi può, contribuisce un po' di più, rendendo l'evento accessibile a chi ne ha bisogno.</p>
+      </div>`;
+    }
+  }
+  // V3.1.7: Insurance requirement banner
+  if(ev.insurance?.enabled&&ev.insurance.requiredInsuranceIds?.length){
+    const _curUserId=store.currentUser?.id;
+    const _isInsured=isUserInsured(_curUserId,ev.insurance.requiredInsuranceIds);
+    const _insNames=ev.insurance.requiredInsuranceIds.map(iid=>getInsuranceName(iid)).join(', ');
+    const _insPrice=ev.insurance.price||0;
+    if(_isInsured){
+      daysHtml+=`<div class="card mb-4" style="background:rgba(16,185,129,.05);border-color:rgba(16,185,129,.25);padding:12px 14px">
+        <div class="flex items-center gap-2"><span style="font-size:1rem">🛡️</span><span class="font-semibold text-sm" style="color:var(--green)">Assicurazione attiva</span></div>
+        <p class="text-xs mt-1" style="color:var(--txt2);line-height:1.5">Sei coperto da un'assicurazione valida. Nessun sovrapprezzo applicato.</p></div>`;
+    } else if(_insPrice>0){
+      daysHtml+=`<div class="card mb-4" style="background:rgba(245,158,11,.05);border-color:rgba(245,158,11,.25);padding:12px 14px">
+        <div class="flex items-center gap-2"><span style="font-size:1rem">🛡️</span><span class="font-semibold text-sm" style="color:var(--warn)">Assicurazione richiesta</span></div>
+        <p class="text-xs mt-1" style="color:var(--txt2);line-height:1.5">${escHtml(ev.insurance.description||"Questo evento richiede un'assicurazione.")} Assicurazioni accettate: <strong>${escHtml(_insNames)}</strong>. Senza assicurazione verrà applicato un sovrapprezzo di <strong style="color:var(--warn)">€${_insPrice}</strong>.</p></div>`;
+    }
   }
   ev.days.forEach((day,di)=>{
     const isSingleSession=day.sessions.length<=1;
@@ -13932,6 +14761,7 @@ async function renderCostManagement(evId){
       if(hasPartners){
         const sm=item.splitMode||'equal';
         if(!readOnly){
+          html+='<div>';
           html+='<select style="background:var(--s100);border:1px solid var(--s300);border-radius:6px;padding:3px 4px;color:var(--txt2);font-size:.7rem;width:100%" onchange="updateCostItemSplit(\''+evId+'\',\''+section.id+'\',\''+item.id+'\',this.value)">';
           html+='<option value="equal"'+(sm==='equal'?' selected':'')+'>Equa</option>';
           allParticipants.forEach(pid=>{
@@ -13939,8 +14769,24 @@ async function renderCostManagement(evId){
           });
           html+='<option value="custom"'+(sm==='custom'?' selected':'')+'>Personalizzata</option>';
           html+='</select>';
+          if(sm==='custom'){
+            const splits=item.splits||{};
+            const splitsTotal=allParticipants.reduce((s,p)=>s+(splits[p]||0),0);
+            html+='<div style="margin-top:4px;padding:6px;background:var(--s200);border-radius:6px;font-size:.7rem">';
+            allParticipants.forEach(pid=>{
+              const pName=getPartnerName(pid);
+              const pPct=splits[pid]||0;
+              html+='<div style="display:flex;align-items:center;gap:4px;margin-bottom:3px">';
+              html+='<span style="flex:1;color:var(--txt2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+escHtml(pName)+'">'+escHtml(pName)+'</span>';
+              html+='<input type="number" value="'+pPct+'" min="0" max="100" step="1" style="width:50px;background:var(--s100);border:1px solid var(--s300);border-radius:4px;padding:2px 4px;color:var(--txt1);font-size:.72rem;text-align:center" onchange="updateCostItemCustomSplit(\''+evId+'\',\''+section.id+'\',\''+item.id+'\',\''+pid+'\',parseFloat(this.value)||0)">%';
+              html+='</div>';
+            });
+            html+='<div style="text-align:right;margin-top:2px;color:'+(Math.abs(splitsTotal-100)<0.01?'var(--green)':'var(--red)')+';font-weight:600;font-size:.68rem">Tot: '+Math.round(splitsTotal)+'%</div>';
+            html+='</div>';
+          }
+          html+='</div>';
         } else {
-          html+='<span class="text-xs" style="text-align:center;color:var(--txt3)">'+(sm==='equal'?'Equa':sm.startsWith('solo_')?getPartnerName(sm.replace('solo_','')):'Custom')+'</span>';
+          html+='<span class="text-xs" style="text-align:center;color:var(--txt3)">'+(sm==='equal'?'Equa':sm.startsWith('solo_')?getPartnerName(sm.replace('solo_','')):'Personalizzata')+'</span>';
         }
       }
 
@@ -13971,11 +14817,12 @@ async function renderCostManagement(evId){
     // Headers
     html+='<div style="display:grid;grid-template-columns:2.5fr 1fr'+(hasPartners?' 1.5fr':'')+';gap:8px;padding:4px 0;font-size:.68rem;color:var(--txt3);text-transform:uppercase;letter-spacing:.3px">';
     html+='<span>Sessione</span><span style="text-align:center">Costo €</span>';
-    if(hasPartners)html+='<span style="text-align:center">Assegnato a</span>';
+    if(hasPartners)html+='<span style="text-align:center">Ripartizione</span>';
     html+='</div>';
 
     allSessions.forEach(s=>{
-      const sc=costs.sessions?.[s.id]||{amount:0,assignedTo:null};
+      const sc=costs.sessions?.[s.id]||{amount:0,assignedTo:null,splitMode:'assigned'};
+      const scSm=sc.splitMode||'assigned';
       html+='<div style="display:grid;grid-template-columns:2.5fr 1fr'+(hasPartners?' 1.5fr':'')+';gap:8px;padding:8px 0;border-bottom:1px solid var(--s200);align-items:center">';
       html+='<div><div class="text-sm" style="color:var(--txt1);font-weight:500">'+escHtml(s.name)+'</div><div class="text-xs txt3">'+fmtDateShort(s.day)+' · '+s.startTime+'-'+s.endTime+(s.teacher?' · '+escHtml(s.teacher):'')+'</div></div>';
 
@@ -13987,14 +14834,19 @@ async function renderCostManagement(evId){
 
       if(hasPartners){
         if(!readOnly){
-          html+='<select style="background:var(--s100);border:1px solid var(--s300);border-radius:6px;padding:3px 4px;color:var(--txt2);font-size:.72rem;width:100%" onchange="updateSessionCost(\''+evId+'\',\''+s.id+'\',\'assignedTo\',this.value||null)">';
-          html+='<option value=""'+((!sc.assignedTo)?' selected':'')+'>Capofila (default)</option>';
-          partners.forEach(pid=>{
-            html+='<option value="'+pid+'"'+(sc.assignedTo===pid?' selected':'')+'>'+escHtml(getPartnerName(pid))+'</option>';
+          html+='<select style="background:var(--s100);border:1px solid var(--s300);border-radius:6px;padding:3px 4px;color:var(--txt2);font-size:.72rem;width:100%" onchange="updateSessionCost(\''+evId+'\',\''+s.id+'\',\'splitMode\',this.value)">';
+          html+='<option value="equal"'+(scSm==='equal'?' selected':'')+'>Equa</option>';
+          allParticipants.forEach(pid=>{
+            html+='<option value="solo_'+pid+'"'+(scSm==='solo_'+pid?' selected':'')+'>100% '+escHtml(getPartnerName(pid))+'</option>';
           });
+          // Backward compat: if old data has assignedTo but no splitMode, show as solo_assignee
+          if(scSm==='assigned'){
+            const assignee=sc.assignedTo||ev.managerId;
+            html+='<option value="solo_'+assignee+'" selected>100% '+escHtml(getPartnerName(assignee))+'</option>';
+          }
           html+='</select>';
         } else {
-          html+='<span class="text-xs" style="text-align:center;color:var(--txt3)">'+(sc.assignedTo?getPartnerName(sc.assignedTo):'Capofila')+'</span>';
+          html+='<span class="text-xs" style="text-align:center;color:var(--txt3)">'+(scSm==='equal'?'Equa':scSm.startsWith('solo_')?getPartnerName(scSm.replace('solo_','')):(sc.assignedTo?getPartnerName(sc.assignedTo):'Capofila'))+'</span>';
         }
       }
       html+='</div>';
@@ -14091,9 +14943,12 @@ function _buildCostSummary(ev,costs,isCapo,hasPartners,allParticipants,getPartne
 
         // Costs assigned to this participant
         let pCosts=0;
-        // Session costs assigned
+        // Session costs (with splitMode support)
         Object.entries(costs.sessions||{}).forEach(([sid,sc])=>{
-          if((sc.assignedTo||ev.managerId)===pid)pCosts+=(sc.amount||0);
+          const scSm=sc.splitMode||'assigned';
+          if(scSm==='equal'){pCosts+=Math.round((sc.amount||0)/allParticipants.length*100)/100;}
+          else if(scSm==='solo_'+pid){pCosts+=(sc.amount||0);}
+          else if(scSm==='assigned'&&(sc.assignedTo||ev.managerId)===pid){pCosts+=(sc.amount||0);}
         });
         // General costs share
         (costs.sections||[]).forEach(sec=>{
@@ -14102,6 +14957,7 @@ function _buildCostSummary(ev,costs,isCapo,hasPartners,allParticipants,getPartne
             const sm=item.splitMode||'equal';
             if(sm==='equal')pCosts+=Math.round(itemTotal/allParticipants.length*100)/100;
             else if(sm==='solo_'+pid)pCosts+=itemTotal;
+            else if(sm==='custom'&&item.splits)pCosts+=Math.round(itemTotal*(item.splits[pid]||0)/100*100)/100;
           });
         });
         pCosts=Math.round(pCosts*100)/100;
@@ -14124,7 +14980,10 @@ function _buildCostSummary(ev,costs,isCapo,hasPartners,allParticipants,getPartne
     const myRevenue=Math.round(totalRevenue*revPct/100);
     let myCosts=0;
     Object.entries(costs.sessions||{}).forEach(([sid,sc])=>{
-      if(sc.assignedTo===myId)myCosts+=(sc.amount||0);
+      const scSm=sc.splitMode||'assigned';
+      if(scSm==='equal'){myCosts+=Math.round((sc.amount||0)/allParticipants.length*100)/100;}
+      else if(scSm==='solo_'+myId){myCosts+=(sc.amount||0);}
+      else if(scSm==='assigned'&&sc.assignedTo===myId){myCosts+=(sc.amount||0);}
     });
     (costs.sections||[]).forEach(sec=>{
       (sec.items||[]).forEach(item=>{
@@ -14132,6 +14991,7 @@ function _buildCostSummary(ev,costs,isCapo,hasPartners,allParticipants,getPartne
         const sm=item.splitMode||'equal';
         if(sm==='equal')myCosts+=Math.round(itemTotal/allParticipants.length*100)/100;
         else if(sm==='solo_'+myId)myCosts+=itemTotal;
+        else if(sm==='custom'&&item.splits)myCosts+=Math.round(itemTotal*(item.splits[myId]||0)/100*100)/100;
       });
     });
     myCosts=Math.round(myCosts*100)/100;
@@ -14227,16 +15087,60 @@ function updateCostItem(evId,secId,itemId,field,value){
 function updateCostItemSplit(evId,secId,itemId,value){
   const ev=store.events.find(e=>e.id===evId);if(!ev||!ev.eventCosts)return;
   const sec=ev.eventCosts.sections.find(s=>s.id===secId);if(!sec)return;
-  const item=sec.items.find(i=>i.id===itemId);if(item)item.splitMode=value;
+  const item=sec.items.find(i=>i.id===itemId);if(!item)return;
+  item.splitMode=value;
+  if(value==='custom'&&(!item.splits||Object.keys(item.splits).length===0)){
+    // Initialize equal splits when switching to custom
+    const allParts=[ev.managerId,...(ev.partnerIds||[])];
+    item.splits={};
+    const each=Math.round(100/allParts.length*100)/100;
+    allParts.forEach(pid=>{item.splits[pid]=each;});
+    // Fix rounding
+    const total=allParts.reduce((s,p)=>s+(item.splits[p]||0),0);
+    if(Math.abs(total-100)>0.01)item.splits[allParts[0]]=Math.round((item.splits[allParts[0]]+(100-total))*100)/100;
+  }
   _autoSaveCosts(evId);
-  _refreshCostSummary(evId);
+  renderCostManagement(evId);
+}
+
+function updateCostItemCustomSplit(evId,secId,itemId,pid,pct){
+  const ev=store.events.find(e=>e.id===evId);if(!ev||!ev.eventCosts)return;
+  const sec=ev.eventCosts.sections.find(s=>s.id===secId);if(!sec)return;
+  const item=sec.items.find(i=>i.id===itemId);if(!item)return;
+  if(!item.splits)item.splits={};
+  const allParts=[ev.managerId,...(ev.partnerIds||[])];
+  const others=allParts.filter(p=>p!==pid);
+  pct=Math.max(0,Math.min(100,pct));
+  item.splits[pid]=pct;
+  // Auto-adjust others to total 100%
+  const remaining=Math.max(0,100-pct);
+  const othersOldTotal=others.reduce((s,p)=>s+(item.splits[p]||0),0);
+  if(othersOldTotal>0){
+    others.forEach(p=>{item.splits[p]=Math.round((item.splits[p]||0)/othersOldTotal*remaining*100)/100;});
+  } else {
+    others.forEach(p=>{item.splits[p]=Math.round(remaining/others.length*100)/100;});
+  }
+  // Fix rounding
+  const realTotal=allParts.reduce((s,p)=>s+(item.splits[p]||0),0);
+  if(Math.abs(realTotal-100)>0.01&&others.length>0){
+    item.splits[others[0]]=Math.round((item.splits[others[0]]+(100-realTotal))*100)/100;
+  }
+  _autoSaveCosts(evId);
+  renderCostManagement(evId);
 }
 
 function updateSessionCost(evId,sessionId,field,value){
   const ev=store.events.find(e=>e.id===evId);if(!ev||!ev.eventCosts)return;
   if(!ev.eventCosts.sessions)ev.eventCosts.sessions={};
-  if(!ev.eventCosts.sessions[sessionId])ev.eventCosts.sessions[sessionId]={amount:0,assignedTo:null};
-  ev.eventCosts.sessions[sessionId][field]=value;
+  if(!ev.eventCosts.sessions[sessionId])ev.eventCosts.sessions[sessionId]={amount:0,assignedTo:null,splitMode:'assigned'};
+  if(field==='splitMode'){
+    // New splitMode system: 'equal' or 'solo_[pid]'
+    ev.eventCosts.sessions[sessionId].splitMode=value;
+    if(value==='equal'){ev.eventCosts.sessions[sessionId].assignedTo=null;}
+    else if(value.startsWith('solo_')){ev.eventCosts.sessions[sessionId].assignedTo=value.replace('solo_','');}
+  } else {
+    ev.eventCosts.sessions[sessionId][field]=value;
+  }
   _autoSaveCosts(evId);
   _refreshCostSummary(evId);
 }
@@ -14244,7 +15148,29 @@ function updateSessionCost(evId,sessionId,field,value){
 function updateRevenueShare(evId,pid,pct){
   const ev=store.events.find(e=>e.id===evId);if(!ev||!ev.eventCosts)return;
   if(!ev.eventCosts.revenueSharing)ev.eventCosts.revenueSharing={};
-  ev.eventCosts.revenueSharing[pid]=pct;
+  const rs=ev.eventCosts.revenueSharing;
+  const allParts=[ev.managerId,...(ev.partnerIds||[])];
+  const others=allParts.filter(p=>p!==pid);
+  // Clamp to 0-100
+  pct=Math.max(0,Math.min(100,pct));
+  rs[pid]=pct;
+  // Auto-adjust others to total 100%
+  const remaining=Math.max(0,100-pct);
+  const othersOldTotal=others.reduce((s,p)=>s+(rs[p]||0),0);
+  if(othersOldTotal>0){
+    // Distribute proportionally based on previous values
+    others.forEach(p=>{
+      rs[p]=Math.round((rs[p]||0)/othersOldTotal*remaining*100)/100;
+    });
+  } else {
+    // All others are 0 — distribute equally
+    others.forEach(p=>{rs[p]=Math.round(remaining/others.length*100)/100;});
+  }
+  // Fix rounding: adjust first other to make total exactly 100
+  const realTotal=allParts.reduce((s,p)=>s+(rs[p]||0),0);
+  if(Math.abs(realTotal-100)>0.01&&others.length>0){
+    rs[others[0]]=Math.round((rs[others[0]]+(100-realTotal))*100)/100;
+  }
   _autoSaveCosts(evId);
   renderCostManagement(evId);
 }
@@ -14753,7 +15679,7 @@ async function exportFullBackup(){
   if(store.currentUser.role!=='master'){showToast('Solo il Master può eseguire backup','error');return;}
   showToast('Preparazione backup in corso...');
   try{
-    const collections=['users','managers','events','bookings','communityJams','attendances','universes','subscriptionTypes','subscriptions','pendingSubTokens'];
+    const collections=['users','managers','events','bookings','communityJams','attendances','universes','subscriptionTypes','subscriptions','pendingSubTokens','insurances'];
     const backup={
       _meta:{
         appName:'BodyEvents',
@@ -14832,7 +15758,7 @@ async function renderAdminDashboard(){
   const c=document.getElementById('admin-dash-stats');if(!c)return;
   if(!_bookingsLoaded||!_usersFullyLoaded){
     _showDeferredLoading(c);
-    await Promise.all([ensureBookingsLoaded(),ensureUsersLoaded(),ensureAttendancesLoaded()]);
+    await Promise.all([ensureBookingsLoaded(),ensureUsersLoaded(),ensureAttendancesLoaded(),ensureInsurancesLoaded()]);
     if(currentView!=='admin')return;
   }
   const u=store.currentUser;
@@ -14904,12 +15830,15 @@ async function renderAdminDashboard(){
           const sm=item.splitMode||'equal';
           if(sm==='equal')total+=Math.round(itemTotal/allParts.length*100)/100;
           else if(sm==='solo_'+myId)total+=itemTotal;
+          else if(sm==='custom'&&item.splits)total+=Math.round(itemTotal*(item.splits[myId]||0)/100*100)/100;
         });
       });
-      // Session costs
+      // Session costs (with splitMode support)
       Object.entries(costs.sessions||{}).forEach(([sid,sc])=>{
-        const assignee=sc.assignedTo||ev.managerId;
-        if(assignee===myId)total+=(sc.amount||0);
+        const scSm=sc.splitMode||'assigned';
+        if(scSm==='equal'){total+=Math.round((sc.amount||0)/allParts.length*100)/100;}
+        else if(scSm==='solo_'+myId){total+=(sc.amount||0);}
+        else if(scSm==='assigned'){const assignee=sc.assignedTo||ev.managerId;if(assignee===myId)total+=(sc.amount||0);}
       });
       return Math.round(total*100)/100;
     }
@@ -14968,6 +15897,41 @@ async function renderAdminDashboard(){
     } else {
       fc.innerHTML='<div class="card text-center" style="padding:20px;color:var(--txt3)"><p class="text-sm">💰 Le metriche finanziarie appariranno quando archivierai i tuoi primi eventi.</p></div>';
     }
+  }
+
+  // === V3.1.7: INSURANCE METRICS CARD ===
+  const _dashMgr=store.managers.find(m=>m.id===u.id);
+  const _dashAffIns=_dashMgr?.affiliatedInsurances||[];
+  if(_dashAffIns.length>0&&_insurancesLoaded){
+    const _dashNow=new Date().toISOString();
+    const _dashIn30=new Date(Date.now()+30*24*60*60*1000).toISOString();
+    let _dashInsured=0,_dashExpiring=0,_dashExpired=0,_dashInsSurchargeRev=0;
+    store.users.forEach(usr=>{
+      if(!usr.assignedInsurances)return;
+      usr.assignedInsurances.forEach(a=>{
+        if(!_dashAffIns.includes(a.insuranceId))return;
+        if(a.expiresAt&&a.expiresAt<_dashNow){_dashExpired++;}
+        else{_dashInsured++;if(a.expiresAt&&a.expiresAt<=_dashIn30)_dashExpiring++;}
+      });
+    });
+    // Count insurance surcharge revenue from bookings
+    myBookings.forEach(b=>{if(b.insuranceSurcharge>0)_dashInsSurchargeRev+=b.insuranceSurcharge;});
+    const insEl=document.createElement('div');
+    insEl.className='card mb-4';
+    insEl.style.cssText='padding:16px;cursor:pointer;transition:border-color .15s';
+    insEl.onclick=()=>go('admin-insurances');
+    insEl.innerHTML=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <span style="font-size:1.3rem">🛡️</span>
+      <div><div style="font-size:.92rem;font-weight:700;color:var(--txt1)">Assicurazioni</div>
+      <div style="font-size:.72rem;color:var(--txt3)">${_dashAffIns.length} affiliate · clicca per gestire</div></div>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <div style="text-align:center;flex:1;min-width:70px"><div style="font-size:1.4rem;font-weight:800;color:var(--green)">${_dashInsured}</div><div style="font-size:.68rem;color:var(--txt3)">Attive</div></div>
+      <div style="text-align:center;flex:1;min-width:70px"><div style="font-size:1.4rem;font-weight:800;color:var(--warn)">${_dashExpiring}</div><div style="font-size:.68rem;color:var(--txt3)">In scadenza</div></div>
+      <div style="text-align:center;flex:1;min-width:70px"><div style="font-size:1.4rem;font-weight:800;color:var(--red)">${_dashExpired}</div><div style="font-size:.68rem;color:var(--txt3)">Scadute</div></div>
+      ${_dashInsSurchargeRev>0?'<div style="text-align:center;flex:1;min-width:70px"><div style="font-size:1.4rem;font-weight:800;color:var(--brand-l)">€'+_dashInsSurchargeRev+'</div><div style="font-size:.68rem;color:var(--txt3)">Da sovrapprezzi</div></div>':''}
+    </div>`;
+    fc?.parentElement?.insertBefore(insEl,fc.nextSibling);
   }
 
   // === CUMULATIVE REVENUE CHART ===
@@ -15322,7 +16286,8 @@ function syncToggleBtns(){
     ['ne-sub-bookable','ne-sub-bookable-btn'],
     ['ne-sub-discount','ne-sub-discount-btn'],
     ['ne-loyalty-discount','ne-loyalty-discount-btn'],
-    ['ne-deposit-required','ne-deposit-required-btn']
+    ['ne-deposit-required','ne-deposit-required-btn'],
+    ['ne-insurance-required','ne-insurance-required-btn']
   ];
   pairs.forEach(([cbId,btnId])=>{
     const cb=document.getElementById(cbId);const btn=document.getElementById(btnId);
@@ -16026,6 +16991,7 @@ function collectFormData(){
     partnerEntryPolicy:getPartnerIdsFromForm().length?(document.querySelector('input[name="ne-partner-entry-policy"]:checked')?.value||'discount_only'):null,
     subscriptionBookable:document.getElementById('ne-sub-bookable')?.checked?{enabled:true,typeIds:Array.from(document.querySelectorAll('#ne-sub-bookable-types .ne-subtype-sel.selected')).map(b=>b.dataset.id)}:null,
     subscriptionDiscount:document.getElementById('ne-sub-discount')?.checked?{enabled:true,typeIds:Array.from(document.querySelectorAll('#ne-sub-discount-types .ne-subtype-sel.selected')).map(b=>b.dataset.id),percentage:parseFloat(document.getElementById('ne-sub-disc-pct')?.value)||15}:null,
+    insurance:document.getElementById('ne-insurance-required')?.checked?{enabled:true,requiredInsuranceIds:Array.from(document.querySelectorAll('#ne-insurance-types .ne-ins-sel.selected')).map(b=>b.dataset.id),price:parseFloat(document.getElementById('ne-insurance-price')?.value)||0,description:document.getElementById('ne-insurance-desc')?.value||'',surveyEnabled:document.getElementById('ne-insurance-survey-enabled')?.checked||false}:null,
     alert:null
   };
 }
@@ -16230,6 +17196,18 @@ function editEvent(id){
     setTimeout(()=>{(ev.subscriptionDiscount.typeIds||[]).forEach(tid=>{const btn=document.querySelector('#ne-sub-discount-types .ne-subtype-sel[data-id="'+tid+'"]');if(btn){btn.classList.add('selected');btn.style.background='var(--brand-bg)';btn.style.color='var(--brand-l)';btn.style.borderColor='var(--brand)';}});},200);
     const pctEl=document.getElementById('ne-sub-disc-pct');if(pctEl&&ev.subscriptionDiscount.percentage!=null)pctEl.value=ev.subscriptionDiscount.percentage;
   }
+  // V3.1.7: Insurance settings restore
+  populateInsuranceCheckboxes();
+  if(ev.insurance?.enabled){
+    const insEl=document.getElementById('ne-insurance-required');
+    if(insEl){insEl.checked=true;document.getElementById('ne-insurance-opts')?.classList.remove('hidden');}
+    const insBtnEl=document.getElementById('ne-insurance-required-btn');
+    if(insBtnEl){insBtnEl.style.background='var(--brand-bg)';insBtnEl.style.color='var(--brand-l)';insBtnEl.style.borderColor='var(--brand)';}
+    setTimeout(()=>{(ev.insurance.requiredInsuranceIds||[]).forEach(iid=>{const btn=document.querySelector('#ne-insurance-types .ne-ins-sel[data-id="'+iid+'"]');if(btn){btn.classList.add('selected');btn.style.background='rgba(99,102,241,.15)';btn.style.color='var(--brand-l)';btn.style.borderColor='var(--brand)';}});},200);
+    const ipEl=document.getElementById('ne-insurance-price');if(ipEl&&ev.insurance.price!=null)ipEl.value=ev.insurance.price;
+    const idEl=document.getElementById('ne-insurance-desc');if(idEl&&ev.insurance.description)idEl.value=ev.insurance.description;
+    const isEl=document.getElementById('ne-insurance-survey-enabled');if(isEl)isEl.checked=ev.insurance.surveyEnabled||false;
+  }
   // Recurrence
   if(ev.recurrence){
     const recEl=document.getElementById('ne-recurrence');
@@ -16383,7 +17361,7 @@ function editEvent(id){
   // Auto-expand collapsible sections that have content
   if(ev.contactPhone||ev.contactEmail||ev.groupLink){const cc=document.getElementById('ne-contacts-collapsible');if(cc){cc.classList.remove('hidden');const arrow=cc.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
   if(ev.paymentMethods&&(ev.paymentMethods.paypal||ev.paymentMethods.revolut||ev.paymentMethods.cash)){const pc=document.getElementById('ne-payment-collapsible');if(pc){pc.classList.remove('hidden');const arrow=pc.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
-  if(ev.pricingMode==='free'||ev.pricingMode==='managed'||ev.subscriptionBookable?.enabled||ev.subscriptionDiscount?.enabled||ev.deposit?.required){const sc=document.getElementById('ne-payment-collapsible');if(sc){sc.classList.remove('hidden');const arrow=sc.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
+  if(ev.pricingMode==='free'||ev.pricingMode==='managed'||ev.subscriptionBookable?.enabled||ev.subscriptionDiscount?.enabled||ev.deposit?.required||ev.insurance?.enabled){const sc=document.getElementById('ne-payment-collapsible');if(sc){sc.classList.remove('hidden');const arrow=sc.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
   // Sync toggle button states with restored checkbox states
   syncToggleBtns();
   // Restore surveys
@@ -16571,7 +17549,7 @@ async function renderAdminBookings(){
     return buildSessionBadges(sIds,_ev,'text');
   };
   tw.innerHTML=`<table class="table">
-    <thead><tr><th>Utente</th><th>Evento</th><th>Dettaglio</th><th>Totale</th><th>Pagato</th><th>Anticipo</th><th>Azioni</th></tr></thead>
+    <thead><tr><th>Utente</th><th>Evento</th><th>Dettaglio</th><th style="white-space:nowrap">Tier</th><th>Totale</th><th>Pagato</th><th>Anticipo</th><th>Azioni</th></tr></thead>
     <tbody>${bks.map(b=>{
       const isCancelled=b.status==='cancellata';
       const rowStyle=isCancelled?'opacity:.5':b.depositStatus==='pending'?'background:rgba(234,179,8,.03)':'';
@@ -16600,6 +17578,7 @@ async function renderAdminBookings(){
         <td><div class="flex items-center gap-2"><div class="avatar ${avatarCls}" ${avatarStyle}>${b.initials}</div><div><div class="font-medium text-white text-sm" style="${nameStyle}">${escHtml(b.userName)}</div><div class="text-xs txt3">${escHtml(b.email)}</div></div></div></td>
         <td class="text-sm">${getEvTitle(b.eventId)}</td>
         <td class="text-sm">${getSessionNames(b.eventId,b.sessions)}</td>
+        <td style="white-space:nowrap"><span style="font-size:.72rem;padding:2px 5px;border-radius:4px;background:${b.tier==='alto'?'rgba(234,179,8,.12);color:var(--yellow)':b.tier==='basso'?'rgba(59,130,246,.12);color:var(--blue)':'rgba(168,85,247,.12);color:var(--purple)'}">  ${({alto:'✦ Sost.',medio:'● Std',basso:'○ Rid.'})[b.tier]||'● Std'}</span></td>
         <td class="font-medium ${isCancelled?'txt3':''}">${amountHtml} ${giftBtn}</td>
         <td>${payHtml}</td>
         <td>${depositHtml}</td>
@@ -17658,8 +18637,9 @@ async function downloadExcel(){
     const surveyCols=(ev.surveys||[]).map(sq=>sq.question.length>25?sq.question.substring(0,23)+'…':sq.question);
     const nS=surveyCols.length;
 
-    // Column layout (1-based): Partecipante(1) Email(2) Ruolo(3) Sessioni(4) [surveys...] Importo Pagamento Anticipo€ StatoAnticipo
-    const cImp=5+nS,cPag=6+nS,cAntE=7+nS,cAntS=8+nS,totC=8+nS;
+    // Column layout (1-based): Partecipante(1) Email(2) Ruolo(3) Sessioni(4) Tier(5) [Insurance?] [surveys...] Importo Pagamento Anticipo€ StatoAnticipo
+    const _evHasInsC=ev.insurance?.enabled&&ev.insurance.requiredInsuranceIds?.length?1:0;
+    const cTier=5,cIns=_evHasInsC?6:0,cImp=6+_evHasInsC+nS,cPag=7+_evHasInsC+nS,cAntE=8+_evHasInsC+nS,cAntS=9+_evHasInsC+nS,totC=9+_evHasInsC+nS;
     const cl=n=>{let s='';while(n>0){n--;s=String.fromCharCode(65+(n%26))+s;n=Math.floor(n/26);}return s;};
     const euroFmt='€ #,##0.00';
 
@@ -17751,7 +18731,10 @@ async function downloadExcel(){
     ws.getCell(row,1).value='👥 Lista Partecipanti';ws.getCell(row,1).font=subtitleFont;
     row+=1; // row=24
 
-    const headers=['Partecipante','Email','Ruolo','Sessioni',...surveyCols,'Importo','Pagamento','Anticipo €','Stato Anticipo'];
+    // V3.1.7: Insurance column
+    const _evHasIns=ev.insurance?.enabled&&ev.insurance.requiredInsuranceIds?.length;
+    const _insCol=_evHasIns?['Assicurazione']:[];
+    const headers=['Partecipante','Email','Ruolo','Sessioni','Tier',..._insCol,...surveyCols,'Importo','Pagamento','Anticipo €','Stato Anticipo'];
     headers.forEach((h,ci)=>{
       const c=ws.getCell(row,ci+1);
       c.value=h;c.font=headerFont;c.fill=brandFill;c.alignment={horizontal:'center',vertical:'middle'};c.border=thinBorder;
@@ -17765,7 +18748,10 @@ async function downloadExcel(){
         const r=(b.surveyResponses||{})[sq.id];
         return Array.isArray(r)?r.join(', '):r||'—';
       });
-      const vals=[b.userName,b.email,roleName(b.role),getSessionLabel(b.sessions),...surveyVals];
+      const tierName=b.tier==='alto'?'Sostenitore':b.tier==='basso'?'Ridotto':'Standard';
+      // V3.1.7: Insurance status
+      const _bInsVal=_evHasInsC?[isUserInsured(b.userId,ev.insurance.requiredInsuranceIds)?'✓ Assicurato':'✗ Non assicurato']:[];
+      const vals=[b.userName,b.email,roleName(b.role),getSessionLabel(b.sessions),tierName,..._bInsVal,...surveyVals];
       vals.forEach((v,ci)=>{
         const c=ws.getCell(row,ci+1);c.value=v;c.font=dataFont;c.border=thinBorder;c.alignment={vertical:'middle'};
       });
@@ -17847,6 +18833,120 @@ async function downloadExcel(){
   a.href=url;document.body.appendChild(a);a.click();document.body.removeChild(a);
   URL.revokeObjectURL(url);
   showToast('Excel scaricato!');
+}
+
+// V3.1.7: Export insurance survey/list Excel for an event
+async function exportInsuranceSurveyExcel(eventId){
+  const ev=store.events.find(e=>e.id===eventId);
+  if(!ev||!ev.insurance?.enabled)return;
+  await ensureInsurancesLoaded();
+  if(typeof ExcelJS==='undefined'){
+    const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';document.head.appendChild(s);
+    await new Promise(r=>{s.onload=r;setTimeout(r,6000);});
+  }
+  if(typeof ExcelJS==='undefined'){showToast('Errore caricamento libreria Excel','error');return;}
+
+  const reqIds=ev.insurance.requiredInsuranceIds||[];
+  const reqNames=reqIds.map(id=>getInsuranceName(id)).join(', ');
+  const evBookings=store.bookings.filter(b=>b.eventId===eventId&&b.status!=='cancellata');
+
+  // Get manager's survey questions
+  const mgr=store.managers.find(m=>m.id===ev.managerId);
+  const surveyQs=mgr?.insuranceSurvey||[];
+
+  const wb=new ExcelJS.Workbook();wb.creator='BodyEvents';
+  const ws=wb.addWorksheet('Assicurazioni',{properties:{defaultRowHeight:20}});
+
+  const brandPurple={type:'pattern',pattern:'solid',fgColor:{argb:'FF7C3AED'}};
+  const headerFill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1E1E2E'}};
+  const greenFill={type:'pattern',pattern:'solid',fgColor:{argb:'FFECFDF5'}};
+  const yellowFill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFFFBEB'}};
+  const redFill={type:'pattern',pattern:'solid',fgColor:{argb:'FFFEF2F2'}};
+  const headerFont={name:'Arial',bold:true,size:11,color:{argb:'FFFFFFFF'}};
+  const dataFont={name:'Arial',size:10,color:{argb:'FF1F2937'}};
+  const thinBorder={top:{style:'thin',color:{argb:'FFE5E7EB'}},bottom:{style:'thin',color:{argb:'FFE5E7EB'}},left:{style:'thin',color:{argb:'FFE5E7EB'}},right:{style:'thin',color:{argb:'FFE5E7EB'}}};
+
+  const surveyHeaders=surveyQs.map(q=>q.question.length>25?q.question.substring(0,23)+'…':q.question);
+  const allHeaders=['Partecipante','Email','Stato Assicurazione','Assicurazione','Scadenza','Sovrapprezzo €',...surveyHeaders];
+  const totalCols=allHeaders.length;
+
+  // Title row
+  ws.mergeCells(1,1,1,totalCols);
+  const tc=ws.getCell('A1');
+  tc.value='🛡️ Report Assicurazioni — '+ev.title;
+  tc.font={name:'Arial',bold:true,size:14,color:{argb:'FF7C3AED'}};
+  tc.alignment={vertical:'middle'};ws.getRow(1).height=30;
+
+  // Info row
+  ws.mergeCells(2,1,2,totalCols);
+  ws.getCell('A2').value='Assicurazioni richieste: '+reqNames+' | Sovrapprezzo: €'+(ev.insurance.price||0)+' | Esportato: '+new Date().toLocaleDateString('it-IT');
+  ws.getCell('A2').font={name:'Arial',size:10,italic:true,color:{argb:'FF6B7280'}};
+
+  // Stats row
+  let insured=0,uninsured=0;
+  evBookings.forEach(b=>{isUserInsured(b.userId,reqIds)?insured++:uninsured++;});
+  ws.getCell(4,1).value='Assicurati:';ws.getCell(4,1).font={name:'Arial',bold:true,size:10};
+  ws.getCell(4,2).value=insured;ws.getCell(4,2).font={name:'Arial',bold:true,size:11,color:{argb:'FF059669'}};ws.getCell(4,2).fill=greenFill;
+  ws.getCell(4,3).value='Non assicurati:';ws.getCell(4,3).font={name:'Arial',bold:true,size:10};
+  ws.getCell(4,4).value=uninsured;ws.getCell(4,4).font={name:'Arial',bold:true,size:11,color:{argb:'FFEF4444'}};ws.getCell(4,4).fill=redFill;
+  ws.getCell(4,5).value='Sovrapprezzi totali:';ws.getCell(4,5).font={name:'Arial',bold:true,size:10};
+  ws.getCell(4,6).value=uninsured*(ev.insurance.price||0);ws.getCell(4,6).font={name:'Arial',bold:true,size:11,color:{argb:'FFF59E0B'}};ws.getCell(4,6).fill=yellowFill;ws.getCell(4,6).numFmt='€ #,##0.00';
+
+  // Header row (row 6)
+  allHeaders.forEach((h,i)=>{
+    const c=ws.getCell(6,i+1);c.value=h;c.font=headerFont;c.fill=brandPurple;c.alignment={horizontal:'center',vertical:'middle'};c.border=thinBorder;
+  });
+  ws.getRow(6).height=24;
+
+  // Data rows (row 7+)
+  let row=7;
+  evBookings.forEach((b,bi)=>{
+    const user=store.users.find(u=>u.id===b.userId);
+    const _isIns=isUserInsured(b.userId,reqIds);
+    // Find which insurance they have
+    let insName='—',insExpiry='—';
+    if(user?.assignedInsurances){
+      const now=new Date().toISOString();
+      const match=user.assignedInsurances.find(a=>reqIds.includes(a.insuranceId)&&(!a.expiresAt||a.expiresAt>=now));
+      if(match){insName=getInsuranceName(match.insuranceId);insExpiry=match.expiresAt?match.expiresAt.split('T')[0]:'Illimitata';}
+    }
+    const surcharge=_isIns?0:(ev.insurance.price||0);
+
+    ws.getCell(row,1).value=b.userName||'';ws.getCell(row,1).font=dataFont;ws.getCell(row,1).border=thinBorder;
+    ws.getCell(row,2).value=b.email||'';ws.getCell(row,2).font=dataFont;ws.getCell(row,2).border=thinBorder;
+    const statusCell=ws.getCell(row,3);statusCell.value=_isIns?'✓ Assicurato':'✗ Non assicurato';statusCell.font={name:'Arial',size:10,bold:true,color:{argb:_isIns?'FF059669':'FFEF4444'}};statusCell.fill=_isIns?greenFill:redFill;statusCell.border=thinBorder;statusCell.alignment={horizontal:'center'};
+    ws.getCell(row,4).value=insName;ws.getCell(row,4).font=dataFont;ws.getCell(row,4).border=thinBorder;
+    ws.getCell(row,5).value=insExpiry;ws.getCell(row,5).font=dataFont;ws.getCell(row,5).border=thinBorder;
+    ws.getCell(row,6).value=surcharge;ws.getCell(row,6).font=dataFont;ws.getCell(row,6).border=thinBorder;ws.getCell(row,6).numFmt='€ #,##0.00';
+
+    // Survey answers
+    surveyQs.forEach((sq,si)=>{
+      const answers=user?.assignedInsurances?.find(a=>reqIds.includes(a.insuranceId))?.surveyAnswers||{};
+      const val=answers[sq.id]||'—';
+      const cell=ws.getCell(row,7+si);cell.value=Array.isArray(val)?val.join(', '):val;cell.font=dataFont;cell.border=thinBorder;
+    });
+
+    // Zebra striping
+    if(bi%2===1){
+      const altFill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF5F3FF'}};
+      for(let ci=1;ci<=totalCols;ci++){if(!ws.getCell(row,ci).fill||ws.getCell(row,ci).fill.fgColor?.argb==='00000000')ws.getCell(row,ci).fill=altFill;}
+    }
+    row++;
+  });
+
+  // Column widths
+  ws.getColumn(1).width=22;ws.getColumn(2).width=26;ws.getColumn(3).width=20;ws.getColumn(4).width=24;ws.getColumn(5).width=14;ws.getColumn(6).width=16;
+  for(let i=7;i<=totalCols;i++){ws.getColumn(i).width=20;}
+
+  // Download
+  const buf=await wb.xlsx.writeBuffer();
+  const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.download=ev.title.replace(/[^a-zA-Z0-9àèéìòù ]/g,'').replace(/ +/g,'_')+'_assicurazioni.xlsx';
+  a.href=url;document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Excel assicurazioni scaricato!');
 }
 
 /* Helper: get recurring date tabs for admin detail (last completed + next 2 upcoming + "Tutte") */
@@ -18010,7 +19110,8 @@ async function showAdminEventDetail(evId){
 
   // View toggle for multi-session events
   let viewSubtitle='';
-  const excelBtn='<button class="btn btn-sm" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3);font-size:.8rem;margin-left:auto" onclick="downloadExcel()">📥 Scarica Excel</button>';
+  const _hasInsReq=ev.insurance?.enabled&&ev.insurance.requiredInsuranceIds?.length;
+  const excelBtn='<button class="btn btn-sm" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3);font-size:.8rem;margin-left:auto" onclick="downloadExcel()">📥 Scarica Excel</button>'+(_hasInsReq?'<button class="btn btn-sm" style="background:rgba(99,102,241,.12);color:var(--brand-l);border:1px solid rgba(99,102,241,.3);font-size:.8rem" onclick="exportInsuranceSurveyExcel(\''+ev.id+'\')">🛡️ Excel Assicurazioni</button>':'');
   let viewToggleHtml='';
   if(showSessionToggle){
     const sessionOptions=[];
@@ -18138,6 +19239,30 @@ async function showAdminEventDetail(evId){
       <div class="stat-card"><div class="value" style="color:var(--yellow)">€${pendingRevenue}</div><div class="label">Anticipi in attesa</div></div>
       ${gifts.length?'<div class="stat-card"><div class="value" style="color:var(--purple)">'+gifts.length+'</div><div class="label">🎁 Regali</div></div>':''}
     </div>
+    ${(()=>{
+      if(ev.pricingMode==='free')return '';
+      const _tCounts={alto:0,medio:0,basso:0};
+      const _tRevenue={alto:0,medio:0,basso:0};
+      paying.forEach(b=>{const t=b.tier||'medio';if(_tCounts[t]!==undefined){_tCounts[t]++;_tRevenue[t]+=(b.amount||0);}});
+      const _hasMixed=(_tCounts.alto+_tCounts.basso)>0;
+      if(!_hasMixed)return '';
+      const _total=_tCounts.alto+_tCounts.medio+_tCounts.basso;
+      const _pct=t=>_total?Math.round(_tCounts[t]/_total*100):0;
+      return '<div class="card mb-6" style="padding:12px 14px">'
+        +'<div style="font-size:.78rem;font-weight:600;color:var(--txt1);margin-bottom:8px">📊 Distribuzione Tier</div>'
+        +'<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">'
+        +'<div style="flex:1;min-width:180px">'
+        +'<div style="display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--s300);margin-bottom:6px">'
+        +(_tCounts.alto?'<div style="width:'+_pct('alto')+'%;background:var(--yellow);transition:width .3s"></div>':'')
+        +(_tCounts.medio?'<div style="width:'+_pct('medio')+'%;background:var(--purple);transition:width .3s"></div>':'')
+        +(_tCounts.basso?'<div style="width:'+_pct('basso')+'%;background:var(--blue);transition:width .3s"></div>':'')
+        +'</div>'
+        +'<div style="display:flex;gap:12px;flex-wrap:wrap;font-size:.72rem">'
+        +(_tCounts.alto?'<span style="color:var(--yellow)">✦ Sost. <strong>'+_tCounts.alto+'</strong> (€'+_tRevenue.alto+')</span>':'')
+        +(_tCounts.medio?'<span style="color:var(--purple)">● Std <strong>'+_tCounts.medio+'</strong> (€'+_tRevenue.medio+')</span>':'')
+        +(_tCounts.basso?'<span style="color:var(--blue)">○ Rid. <strong>'+_tCounts.basso+'</strong> (€'+_tRevenue.basso+')</span>':'')
+        +'</div></div></div></div>';
+    })()}
 
     ${(()=>{
       if(!ev.refunds||!ev.refunds.length)return '';
@@ -18192,7 +19317,7 @@ async function showAdminEventDetail(evId){
     <h2 class="font-semibold text-white mb-3">👥 Lista Partecipanti (${active.length}${active.filter(b=>b.checkedIn).length>0?' · <span style="color:var(--green)">'+active.filter(b=>b.checkedIn).length+' presenti</span>':''})${viewSubtitle}</h2>
     ${active.length?`<div class="card" style="padding:0;overflow:auto">
       <table class="table">
-        <thead><tr><th style="cursor:pointer" onclick="sortAdminDetail('userName')">Partecipante ${adminDetailSort.field==='userName'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('role')">Ruolo ${adminDetailSort.field==='role'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('sessions')">Sessioni ${adminDetailSort.field==='sessions'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('checkedIn')">Presente ${adminDetailSort.field==='checkedIn'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${ev.pricingMode!=='free'?'<th style="cursor:pointer" onclick="sortAdminDetail(\'amount\')">Importo '+(adminDetailSort.field==='amount'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'paymentStatus\')">Pagato '+(adminDetailSort.field==='paymentStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'depositStatus\')">Anticipo '+(adminDetailSort.field==='depositStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'daIncassare\')">Da incassare '+(adminDetailSort.field==='daIncassare'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).length?'<th style="border-left:2px solid var(--s400);padding-left:12px;cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+(ev.surveys[0].id)+'\')">'+ev.surveys[0].question.substring(0,20)+(ev.surveys[0].question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+ev.surveys[0].id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).slice(1).map(sq=>'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+sq.id+'\')">'+sq.question.substring(0,20)+(sq.question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+sq.id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>').join('')}<th>Azioni</th></tr></thead>
+        <thead><tr><th style="cursor:pointer" onclick="sortAdminDetail('userName')">Partecipante ${adminDetailSort.field==='userName'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('role')">Ruolo ${adminDetailSort.field==='role'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('sessions')">Sessioni ${adminDetailSort.field==='sessions'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${ev.pricingMode!=='free'?'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'tier\')">Tier '+(adminDetailSort.field==='tier'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}<th style="cursor:pointer" onclick="sortAdminDetail('checkedIn')">Presente ${adminDetailSort.field==='checkedIn'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${ev.pricingMode!=='free'?'<th style="cursor:pointer" onclick="sortAdminDetail(\'amount\')">Importo '+(adminDetailSort.field==='amount'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'paymentStatus\')">Pagato '+(adminDetailSort.field==='paymentStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'depositStatus\')">Anticipo '+(adminDetailSort.field==='depositStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'daIncassare\')">Da incassare '+(adminDetailSort.field==='daIncassare'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).length?'<th style="border-left:2px solid var(--s400);padding-left:12px;cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+(ev.surveys[0].id)+'\')">'+ev.surveys[0].question.substring(0,20)+(ev.surveys[0].question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+ev.surveys[0].id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).slice(1).map(sq=>'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+sq.id+'\')">'+sq.question.substring(0,20)+(sq.question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+sq.id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>').join('')}<th>Azioni</th></tr></thead>
         <tbody>${active.map(b=>{
           const depositHtml=isArchived?(b.depositStatus==='ricevuto'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">✅ Ricevuto</span>':b.depositStatus==='pending'?'<span class="badge badge-yellow">⏳ Pending</span>':'<span class="text-xs txt3">—</span>')
             :(b.depositStatus==='pending'?'<span class="badge badge-yellow" style="cursor:pointer" onclick="event.stopPropagation();confirmDepositCtx(\''+b.id+'\',\'detail\')">⏳ Pending</span>'
@@ -18221,6 +19346,7 @@ async function showAdminEventDetail(evId){
             <td><div class="flex items-center gap-2"><div class="avatar ${avatarCls}" ${avatarStyle} style="${!avatarCls?'background:var(--s300);color:var(--txt3)':''}${_pLogo?';overflow:hidden':''}">${avatarInner}</div><div><div class="font-medium text-white text-sm">${escHtml(b.userName)}</div><div class="text-xs txt3">${escHtml(b.email)}</div></div></div></td>
             <td><span style="color:${roleColor(b.role)}">${roleName(b.role)}</span></td>
             <td style="min-width:140px">${getSessionNames(b.sessions)}</td>
+            ${ev.pricingMode!=='free'?'<td style="white-space:nowrap"><span style="font-size:.75rem;padding:2px 6px;border-radius:4px;background:'+(b.tier==='alto'?'rgba(234,179,8,.12);color:var(--yellow)':b.tier==='basso'?'rgba(59,130,246,.12);color:var(--blue)':'rgba(168,85,247,.12);color:var(--purple)')+'">'+({alto:'✦ Sost.',medio:'● Std',basso:'○ Rid.'}[b.tier]||'● Std')+'</span></td>':''}
             <td>${checkedInHtml}</td>
             ${ev.pricingMode!=='free'?'<td class="font-medium">'+amountHtml+' '+giftBtn+'</td><td>'+payHtml+'</td><td>'+depositHtml+'</td><td>'+daIncHtml+'</td>':''}
             ${(ev.surveys||[]).length?'<td class="text-sm" style="border-left:2px solid var(--s400);padding-left:12px" title="'+(((arr)=>{const r=(b.surveyResponses||{})[arr[0]?.id];return Array.isArray(r)?r.join(', '):r||'—';})(ev.surveys))+'">'+(((arr)=>{const r=(b.surveyResponses||{})[arr[0]?.id];const d=Array.isArray(r)?r.join(', '):r||'—';return d.length>25?d.substring(0,23)+'…':d;})(ev.surveys))+'</td>':''}
@@ -18836,6 +19962,8 @@ function dismissAuthSplash(){
   if(sp){sp.style.opacity='0';setTimeout(()=>sp.remove(),300);}
 }
 fbAuth.onAuthStateChanged(async(user)=>{
+  console.log('[BE_INIT] onAuthStateChanged fired, user:', user ? user.uid : 'null');
+  try{
   if(user){
     // Skip if registration is handling things (it manages its own flow)
     if(_registrationInProgress) return;
@@ -18851,7 +19979,9 @@ fbAuth.onAuthStateChanged(async(user)=>{
         window.history.replaceState(null,'',window.location.pathname);
       }catch(e){showToast('Errore magic link: '+e.message,'error');dismissAuthSplash();return;}
     }
+    console.log('[BE_INIT] Calling loadCurrentUser...');
     await loadCurrentUser(user.uid);
+    console.log('[BE_INIT] loadCurrentUser completed');
     dismissAuthSplash();
   } else {
     // No user logged in — show login page
@@ -18876,6 +20006,7 @@ fbAuth.onAuthStateChanged(async(user)=>{
       }).catch(()=>{showToast('Errore nel recupero dati organizzatore','error');});
     }
   }
+  }catch(_authErr){console.error('[BE_INIT] CRITICAL ERROR in onAuthStateChanged:',_authErr);dismissAuthSplash();document.getElementById('view-login').classList.add('active');showToast('Errore inizializzazione: '+_authErr.message,'error');}
 });
 // Safety: dismiss splash after 15s max (in case auth hangs)
 // Also show login view as fallback so user isn't stuck on blank screen
