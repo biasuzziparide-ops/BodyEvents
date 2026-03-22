@@ -3164,7 +3164,14 @@ async function fsSet(col,id,data){
 }
 async function fsUpdate(col,id,data){
   try{await fbDb.collection(col).doc(id).update(data);}
-  catch(e){console.error('fsUpdate error:',col,id,e);showToast('Errore aggiornamento dati','error');}
+  catch(e){
+    // Fallback: if doc doesn't exist, create it with merge
+    if(e.code==='not-found'||e.message?.includes('No document to update')){
+      console.warn('fsUpdate: doc not found, falling back to fsSet with merge:',col,id);
+      try{await fbDb.collection(col).doc(id).set(data,{merge:true});return;}catch(e2){console.error('fsUpdate fallback fsSet failed:',col,id,e2);}
+    }
+    console.error('fsUpdate error:',col,id,e);
+  }
 }
 async function fsDelete(col,id){
   try{await fbDb.collection(col).doc(id).delete();}
@@ -3281,20 +3288,41 @@ async function assignInsuranceToUser(userId,insuranceId,assignedBy,expiresAt,sur
     if(user)firestoreId=user.id;
   }
   if(!user){
-    // Try reverse: maybe userId is a Firebase UID but user doc was loaded differently
+    // Try direct Firestore lookup by doc ID
     try{
       const doc=await fbDb.collection('users').doc(userId).get();
       if(doc.exists){
         user=doc.data();if(!user.id)user.id=doc.id;
         firestoreId=doc.id;
-        // Merge into store.users
         const idx=store.users.findIndex(u=>u.id===firestoreId);
         if(idx>=0)store.users[idx]=user;else store.users.push(user);
       }
-    }catch(e){console.warn('assignInsurance: Firestore lookup failed',e);}
+    }catch(e){console.warn('assignInsurance: Firestore doc lookup failed',e);}
   }
   if(!user){
-    // Last resort: create minimal entry from registry, but use the passed uid
+    // Try Firestore query by email (handles Apple private relay / email-based registry uids)
+    try{
+      const snap=await fbDb.collection('users').where('email','==',userId).limit(1).get();
+      if(!snap.empty){
+        const doc=snap.docs[0];
+        user=doc.data();if(!user.id)user.id=doc.id;
+        firestoreId=doc.id;
+        const idx=store.users.findIndex(u=>u.id===firestoreId);
+        if(idx>=0)store.users[idx]=user;else store.users.push(user);
+      }
+    }catch(e){console.warn('assignInsurance: Firestore email query failed',e);}
+  }
+  if(!user){
+    // Also try registry email → store.users email match
+    const mgr=store.managers.find(m=>m.id===assignedBy);
+    const regEntry=mgr?.registry?.entries?.find(e=>e.uid===userId);
+    if(regEntry&&regEntry.email){
+      user=store.users.find(u=>u.email===regEntry.email);
+      if(user)firestoreId=user.id;
+    }
+  }
+  if(!user){
+    // Last resort: create minimal entry from registry
     const mgr=store.managers.find(m=>m.id===assignedBy);
     const regEntry=mgr?.registry?.entries?.find(e=>e.uid===userId);
     user={id:userId,username:regEntry?.name||userId,email:regEntry?.email||'',assignedInsurances:[]};
@@ -3632,9 +3660,9 @@ async function doAssignInsuranceToUser(userId,insId,btn){
       btn.disabled=false;
     }
   }catch(err){
-    console.error('doAssignInsuranceToUser error:',err);
-    btn.textContent='Errore';btn.style.color='var(--red)';
-    showToast('Errore durante l\'assegnazione','error');
+    console.error('doAssignInsuranceToUser error:',err,'userId:',userId,'insId:',insId);
+    btn.textContent='Riprova';btn.style.color='var(--red)';
+    showToast('Errore: '+(err.message||'assegnazione fallita'),'error');
     btn.disabled=false;
   }
 }
@@ -8618,13 +8646,24 @@ function disableProfileSave(){
   if(btn){btn.disabled=true;btn.style.opacity='.5';}
 }
 
-function renderProfileInsurances(u){
+async function renderProfileInsurances(u){
   const card=document.getElementById('profile-insurances-card');
   const list=document.getElementById('profile-insurances-list');
   if(!card||!list)return;
-  // Merge from store.users record (Firestore source of truth) and currentUser
-  const userRec=store.users.find(x=>x.id===u.id);
-  const assignments=(userRec&&userRec.assignedInsurances)||u.assignedInsurances||[];
+  // Fresh fetch from Firestore to get latest assignments (may have been set by admin)
+  try{
+    const freshDoc=await fbDb.collection('users').doc(u.id).get();
+    if(freshDoc.exists){
+      const freshData=freshDoc.data();
+      if(freshData.assignedInsurances){
+        u.assignedInsurances=freshData.assignedInsurances;
+        // Also update store.users if loaded
+        const storeRec=store.users.find(x=>x.id===u.id);
+        if(storeRec)storeRec.assignedInsurances=freshData.assignedInsurances;
+      }
+    }
+  }catch(e){console.warn('renderProfileInsurances: fresh fetch failed',e);}
+  const assignments=u.assignedInsurances||[];
   if(!assignments.length){card.style.display='none';return;}
   card.style.display='';
   let html='';
@@ -8643,10 +8682,10 @@ function renderProfileInsurances(u){
       expiryInfo='Nessuna scadenza';
     }
     html+='<div style="padding:12px;border:1px solid var(--s400);border-radius:8px;margin-bottom:8px;background:var(--s200)">';
-    html+='<div class="flex items-center gap-2 mb-1"><span class="font-semibold text-white text-sm">'+esc(name)+'</span> '+badge+'</div>';
-    if(provider) html+='<div class="text-xs txt3">Ente: '+esc(provider)+'</div>';
+    html+='<div class="flex items-center gap-2 mb-1"><span class="font-semibold text-white text-sm">'+escHtml(name)+'</span> '+badge+'</div>';
+    if(provider) html+='<div class="text-xs txt3">Ente: '+escHtml(provider)+'</div>';
     html+='<div class="text-xs txt3">Assegnata il: '+assignedDate+'</div>';
-    html+='<div class="text-xs txt3">'+esc(expiryInfo)+'</div>';
+    html+='<div class="text-xs txt3">'+escHtml(expiryInfo)+'</div>';
     html+='</div>';
   });
   list.innerHTML=html;
@@ -9391,10 +9430,19 @@ async function toggleOrgUniverse(univId,subscribe){
   if(!u.universes)u.universes=[];
   if(subscribe){
     if(!u.universes.includes(univId))u.universes.push(univId);
+    // Clean up any pending/rejected request for this universe
+    const mgr=store.managers.find(m=>m.id===u.id);
+    if(mgr&&mgr.universeRequests){
+      const req=mgr.universeRequests.find(r=>r.universeId===univId&&(r.status==='pending'||r.status==='rifiutata'));
+      if(req)req.status='approvata';
+    }
   }else{
     u.universes=u.universes.filter(id=>id!==univId);
   }
-  await fsUpdate('managers',u.id,{universes:u.universes});
+  const updateData={universes:u.universes};
+  const mgrRec=store.managers.find(m=>m.id===u.id);
+  if(mgrRec&&mgrRec.universeRequests)updateData.universeRequests=mgrRec.universeRequests;
+  await fsUpdate('managers',u.id,updateData);
   const rec=store.managers.find(m=>m.id===u.id);
   if(rec)rec.universes=u.universes;
   showToast(subscribe?'Organizzazione iscritta all\'universo':'Organizzazione disiscritta dall\'universo');
@@ -9412,6 +9460,7 @@ async function toggleOrgUniverse(univId,subscribe){
         +'</div>';
     }).join('');
   }
+  renderOrgUniverseRequests();
 }
 function orgProfileChanged(){
   const btn=document.getElementById('org-profile-save-btn');
@@ -9540,8 +9589,9 @@ function renderOrgUniverseRequests(){
   const wrap=document.getElementById('org-profile-universe-request');if(!wrap)return;
   const mgr=store.managers.find(m=>m.id===store.currentUser.id);if(!mgr)return;
   const currentUnivs=mgr.universes||[];
-  const pendingReqs=(mgr.universeRequests||[]).filter(r=>r.status==='pending').map(r=>r.universeId);
-  const rejectedReqs=(mgr.universeRequests||[]).filter(r=>r.status==='rifiutata').map(r=>r.universeId);
+  // Filter out pending/rejected requests for universes already subscribed to
+  const pendingReqs=(mgr.universeRequests||[]).filter(r=>r.status==='pending'&&!currentUnivs.includes(r.universeId)).map(r=>r.universeId);
+  const rejectedReqs=(mgr.universeRequests||[]).filter(r=>r.status==='rifiutata'&&!currentUnivs.includes(r.universeId)).map(r=>r.universeId);
   const allUnivs=getActiveUniverses();
   const available=allUnivs.filter(u=>!currentUnivs.includes(u.id)&&!pendingReqs.includes(u.id));
   const pending=allUnivs.filter(u=>pendingReqs.includes(u.id));
@@ -10410,7 +10460,7 @@ function _doBookNormal(){
         }
         // Session-level early bird (fallback: day → event EB)
         const sEbGridId='tier-ebs-'+s.id;
-        const _sEBcoll=s.earlyBird||day.earlyBird||ev.earlyBird;
+        const _sEBcoll=resolveEB(s.earlyBird,day.earlyBird,ev.earlyBird);
         if(selectedTiers[sEbGridId]&&_sEBcoll){
           hasSelection=true;
           const tier=selectedTiers[sEbGridId];
@@ -10431,10 +10481,10 @@ function _doBookNormal(){
       }
       // Day-level early bird
       const dayEbGridId='tier-ebday-'+ev.id+'-'+di;
-      if(selectedTiers[dayEbGridId]&&(day.earlyBird||ev.earlyBird)){
+      if(selectedTiers[dayEbGridId]&&(resolveEB(day.earlyBird,ev.earlyBird))){
         hasSelection=true;
         const tier=selectedTiers[dayEbGridId];
-        const price=(day.earlyBird||ev.earlyBird)[tier]||0;
+        const price=(resolveEB(day.earlyBird,ev.earlyBird))[tier]||0;
         items.push({type:'early bird giornata',name:'🐦 Early Bird — '+fmtDateShort(day.date),date:fmtDateShort(day.date),time:day.startTime+' — '+day.endTime,tier:tierLabel(tier)+' (early bird)',price});
         totalAmount+=price;
       }
@@ -10451,10 +10501,10 @@ function _doBookNormal(){
       }
       // Day-level early bird (no sessions)
       const dayEbGridId2='tier-ebday-'+ev.id+'-'+di;
-      if(selectedTiers[dayEbGridId2]&&(day.earlyBird||ev.earlyBird)){
+      if(selectedTiers[dayEbGridId2]&&(resolveEB(day.earlyBird,ev.earlyBird))){
         hasSelection=true;
         const tier=selectedTiers[dayEbGridId2];
-        const price=(day.earlyBird||ev.earlyBird)[tier]||0;
+        const price=(resolveEB(day.earlyBird,ev.earlyBird))[tier]||0;
         items.push({type:'early bird giornata',name:'🐦 Early Bird — '+fmtDateShort(day.date),date:fmtDateShort(day.date),time:day.startTime+' — '+day.endTime,tier:tierLabel(tier)+' (early bird)',price});
         totalAmount+=price;
       }
@@ -13305,16 +13355,33 @@ function nativeShareEvent(eventId){
 /* ==============================
    GLOBAL TIER HELPERS
 ============================== */
+// Resolve EB: merge prices from one level with deadline/type from another
+// Returns a single EB object with prices + deadline, or null if no prices found
+function resolveEB(...ebLevels){
+  // Find the first level that has actual prices
+  let pricesEB=null;
+  let metaEB=null;
+  for(const eb of ebLevels){
+    if(!eb)continue;
+    if(!metaEB&&(eb.type||eb.deadline||eb.maxCount))metaEB=eb;
+    if(!pricesEB&&(eb.alto||eb.medio||eb.basso))pricesEB=eb;
+    if(pricesEB)break;
+  }
+  if(!pricesEB)return null;
+  // If pricesEB already has its own deadline/type, use it as-is
+  if(pricesEB.type||pricesEB.deadline||pricesEB.maxCount)return pricesEB;
+  // Otherwise merge with metadata from a higher level
+  if(metaEB)return{...pricesEB,type:metaEB.type||'date',deadline:metaEB.deadline||null,maxCount:metaEB.maxCount||null};
+  return pricesEB;
+}
 function isEarlyBirdActive(eb,evId){
-  if(!eb||(!eb.alto&&!eb.medio&&!eb.basso)){console.log('[EB_DEBUG] isEarlyBirdActive → false: eb missing or no tier prices',eb);return false;}
-  if(eb.type==='date'&&eb.deadline){const today=localDateStr(new Date());const active=today<=eb.deadline;console.log('[EB_DEBUG] isEarlyBirdActive date check: today='+today+' deadline='+eb.deadline+' → '+active);return active;}
-  if(eb.type==='count'&&eb.maxCount){const bookCount=store.bookings.filter(b=>b.eventId===evId&&b.status!=='cancellata').length;const active=bookCount<eb.maxCount;console.log('[EB_DEBUG] isEarlyBirdActive count check: bookings='+bookCount+' maxCount='+eb.maxCount+' → '+active);return active;}
-  console.log('[EB_DEBUG] isEarlyBirdActive → true (no deadline/count constraint)',eb);
+  if(!eb||(!eb.alto&&!eb.medio&&!eb.basso))return false;
+  if(eb.type==='date'&&eb.deadline){return localDateStr(new Date())<=eb.deadline;}
+  if(eb.type==='count'&&eb.maxCount){const bookCount=store.bookings.filter(b=>b.eventId===evId&&b.status!=='cancellata').length;return bookCount<eb.maxCount;}
   return true;
 }
 function buildTierBtns(tiers, gridId, activeEB, evId, subDiscPct, freeWithSub){
   if(!tiers)return '';
-  console.log('[EB_DEBUG] buildTierBtns gridId='+gridId+' activeEB=',activeEB,' tiers=',tiers);
   const ebActive=activeEB&&isEarlyBirdActive(activeEB,evId);
   const disc=subDiscPct>0?subDiscPct:0;
   let btns='';
@@ -13339,8 +13406,7 @@ function buildTierBtns(tiers, gridId, activeEB, evId, subDiscPct, freeWithSub){
   return btns;
 }
 function renderEarlyBirdGrid(eb,gridId,evId,stdTiers,subDiscPct,freeWithSub){
-  console.log('[EB_DEBUG] renderEarlyBirdGrid gridId='+gridId+' eb=',eb,' stdTiers=',stdTiers);
-  if(!isEarlyBirdActive(eb,evId)){console.log('[EB_DEBUG] renderEarlyBirdGrid → empty (EB not active)');return '';}
+  if(!isEarlyBirdActive(eb,evId))return '';
   if(freeWithSub){
     // Entry-based sub: show EB tiers as €0 only if standard tiers are missing (fallback)
     const _hasStdTiers=stdTiers&&Object.values(stdTiers).some(v=>v!=null&&v!==''&&v!==0);
@@ -13631,7 +13697,7 @@ function buildFullPricingHtml(ev,prefix){
       html+='<p class="text-xs txt3 mb-2">Seleziona le sessioni:</p>';
       html+='<div style="max-width:90%;margin:0 auto">';
       day.sessions.forEach(s=>{
-        const _sEB=s.earlyBird||day.earlyBird||ev.earlyBird;
+        const _sEB=resolveEB(s.earlyBird,day.earlyBird,ev.earlyBird);
         const sBtns=buildTierBtns(s.tiers,prefix+'tiers-'+s.id,_sEB,ev.id,subDiscPct);
         html+=`<div class="check-item mb-2" onclick="toggleCheck(this,'${s.id}')" style="padding:6px 8px">
           <div class="checkbox"><span style="display:none;color:#fff;font-size:.6rem">✓</span></div>
@@ -13646,12 +13712,12 @@ function buildFullPricingHtml(ev,prefix){
       // Day pricing OUTSIDE indent — aligned with date card
       if(day.tiers){
         html+='<p class="text-xs txt3 mt-3 mb-2">Seleziona la giornata:</p>';
-        const dayBtns=buildTierBtns(day.tiers,prefix+'tier-day-'+ev.id+'-'+di,day.earlyBird||ev.earlyBird,ev.id,subDiscPct);
+        const dayBtns=buildTierBtns(day.tiers,prefix+'tier-day-'+ev.id+'-'+di,resolveEB(day.earlyBird,ev.earlyBird),ev.id,subDiscPct);
         if(dayBtns) html+=`<div class="card mt-1 mb-1" style="background:rgba(16,185,129,.05);border-color:var(--green);padding:4px 10px">
           <div style="font-size:.65rem;font-weight:500;margin-bottom:2px;color:var(--green)">💰 Prezzo giornata intera (pacchetto)</div>
           <div class="tier-grid" id="${prefix}tier-day-${ev.id}-${di}">${dayBtns}</div></div>`;
       }
-      html+=renderEarlyBirdGrid(day.earlyBird||ev.earlyBird,prefix+'tier-ebday-'+ev.id+'-'+di,ev.id,day.tiers,subDiscPct);
+      html+=renderEarlyBirdGrid(resolveEB(day.earlyBird,ev.earlyBird),prefix+'tier-ebday-'+ev.id+'-'+di,ev.id,day.tiers,subDiscPct);
     } else {
       const s=day.sessions[0]||null;
       const useTiers=day.tiers||(s?s.tiers:ev.tiers);
@@ -13660,10 +13726,10 @@ function buildFullPricingHtml(ev,prefix){
         html+=`<div class="mb-2"><div class="font-medium text-white text-sm">${escHtml(s.name)}</div>
           <div class="flex gap-2 mt-1 items-center flex-wrap"><span class="text-xs txt3">🕐 ${s.startTime} — ${s.endTime}</span><span class="badge ${badgeLevel(s.level)}">${capitalize(s.level)}</span>${s.teacher?'<span class="text-xs txt3">👤 '+escHtml(s.teacher)+'</span>':''}</div></div>`;
       }
-      const stdBtns=buildTierBtns(useTiers,prefix+'tier-day-'+ev.id+'-'+di,day.earlyBird||ev.earlyBird,ev.id,subDiscPct);
+      const stdBtns=buildTierBtns(useTiers,prefix+'tier-day-'+ev.id+'-'+di,resolveEB(day.earlyBird,ev.earlyBird),ev.id,subDiscPct);
       html+=`<p class="text-xs txt3 mb-2" style="font-style:italic">Scegli in base alle tue possibilità</p>`;
       if(stdBtns) html+=`<div class="tier-grid mb-2" id="${prefix}tier-day-${ev.id}-${di}">${stdBtns}</div>`;
-      html+=renderEarlyBirdGrid(day.earlyBird||ev.earlyBird,prefix+'tier-ebday-'+ev.id+'-'+di,ev.id,useTiers,subDiscPct);
+      html+=renderEarlyBirdGrid(resolveEB(day.earlyBird,ev.earlyBird),prefix+'tier-ebday-'+ev.id+'-'+di,ev.id,useTiers,subDiscPct);
       html+='</div>';
     }
   });
@@ -13691,20 +13757,20 @@ function collectCheckinBookingData(ev,prefix){
         const gid=prefix+'tiers-'+s.id;
         if(selectedTiers[gid]){const tier=selectedTiers[gid];const price=s.tiers[tier]||0;items.push({type:'sessione',name:s.name,date:fmtDateShort(day.date),time:s.startTime+' — '+s.endTime,tier:tierLabel(tier),tierKey:tier,price,sessionId:s.id});totalAmount+=price;}
         const sEb=prefix+'tier-ebs-'+s.id;
-        const _sEBcoll2=s.earlyBird||day.earlyBird||ev.earlyBird;
+        const _sEBcoll2=resolveEB(s.earlyBird,day.earlyBird,ev.earlyBird);
         if(selectedTiers[sEb]&&_sEBcoll2){const tier=selectedTiers[sEb];const price=_sEBcoll2[tier]||0;items.push({type:'early bird sessione',name:'🐦 EB — '+s.name,date:fmtDateShort(day.date),time:s.startTime+' — '+s.endTime,tier:tierLabel(tier)+' (EB)',tierKey:tier,price,sessionId:s.id});totalAmount+=price;}
       });
       const dayGid=prefix+'tier-day-'+ev.id+'-'+di;
       if(selectedTiers[dayGid]&&day.tiers){const tier=selectedTiers[dayGid];const price=day.tiers[tier]||0;items.push({type:'giornata',name:'Giornata — '+fmtDateShort(day.date),date:fmtDateShort(day.date),time:day.startTime+' — '+day.endTime,tier:tierLabel(tier),tierKey:tier,price});totalAmount+=price;}
       const dayEb=prefix+'tier-ebday-'+ev.id+'-'+di;
-      if(selectedTiers[dayEb]&&(day.earlyBird||ev.earlyBird)){const tier=selectedTiers[dayEb];const _ebSrc=day.earlyBird||ev.earlyBird;const price=_ebSrc[tier]||0;items.push({type:'early bird giornata',name:'🐦 EB — '+fmtDateShort(day.date),date:fmtDateShort(day.date),time:'',tier:tierLabel(tier)+' (EB)',tierKey:tier,price});totalAmount+=price;}
+      if(selectedTiers[dayEb]&&(resolveEB(day.earlyBird,ev.earlyBird))){const tier=selectedTiers[dayEb];const _ebSrc=resolveEB(day.earlyBird,ev.earlyBird);const price=_ebSrc[tier]||0;items.push({type:'early bird giornata',name:'🐦 EB — '+fmtDateShort(day.date),date:fmtDateShort(day.date),time:'',tier:tierLabel(tier)+' (EB)',tierKey:tier,price});totalAmount+=price;}
     } else {
       const s=day.sessions[0]||null;
       const useTiers=day.tiers||(s?s.tiers:ev.tiers);
       const dayGid=prefix+'tier-day-'+ev.id+'-'+di;
       if(selectedTiers[dayGid]){const tier=selectedTiers[dayGid];const price=useTiers[tier]||0;items.push({type:'giornata',name:'Giornata — '+fmtDateShort(day.date),date:fmtDateShort(day.date),time:day.startTime+' — '+day.endTime,tier:tierLabel(tier),tierKey:tier,price});totalAmount+=price;}
       const dayEb=prefix+'tier-ebday-'+ev.id+'-'+di;
-      if(selectedTiers[dayEb]&&(day.earlyBird||ev.earlyBird)){const tier=selectedTiers[dayEb];const _ebSrc=day.earlyBird||ev.earlyBird;const price=_ebSrc[tier]||0;items.push({type:'early bird giornata',name:'🐦 EB — '+fmtDateShort(day.date),date:fmtDateShort(day.date),time:'',tier:tierLabel(tier)+' (EB)',tierKey:tier,price});totalAmount+=price;}
+      if(selectedTiers[dayEb]&&(resolveEB(day.earlyBird,ev.earlyBird))){const tier=selectedTiers[dayEb];const _ebSrc=resolveEB(day.earlyBird,ev.earlyBird);const price=_ebSrc[tier]||0;items.push({type:'early bird giornata',name:'🐦 EB — '+fmtDateShort(day.date),date:fmtDateShort(day.date),time:'',tier:tierLabel(tier)+' (EB)',tierKey:tier,price});totalAmount+=price;}
     }
   });
   if(ev.days.length>1){
@@ -14013,7 +14079,6 @@ function showEventDetail(evId,recDate){
         <p class="text-xs mt-1" style="color:var(--txt2);line-height:1.5">${escHtml(ev.insurance.description||"Questo evento richiede un'assicurazione.")} Assicurazioni accettate: <strong>${escHtml(_insNames)}</strong>. Senza assicurazione verrà applicato un sovrapprezzo di <strong style="color:var(--warn)">€${_insPrice}</strong>.</p></div>`;
     }
   }
-  console.log('[EB_DEBUG] Event detail render — ev.earlyBird=',ev.earlyBird,' ev.tiers=',ev.tiers,' ev.days=',ev.days.map(d=>({dayEB:d.earlyBird,dayTiers:d.tiers,sessions:d.sessions.map(s=>({sEB:s.earlyBird,sTiers:s.tiers}))})));
   ev.days.forEach((day,di)=>{
     const isSingleSession=day.sessions.length<=1;
     daysHtml+=`<div class="card mb-3" style="border-color:var(--brand);background:rgba(217,70,239,.03)">
@@ -14029,7 +14094,7 @@ function showEventDetail(evId,recDate){
       day.sessions.forEach(s=>{
         const sLoc=s.location?`<div class="text-xs txt3 mt-1">${s.locationUrl?'<a href="'+s.locationUrl+'" target="_blank" style="color:var(--brand-l)">📍 '+escHtml(s.location)+' ↗</a>':'📍 '+escHtml(s.location)}</div>`:'';
         if(!skipPricing){
-          const _sEB2=s.earlyBird||day.earlyBird||ev.earlyBird;
+          const _sEB2=resolveEB(s.earlyBird,day.earlyBird,ev.earlyBird);
           const sBtns=buildTierBtns(s.tiers,'tiers-'+s.id,_sEB2,ev.id,_sdPct,_userHasEntrySub);
           daysHtml+=`<div class="check-item mb-2" onclick="toggleCheck(this,'${s.id}')" style="padding:8px 10px">
             <div class="checkbox"><span style="display:none;color:#fff;font-size:.6rem">✓</span></div>
@@ -14058,13 +14123,13 @@ function showEventDetail(evId,recDate){
       if(!skipPricing){
         if(day.tiers){
           daysHtml+=`<p class="text-sm txt3 mt-4 mb-2">Seleziona la giornata:</p>`;
-          const dayBtns=buildTierBtns(day.tiers,'tier-day-'+ev.id+'-'+di,day.earlyBird||ev.earlyBird,ev.id,_sdPct,_userHasEntrySub);
+          const dayBtns=buildTierBtns(day.tiers,'tier-day-'+ev.id+'-'+di,resolveEB(day.earlyBird,ev.earlyBird),ev.id,_sdPct,_userHasEntrySub);
           if(dayBtns) daysHtml+=`<div class="card mt-1 mb-2" style="background:rgba(16,185,129,.05);border-color:var(--green);padding:4px 10px">
             <div style="font-size:.65rem;font-weight:500;margin-bottom:2px;color:var(--green)">💰 Prezzo giornata intera (pacchetto)</div>
             <div class="tier-grid" id="tier-day-${ev.id}-${di}">${dayBtns}</div>
           </div>`;
         }
-        daysHtml+=renderEarlyBirdGrid(day.earlyBird||ev.earlyBird,'tier-ebday-'+ev.id+'-'+di,ev.id,day.tiers,_sdPct,_userHasEntrySub);
+        daysHtml+=renderEarlyBirdGrid(resolveEB(day.earlyBird,ev.earlyBird),'tier-ebday-'+ev.id+'-'+di,ev.id,day.tiers,_sdPct,_userHasEntrySub);
       } else if(day.sessions.length>1){
         // Free/managed: offer "Giornata intera" as alternative to individual sessions
         daysHtml+=`<div class="check-item mt-3 mb-2" onclick="toggleFreeDay(this,${di})" style="padding:8px 12px;cursor:pointer;background:rgba(16,185,129,.04);border:1px solid rgba(16,185,129,.2);border-radius:10px">
@@ -14087,10 +14152,10 @@ function showEventDetail(evId,recDate){
           ${s.description?'<div class="text-xs txt3 mt-1">'+escHtml(s.description)+'</div>':''}${sLoc}
         </div>`:''}`;
       if(!skipPricing){
-        const stdBtns=buildTierBtns(useTiers,'tier-day-'+ev.id+'-'+di,day.earlyBird||ev.earlyBird,ev.id,_sdPct,_userHasEntrySub);
+        const stdBtns=buildTierBtns(useTiers,'tier-day-'+ev.id+'-'+di,resolveEB(day.earlyBird,ev.earlyBird),ev.id,_sdPct,_userHasEntrySub);
         daysHtml+=`<p class="text-xs txt3 mb-2" style="font-style:italic">Scegli in base alle tue possibilità</p>`;
         if(stdBtns) daysHtml+=`<div class="tier-grid mb-3" id="tier-day-${ev.id}-${di}">${stdBtns}</div>`;
-        daysHtml+=renderEarlyBirdGrid(day.earlyBird||ev.earlyBird,'tier-ebday-'+ev.id+'-'+di,ev.id,useTiers,_sdPct,_userHasEntrySub);
+        daysHtml+=renderEarlyBirdGrid(resolveEB(day.earlyBird,ev.earlyBird),'tier-ebday-'+ev.id+'-'+di,ev.id,useTiers,_sdPct,_userHasEntrySub);
       }
       daysHtml+='</div>';
 
@@ -14098,10 +14163,10 @@ function showEventDetail(evId,recDate){
       const useTiers=day.tiers||ev.tiers;
       daysHtml+=`<div style="margin-left:16px;padding-left:16px;border-left:2px solid rgba(217,70,239,.2);margin-top:12px">`;
       if(!skipPricing){
-        const stdBtns2=buildTierBtns(useTiers,'tier-day-'+ev.id+'-'+di,day.earlyBird||ev.earlyBird,ev.id,_sdPct,_userHasEntrySub);
+        const stdBtns2=buildTierBtns(useTiers,'tier-day-'+ev.id+'-'+di,resolveEB(day.earlyBird,ev.earlyBird),ev.id,_sdPct,_userHasEntrySub);
         daysHtml+=`<p class="text-xs txt3 mb-3" style="font-style:italic">Scegli in base alle tue possibilità</p>`;
         if(stdBtns2) daysHtml+=`<div class="tier-grid" id="tier-day-${ev.id}-${di}">${stdBtns2}</div>`;
-        daysHtml+=renderEarlyBirdGrid(day.earlyBird||ev.earlyBird,'tier-ebday-'+ev.id+'-'+di,ev.id,useTiers,_sdPct,_userHasEntrySub);
+        daysHtml+=renderEarlyBirdGrid(resolveEB(day.earlyBird,ev.earlyBird),'tier-ebday-'+ev.id+'-'+di,ev.id,useTiers,_sdPct,_userHasEntrySub);
       }
       daysHtml+='</div>';
     }
@@ -17386,18 +17451,18 @@ function collectFormData(){
   const loyaltyDiscountEnabled=document.getElementById('ne-loyalty-discount')?.checked;
   const loyaltyEventIds=Array.from(document.querySelectorAll('#ne-loyalty-eventi-wrap .ep-check:checked')).map(cb=>cb.value);
   const loyaltyDiscPct=parseFloat(document.getElementById('ne-loyalty-disc-pct')?.value)||15;
-  // Early Bird — sanitize: only keep tiers where user actually entered a price > 0
+  // Early Bird — sanitize: only save if at least one tier price > 0
   const ebAltoRaw=parseFloat(document.getElementById('ne-eb-alto')?.value)||0;
   const ebMedioRaw=parseFloat(document.getElementById('ne-eb-medio')?.value)||0;
   const ebBassoRaw=parseFloat(document.getElementById('ne-eb-basso')?.value)||0;
-  const earlyBird={
+  const earlyBird=(ebAltoRaw>0||ebMedioRaw>0||ebBassoRaw>0)?{
     alto:ebAltoRaw>0?ebAltoRaw:null,
     medio:ebMedioRaw>0?ebMedioRaw:null,
     basso:ebBassoRaw>0?ebBassoRaw:null,
     type:document.querySelector('input[name="ne-eb-type"]:checked')?.value||'date',
     deadline:document.getElementById('ne-eb-deadline')?.value||null,
     maxCount:parseInt(document.getElementById('ne-eb-max-count')?.value)||null
-  };
+  }:null;
   const universeIds=Array.from(document.querySelectorAll('.ne-univ-btn.ne-univ-selected')).map(btn=>btn.dataset.univ);
   if(!universeIds.length){showToast('Seleziona almeno un universo!','error');return null;}
   const universeId=universeIds[0]; // Primary universe for backward compat
