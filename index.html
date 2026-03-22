@@ -228,6 +228,7 @@ textarea.input{resize:none;font-family:inherit}
   .admin-wrap{min-height:auto;max-width:100%;overflow-x:hidden;width:100%}
   .admin-content{padding:12px;max-width:100%;width:100%;box-sizing:border-box;overflow-x:hidden}
   .admin-content *{max-width:100%;box-sizing:border-box}
+  .admin-content .table,.admin-content .table *{max-width:none!important}
   .container{padding-left:12px;padding-right:12px;max-width:100%;box-sizing:border-box}
   /* === LAYOUT === */
   .grid-2,.grid-3{grid-template-columns:1fr}
@@ -242,10 +243,13 @@ textarea.input{resize:none;font-family:inherit}
   .sidebar{display:none}
   .tier-grid{grid-template-columns:1fr}
   .logo-text{display:none}
-  .table{font-size:.8rem}
-  .table th,.table td{padding:6px 8px}
+  .table{font-size:.8rem;min-width:700px;max-width:none!important;word-break:normal!important;overflow-wrap:normal!important}
+  .table th,.table td{padding:6px 8px;white-space:nowrap;word-break:normal!important;overflow-wrap:normal!important;max-width:none!important}
+  .table td .flex{flex-wrap:nowrap}
+  .table *{max-width:none!important;word-break:normal!important}
   .card{padding:16px;max-width:100%;box-sizing:border-box;overflow-wrap:break-word;word-break:break-word;overflow-x:hidden}
   .card .card{overflow-x:visible}
+  .table-wrap,.card:has(>.table){overflow-x:auto!important;overflow-y:visible!important;-webkit-overflow-scrolling:touch;word-break:normal!important;overflow-wrap:normal!important}
   .flex.gap-3{gap:8px}
   .stat-card{padding:12px}
   .stat-card .value{font-size:1.2rem}
@@ -288,8 +292,10 @@ textarea.input{resize:none;font-family:inherit}
   .toast{right:12px;left:12px;bottom:16px;max-width:none}
   .dialog{padding:14px;max-width:calc(100vw - 24px)!important}
   .overlay{padding:10px 6px}
-  .table th,.table td{padding:5px 6px;font-size:.75rem}
+  .table{min-width:650px}
+  .table th,.table td{padding:5px 6px;font-size:.75rem;white-space:nowrap}
   .card{padding:14px;overflow-x:hidden;overflow-wrap:break-word;word-break:break-word}
+  .table-wrap,.card:has(>.table){overflow-x:auto!important;overflow-y:visible!important}
   .tier-suggest-banner-inner{padding:10px 32px 10px 10px}
   .container{padding-left:10px;padding-right:10px}
   .admin-content{padding:10px;overflow-x:hidden}
@@ -307,7 +313,10 @@ textarea.input{resize:none;font-family:inherit}
   [style*="grid-template-columns:repeat(3"]{grid-template-columns:1fr 1fr!important}
   .dialog{max-width:calc(100vw - 32px)!important;box-sizing:border-box}
   .qr-box{max-width:100%;width:auto;height:auto;aspect-ratio:1/1}
-  .table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;min-width:700px;max-width:none!important}
+  .table th,.table td{white-space:nowrap;word-break:normal!important;max-width:none!important}
+  .table *{max-width:none!important}
+  .table-wrap,.card:has(>.table){overflow-x:auto!important}
 }
 
 /* === PAGE VIEWS (SPA) === */
@@ -1445,8 +1454,8 @@ textarea.input{resize:none;font-family:inherit}
       <div style="padding-top:12px;border-top:1px solid var(--s300)" class="mb-4">
         <div class="grid grid-2 gap-3">
           <div id="ne-deadline-wrap">
-            <div id="ne-deadline-date-mode"><label class="label">🔒 Prenotazioni chiudono il</label><input class="input" id="ne-booking-deadline" type="date" onchange="this._userEdited=true">
-            <p class="text-xs txt3 mt-1">Lascia vuoto per chiudere a fine evento.</p></div>
+            <div id="ne-deadline-date-mode"><label class="label">🔒 Prenotazioni chiudono il</label><input class="input" id="ne-booking-deadline" type="date" onchange="validateBookingDeadline(this)">
+            <p class="text-xs txt3 mt-1" id="ne-deadline-hint">Lascia vuoto per chiudere a fine evento.</p></div>
             <div id="ne-deadline-days-mode" class="hidden"><label class="label">🔒 Chiudi iscrizioni (giorni prima)</label><input class="input" id="ne-booking-deadline-days" type="number" min="0" max="60" placeholder="es. 3" style="max-width:120px">
             <p class="text-xs txt3 mt-1">Giorni prima di ogni ricorrenza. Lascia vuoto per chiudere all'inizio dell'evento.</p></div>
           </div>
@@ -1747,10 +1756,10 @@ textarea.input{resize:none;font-family:inherit}
         <h4 class="text-sm font-semibold mb-3" style="color:var(--brand-l)">🤝 Politica ingressi partner</h4>
         <p class="text-xs txt3 mb-3" style="line-height:1.4">Definisci come vengono trattati gli abbonamenti degli organizzatori partner per questo evento.</p>
         <div class="flex flex-col gap-2">
-          <label class="flex items-center gap-2 text-sm" style="cursor:pointer"><input type="radio" name="ne-partner-entry-policy" value="discount_only" checked> 💰 Solo sconto — riconosci prezzo scontato ma <b>non</b> scalano ingressi</label>
+          <label class="flex items-center gap-2 text-sm" style="cursor:pointer"><input type="radio" name="ne-partner-entry-policy" value="none" checked> ❌ Nessuno — partner visibili ma nessuna agevolazione</label>
+          <label class="flex items-center gap-2 text-sm" style="cursor:pointer"><input type="radio" name="ne-partner-entry-policy" value="discount_only"> 💰 Solo sconto — riconosci prezzo scontato ma <b>non</b> scalano ingressi</label>
           <label class="flex items-center gap-2 text-sm" style="cursor:pointer"><input type="radio" name="ne-partner-entry-policy" value="entries_too"> 🎟️ Anche ingressi — gli abbonamenti partner possono scalare ingressi</label>
           <label class="flex items-center gap-2 text-sm" style="cursor:pointer"><input type="radio" name="ne-partner-entry-policy" value="both"> 🎟️💰 Entrambi — l'utente sceglie se usare ingresso o sconto</label>
-          <label class="flex items-center gap-2 text-sm" style="cursor:pointer"><input type="radio" name="ne-partner-entry-policy" value="none"> ❌ Nessuno — partner visibili ma nessuna agevolazione</label>
         </div>
       </div>
       </div><!-- /ne-payment-collapsible -->
@@ -1845,7 +1854,7 @@ textarea.input{resize:none;font-family:inherit}
     <div class="grid grid-4 gap-3 mb-6" id="booking-stats"></div>
 
     <!-- Tabella -->
-    <div class="card" style="padding:0;overflow:auto" id="booking-table-wrap"></div>
+    <div class="card table-wrap" style="padding:0;overflow:auto" id="booking-table-wrap"></div>
   </main>
 </div>
 </div>
@@ -2878,7 +2887,7 @@ const OB_TOURS={
 const OB_INFOCARDS={
   ic_event_detail_pricing:{icon:'💡',text:'Questo evento ha <b>più giornate</b>. Puoi prenotare l\'<b>intero pacchetto</b> oppure le <b>singole giornate</b>, ognuna con le proprie sessioni e prezzi.'},
   ic_event_detail_tiers:{icon:'💜',text:'Questo evento offre <b>3 livelli di prezzo</b>: ✦ Sostenitore, ● Standard, ○ Ridotto: l\'esperienza è <b>identica</b> per tutti. Se questa volta sceglierai il prezzo <b>Sostenitore</b>, contribuirai alla partecipazione di chi, in questo periodo, senza il prezzo Ridotto avrebbe deciso di rinunciare. Attraverso questa piattaforma l\'organizzatore e gli altri utenti <b>non visualizzeranno</b> quale livello di prezzo hai scelto: si tratta di una <b>scelta etica libera</b>, che puoi cambiare volta per volta.'},
-  ic_event_detail_earlybird:{icon:'🐦',text:'<b>Prezzo Early Bird!</b> Sconto valido fino alla data indicata o fino a un certo numero di iscritti. Approfittane!'},
+
   ic_event_detail_waiting:{icon:'⏳',text:'Questo evento richiede un <b>numero minimo di partecipanti</b>. Se non viene raggiunto entro la deadline, potrebbe essere annullato.'},
   ic_jam_create:{icon:'💡',text:'Stai creando un <b>Community Event</b>. Scegli universo, luogo, data e orario. Puoi impostare un numero minimo: l\'evento sarà confermato solo al raggiungimento.'},
   ic_admin_community:{icon:'💡',text:'Qui puoi <b>moderare i Community Events</b> proposti dagli utenti. Come organizzatore puoi visualizzare, modificare o annullare gli eventi comunitari legati ai tuoi universi.'},
@@ -3163,6 +3172,14 @@ async function fsDelete(col,id){
 // User assignment: user.assignedInsurances = [{insuranceId, assignedBy, assignedAt, expiresAt, surveyAnswers:{}}]
 // Event requirement: ev.insurance = {enabled:bool, requiredInsuranceIds:[], price:number, description:'', surveyEnabled:bool}
 
+function isInsuranceCurrentlyValid(ins){
+  if(!ins||ins.status!=='active')return false;
+  const now=new Date().toISOString();
+  if(ins.validFrom&&now<ins.validFrom)return false;
+  if(ins.validTo&&now>ins.validTo)return false;
+  return true;
+}
+
 function getUserActiveInsurances(userId,managerAffiliatedIds){
   const user=store.users.find(u=>u.id===userId);
   if(!user||!user.assignedInsurances)return [];
@@ -3171,7 +3188,7 @@ function getUserActiveInsurances(userId,managerAffiliatedIds){
     if(a.expiresAt&&a.expiresAt<now)return false;
     if(managerAffiliatedIds&&!managerAffiliatedIds.includes(a.insuranceId))return false;
     const ins=store.insurances.find(i=>i.id===a.insuranceId);
-    return ins&&ins.status==='active';
+    return isInsuranceCurrentlyValid(ins);
   });
 }
 
@@ -3180,9 +3197,11 @@ function isUserInsured(userId,requiredInsuranceIds){
   const user=store.users.find(u=>u.id===userId);
   if(!user||!user.assignedInsurances)return false;
   const now=new Date().toISOString();
-  return requiredInsuranceIds.some(reqId=>
-    user.assignedInsurances.some(a=>a.insuranceId===reqId&&(!a.expiresAt||a.expiresAt>=now))
-  );
+  return requiredInsuranceIds.some(reqId=>{
+    const ins=store.insurances.find(i=>i.id===reqId);
+    if(!isInsuranceCurrentlyValid(ins))return false;
+    return user.assignedInsurances.some(a=>a.insuranceId===reqId&&(!a.expiresAt||a.expiresAt>=now));
+  });
 }
 
 function getInsuranceName(insId){
@@ -3193,18 +3212,25 @@ function getInsuranceName(insId){
 function getInsuranceStatusBadge(assignment){
   if(!assignment)return '';
   const now=new Date().toISOString();
+  const nowMs=Date.now();
+  // Check assignment expiry
   const exp=assignment.expiresAt;
   if(exp&&exp<now)return '<span style="font-size:.68rem;padding:2px 6px;border-radius:4px;background:rgba(239,68,68,.12);color:var(--red);font-weight:600">Scaduta</span>';
-  // Expiring within 30 days
-  if(exp){
-    const daysLeft=Math.ceil((new Date(exp)-new Date())/(1000*60*60*24));
+  // Check the insurance entity's own validTo date
+  const ins=store.insurances.find(i=>i.id===assignment.insuranceId);
+  if(ins&&ins.validTo&&ins.validTo<now)return '<span style="font-size:.68rem;padding:2px 6px;border-radius:4px;background:rgba(239,68,68,.12);color:var(--red);font-weight:600">Polizza scaduta</span>';
+  if(ins&&ins.validFrom&&ins.validFrom>now)return '<span style="font-size:.68rem;padding:2px 6px;border-radius:4px;background:rgba(99,102,241,.12);color:var(--brand-l);font-weight:600">Non ancora attiva</span>';
+  // Check the earliest expiry (assignment or insurance)
+  const effectiveExpiry=(!exp&&ins?.validTo)?ins.validTo:(exp&&ins?.validTo)?((exp<ins.validTo)?exp:ins.validTo):exp;
+  if(effectiveExpiry){
+    const daysLeft=Math.ceil((new Date(effectiveExpiry)-new Date())/(1000*60*60*24));
     if(daysLeft<=30)return '<span style="font-size:.68rem;padding:2px 6px;border-radius:4px;background:rgba(245,158,11,.12);color:var(--warn);font-weight:600">Scade tra '+daysLeft+'gg</span>';
   }
   return '<span style="font-size:.68rem;padding:2px 6px;border-radius:4px;background:rgba(16,185,129,.12);color:var(--green);font-weight:600">Attiva</span>';
 }
 
-async function createInsurance(name,description,provider,createdBy){
-  const ins={id:genId('ins'),name,description:description||'',provider:provider||'',createdBy,createdAt:new Date().toISOString(),status:'active'};
+async function createInsurance(name,description,provider,createdBy,validFrom,validTo){
+  const ins={id:genId('ins'),name,description:description||'',provider:provider||'',createdBy,validFrom:validFrom||null,validTo:validTo||null,createdAt:new Date().toISOString(),status:'active'};
   store.insurances.push(ins);
   await fsSet('insurances',ins.id,ins);
   return ins;
@@ -3338,6 +3364,13 @@ async function renderAdminInsurances(){
       h+='<div style="font-size:.92rem;font-weight:700;color:var(--txt1)">'+escHtml(ins.name)+'</div>';
       if(ins.description)h+='<div style="font-size:.78rem;color:var(--txt3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escHtml(ins.description)+'</div>';
       if(ins.provider)h+='<div style="font-size:.72rem;color:var(--txt3);margin-top:2px">Provider: <strong>'+escHtml(ins.provider)+'</strong></div>';
+      // Validity dates
+      const _vFrom=ins.validFrom?new Date(ins.validFrom).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'}):'—';
+      const _vTo=ins.validTo?new Date(ins.validTo).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'}):'—';
+      const _insValid=isInsuranceCurrentlyValid(ins);
+      const _vColor=_insValid?'var(--green)':'var(--red)';
+      const _vLabel=_insValid?'Valida':'Scaduta';
+      h+='<div style="font-size:.72rem;color:var(--txt3);margin-top:3px">📅 '+_vFrom+' → '+_vTo+' <span style="font-size:.68rem;padding:1px 5px;border-radius:4px;background:'+(_insValid?'rgba(16,185,129,.12)':'rgba(239,68,68,.12)')+';color:'+_vColor+';font-weight:600;margin-left:4px">'+_vLabel+'</span></div>';
       h+='</div>';
       h+='<div style="text-align:right;flex-shrink:0">';
       h+='<div style="font-size:1.2rem;font-weight:800;color:var(--green)">'+count+'</div>';
@@ -3366,6 +3399,11 @@ function showCreateInsuranceModal(){
   h+='<div class="mb-3"><label class="label">Nome *</label><input type="text" id="ins-create-name" class="input" placeholder="Es. Assicurazione AcroYoga 2026"></div>';
   h+='<div class="mb-3"><label class="label">Descrizione</label><textarea id="ins-create-desc" class="input" rows="2" placeholder="Dettagli copertura..."></textarea></div>';
   h+='<div class="mb-3"><label class="label">Provider / Compagnia</label><input type="text" id="ins-create-provider" class="input" placeholder="Es. UnipolSai"></div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" class="mb-3">';
+  h+='<div><label class="label">Valida dal *</label><input type="date" id="ins-create-validFrom" class="input" value="'+new Date().toISOString().split('T')[0]+'"></div>';
+  h+='<div><label class="label">Valida fino al *</label><input type="date" id="ins-create-validTo" class="input" value="'+new Date(Date.now()+365*24*60*60*1000).toISOString().split('T')[0]+'"></div>';
+  h+='</div>';
+  h+='<p class="text-xs txt3 mb-3" style="line-height:1.4">Le date di validità determinano quando l\'assicurazione è attiva. Gli utenti vedranno la scadenza e il sistema la verificherà automaticamente durante le prenotazioni.</p>';
   h+='<div class="flex gap-2 mt-4">';
   h+='<button class="btn" style="background:var(--brand);color:#fff;flex:1" onclick="doCreateInsurance(this)">Crea e Affilia</button>';
   h+='<button class="btn btn-secondary" onclick="this.closest(\'.overlay\').remove()">Annulla</button>';
@@ -3378,10 +3416,14 @@ function showCreateInsuranceModal(){
 async function doCreateInsurance(btn){
   const name=document.getElementById('ins-create-name')?.value?.trim();
   if(!name){showToast('Inserisci un nome','error');return;}
+  const validFrom=document.getElementById('ins-create-validFrom')?.value||'';
+  const validTo=document.getElementById('ins-create-validTo')?.value||'';
+  if(!validFrom||!validTo){showToast('Inserisci le date di validità','error');return;}
+  if(validTo<validFrom){showToast('La data di fine deve essere dopo quella di inizio','error');return;}
   btn.disabled=true;btn.textContent='Creazione...';
   const desc=document.getElementById('ins-create-desc')?.value?.trim()||'';
   const provider=document.getElementById('ins-create-provider')?.value?.trim()||'';
-  const ins=await createInsurance(name,desc,provider,store.currentUser.id);
+  const ins=await createInsurance(name,desc,provider,store.currentUser.id,validFrom+'T00:00:00.000Z',validTo+'T23:59:59.999Z');
   if(ins){
     await affiliateInsuranceToManager(store.currentUser.id,ins.id);
     showToast('Assicurazione creata e affiliata!');
@@ -3405,6 +3447,9 @@ function showAffiliateInsuranceModal(){
     h+='<div class="card mb-2" style="padding:12px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor=\'var(--brand)\'" onmouseout="this.style.borderColor=\'var(--s300)\'" onclick="doAffiliateInsurance(\''+ins.id+'\',this)">';
     h+='<div style="font-size:.88rem;font-weight:600;color:var(--txt1)">🛡️ '+escHtml(ins.name)+'</div>';
     if(ins.description)h+='<div style="font-size:.75rem;color:var(--txt3);margin-top:2px">'+escHtml(ins.description)+'</div>';
+    const _afFrom=ins.validFrom?new Date(ins.validFrom).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'}):'—';
+    const _afTo=ins.validTo?new Date(ins.validTo).toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'}):'—';
+    h+='<div style="font-size:.7rem;color:var(--txt3);margin-top:3px">📅 '+_afFrom+' → '+_afTo+(ins.provider?' · '+escHtml(ins.provider):'')+'</div>';
     h+='</div>';
   });
   h+='<button class="btn btn-secondary btn-sm mt-3" onclick="this.closest(\'.overlay\').remove()">Chiudi</button>';
@@ -3432,6 +3477,10 @@ function showEditInsuranceModal(insId){
   h+='<div class="mb-3"><label class="label">Nome</label><input type="text" id="ins-edit-name" class="input" value="'+escHtml(ins.name)+'"></div>';
   h+='<div class="mb-3"><label class="label">Descrizione</label><textarea id="ins-edit-desc" class="input" rows="2">'+escHtml(ins.description||'')+'</textarea></div>';
   h+='<div class="mb-3"><label class="label">Provider</label><input type="text" id="ins-edit-provider" class="input" value="'+escHtml(ins.provider||'')+'"></div>';
+  h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px" class="mb-3">';
+  h+='<div><label class="label">Valida dal</label><input type="date" id="ins-edit-validFrom" class="input" value="'+(ins.validFrom?ins.validFrom.split('T')[0]:'')+'"></div>';
+  h+='<div><label class="label">Valida fino al</label><input type="date" id="ins-edit-validTo" class="input" value="'+(ins.validTo?ins.validTo.split('T')[0]:'')+'"></div>';
+  h+='</div>';
   h+='<div class="flex gap-2 mt-4">';
   h+='<button class="btn" style="background:var(--brand);color:#fff;flex:1" onclick="doEditInsurance(\''+insId+'\',this)">Salva</button>';
   h+='<button class="btn btn-secondary" onclick="this.closest(\'.overlay\').remove()">Annulla</button>';
@@ -3445,10 +3494,15 @@ async function doEditInsurance(insId,btn){
   btn.disabled=true;btn.textContent='Salvataggio...';
   const name=document.getElementById('ins-edit-name')?.value?.trim();
   if(!name){showToast('Nome obbligatorio','error');btn.disabled=false;btn.textContent='Salva';return;}
+  const editValidFrom=document.getElementById('ins-edit-validFrom')?.value||'';
+  const editValidTo=document.getElementById('ins-edit-validTo')?.value||'';
+  if(editValidTo&&editValidFrom&&editValidTo<editValidFrom){showToast('La data di fine deve essere dopo quella di inizio','error');btn.disabled=false;btn.textContent='Salva';return;}
   await updateInsurance(insId,{
     name,
     description:document.getElementById('ins-edit-desc')?.value?.trim()||'',
-    provider:document.getElementById('ins-edit-provider')?.value?.trim()||''
+    provider:document.getElementById('ins-edit-provider')?.value?.trim()||'',
+    validFrom:editValidFrom?editValidFrom+'T00:00:00.000Z':null,
+    validTo:editValidTo?editValidTo+'T23:59:59.999Z':null
   });
   showToast('Assicurazione aggiornata!');
   btn.closest('.overlay')?.remove();
@@ -5580,7 +5634,7 @@ function renderSubAssigned(c){
 
   const _sortIcon=(field)=>_subSortField===field?(_subSortDir==='asc'?' ▲':' ▼'):'';
   const _thStyle='padding:10px 12px;color:var(--txt2);font-weight:600;cursor:pointer;user-select:none;white-space:nowrap';
-  html+='<div class="card" style="padding:0;overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:.85rem">';
+  html+='<div class="card table-wrap" style="padding:0;overflow:auto"><table class="table" style="border-collapse:collapse;font-size:.85rem">';
   html+='<thead><tr style="background:var(--s200);text-align:left">';
   html+='<th style="'+_thStyle+'" onclick="toggleSubSort(\'userName\')">Utente'+_sortIcon('userName')+'</th>';
   html+='<th style="'+_thStyle+'" onclick="toggleSubSort(\'typeName\')">Tipologia'+_sortIcon('typeName')+'</th>';
@@ -6319,7 +6373,7 @@ function openSubTypePanel(typeId){
 
 function _renderStpUserList(subs,sType){
   if(!subs.length) return '<div class="text-sm txt3 text-center" style="padding:20px">Nessun utente ha questo abbonamento.</div>';
-  let html='<div class="card" style="padding:0;overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:.82rem">';
+  let html='<div class="card table-wrap" style="padding:0;overflow:auto"><table class="table" style="border-collapse:collapse;font-size:.82rem">';
   html+='<thead><tr style="background:var(--s200);text-align:left"><th style="padding:8px 10px;color:var(--txt2)">Utente</th><th style="padding:8px 10px;color:var(--txt2)">Ingressi</th><th style="padding:8px 10px;color:var(--txt2)">Scadenza</th><th style="padding:8px 10px;color:var(--txt2)">Pagamento</th><th style="padding:8px 10px;color:var(--txt2)">Stato</th><th style="padding:8px 10px;color:var(--txt2)"></th></tr></thead><tbody>';
   subs.sort((a,b)=>(a.status==='active'?0:1)-(b.status==='active'?0:1)||(a.userName||'').localeCompare(b.userName||'')).forEach(s=>{
     const remaining=s.entriesTotal-s.entriesUsed;
@@ -9681,6 +9735,7 @@ async function doBook(){
         </div>
       </div>
       ${renderSurveyQuestions(ev,'book_')}
+      ${renderInsuranceSurveyForBooking(ev,'book_')}
       <div class="flex gap-3 mt-6" style="justify-content:flex-end">
         <button class="btn btn-ghost btn-sm" id="bookCancel">Annulla</button>
         <button class="btn btn-primary btn-sm" id="bookConfirm">Iscriviti gratuitamente</button>
@@ -9694,6 +9749,8 @@ async function doBook(){
       if(!selectedBookRole){showToast('Seleziona il tuo ruolo preferito!','error');return;}
       const surveyResponses=collectSurveyResponses(ev,'book_');
       if(surveyResponses===null)return;
+      const insSurveyResponses=collectInsuranceSurveyResponses(ev,'book_');
+      if(insSurveyResponses===null)return;
       const nameParts=store.currentUser.username.split(' ');
       const initials=nameParts.map(p=>p[0]).join('').toUpperCase().substring(0,2);
       const avatarColors=['avatar-blue','avatar-green','avatar-purple','avatar-pink','avatar-yellow'];
@@ -9709,6 +9766,7 @@ async function doBook(){
         role:selectedBookRole,recurringDate:currentBookingRecDate||null,
         status:'confermata',depositStatus:null,paymentStatus:'gratuito',gift:true,
         surveyResponses:surveyResponses,
+        insuranceSurveyResponses:insSurveyResponses,
         bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
       };
       pushBookingSafe(newBooking);
@@ -10022,7 +10080,7 @@ function _doBookNormal(){
     const msgHtml=evIsFree?'':managedInfoHtml;
     o.innerHTML=`<div class="dialog" style="max-width:500px;width:90%">
       <h3 class="text-lg font-semibold text-white mb-4">${evIsFree?'✅ Iscrizione gratuita':'📋 Iscriviti all\'evento'}</h3>
-      ${freeSummaryHtml}${roleSelector}${msgHtml}${renderSurveyQuestions(ev,'book_')}
+      ${freeSummaryHtml}${roleSelector}${msgHtml}${renderSurveyQuestions(ev,'book_')}${renderInsuranceSurveyForBooking(ev,'book_')}
       <div class="flex gap-3 mt-6" style="justify-content:flex-end">
         <button class="btn btn-ghost btn-sm" id="bookCancel">Annulla</button>
         <button class="btn btn-primary btn-sm" id="bookConfirm">${evIsFree?'Iscriviti':(managedNeedsDeposit?'Prenota (anticipo richiesto)':'Iscriviti!')}</button>
@@ -10035,6 +10093,8 @@ function _doBookNormal(){
       if(!selectedBookRole){showToast('Seleziona il tuo ruolo preferito!','error');return;}
       const surveyResponses=collectSurveyResponses(ev,'book_');
       if(surveyResponses===null)return;
+      const insSurveyResponses=collectInsuranceSurveyResponses(ev,'book_');
+      if(insSurveyResponses===null)return;
       const nameParts=store.currentUser.username.split(' ');
       const initials=nameParts.map(p=>p[0]).join('').toUpperCase().substring(0,2);
       const avatarColors=['avatar-blue','avatar-green','avatar-purple','avatar-pink','avatar-yellow'];
@@ -10050,6 +10110,7 @@ function _doBookNormal(){
         depositStatus:managedNeedsDeposit?'pending':null,
         paymentStatus:evIsFree?'gratuito':null,gift:false,
         surveyResponses:surveyResponses,
+        insuranceSurveyResponses:insSurveyResponses,
         recurringDate:currentBookingRecDate||null,
         bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
       };
@@ -10260,10 +10321,10 @@ function _doBookNormal(){
       }
       // Day-level early bird
       const dayEbGridId='tier-ebday-'+ev.id+'-'+di;
-      if(selectedTiers[dayEbGridId]&&day.earlyBird){
+      if(selectedTiers[dayEbGridId]&&(day.earlyBird||ev.earlyBird)){
         hasSelection=true;
         const tier=selectedTiers[dayEbGridId];
-        const price=day.earlyBird[tier]||0;
+        const price=(day.earlyBird||ev.earlyBird)[tier]||0;
         items.push({type:'early bird giornata',name:'🐦 Early Bird — '+fmtDateShort(day.date),date:fmtDateShort(day.date),time:day.startTime+' — '+day.endTime,tier:tierLabel(tier)+' (early bird)',price});
         totalAmount+=price;
       }
@@ -10280,10 +10341,10 @@ function _doBookNormal(){
       }
       // Day-level early bird (no sessions)
       const dayEbGridId2='tier-ebday-'+ev.id+'-'+di;
-      if(selectedTiers[dayEbGridId2]&&day.earlyBird){
+      if(selectedTiers[dayEbGridId2]&&(day.earlyBird||ev.earlyBird)){
         hasSelection=true;
         const tier=selectedTiers[dayEbGridId2];
-        const price=day.earlyBird[tier]||0;
+        const price=(day.earlyBird||ev.earlyBird)[tier]||0;
         items.push({type:'early bird giornata',name:'🐦 Early Bird — '+fmtDateShort(day.date),date:fmtDateShort(day.date),time:day.startTime+' — '+day.endTime,tier:tierLabel(tier)+' (early bird)',price});
         totalAmount+=price;
       }
@@ -10396,6 +10457,7 @@ function _doBookNormal(){
         </div>
       </div>
       ${renderSurveyQuestions(ev,'book_')}
+      ${renderInsuranceSurveyForBooking(ev,'book_')}
       <div style="margin-bottom:12px">
         ${summaryCards}
         <div style="background:var(--s200);border:1px solid var(--s400);border-radius:10px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center">
@@ -10422,6 +10484,8 @@ function _doBookNormal(){
     if(!selectedBookRole){showToast('Seleziona il tuo ruolo preferito!','error');return;}
     const surveyResponses=collectSurveyResponses(ev,'book_');
     if(surveyResponses===null)return;
+    const insSurveyResponses=collectInsuranceSurveyResponses(ev,'book_');
+    if(insSurveyResponses===null)return;
     // Create booking object
     // Build initials from user name
     const nameParts=store.currentUser.username.split(' ');
@@ -10476,6 +10540,7 @@ function _doBookNormal(){
       gift:false,
       insuranceSurcharge:_insuranceSurcharge||0,
       surveyResponses:surveyResponses,
+      insuranceSurveyResponses:insSurveyResponses,
       bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
     };
     pushBookingSafe(newBooking);
@@ -10830,7 +10895,7 @@ function renderAttendance(){
   const emptyColspan=4+(ev.surveys||[]).length;
   if(!rows)rows='<tr><td colspan="'+emptyColspan+'" class="text-center txt3" style="padding:20px">Nessuna prenotazione per questo evento</td></tr>';
   const partnerNote=isPartner&&!isCapofila?'<div class="text-xs mb-3" style="color:var(--yellow);padding:8px 12px;background:rgba(234,179,8,.05);border-radius:8px">🤝 Sei partner di questo evento — puoi segnare le presenze ma non modificare lo stato dei pagamenti.</div>':'';
-  tableEl.innerHTML=partnerNote+`<div class="card" style="padding:0;overflow:auto"><table class="table"><thead><tr><th>Utente</th><th>Check-in</th><th>Tipo</th><th>Pagamento</th>${surveyHeaderHtml}</tr></thead><tbody>${rows}</tbody></table></div>`;
+  tableEl.innerHTML=partnerNote+`<div class="card table-wrap" style="padding:0;overflow:auto"><table class="table"><thead><tr><th>Utente</th><th>Check-in</th><th>Tipo</th><th>Pagamento</th>${surveyHeaderHtml}</tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 // Toggle attendance for a booking (session-agnostic: marks all booked sessions)
 function toggleAttendance(bookingId,checkedIn){
@@ -11217,6 +11282,39 @@ async function renderUserEvents(){
         else if(diffDays<=3){urgency='background:rgba(234,179,8,.1);border-color:rgba(234,179,8,.3);color:#fbbf24';icon='🐦⏳';}
         else{urgency='background:rgba(234,179,8,.06);border-color:rgba(234,179,8,.2);color:var(--yellow)';icon='🐦';}
         const label=diffDays===0?'Ultimo giorno per il prezzo Early Bird!':diffDays===1?'Early Bird entro domani ('+ebDlFormatted+')':'Early Bird entro il '+ebDlFormatted;
+        return '<div style="margin-top:8px;padding:5px 10px;border-radius:8px;font-size:.7rem;font-weight:600;border:1px solid;display:inline-block;'+urgency+'">'+icon+' '+label+'</div>';
+      }
+      // Count-based EB — show remaining spots badge
+      const _ebCountInfo=(()=>{
+        const bookCount=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata').length;
+        // Event-level EB count
+        if(ev.earlyBird&&ev.earlyBird.type==='count'&&ev.earlyBird.maxCount&&isEarlyBirdActive(ev.earlyBird,ev.id)){
+          return {remaining:ev.earlyBird.maxCount-bookCount,total:ev.earlyBird.maxCount};
+        }
+        // Day/session-level EB count — find the one with fewest remaining
+        if(ev.days){
+          let best=null;
+          const allEBs=[];
+          ev.days.forEach(d=>{
+            if(d.earlyBird&&d.earlyBird.type==='count'&&d.earlyBird.maxCount&&isEarlyBirdActive(d.earlyBird,ev.id))allEBs.push(d.earlyBird);
+            if(d.sessions)d.sessions.forEach(s=>{
+              if(s.earlyBird&&s.earlyBird.type==='count'&&s.earlyBird.maxCount&&isEarlyBirdActive(s.earlyBird,ev.id))allEBs.push(s.earlyBird);
+            });
+          });
+          if(allEBs.length){
+            const minEB=allEBs.reduce((a,b)=>(a.maxCount-bookCount)<(b.maxCount-bookCount)?a:b);
+            return {remaining:Math.max(0,minEB.maxCount-bookCount),total:minEB.maxCount};
+          }
+        }
+        return null;
+      })();
+      if(_ebCountInfo&&_ebCountInfo.remaining>0){
+        const rem=_ebCountInfo.remaining;const tot=_ebCountInfo.total;
+        let urgency='';let icon='🐦';
+        if(rem<=2){urgency='background:rgba(234,179,8,.15);border-color:rgba(234,179,8,.4);color:#fbbf24';icon='🐦🔥';}
+        else if(rem<=5){urgency='background:rgba(234,179,8,.1);border-color:rgba(234,179,8,.3);color:#fbbf24';icon='🐦⏳';}
+        else{urgency='background:rgba(234,179,8,.06);border-color:rgba(234,179,8,.2);color:var(--yellow)';icon='🐦';}
+        const label=rem===1?'Ultimo posto Early Bird!':'Early Bird — '+rem+' posti rimasti su '+tot;
         return '<div style="margin-top:8px;padding:5px 10px;border-radius:8px;font-size:.7rem;font-weight:600;border:1px solid;display:inline-block;'+urgency+'">'+icon+' '+label+'</div>';
       }
       // Fallback to standard booking deadline
@@ -13147,7 +13245,7 @@ function renderEarlyBirdGrid(eb,gridId,evId,stdTiers,subDiscPct,freeWithSub){
       <div class="tier-grid" id="${gridId}">${_fsBtns}</div></div>`;
   }
   const deadlineText=eb.type==='date'&&eb.deadline?`Entro il ${fmtDateShort(eb.deadline)}`
-    :eb.type==='count'&&eb.maxCount?`Per i primi ${eb.maxCount} iscritti`:'';
+    :eb.type==='count'&&eb.maxCount?(()=>{const _bc=store.bookings.filter(b=>b.eventId===evId&&b.status!=='cancellata').length;const _rem=Math.max(0,eb.maxCount-_bc);return _rem<=3?`⚡ Solo ${_rem} posti EB rimasti su ${eb.maxCount}!`:`${_rem} posti EB rimasti su ${eb.maxCount}`;})():'';
   let tierBtns='';
   const st=stdTiers||{};
   const disc=subDiscPct>0?subDiscPct:0;
@@ -13247,6 +13345,72 @@ function collectSurveyResponses(ev,prefix){
       val=Array.from(checks).map(c=>c.value);
     }
     // Validate required
+    if(sq.required){
+      const isEmpty=!val||(Array.isArray(val)&&val.length===0);
+      if(isEmpty){
+        showToast('Rispondi alla domanda obbligatoria: "'+sq.question+'"','error');
+        return null;
+      }
+    }
+    if(val!==null&&val!=='')responses[sq.id]=val;
+  }
+  return responses;
+}
+
+// V3.1.7: Insurance survey rendering for uninsured users during booking
+function renderInsuranceSurveyForBooking(ev,prefix){
+  // Only show if insurance enabled, surveyEnabled, and user is NOT insured
+  if(!ev.insurance?.enabled||!ev.insurance.surveyEnabled)return '';
+  if(!ev.insurance.requiredInsuranceIds?.length)return '';
+  if(isUserInsured(store.currentUser.id,ev.insurance.requiredInsuranceIds))return '';
+  // Get manager's insurance survey template
+  const mgr=store.managers.find(m=>m.id===ev.managerId);
+  const survey=mgr?.insuranceSurvey||[];
+  if(!survey.length)return '';
+  let html='<div class="card mb-3" style="border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.04)">';
+  html+='<h4 class="text-sm font-medium mb-3" style="color:var(--warn)">🛡️ Questionario Assicurativo <span style="font-size:.7rem;color:var(--red)">(obbligatorio)</span></h4>';
+  html+='<p class="text-xs txt3 mb-3" style="line-height:1.5">Per procedere con la prenotazione senza copertura assicurativa, compila il seguente questionario.</p>';
+  survey.forEach(sq=>{
+    const fid=prefix+'inssq_'+sq.id;
+    const reqMark=sq.required?'<span style="color:var(--red)"> *</span>':'';
+    html+='<div class="mb-3"><label class="text-sm txt3 mb-1" style="display:block">'+escHtml(sq.question)+reqMark+'</label>';
+    if(sq.type==='text'){
+      html+='<input class="input" id="'+fid+'" placeholder="La tua risposta...">';
+    } else if(sq.type==='select'){
+      html+='<div class="flex flex-wrap gap-2 mt-1">';
+      (sq.options||[]).forEach(opt=>{
+        html+='<label class="flex items-center gap-1 text-sm text-white" style="cursor:pointer;padding:4px 10px;border:1px solid var(--s300);border-radius:8px"><input type="radio" name="'+fid+'" value="'+escHtml(opt)+'" style="accent-color:var(--warn)"> '+escHtml(opt)+'</label>';
+      });
+      html+='</div>';
+    } else if(sq.type==='boolean'){
+      html+='<div class="flex gap-2 mt-1">';
+      html+='<label class="flex items-center gap-1 text-sm text-white" style="cursor:pointer;padding:4px 10px;border:1px solid var(--s300);border-radius:8px"><input type="radio" name="'+fid+'" value="Sì" style="accent-color:var(--warn)"> Sì</label>';
+      html+='<label class="flex items-center gap-1 text-sm text-white" style="cursor:pointer;padding:4px 10px;border:1px solid var(--s300);border-radius:8px"><input type="radio" name="'+fid+'" value="No" style="accent-color:var(--warn)"> No</label>';
+      html+='</div>';
+    }
+    html+='</div>';
+  });
+  html+='</div>';
+  return html;
+}
+
+function collectInsuranceSurveyResponses(ev,prefix){
+  if(!ev.insurance?.enabled||!ev.insurance.surveyEnabled)return {};
+  if(!ev.insurance.requiredInsuranceIds?.length)return {};
+  if(isUserInsured(store.currentUser.id,ev.insurance.requiredInsuranceIds))return {};
+  const mgr=store.managers.find(m=>m.id===ev.managerId);
+  const survey=mgr?.insuranceSurvey||[];
+  if(!survey.length)return {};
+  const responses={};
+  for(const sq of survey){
+    const fid=prefix+'inssq_'+sq.id;
+    let val=null;
+    if(sq.type==='text'){
+      val=(document.getElementById(fid)?.value||'').trim();
+    } else if(sq.type==='select'||sq.type==='boolean'){
+      const checked=document.querySelector('input[name="'+fid+'"]:checked');
+      val=checked?checked.value:'';
+    }
     if(sq.required){
       const isEmpty=!val||(Array.isArray(val)&&val.length===0);
       if(isEmpty){
@@ -13368,12 +13532,12 @@ function buildFullPricingHtml(ev,prefix){
       // Day pricing OUTSIDE indent — aligned with date card
       if(day.tiers){
         html+='<p class="text-xs txt3 mt-3 mb-2">Seleziona la giornata:</p>';
-        const dayBtns=buildTierBtns(day.tiers,prefix+'tier-day-'+ev.id+'-'+di,day.earlyBird,ev.id,subDiscPct);
+        const dayBtns=buildTierBtns(day.tiers,prefix+'tier-day-'+ev.id+'-'+di,day.earlyBird||ev.earlyBird,ev.id,subDiscPct);
         if(dayBtns) html+=`<div class="card mt-1 mb-1" style="background:rgba(16,185,129,.05);border-color:var(--green);padding:4px 10px">
           <div style="font-size:.65rem;font-weight:500;margin-bottom:2px;color:var(--green)">💰 Prezzo giornata intera (pacchetto)</div>
           <div class="tier-grid" id="${prefix}tier-day-${ev.id}-${di}">${dayBtns}</div></div>`;
       }
-      html+=renderEarlyBirdGrid(day.earlyBird,prefix+'tier-ebday-'+ev.id+'-'+di,ev.id,day.tiers,subDiscPct);
+      html+=renderEarlyBirdGrid(day.earlyBird||ev.earlyBird,prefix+'tier-ebday-'+ev.id+'-'+di,ev.id,day.tiers,subDiscPct);
     } else {
       const s=day.sessions[0]||null;
       const useTiers=day.tiers||(s?s.tiers:ev.tiers);
@@ -13382,10 +13546,10 @@ function buildFullPricingHtml(ev,prefix){
         html+=`<div class="mb-2"><div class="font-medium text-white text-sm">${escHtml(s.name)}</div>
           <div class="flex gap-2 mt-1 items-center flex-wrap"><span class="text-xs txt3">🕐 ${s.startTime} — ${s.endTime}</span><span class="badge ${badgeLevel(s.level)}">${capitalize(s.level)}</span>${s.teacher?'<span class="text-xs txt3">👤 '+escHtml(s.teacher)+'</span>':''}</div></div>`;
       }
-      const stdBtns=buildTierBtns(useTiers,prefix+'tier-day-'+ev.id+'-'+di,day.earlyBird,ev.id,subDiscPct);
+      const stdBtns=buildTierBtns(useTiers,prefix+'tier-day-'+ev.id+'-'+di,day.earlyBird||ev.earlyBird,ev.id,subDiscPct);
       html+=`<p class="text-xs txt3 mb-2" style="font-style:italic">Scegli in base alle tue possibilità</p>`;
       if(stdBtns) html+=`<div class="tier-grid mb-2" id="${prefix}tier-day-${ev.id}-${di}">${stdBtns}</div>`;
-      html+=renderEarlyBirdGrid(day.earlyBird,prefix+'tier-ebday-'+ev.id+'-'+di,ev.id,useTiers,subDiscPct);
+      html+=renderEarlyBirdGrid(day.earlyBird||ev.earlyBird,prefix+'tier-ebday-'+ev.id+'-'+di,ev.id,useTiers,subDiscPct);
       html+='</div>';
     }
   });
@@ -13418,14 +13582,14 @@ function collectCheckinBookingData(ev,prefix){
       const dayGid=prefix+'tier-day-'+ev.id+'-'+di;
       if(selectedTiers[dayGid]&&day.tiers){const tier=selectedTiers[dayGid];const price=day.tiers[tier]||0;items.push({type:'giornata',name:'Giornata — '+fmtDateShort(day.date),date:fmtDateShort(day.date),time:day.startTime+' — '+day.endTime,tier:tierLabel(tier),tierKey:tier,price});totalAmount+=price;}
       const dayEb=prefix+'tier-ebday-'+ev.id+'-'+di;
-      if(selectedTiers[dayEb]&&day.earlyBird){const tier=selectedTiers[dayEb];const price=day.earlyBird[tier]||0;items.push({type:'early bird giornata',name:'🐦 EB — '+fmtDateShort(day.date),date:fmtDateShort(day.date),time:'',tier:tierLabel(tier)+' (EB)',tierKey:tier,price});totalAmount+=price;}
+      if(selectedTiers[dayEb]&&(day.earlyBird||ev.earlyBird)){const tier=selectedTiers[dayEb];const _ebSrc=day.earlyBird||ev.earlyBird;const price=_ebSrc[tier]||0;items.push({type:'early bird giornata',name:'🐦 EB — '+fmtDateShort(day.date),date:fmtDateShort(day.date),time:'',tier:tierLabel(tier)+' (EB)',tierKey:tier,price});totalAmount+=price;}
     } else {
       const s=day.sessions[0]||null;
       const useTiers=day.tiers||(s?s.tiers:ev.tiers);
       const dayGid=prefix+'tier-day-'+ev.id+'-'+di;
       if(selectedTiers[dayGid]){const tier=selectedTiers[dayGid];const price=useTiers[tier]||0;items.push({type:'giornata',name:'Giornata — '+fmtDateShort(day.date),date:fmtDateShort(day.date),time:day.startTime+' — '+day.endTime,tier:tierLabel(tier),tierKey:tier,price});totalAmount+=price;}
       const dayEb=prefix+'tier-ebday-'+ev.id+'-'+di;
-      if(selectedTiers[dayEb]&&day.earlyBird){const tier=selectedTiers[dayEb];const price=day.earlyBird[tier]||0;items.push({type:'early bird giornata',name:'🐦 EB — '+fmtDateShort(day.date),date:fmtDateShort(day.date),time:'',tier:tierLabel(tier)+' (EB)',tierKey:tier,price});totalAmount+=price;}
+      if(selectedTiers[dayEb]&&(day.earlyBird||ev.earlyBird)){const tier=selectedTiers[dayEb];const _ebSrc=day.earlyBird||ev.earlyBird;const price=_ebSrc[tier]||0;items.push({type:'early bird giornata',name:'🐦 EB — '+fmtDateShort(day.date),date:fmtDateShort(day.date),time:'',tier:tierLabel(tier)+' (EB)',tierKey:tier,price});totalAmount+=price;}
     }
   });
   if(ev.days.length>1){
@@ -13721,9 +13885,13 @@ function showEventDetail(evId,recDate){
     const _insNames=ev.insurance.requiredInsuranceIds.map(iid=>getInsuranceName(iid)).join(', ');
     const _insPrice=ev.insurance.price||0;
     if(_isInsured){
+      // Find the matching insurance to show validity
+      const _matchedInsId=ev.insurance.requiredInsuranceIds.find(rid=>{const _ui=store.users.find(u=>u.id===_curUserId);return _ui?.assignedInsurances?.some(a=>a.insuranceId===rid&&(!a.expiresAt||a.expiresAt>=new Date().toISOString()));});
+      const _matchedIns=_matchedInsId?store.insurances.find(i=>i.id===_matchedInsId):null;
+      const _insExpDate=_matchedIns?.validTo?new Date(_matchedIns.validTo).toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'}):'';
       daysHtml+=`<div class="card mb-4" style="background:rgba(16,185,129,.05);border-color:rgba(16,185,129,.25);padding:12px 14px">
         <div class="flex items-center gap-2"><span style="font-size:1rem">🛡️</span><span class="font-semibold text-sm" style="color:var(--green)">Assicurazione attiva</span></div>
-        <p class="text-xs mt-1" style="color:var(--txt2);line-height:1.5">Sei coperto da un'assicurazione valida. Nessun sovrapprezzo applicato.</p></div>`;
+        <p class="text-xs mt-1" style="color:var(--txt2);line-height:1.5">Sei coperto da un'assicurazione valida${_insExpDate?' (valida fino al '+_insExpDate+')':''}. Nessun sovrapprezzo applicato.</p></div>`;
     } else if(_insPrice>0){
       daysHtml+=`<div class="card mb-4" style="background:rgba(245,158,11,.05);border-color:rgba(245,158,11,.25);padding:12px 14px">
         <div class="flex items-center gap-2"><span style="font-size:1rem">🛡️</span><span class="font-semibold text-sm" style="color:var(--warn)">Assicurazione richiesta</span></div>
@@ -13773,13 +13941,13 @@ function showEventDetail(evId,recDate){
       if(!skipPricing){
         if(day.tiers){
           daysHtml+=`<p class="text-sm txt3 mt-4 mb-2">Seleziona la giornata:</p>`;
-          const dayBtns=buildTierBtns(day.tiers,'tier-day-'+ev.id+'-'+di,day.earlyBird,ev.id,_sdPct,_userHasEntrySub);
+          const dayBtns=buildTierBtns(day.tiers,'tier-day-'+ev.id+'-'+di,day.earlyBird||ev.earlyBird,ev.id,_sdPct,_userHasEntrySub);
           if(dayBtns) daysHtml+=`<div class="card mt-1 mb-2" style="background:rgba(16,185,129,.05);border-color:var(--green);padding:4px 10px">
             <div style="font-size:.65rem;font-weight:500;margin-bottom:2px;color:var(--green)">💰 Prezzo giornata intera (pacchetto)</div>
             <div class="tier-grid" id="tier-day-${ev.id}-${di}">${dayBtns}</div>
           </div>`;
         }
-        daysHtml+=renderEarlyBirdGrid(day.earlyBird,'tier-ebday-'+ev.id+'-'+di,ev.id,day.tiers,_sdPct,_userHasEntrySub);
+        daysHtml+=renderEarlyBirdGrid(day.earlyBird||ev.earlyBird,'tier-ebday-'+ev.id+'-'+di,ev.id,day.tiers,_sdPct,_userHasEntrySub);
       } else if(day.sessions.length>1){
         // Free/managed: offer "Giornata intera" as alternative to individual sessions
         daysHtml+=`<div class="check-item mt-3 mb-2" onclick="toggleFreeDay(this,${di})" style="padding:8px 12px;cursor:pointer;background:rgba(16,185,129,.04);border:1px solid rgba(16,185,129,.2);border-radius:10px">
@@ -13802,10 +13970,10 @@ function showEventDetail(evId,recDate){
           ${s.description?'<div class="text-xs txt3 mt-1">'+escHtml(s.description)+'</div>':''}${sLoc}
         </div>`:''}`;
       if(!skipPricing){
-        const stdBtns=buildTierBtns(useTiers,'tier-day-'+ev.id+'-'+di,day.earlyBird,ev.id,_sdPct,_userHasEntrySub);
+        const stdBtns=buildTierBtns(useTiers,'tier-day-'+ev.id+'-'+di,day.earlyBird||ev.earlyBird,ev.id,_sdPct,_userHasEntrySub);
         daysHtml+=`<p class="text-xs txt3 mb-2" style="font-style:italic">Scegli in base alle tue possibilità</p>`;
         if(stdBtns) daysHtml+=`<div class="tier-grid mb-3" id="tier-day-${ev.id}-${di}">${stdBtns}</div>`;
-        daysHtml+=renderEarlyBirdGrid(day.earlyBird,'tier-ebday-'+ev.id+'-'+di,ev.id,useTiers,_sdPct,_userHasEntrySub);
+        daysHtml+=renderEarlyBirdGrid(day.earlyBird||ev.earlyBird,'tier-ebday-'+ev.id+'-'+di,ev.id,useTiers,_sdPct,_userHasEntrySub);
       }
       daysHtml+='</div>';
 
@@ -13813,10 +13981,10 @@ function showEventDetail(evId,recDate){
       const useTiers=day.tiers||ev.tiers;
       daysHtml+=`<div style="margin-left:16px;padding-left:16px;border-left:2px solid rgba(217,70,239,.2);margin-top:12px">`;
       if(!skipPricing){
-        const stdBtns2=buildTierBtns(useTiers,'tier-day-'+ev.id+'-'+di,day.earlyBird,ev.id,_sdPct,_userHasEntrySub);
+        const stdBtns2=buildTierBtns(useTiers,'tier-day-'+ev.id+'-'+di,day.earlyBird||ev.earlyBird,ev.id,_sdPct,_userHasEntrySub);
         daysHtml+=`<p class="text-xs txt3 mb-3" style="font-style:italic">Scegli in base alle tue possibilità</p>`;
         if(stdBtns2) daysHtml+=`<div class="tier-grid" id="tier-day-${ev.id}-${di}">${stdBtns2}</div>`;
-        daysHtml+=renderEarlyBirdGrid(day.earlyBird,'tier-ebday-'+ev.id+'-'+di,ev.id,useTiers,_sdPct,_userHasEntrySub);
+        daysHtml+=renderEarlyBirdGrid(day.earlyBird||ev.earlyBird,'tier-ebday-'+ev.id+'-'+di,ev.id,useTiers,_sdPct,_userHasEntrySub);
       }
       daysHtml+='</div>';
     }
@@ -14120,7 +14288,7 @@ function showEventDetail(evId,recDate){
       })();
       if(_hasMultiTiers)obShowInfoCard('ic_event_detail_tiers','dynamic-event-detail',true);
     }
-    if(ev.earlyBird&&(ev.earlyBird.alto||ev.earlyBird.medio||ev.earlyBird.basso))obShowInfoCard('ic_event_detail_earlybird','dynamic-event-detail');
+
     if(evConfirmStatus==='attesa')obShowInfoCard('ic_event_detail_waiting','dynamic-event-detail');
   },300);
 }
@@ -15194,28 +15362,169 @@ function copyEventAsTemplate(id){
   resetForm();
   go('admin-new-event');
   setTimeout(()=>{
+    // === UNIVERSE ===
     populateEventUniverseDropdown();
-    const editUnivIds=ev.universeIds||[];if(ev.universeId&&!editUnivIds.includes(ev.universeId))editUnivIds.unshift(ev.universeId);
-    const univChecks=document.querySelectorAll('#ne-universe-checkboxes input[type="checkbox"]');
-    univChecks.forEach(cb=>{cb.checked=editUnivIds.includes(cb.value);});
-    updateSelectedUniversesSummary();
-    const editUnivIdsForType=[...editUnivIds];
-    populateEventTypeDropdown(editUnivIdsForType,ev.type||'jam');
+    const editUnivIds=ev.universeIds||[ev.universeId||'univ_acro'];
+    document.querySelectorAll('.ne-univ-btn').forEach(btn=>{if(editUnivIds.includes(btn.dataset.univ)){btn.classList.add('ne-univ-selected');const u=store.universes.find(x=>x.id===btn.dataset.univ);const c=u?.color||'#10b981';btn.style.border='2px solid '+c;btn.style.background=c+'25';btn.style.color=c;}});
+    // === TYPE ===
+    populateEventTypeDropdown(editUnivIds,ev.type||'jam');
     onEventTypeChange();
-    document.getElementById('ne-title').value=ev.title||'';
+    // === BASIC FIELDS ===
+    document.getElementById('ne-title').value=(ev.title||'')+' (copia)';
+    document.getElementById('ne-desc').value=ev.description||'';
     document.getElementById('ne-teacher').value=ev.teacher||'';
     document.getElementById('ne-location').value=ev.location||'';
     document.getElementById('ne-location-url').value=ev.locationUrl||'';
-    document.getElementById('ne-description').value=ev.description||'';
-    if(ev.pricingMode==='free')document.getElementById('ne-free-event').value='free';
-    else if(ev.pricingMode==='managed')document.getElementById('ne-free-event').value='managed';
-    else document.getElementById('ne-free-event').value='';
+    // === CONTACTS & GROUP ===
     if(document.getElementById('ne-contact-phone'))document.getElementById('ne-contact-phone').value=ev.contactPhone||'';
     if(document.getElementById('ne-contact-email'))document.getElementById('ne-contact-email').value=ev.contactEmail||'';
     if(document.getElementById('ne-group-link'))document.getElementById('ne-group-link').value=ev.groupLink||'';
+    // === PAYMENT METHODS ===
     if(document.getElementById('ne-paypal'))document.getElementById('ne-paypal').value=(ev.paymentMethods||{}).paypal||'';
     if(document.getElementById('ne-revolut'))document.getElementById('ne-revolut').value=(ev.paymentMethods||{}).revolut||'';
-    if(document.getElementById('ne-cash'))document.getElementById('ne-cash').checked=!!(ev.paymentMethods||{}).cash;
+    const cashEl=document.getElementById('ne-cash');if(cashEl){cashEl.checked=!!(ev.paymentMethods||{}).cash;const cashBtn=document.getElementById('ne-cash-btn');if(cashBtn){if(cashEl.checked){cashBtn.style.background='rgba(16,185,129,.15)';cashBtn.style.color='var(--green)';cashBtn.style.borderColor='rgba(16,185,129,.4)';cashBtn.textContent='💵 Accetta contanti ✓';}else{cashBtn.style.background='var(--s200)';cashBtn.style.color='var(--txt2)';cashBtn.style.borderColor='var(--s400)';cashBtn.textContent='💵 Contanti';}}}
+    // === DEPOSIT ===
+    if(ev.deposit&&ev.deposit.required){
+      const depEl=document.getElementById('ne-deposit-required');
+      if(depEl){depEl.checked=true;document.getElementById('ne-deposit-opts')?.classList.remove('hidden');document.getElementById('ne-deposit-amount').value=ev.deposit.amount||'';document.getElementById('ne-deposit-causal').value=ev.deposit.causal||'';}
+    }
+    // === PARTNER ORGANIZATIONS ===
+    if(ev.partnerIds&&ev.partnerIds.length){
+      const wrap=document.getElementById('ne-partners-selected');
+      if(wrap){
+        wrap.innerHTML='';
+        ev.partnerIds.forEach(mid=>{
+          const mgr=store.managers.find(m=>m.id===mid);if(!mgr)return;
+          const univs=(mgr.universes||[]).map(uid=>{const u=store.universes.find(x=>x.id===uid);return u?(u.emoji+' '+u.name):'';}).filter(Boolean).join(', ');
+          wrap.insertAdjacentHTML('beforeend','<div class="ne-partner-chip" data-mid="'+mid+'" style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;border:1px solid var(--brand);background:var(--brand-bg);color:var(--brand-l);font-size:.82rem;font-weight:500"><div><div>'+mgr.orgName+'</div><div class="text-xs" style="color:var(--txt3);margin-top:1px">'+univs+'</div></div><button type="button" onclick="removePartner(\''+mid+'\')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:1rem;padding:0 0 0 4px;line-height:1" title="Rimuovi partner">&times;</button></div>');
+        });
+        togglePartnerEntryConfig(true);
+      }
+      if(ev.partnerEntryPolicy){
+        const radio=document.querySelector('input[name="ne-partner-entry-policy"][value="'+ev.partnerEntryPolicy+'"]');
+        if(radio)radio.checked=true;
+      }
+    }
+    // === SUBSCRIPTION SETTINGS ===
+    populateSubTypeCheckboxes();
+    if(ev.subscriptionBookable?.enabled){
+      const sbEl=document.getElementById('ne-sub-bookable');
+      if(sbEl){sbEl.checked=true;document.getElementById('ne-sub-bookable-opts')?.classList.remove('hidden');}
+      setTimeout(()=>{(ev.subscriptionBookable.typeIds||[]).forEach(tid=>{const btn=document.querySelector('#ne-sub-bookable-types .ne-subtype-sel[data-id="'+tid+'"]');if(btn){btn.classList.add('selected');btn.style.background='var(--brand-bg)';btn.style.color='var(--brand-l)';btn.style.borderColor='var(--brand)';}});},100);
+    }
+    if(ev.subscriptionDiscount?.enabled){
+      const sdEl=document.getElementById('ne-sub-discount');
+      if(sdEl){sdEl.checked=true;document.getElementById('ne-sub-discount-opts')?.classList.remove('hidden');}
+      setTimeout(()=>{(ev.subscriptionDiscount.typeIds||[]).forEach(tid=>{const btn=document.querySelector('#ne-sub-discount-types .ne-subtype-sel[data-id="'+tid+'"]');if(btn){btn.classList.add('selected');btn.style.background='var(--brand-bg)';btn.style.color='var(--brand-l)';btn.style.borderColor='var(--brand)';}});},100);
+      const pctEl=document.getElementById('ne-sub-disc-pct');if(pctEl&&ev.subscriptionDiscount.percentage!=null)pctEl.value=ev.subscriptionDiscount.percentage;
+    }
+    // === INSURANCE ===
+    populateInsuranceCheckboxes();
+    if(ev.insurance?.enabled){
+      const insEl=document.getElementById('ne-insurance-required');
+      if(insEl){insEl.checked=true;document.getElementById('ne-insurance-opts')?.classList.remove('hidden');}
+      const insBtnEl=document.getElementById('ne-insurance-required-btn');
+      if(insBtnEl){insBtnEl.style.background='var(--brand-bg)';insBtnEl.style.color='var(--brand-l)';insBtnEl.style.borderColor='var(--brand)';}
+      setTimeout(()=>{(ev.insurance.requiredInsuranceIds||[]).forEach(iid=>{const btn=document.querySelector('#ne-insurance-types .ne-ins-sel[data-id="'+iid+'"]');if(btn){btn.classList.add('selected');btn.style.background='rgba(99,102,241,.15)';btn.style.color='var(--brand-l)';btn.style.borderColor='var(--brand)';}});},100);
+      const ipEl=document.getElementById('ne-insurance-price');if(ipEl&&ev.insurance.price!=null)ipEl.value=ev.insurance.price;
+      const idEl=document.getElementById('ne-insurance-desc');if(idEl&&ev.insurance.description)idEl.value=ev.insurance.description;
+      const isEl=document.getElementById('ne-insurance-survey-enabled');if(isEl)isEl.checked=ev.insurance.surveyEnabled||false;
+    }
+    // === DAYS & SESSIONS (structure only, dates cleared for new event) ===
+    if(ev.days&&ev.days.length>0){
+      formDays=ev.days.map(d=>({
+        date:'', // Clear dates — user must set new dates
+        startTime:d.startTime||'10:00',
+        endTime:d.endTime||'17:00',
+        tiers:d.tiers?{alto:d.tiers.alto!=null?d.tiers.alto:'',medio:d.tiers.medio!=null?d.tiers.medio:'',basso:d.tiers.basso!=null?d.tiers.basso:''}:{},
+        earlyBird:d.earlyBird?{alto:d.earlyBird.alto!=null?d.earlyBird.alto:'',medio:d.earlyBird.medio!=null?d.earlyBird.medio:'',basso:d.earlyBird.basso!=null?d.earlyBird.basso:'',type:d.earlyBird.type||'date',deadline:'',maxCount:d.earlyBird.maxCount||''}:null,
+        sessions:d.sessions.map(s=>({
+          _origId:null, // New IDs will be generated on save
+          name:s.name||'',startTime:s.startTime||'10:00',endTime:s.endTime||'12:30',
+          level:s.level||'base',teacher:s.teacher||'',description:s.description||'',
+          location:s.location||'',locationUrl:s.locationUrl||'',
+          maxSpots:s.maxSpots||0,
+          tiers:s.tiers?{alto:s.tiers.alto!=null?s.tiers.alto:null,medio:s.tiers.medio!=null?s.tiers.medio:null,basso:s.tiers.basso!=null?s.tiers.basso:null}:{alto:null,medio:null,basso:null},
+          earlyBird:s.earlyBird?{alto:s.earlyBird.alto!=null?s.earlyBird.alto:'',medio:s.earlyBird.medio!=null?s.earlyBird.medio:'',basso:s.earlyBird.basso!=null?s.earlyBird.basso:'',type:s.earlyBird.type||'date',deadline:'',maxCount:s.earlyBird.maxCount||''}:null
+        }))
+      }));
+      _skipNextSaveFormState=true;
+      renderFormDays();
+    }
+    // === PRICING MODE ===
+    const freeEl=document.getElementById('ne-free-event');
+    const managedEl=document.getElementById('ne-costs-managed-by-org');
+    if(freeEl)freeEl.checked=(ev.pricingMode==='free');
+    if(managedEl)managedEl.checked=(ev.pricingMode==='managed');
+    const freeBtn=document.getElementById('ne-free-event-btn');
+    const managedBtn=document.getElementById('ne-costs-managed-btn');
+    if(freeBtn)_setToggleBtnActive(freeBtn,ev.pricingMode==='free');
+    if(managedBtn)_setToggleBtnActive(managedBtn,ev.pricingMode==='managed');
+    onPricingModeChange();
+    // === EVENT-LEVEL TIERS ===
+    if(ev.days&&ev.days.length>1){
+      const epSec=document.getElementById('ne-event-pricing-section');
+      if(epSec)epSec.style.display='';
+      document.getElementById('ne-tier-alto').value=ev.tiers?.alto!=null?ev.tiers.alto:'';
+      document.getElementById('ne-tier-medio').value=ev.tiers?.medio!=null?ev.tiers.medio:'';
+      document.getElementById('ne-tier-basso').value=ev.tiers?.basso!=null?ev.tiers.basso:'';
+    }
+    // === ALLOW DAY PURCHASE ===
+    const adpEl=document.getElementById('ne-allow-day-purchase');
+    if(adpEl)adpEl.checked=ev.allowDayPurchase!==false;
+    // === LOYALTY DISCOUNT ===
+    if(ev.loyaltyDiscount?.enabled){
+      const ldEl=document.getElementById('ne-loyalty-discount');
+      if(ldEl){ldEl.checked=true;document.getElementById('ne-loyalty-discount-opts')?.classList.remove('hidden');}
+      const ldPctEl=document.getElementById('ne-loyalty-disc-pct');
+      if(ldPctEl&&ev.loyaltyDiscount.percentage!=null)ldPctEl.value=ev.loyaltyDiscount.percentage;
+      if(ev.loyaltyDiscount.eventIds&&ev.loyaltyDiscount.eventIds.length){
+        setTimeout(()=>{
+          const wrap=document.getElementById('ne-loyalty-eventi-wrap');
+          if(wrap){toggleLoyaltyEventPicker(wrap);setTimeout(()=>{ev.loyaltyDiscount.eventIds.forEach(eid=>{const cb=wrap.querySelector(`.ep-check[value="${eid}"]`);if(cb){cb.checked=true;cb.dispatchEvent(new Event('change'));}});const picker=wrap.querySelector('.event-picker');if(picker)picker.classList.add('hidden');},100);}
+        },100);
+      }
+    }
+    // === EVENT-LEVEL EARLY BIRD ===
+    if(ev.earlyBird&&(ev.earlyBird.alto||ev.earlyBird.medio||ev.earlyBird.basso)){
+      const ebSec=document.getElementById('ne-earlybird-section');
+      if(ebSec)ebSec.classList.remove('hidden');
+      const ebToggle=ebSec?.previousElementSibling;
+      if(ebToggle){const arrow=ebToggle.querySelector('.toggle-arrow');if(arrow)arrow.textContent='\u25be';}
+    }
+    if(ev.earlyBird){
+      const ebA=document.getElementById('ne-eb-alto');if(ebA&&ev.earlyBird.alto!=null)ebA.value=ev.earlyBird.alto;
+      const ebM=document.getElementById('ne-eb-medio');if(ebM&&ev.earlyBird.medio!=null)ebM.value=ev.earlyBird.medio;
+      const ebB=document.getElementById('ne-eb-basso');if(ebB&&ev.earlyBird.basso!=null)ebB.value=ev.earlyBird.basso;
+      // Clear deadline for template (user must set new one) but keep type and maxCount
+      const ebTypeVal=ev.earlyBird.type||'date';
+      const ebTypeRadio=document.querySelector(`input[name="ne-eb-type"][value="${ebTypeVal}"]`);
+      if(ebTypeRadio){ebTypeRadio.checked=true;
+        if(ebTypeVal==='count'){document.getElementById('ne-eb-date-wrap').style.display='none';document.getElementById('ne-eb-count-wrap').style.display='';}
+      }
+      const ebMc=document.getElementById('ne-eb-max-count');if(ebMc&&ev.earlyBird.maxCount)ebMc.value=ev.earlyBird.maxCount;
+    }
+    updateEventEBTierVisibility();
+    // === SURVEYS ===
+    surveyQuestionCounter=0;
+    const sqContainer=document.getElementById('ne-survey-questions');
+    if(sqContainer)sqContainer.innerHTML='';
+    if(ev.surveys&&ev.surveys.length){
+      ev.surveys.forEach(sq=>addSurveyQuestion(sq));
+      const advPanel=document.getElementById('ne-advanced-opts');
+      const advToggle=document.getElementById('ne-adv-toggle');
+      if(advPanel)advPanel.classList.remove('hidden');
+      if(advToggle){const arrow=advToggle.querySelector('.coll-arrow');if(arrow)arrow.textContent='▾';}
+    }
+    // === IMAGES (copy from source event) ===
+    if(ev.imageThumb){evImages.thumb={src:ev.imageThumb.src,zoom:ev.imageThumb.zoom||100,posX:ev.imageThumb.posX||0,posY:ev.imageThumb.posY||0,maskType:ev.imageThumb.maskType||undefined};const img=document.getElementById('ne-img-thumb-img');const preview=document.getElementById('ne-img-thumb-preview');if(img){img.src=ev.imageThumb.src;img.style.width='100%';img.style.height='auto';img.style.display='block';img.style.objectFit='cover';}if(preview)preview.style.display='block';if(ev.imageThumb.maskType){selectedThumbMask=ev.imageThumb.maskType;selectThumbMask(ev.imageThumb.maskType);}}
+    if(ev.imageHeader){evImages.header={src:ev.imageHeader.src,zoom:ev.imageHeader.zoom||100,posX:ev.imageHeader.posX||0,posY:ev.imageHeader.posY||0};const img=document.getElementById('ne-img-header-img');const preview=document.getElementById('ne-img-header-preview');if(img){img.src=ev.imageHeader.src;img.style.width='100%';img.style.height='auto';img.style.display='block';img.style.objectFit='cover';}if(preview)preview.style.display='block';}
+    if(ev.imageThumb||ev.imageHeader||ev.image){const ic=document.getElementById('ne-images-collapsible');if(ic){ic.classList.remove('hidden');const arrow=ic.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
+    // === AUTO-EXPAND COLLAPSIBLE SECTIONS ===
+    if(ev.contactPhone||ev.contactEmail||ev.groupLink){const cc=document.getElementById('ne-contacts-collapsible');if(cc){cc.classList.remove('hidden');const arrow=cc.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
+    if(ev.paymentMethods&&(ev.paymentMethods.paypal||ev.paymentMethods.revolut||ev.paymentMethods.cash)){const pc=document.getElementById('ne-payment-collapsible');if(pc){pc.classList.remove('hidden');const arrow=pc.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
+    if(ev.pricingMode==='free'||ev.pricingMode==='managed'||ev.subscriptionBookable?.enabled||ev.subscriptionDiscount?.enabled||ev.deposit?.required||ev.insurance?.enabled){const sc=document.getElementById('ne-payment-collapsible');if(sc){sc.classList.remove('hidden');const arrow=sc.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
+    syncToggleBtns();
     showToast('Template caricato! Imposta le nuove date e salva come bozza.');
   },200);
 }
@@ -15484,45 +15793,53 @@ function confirmAlertEdit(){
   const formEv=collectFormData();
   if(!formEv){alertEditStep=3;return;} // Keep at step 3 so user only re-confirms last step
   alertEditStep=0;
-  const idx=store.events.findIndex(e=>e.id===editingEventId);
-  if(idx<0)return;
-  const oldEv=store.events[idx];
-  const snapshot=oldEv._pendingSnapshot;
-  const oldPM=oldEv.pricingMode;const oldRefunds=oldEv.refunds;
-  // Apply form data to event
-  formEv.id=editingEventId;
-  formEv.managerId=oldEv.managerId;
-  formEv.orgName=oldEv.orgName;
-  formEv.createdAt=oldEv.createdAt;
-  formEv.status='pubblicato';
-  formEv.refunds=oldRefunds||null;
-  // Preserve recurrence metadata (exceptions, active state, pause) from old event
-  if(oldEv.recurrence){
-    if(formEv.recurrence){
-      formEv.recurrence.exceptions=oldEv.recurrence.exceptions||{};
-      formEv.recurrence.active=oldEv.recurrence.active;
-      formEv.recurrence.pausedUntil=oldEv.recurrence.pausedUntil||null;
-    } else {
-      // Recurrence was removed during edit — keep it if old event was recurring
-      formEv.recurrence=oldEv.recurrence;
+  try{
+    const idx=store.events.findIndex(e=>e.id===editingEventId);
+    if(idx<0){showToast('⚠️ Evento non trovato — operazione annullata','error');return;}
+    const oldEv=store.events[idx];
+    const snapshot=oldEv._pendingSnapshot;
+    const oldPM=oldEv.pricingMode;const oldRefunds=oldEv.refunds;
+    // Apply form data to event
+    formEv.id=editingEventId;
+    formEv.managerId=oldEv.managerId;
+    formEv.orgName=oldEv.orgName;
+    formEv.createdAt=oldEv.createdAt;
+    formEv.status='pubblicato';
+    formEv.refunds=oldRefunds||null;
+    // Preserve recurrence metadata (exceptions, active state, pause) from old event
+    if(oldEv.recurrence){
+      if(formEv.recurrence){
+        formEv.recurrence.exceptions=oldEv.recurrence.exceptions||{};
+        formEv.recurrence.active=oldEv.recurrence.active;
+        formEv.recurrence.pausedUntil=oldEv.recurrence.pausedUntil||null;
+      } else {
+        // Recurrence was removed during edit — keep it if old event was recurring
+        formEv.recurrence=oldEv.recurrence;
+      }
     }
+    // Preserve bookings array reference if it existed on old event
+    if(oldEv.bookings)formEv.bookings=oldEv.bookings;
+    // Set alert with type modificato and snapshot
+    formEv.alert={
+      type:'modificato',
+      message:'Evento modificato dall\'organizzatore',
+      date:localDateStr(new Date()),
+      timestamp:new Date().toISOString(),
+      previousValues:snapshot
+    };
+    store.events[idx]=formEv;
+    fsSet('events',formEv.id,formEv).catch(err=>{console.error('confirmAlertEdit fsSet failed:',err);showToast('⚠️ Modificato localmente ma sync cloud fallito','error');});
+    const rl=handlePricingModeChange(editingEventId,oldPM,formEv.pricingMode);
+    if(rl&&rl.length)showToast('⚠️ '+rl.length+' iscritti da rimborsare — controlla dettaglio evento','error');
+    // Sync booking prices if prices changed (only for paid events)
+    if(snapshot&&formEv.pricingMode==='standard'){syncBookingPrices(editingEventId,snapshot);}
+  }catch(err){
+    console.error('confirmAlertEdit error:',err);
+    // Safety: on error, ensure event stays published and doesn't disappear
+    const safeIdx=store.events.findIndex(e=>e.id===editingEventId);
+    if(safeIdx>=0){store.events[safeIdx].status='pubblicato';}
+    showToast('⚠️ Errore durante la modifica — evento mantenuto pubblicato','error');
   }
-  // Preserve bookings array reference if it existed on old event
-  if(oldEv.bookings)formEv.bookings=oldEv.bookings;
-  // Set alert with type modificato and snapshot
-  formEv.alert={
-    type:'modificato',
-    message:'Evento modificato dall\'organizzatore',
-    date:localDateStr(new Date()),
-    timestamp:new Date().toISOString(),
-    previousValues:snapshot
-  };
-  store.events[idx]=formEv;
-  fsSet('events',formEv.id,formEv).catch(console.error);
-  const rl=handlePricingModeChange(editingEventId,oldPM,formEv.pricingMode);
-  if(rl&&rl.length)showToast('⚠️ '+rl.length+' iscritti da rimborsare — controlla dettaglio evento','error');
-  // Sync booking prices if prices changed (only for paid events)
-  if(snapshot&&formEv.pricingMode==='standard'){syncBookingPrices(editingEventId,snapshot);}
   // Cleanup
   editingEventId=null;resetForm();restoreFormTitle();
   // Restore normal buttons
@@ -16136,7 +16453,7 @@ function resetForm(){
   const pw=document.getElementById('ne-partners-selected');
   if(pw)pw.innerHTML='<span class="text-xs txt3">Nessun partner selezionato</span>';
   togglePartnerEntryConfig(false);
-  const defRadio=document.querySelector('input[name="ne-partner-entry-policy"][value="discount_only"]');
+  const defRadio=document.querySelector('input[name="ne-partner-entry-policy"][value="none"]');
   if(defRadio)defRadio.checked=true;
   // Reset all toggle buttons, checkboxes, and option panels
   ['ne-free-event','ne-costs-managed-by-org','ne-sub-bookable','ne-sub-discount','ne-loyalty-discount','ne-deposit-required'].forEach(cbId=>{
@@ -16957,6 +17274,17 @@ function collectFormData(){
   const universeId=universeIds[0]; // Primary universe for backward compat
   const eventType=document.getElementById('ne-type').value||'jam';
   const finalType=eventType==='__custom__'?(normalizeTypeName(document.getElementById('ne-custom-type')?.value)||'evento'):eventType;
+  // Validate booking deadline
+  const recChkPre=document.getElementById('ne-recurrence')?.checked;
+  if(!recChkPre){
+    const _bdVal=document.getElementById('ne-booking-deadline')?.value;
+    if(_bdVal){
+      const _todayVal=localDateStr(new Date());
+      const _evStartVal=document.getElementById('ne-event-start-date')?.value;
+      if(_bdVal<_todayVal){showToast('La deadline prenotazioni non può essere nel passato!','error');return null;}
+      if(_evStartVal&&_bdVal>_evStartVal){showToast('La deadline prenotazioni non può superare la data di inizio evento!','error');return null;}
+    }
+  }
   return {
     id:genId('ev'),managerId:store.currentUser.id,orgName:store.currentUser.orgName,
     universeId,universeIds,
@@ -16988,7 +17316,7 @@ function collectFormData(){
     status:'bozza',recurrence:recChk?(()=>{const _startDate=document.getElementById('ne-event-start-date')?.value||'';const _startDow=_startDate?new Date(_startDate+'T00:00:00').getDay():-1;const _dayNames=['domenica','lunedi','martedi','mercoledi','giovedi','venerdi','sabato'];const _day=_startDow>=0?_dayNames[_startDow]:'lunedi';const _exc={};_recExclusions.forEach(d=>{_exc[d]={type:'skip'};});return{day:_day,freq:recFreq,active:true,exceptions:_exc,exclusionDates:[..._recExclusions],pausedUntil:null}})():null,createdAt:localDateStr(new Date()),
     allowDayPurchase:document.getElementById('ne-allow-day-purchase')?.checked!==false,
     partnerIds:getPartnerIdsFromForm(),
-    partnerEntryPolicy:getPartnerIdsFromForm().length?(document.querySelector('input[name="ne-partner-entry-policy"]:checked')?.value||'discount_only'):null,
+    partnerEntryPolicy:getPartnerIdsFromForm().length?(document.querySelector('input[name="ne-partner-entry-policy"]:checked')?.value||'none'):null,
     subscriptionBookable:document.getElementById('ne-sub-bookable')?.checked?{enabled:true,typeIds:Array.from(document.querySelectorAll('#ne-sub-bookable-types .ne-subtype-sel.selected')).map(b=>b.dataset.id)}:null,
     subscriptionDiscount:document.getElementById('ne-sub-discount')?.checked?{enabled:true,typeIds:Array.from(document.querySelectorAll('#ne-sub-discount-types .ne-subtype-sel.selected')).map(b=>b.dataset.id),percentage:parseFloat(document.getElementById('ne-sub-disc-pct')?.value)||15}:null,
     insurance:document.getElementById('ne-insurance-required')?.checked?{enabled:true,requiredInsuranceIds:Array.from(document.querySelectorAll('#ne-insurance-types .ne-ins-sel.selected')).map(b=>b.dataset.id),price:parseFloat(document.getElementById('ne-insurance-price')?.value)||0,description:document.getElementById('ne-insurance-desc')?.value||'',surveyEnabled:document.getElementById('ne-insurance-survey-enabled')?.checked||false}:null,
@@ -17396,25 +17724,41 @@ function saveAsDraft(){
     if(existingEv&&existingEv.managerId!==store.currentUser.id){showToast('Solo l\'organizzatore capofila può modificare questo evento','error');return;}
     // Update existing event
     showConfirm('Salva modifiche','Salvare le modifiche come bozza?',()=>{
-      const idx=store.events.findIndex(e=>e.id===editingEventId);
-      if(idx>=0){
-        const oldEv=store.events[idx];const oldPM=oldEv.pricingMode;const oldRefunds=oldEv.refunds;
-        ev.id=editingEventId;ev.status='bozza';ev.managerId=oldEv.managerId;ev.orgName=oldEv.orgName;ev.createdAt=oldEv.createdAt;ev.alert=oldEv.alert;ev.refunds=oldRefunds||null;
-        // Preserve recurrence metadata
-        if(oldEv.recurrence){if(ev.recurrence){ev.recurrence.exceptions=oldEv.recurrence.exceptions||{};ev.recurrence.active=oldEv.recurrence.active;ev.recurrence.pausedUntil=oldEv.recurrence.pausedUntil||null;}else{ev.recurrence=oldEv.recurrence;}}
-        if(oldEv.bookings)ev.bookings=oldEv.bookings;
-        store.events[idx]=ev;
-        fsSet('events',ev.id,ev).catch(console.error);
-        handlePricingModeChange(editingEventId,oldPM,ev.pricingMode);
+      try{
+        const idx=store.events.findIndex(e=>e.id===editingEventId);
+        if(idx>=0){
+          const oldEv=store.events[idx];const oldPM=oldEv.pricingMode;const oldRefunds=oldEv.refunds;
+          ev.id=editingEventId;ev.status='bozza';ev.managerId=oldEv.managerId;ev.orgName=oldEv.orgName;ev.createdAt=oldEv.createdAt;ev.alert=oldEv.alert;ev.refunds=oldRefunds||null;
+          // Preserve recurrence metadata
+          if(oldEv.recurrence){if(ev.recurrence){ev.recurrence.exceptions=oldEv.recurrence.exceptions||{};ev.recurrence.active=oldEv.recurrence.active;ev.recurrence.pausedUntil=oldEv.recurrence.pausedUntil||null;}else{ev.recurrence=oldEv.recurrence;}}
+          if(oldEv.bookings)ev.bookings=oldEv.bookings;
+          store.events[idx]=ev;
+          fsSet('events',ev.id,ev).catch(err=>{console.error('saveAsDraft fsSet failed:',err);showToast('⚠️ Salvataggio locale OK ma sync cloud fallito — riprova','error');});
+          handlePricingModeChange(editingEventId,oldPM,ev.pricingMode);
+        } else {
+          // Safety: event not found in store — push as new to prevent data loss
+          ev.id=editingEventId;ev.status='bozza';
+          store.events.push(ev);
+          fsSet('events',ev.id,ev).catch(console.error);
+          console.warn('saveAsDraft: event idx not found, pushed as new to prevent loss');
+        }
+        editingEventId=null;resetForm();restoreFormTitle();go('admin-events');showToast('Modifiche salvate come bozza!');
+      }catch(err){
+        console.error('saveAsDraft error:',err);
+        // Safety: on any error, ensure event stays in bozza
+        const safeIdx=store.events.findIndex(e=>e.id===editingEventId);
+        if(safeIdx>=0)store.events[safeIdx].status='bozza';
+        showToast('⚠️ Errore durante il salvataggio — evento mantenuto in bozza','error');
       }
-      editingEventId=null;resetForm();restoreFormTitle();go('admin-events');showToast('Modifiche salvate come bozza!');
     });
   } else {
     showConfirm('Salva bozza','Salvare come bozza?',()=>{
-      ev.id=genId('ev');
-      store.events.push(ev);
-      fsSet('events',ev.id,ev).catch(console.error);
-      resetForm();go('admin-events');showToast('Bozza salvata!');
+      try{
+        ev.id=genId('ev');
+        store.events.push(ev);
+        fsSet('events',ev.id,ev).catch(err=>{console.error('saveAsDraft new fsSet failed:',err);showToast('⚠️ Bozza salvata localmente ma sync cloud fallito','error');});
+        resetForm();go('admin-events');showToast('Bozza salvata!');
+      }catch(err){console.error('saveAsDraft new error:',err);showToast('Errore durante il salvataggio','error');}
     });
   }
 }
@@ -17426,27 +17770,43 @@ function publishNewEvent(){
     const existingEv=store.events.find(e=>e.id===editingEventId);
     if(existingEv&&existingEv.managerId!==store.currentUser.id){showToast('Solo l\'organizzatore capofila può modificare questo evento','error');return;}
     showConfirm('Pubblica modifiche','Pubblicare le modifiche?',()=>{
-      const idx=store.events.findIndex(e=>e.id===editingEventId);
-      if(idx>=0){
-        const oldEv2=store.events[idx];const oldPM=oldEv2.pricingMode;const oldRefunds=oldEv2.refunds;
-        ev.id=editingEventId;ev.managerId=oldEv2.managerId;ev.orgName=oldEv2.orgName;ev.createdAt=oldEv2.createdAt;ev.alert=oldEv2.alert;ev.status='pubblicato';ev.refunds=oldRefunds||null;
-        // Preserve recurrence metadata
-        if(oldEv2.recurrence){if(ev.recurrence){ev.recurrence.exceptions=oldEv2.recurrence.exceptions||{};ev.recurrence.active=oldEv2.recurrence.active;ev.recurrence.pausedUntil=oldEv2.recurrence.pausedUntil||null;}else{ev.recurrence=oldEv2.recurrence;}}
-        if(oldEv2.bookings)ev.bookings=oldEv2.bookings;
-        store.events[idx]=ev;
-        fsSet('events',ev.id,ev).catch(console.error);
-        const rl=handlePricingModeChange(editingEventId,oldPM,ev.pricingMode);
-        if(rl&&rl.length)showToast('⚠️ '+rl.length+' iscritti da rimborsare — controlla dettaglio evento','error');
+      try{
+        const idx=store.events.findIndex(e=>e.id===editingEventId);
+        if(idx>=0){
+          const oldEv2=store.events[idx];const oldPM=oldEv2.pricingMode;const oldRefunds=oldEv2.refunds;
+          ev.id=editingEventId;ev.managerId=oldEv2.managerId;ev.orgName=oldEv2.orgName;ev.createdAt=oldEv2.createdAt;ev.alert=oldEv2.alert;ev.status='pubblicato';ev.refunds=oldRefunds||null;
+          // Preserve recurrence metadata
+          if(oldEv2.recurrence){if(ev.recurrence){ev.recurrence.exceptions=oldEv2.recurrence.exceptions||{};ev.recurrence.active=oldEv2.recurrence.active;ev.recurrence.pausedUntil=oldEv2.recurrence.pausedUntil||null;}else{ev.recurrence=oldEv2.recurrence;}}
+          if(oldEv2.bookings)ev.bookings=oldEv2.bookings;
+          store.events[idx]=ev;
+          fsSet('events',ev.id,ev).catch(err=>{console.error('publishNewEvent fsSet failed:',err);showToast('⚠️ Pubblicato localmente ma sync cloud fallito — riprova','error');});
+          const rl=handlePricingModeChange(editingEventId,oldPM,ev.pricingMode);
+          if(rl&&rl.length)showToast('⚠️ '+rl.length+' iscritti da rimborsare — controlla dettaglio evento','error');
+        } else {
+          // Safety: event not found in store — push as new to prevent data loss
+          ev.id=editingEventId;ev.status='pubblicato';
+          store.events.push(ev);
+          fsSet('events',ev.id,ev).catch(console.error);
+          console.warn('publishNewEvent: event idx not found, pushed as new to prevent loss');
+        }
+        editingEventId=null;resetForm();restoreFormTitle();go('admin-events');showToast('Evento aggiornato e pubblicato!');
+      }catch(err){
+        console.error('publishNewEvent error:',err);
+        // Safety: on any error, ensure event reverts to bozza rather than disappearing
+        const safeIdx=store.events.findIndex(e=>e.id===editingEventId);
+        if(safeIdx>=0){store.events[safeIdx].status='bozza';fsUpdate('events',editingEventId,{status:'bozza'}).catch(console.error);}
+        showToast('⚠️ Errore durante la pubblicazione — evento mantenuto in bozza','error');
       }
-      editingEventId=null;resetForm();restoreFormTitle();go('admin-events');showToast('Evento aggiornato e pubblicato!');
     });
   } else {
     showConfirm('Pubblica evento','Pubblicare ora? Sarà visibile a tutti.',()=>{
-      ev.id=genId('ev');
-      ev.status='pubblicato';
-      store.events.push(ev);
-      fsSet('events',ev.id,ev).catch(console.error);
-      resetForm();go('admin-events');showToast('Evento pubblicato!');
+      try{
+        ev.id=genId('ev');
+        ev.status='pubblicato';
+        store.events.push(ev);
+        fsSet('events',ev.id,ev).catch(err=>{console.error('publishNewEvent new fsSet failed:',err);showToast('⚠️ Pubblicato localmente ma sync cloud fallito','error');});
+        resetForm();go('admin-events');showToast('Evento pubblicato!');
+      }catch(err){console.error('publishNewEvent new error:',err);showToast('Errore durante la pubblicazione','error');}
     });
   }
 }
@@ -17475,6 +17835,29 @@ function initEventDates(){
 function updateBookingDeadlineDefault(){
   // No auto-fill — if user doesn't set it, deadline is end of last event day
   // This function is kept as a no-op to avoid breaking existing onchange calls
+}
+function validateBookingDeadline(input){
+  input._userEdited=true;
+  if(!input.value)return;// empty is allowed
+  const hint=document.getElementById('ne-deadline-hint');
+  const today=localDateStr(new Date());
+  // Cannot be before today
+  if(input.value<today){
+    showToast('La deadline non può essere nel passato','error');
+    input.value='';
+    if(hint){hint.textContent='⚠️ Data non valida — era nel passato';hint.style.color='var(--red)';}
+    return;
+  }
+  // Cannot be after event start date
+  const evStartDate=document.getElementById('ne-event-start-date')?.value;
+  if(evStartDate&&input.value>evStartDate){
+    showToast('La deadline non può essere dopo la data di inizio evento','error');
+    input.value='';
+    if(hint){hint.textContent='⚠️ Data non valida — superava l\'inizio evento';hint.style.color='var(--red)';}
+    return;
+  }
+  // Valid
+  if(hint){hint.textContent='Lascia vuoto per chiudere a fine evento.';hint.style.color='';}
 }
 function restoreFormTitle(){
   const titleEl=document.querySelector('#view-admin-new-event .page-title');
@@ -19281,7 +19664,7 @@ async function showAdminEventDetail(evId){
         +'<div class="stat-card"><div class="value" style="color:var(--green)">€'+refundedAmt+'</div><div class="label">Già rimborsati</div></div>'
         +'<div class="stat-card"><div class="value" style="color:var(--red)">€'+pendingAmt+'</div><div class="label">Ancora da rimborsare</div></div>'
         +'</div>'
-        +'<div style="overflow:auto"><table class="table"><thead><tr><th>Partecipante</th><th>Email</th><th>Pagato</th><th>Anticipo</th><th>Tot. rimborso</th><th>Stato</th><th>Azione</th></tr></thead><tbody>'
+        +'<div class="table-wrap" style="overflow:auto"><table class="table"><thead><tr><th>Partecipante</th><th>Email</th><th>Pagato</th><th>Anticipo</th><th>Tot. rimborso</th><th>Stato</th><th>Azione</th></tr></thead><tbody>'
         +ev.refunds.map(r=>{
           const isDone=r.refunded;
           const rowStyle=isDone?'opacity:.5;background:rgba(16,185,129,.03)':'background:rgba(239,68,68,.03)';
@@ -19315,7 +19698,7 @@ async function showAdminEventDetail(evId){
 
     <!-- Participants table -->
     <h2 class="font-semibold text-white mb-3">👥 Lista Partecipanti (${active.length}${active.filter(b=>b.checkedIn).length>0?' · <span style="color:var(--green)">'+active.filter(b=>b.checkedIn).length+' presenti</span>':''})${viewSubtitle}</h2>
-    ${active.length?`<div class="card" style="padding:0;overflow:auto">
+    ${active.length?`<div class="card table-wrap" style="padding:0;overflow:auto">
       <table class="table">
         <thead><tr><th style="cursor:pointer" onclick="sortAdminDetail('userName')">Partecipante ${adminDetailSort.field==='userName'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('role')">Ruolo ${adminDetailSort.field==='role'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('sessions')">Sessioni ${adminDetailSort.field==='sessions'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${ev.pricingMode!=='free'?'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'tier\')">Tier '+(adminDetailSort.field==='tier'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}<th style="cursor:pointer" onclick="sortAdminDetail('checkedIn')">Presente ${adminDetailSort.field==='checkedIn'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${ev.pricingMode!=='free'?'<th style="cursor:pointer" onclick="sortAdminDetail(\'amount\')">Importo '+(adminDetailSort.field==='amount'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'paymentStatus\')">Pagato '+(adminDetailSort.field==='paymentStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'depositStatus\')">Anticipo '+(adminDetailSort.field==='depositStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'daIncassare\')">Da incassare '+(adminDetailSort.field==='daIncassare'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).length?'<th style="border-left:2px solid var(--s400);padding-left:12px;cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+(ev.surveys[0].id)+'\')">'+ev.surveys[0].question.substring(0,20)+(ev.surveys[0].question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+ev.surveys[0].id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).slice(1).map(sq=>'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+sq.id+'\')">'+sq.question.substring(0,20)+(sq.question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+sq.id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>').join('')}<th>Azioni</th></tr></thead>
         <tbody>${active.map(b=>{
@@ -19364,7 +19747,7 @@ async function showAdminEventDetail(evId){
 
     ${cancelled.length?`
     <h2 class="font-semibold text-white mb-3 mt-6" style="opacity:.6">❌ Cancellate (${cancelled.length})</h2>
-    <div class="card" style="padding:0;overflow:auto;opacity:.5">
+    <div class="card table-wrap" style="padding:0;overflow:auto;opacity:.5">
       <table class="table"><thead><tr><th>Utente</th><th>Importo</th></tr></thead>
       <tbody>${cancelled.map(b=>{const _cu=store.users.find(x=>x.id===b.userId)||store.managers.find(x=>x.id===b.userId);const _cl=_cu?.profileLogo||null;return `<tr>
         <td><div class="flex items-center gap-2"><div class="avatar" style="background:var(--s300);color:var(--txt3)${_cl?';overflow:hidden':''}">${_cl?'<img src="'+_cl+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':b.initials}</div><div class="font-medium text-white text-sm" style="text-decoration:line-through">${escHtml(b.userName)}</div></div></td>
