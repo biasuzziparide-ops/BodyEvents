@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V3.1.3</title>
+<title>BodyEvents — V3.1.7</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -396,7 +396,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.1.3</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.1.7</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -3123,7 +3123,7 @@ async function ensureSubscriptionsLoaded(){
 async function ensureUsersLoaded(){
   if(_usersFullyLoaded)return;
   const snap=await fbDb.collection('users').get();
-  store.users=[];snap.forEach(doc=>{store.users.push(doc.data());});
+  store.users=[];snap.forEach(doc=>{const d=doc.data();if(!d.id)d.id=doc.id;store.users.push(d);});
   _usersFullyLoaded=true;
 }
 
@@ -3159,8 +3159,8 @@ function _showDeferredLoading(container){
 function genId(prefix){return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).substring(2,6);}
 
 async function fsSet(col,id,data){
-  try{await fbDb.collection(col).doc(id).set(data,{merge:true});}
-  catch(e){console.error('fsSet error:',col,id,e);showToast('Errore salvataggio dati','error');}
+  try{await fbDb.collection(col).doc(id).set(data,{merge:true});return true;}
+  catch(e){console.error('fsSet error:',col,id,e);showToast('Errore salvataggio dati','error');return false;}
 }
 async function fsUpdate(col,id,data){
   try{await fbDb.collection(col).doc(id).update(data);}
@@ -3272,27 +3272,49 @@ async function unaffiliateInsuranceFromManager(managerId,insuranceId){
 }
 
 async function assignInsuranceToUser(userId,insuranceId,assignedBy,expiresAt,surveyAnswers){
+  // Resolve the correct user and Firestore doc ID
   let user=store.users.find(u=>u.id===userId);
-  // If user not in store.users, try by email match, or create minimal entry
+  let firestoreId=userId;
   if(!user){
+    // Try email match — registry uid might be an email
     user=store.users.find(u=>u.email===userId);
-    if(user)userId=user.id; // Use real ID for Firestore
+    if(user)firestoreId=user.id;
   }
   if(!user){
-    // User has a registry entry but no store.users record — create minimal one
+    // Try reverse: maybe userId is a Firebase UID but user doc was loaded differently
+    try{
+      const doc=await fbDb.collection('users').doc(userId).get();
+      if(doc.exists){
+        user=doc.data();if(!user.id)user.id=doc.id;
+        firestoreId=doc.id;
+        // Merge into store.users
+        const idx=store.users.findIndex(u=>u.id===firestoreId);
+        if(idx>=0)store.users[idx]=user;else store.users.push(user);
+      }
+    }catch(e){console.warn('assignInsurance: Firestore lookup failed',e);}
+  }
+  if(!user){
+    // Last resort: create minimal entry from registry, but use the passed uid
     const mgr=store.managers.find(m=>m.id===assignedBy);
     const regEntry=mgr?.registry?.entries?.find(e=>e.uid===userId);
     user={id:userId,username:regEntry?.name||userId,email:regEntry?.email||'',assignedInsurances:[]};
+    firestoreId=userId;
     store.users.push(user);
   }
   if(!user.assignedInsurances)user.assignedInsurances=[];
   // Prevent duplicate active assignment of same insurance
-  const existing=user.assignedInsurances.find(a=>a.insuranceId===insuranceId&&(!a.expiresAt||a.expiresAt>=new Date().toISOString()));
+  const now=new Date().toISOString();
+  const existing=user.assignedInsurances.find(a=>a.insuranceId===insuranceId&&(!a.expiresAt||a.expiresAt>=now));
   if(existing)return existing;
-  const assignment={insuranceId,assignedBy,assignedAt:new Date().toISOString(),expiresAt:expiresAt||null,surveyAnswers:surveyAnswers||{}};
+  const assignment={insuranceId,assignedBy,assignedAt:now,expiresAt:expiresAt||null,surveyAnswers:surveyAnswers||{}};
   user.assignedInsurances.push(assignment);
-  // Use fsSet with merge:true (works even if user doc doesn't exist yet)
-  await fsSet('users',userId,{assignedInsurances:user.assignedInsurances});
+  // Write to Firestore — propagate failure
+  const ok=await fsSet('users',firestoreId,{assignedInsurances:user.assignedInsurances});
+  if(!ok){
+    // Rollback in-memory
+    user.assignedInsurances=user.assignedInsurances.filter(a=>a!==assignment);
+    throw new Error('Firestore write failed for user '+firestoreId);
+  }
   return assignment;
 }
 
@@ -3541,9 +3563,11 @@ async function confirmUnaffiliateInsurance(insId){
 }
 
 // === ASSIGN INSURANCE TO USER MODAL ===
-function showAssignInsuranceModal(insId){
+async function showAssignInsuranceModal(insId){
   const ins=store.insurances.find(i=>i.id===insId);
   if(!ins)return;
+  // Ensure users are loaded from Firestore before rendering
+  await ensureUsersLoaded();
   const mgr=store.managers.find(m=>m.id===store.currentUser?.id);
   // Get registry users
   const regEntries=mgr?.registry?.entries||[];
@@ -3554,13 +3578,19 @@ function showAssignInsuranceModal(insId){
   h+='<div class="mb-3"><label class="label">Data scadenza</label><input type="date" id="ins-assign-expiry" class="input" value="'+(new Date(Date.now()+365*24*60*60*1000).toISOString().split('T')[0])+'"></div>';
   h+='<div class="mb-3"><input type="text" id="ins-assign-search" class="input" placeholder="🔍 Cerca utente..." oninput="filterInsAssignList(this.value,\''+insId+'\')"></div>';
   h+='<div id="ins-assign-list" style="max-height:300px;overflow-y:auto">';
-  // List all users from registry + store.users
+  // List all users from registry + store.users, resolving real Firestore IDs
   const allUsers=new Map();
-  regEntries.forEach(e=>{allUsers.set(e.uid,{id:e.uid,name:e.name,email:e.email||e.uid});});
+  regEntries.forEach(e=>{
+    // Try to resolve registry uid to real store.users entry
+    const storeUser=store.users.find(u=>u.id===e.uid)||store.users.find(u=>u.email===(e.email||e.uid));
+    const resolvedId=storeUser?storeUser.id:e.uid;
+    allUsers.set(resolvedId,{id:resolvedId,name:storeUser?.username||e.name,email:storeUser?.email||e.email||e.uid});
+  });
   store.users.forEach(u=>{if(!allUsers.has(u.id))allUsers.set(u.id,{id:u.id,name:u.username||u.name||u.email,email:u.email});});
   const now=new Date().toISOString();
   allUsers.forEach((u,uid)=>{
-    const already=(store.users.find(x=>x.id===uid)?.assignedInsurances||[]).some(a=>a.insuranceId===insId&&(!a.expiresAt||a.expiresAt>=now));
+    const storeUser=store.users.find(x=>x.id===uid);
+    const already=(storeUser?.assignedInsurances||[]).some(a=>a.insuranceId===insId&&(!a.expiresAt||a.expiresAt>=now));
     h+='<div class="ins-assign-row" data-name="'+(u.name||'').toLowerCase()+'" data-email="'+(u.email||'').toLowerCase()+'" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--s300);'+(already?'opacity:.5':'')+'">';
     h+='<div style="flex:1;min-width:0"><div style="font-size:.84rem;font-weight:500;color:var(--txt1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escHtml(u.name||uid)+'</div>';
     h+='<div style="font-size:.72rem;color:var(--txt3)">'+escHtml(u.email||'')+'</div></div>';
