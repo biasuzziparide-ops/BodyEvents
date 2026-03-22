@@ -13306,13 +13306,15 @@ function nativeShareEvent(eventId){
    GLOBAL TIER HELPERS
 ============================== */
 function isEarlyBirdActive(eb,evId){
-  if(!eb||(!eb.alto&&!eb.medio&&!eb.basso))return false;
-  if(eb.type==='date'&&eb.deadline){return localDateStr(new Date())<=eb.deadline;}
-  if(eb.type==='count'&&eb.maxCount){const bookCount=store.bookings.filter(b=>b.eventId===evId&&b.status!=='cancellata').length;return bookCount<eb.maxCount;}
+  if(!eb||(!eb.alto&&!eb.medio&&!eb.basso)){console.log('[EB_DEBUG] isEarlyBirdActive → false: eb missing or no tier prices',eb);return false;}
+  if(eb.type==='date'&&eb.deadline){const today=localDateStr(new Date());const active=today<=eb.deadline;console.log('[EB_DEBUG] isEarlyBirdActive date check: today='+today+' deadline='+eb.deadline+' → '+active);return active;}
+  if(eb.type==='count'&&eb.maxCount){const bookCount=store.bookings.filter(b=>b.eventId===evId&&b.status!=='cancellata').length;const active=bookCount<eb.maxCount;console.log('[EB_DEBUG] isEarlyBirdActive count check: bookings='+bookCount+' maxCount='+eb.maxCount+' → '+active);return active;}
+  console.log('[EB_DEBUG] isEarlyBirdActive → true (no deadline/count constraint)',eb);
   return true;
 }
 function buildTierBtns(tiers, gridId, activeEB, evId, subDiscPct, freeWithSub){
   if(!tiers)return '';
+  console.log('[EB_DEBUG] buildTierBtns gridId='+gridId+' activeEB=',activeEB,' tiers=',tiers);
   const ebActive=activeEB&&isEarlyBirdActive(activeEB,evId);
   const disc=subDiscPct>0?subDiscPct:0;
   let btns='';
@@ -13337,7 +13339,8 @@ function buildTierBtns(tiers, gridId, activeEB, evId, subDiscPct, freeWithSub){
   return btns;
 }
 function renderEarlyBirdGrid(eb,gridId,evId,stdTiers,subDiscPct,freeWithSub){
-  if(!isEarlyBirdActive(eb,evId))return '';
+  console.log('[EB_DEBUG] renderEarlyBirdGrid gridId='+gridId+' eb=',eb,' stdTiers=',stdTiers);
+  if(!isEarlyBirdActive(eb,evId)){console.log('[EB_DEBUG] renderEarlyBirdGrid → empty (EB not active)');return '';}
   if(freeWithSub){
     // Entry-based sub: show EB tiers as €0 only if standard tiers are missing (fallback)
     const _hasStdTiers=stdTiers&&Object.values(stdTiers).some(v=>v!=null&&v!==''&&v!==0);
@@ -14010,6 +14013,7 @@ function showEventDetail(evId,recDate){
         <p class="text-xs mt-1" style="color:var(--txt2);line-height:1.5">${escHtml(ev.insurance.description||"Questo evento richiede un'assicurazione.")} Assicurazioni accettate: <strong>${escHtml(_insNames)}</strong>. Senza assicurazione verrà applicato un sovrapprezzo di <strong style="color:var(--warn)">€${_insPrice}</strong>.</p></div>`;
     }
   }
+  console.log('[EB_DEBUG] Event detail render — ev.earlyBird=',ev.earlyBird,' ev.tiers=',ev.tiers,' ev.days=',ev.days.map(d=>({dayEB:d.earlyBird,dayTiers:d.tiers,sessions:d.sessions.map(s=>({sEB:s.earlyBird,sTiers:s.tiers}))})));
   ev.days.forEach((day,di)=>{
     const isSingleSession=day.sessions.length<=1;
     daysHtml+=`<div class="card mb-3" style="border-color:var(--brand);background:rgba(217,70,239,.03)">
