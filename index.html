@@ -2214,6 +2214,13 @@ textarea.input{resize:none;font-family:inherit}
     <div id="profile-universes-container"></div>
   </div>
 
+  <!-- Assicurazioni assegnate -->
+  <div class="card mb-4" id="profile-insurances-card" style="display:none">
+    <h3 class="font-semibold text-white mb-4">🛡️ Le mie Assicurazioni</h3>
+    <p class="text-xs txt3 mb-3">Assicurazioni assegnate al tuo profilo dall'organizzatore.</p>
+    <div id="profile-insurances-list"></div>
+  </div>
+
   <!-- Privacy e Consensi -->
   <div class="card mb-4">
     <h3 class="font-semibold text-white mb-4">🔒 Privacy e consensi</h3>
@@ -3265,31 +3272,45 @@ async function unaffiliateInsuranceFromManager(managerId,insuranceId){
 }
 
 async function assignInsuranceToUser(userId,insuranceId,assignedBy,expiresAt,surveyAnswers){
-  const user=store.users.find(u=>u.id===userId);
-  if(!user)return null;
+  let user=store.users.find(u=>u.id===userId);
+  // If user not in store.users, try by email match, or create minimal entry
+  if(!user){
+    user=store.users.find(u=>u.email===userId);
+    if(user)userId=user.id; // Use real ID for Firestore
+  }
+  if(!user){
+    // User has a registry entry but no store.users record — create minimal one
+    const mgr=store.managers.find(m=>m.id===assignedBy);
+    const regEntry=mgr?.registry?.entries?.find(e=>e.uid===userId);
+    user={id:userId,username:regEntry?.name||userId,email:regEntry?.email||'',assignedInsurances:[]};
+    store.users.push(user);
+  }
   if(!user.assignedInsurances)user.assignedInsurances=[];
   // Prevent duplicate active assignment of same insurance
   const existing=user.assignedInsurances.find(a=>a.insuranceId===insuranceId&&(!a.expiresAt||a.expiresAt>=new Date().toISOString()));
   if(existing)return existing;
   const assignment={insuranceId,assignedBy,assignedAt:new Date().toISOString(),expiresAt:expiresAt||null,surveyAnswers:surveyAnswers||{}};
   user.assignedInsurances.push(assignment);
-  await fsUpdate('users',userId,{assignedInsurances:user.assignedInsurances});
+  // Use fsSet with merge:true (works even if user doc doesn't exist yet)
+  await fsSet('users',userId,{assignedInsurances:user.assignedInsurances});
   return assignment;
 }
 
 async function removeInsuranceFromUser(userId,insuranceId){
-  const user=store.users.find(u=>u.id===userId);
+  const user=store.users.find(u=>u.id===userId)||store.users.find(u=>u.email===userId);
   if(!user||!user.assignedInsurances)return;
+  const realId=user.id||userId;
   user.assignedInsurances=user.assignedInsurances.filter(a=>a.insuranceId!==insuranceId);
-  await fsUpdate('users',userId,{assignedInsurances:user.assignedInsurances});
+  await fsSet('users',realId,{assignedInsurances:user.assignedInsurances});
 }
 
 async function renewInsuranceForUser(userId,insuranceId,newExpiresAt){
-  const user=store.users.find(u=>u.id===userId);
+  const user=store.users.find(u=>u.id===userId)||store.users.find(u=>u.email===userId);
   if(!user||!user.assignedInsurances)return;
+  const realId=user.id||userId;
   const a=user.assignedInsurances.find(x=>x.insuranceId===insuranceId);
   if(a){a.expiresAt=newExpiresAt;a.assignedAt=new Date().toISOString();}
-  await fsUpdate('users',userId,{assignedInsurances:user.assignedInsurances});
+  await fsSet('users',realId,{assignedInsurances:user.assignedInsurances});
 }
 
 async function saveManagerInsuranceSurvey(managerId,surveyQuestions){
@@ -3568,11 +3589,24 @@ function filterInsAssignList(query,insId){
 
 async function doAssignInsuranceToUser(userId,insId,btn){
   btn.disabled=true;btn.textContent='...';
-  const expiry=document.getElementById('ins-assign-expiry')?.value||null;
-  const expiresAt=expiry?new Date(expiry+'T23:59:59').toISOString():null;
-  await assignInsuranceToUser(userId,insId,store.currentUser.id,expiresAt,{});
-  btn.textContent='✓ Assicurato';btn.style.background='rgba(16,185,129,.2)';btn.style.color='var(--green)';
-  showToast('Assicurazione assegnata!');
+  try{
+    const expiry=document.getElementById('ins-assign-expiry')?.value||null;
+    const expiresAt=expiry?new Date(expiry+'T23:59:59').toISOString():null;
+    const result=await assignInsuranceToUser(userId,insId,store.currentUser.id,expiresAt,{});
+    if(result){
+      btn.textContent='✓ Assicurato';btn.style.background='rgba(16,185,129,.2)';btn.style.color='var(--green)';
+      showToast('Assicurazione assegnata!');
+    } else {
+      btn.textContent='Errore';btn.style.background='rgba(239,68,68,.15)';btn.style.color='var(--red)';
+      showToast('Errore: utente non trovato','error');
+      btn.disabled=false;
+    }
+  }catch(err){
+    console.error('doAssignInsuranceToUser error:',err);
+    btn.textContent='Errore';btn.style.color='var(--red)';
+    showToast('Errore durante l\'assegnazione','error');
+    btn.disabled=false;
+  }
 }
 
 // === VIEW INSURED USERS MODAL ===
@@ -3727,11 +3761,20 @@ function showQuickAssignInsurance(userId){
 
 async function doQuickAssign(userId,btn){
   btn.disabled=true;btn.textContent='...';
-  const insId=document.getElementById('qa-ins-sel')?.value;
-  const expiry=document.getElementById('qa-ins-expiry')?.value;
-  const expiresAt=expiry?new Date(expiry+'T23:59:59').toISOString():null;
-  await assignInsuranceToUser(userId,insId,store.currentUser.id,expiresAt,{});
-  showToast('Assicurazione assegnata!');
+  try{
+    const insId=document.getElementById('qa-ins-sel')?.value;
+    const expiry=document.getElementById('qa-ins-expiry')?.value;
+    const expiresAt=expiry?new Date(expiry+'T23:59:59').toISOString():null;
+    const result=await assignInsuranceToUser(userId,insId,store.currentUser.id,expiresAt,{});
+    if(result){
+      showToast('Assicurazione assegnata!');
+    } else {
+      showToast('Errore: assegnazione non riuscita','error');
+    }
+  }catch(err){
+    console.error('doQuickAssign error:',err);
+    showToast('Errore durante l\'assegnazione','error');
+  }
   // Close both overlays and re-open user detail
   document.querySelectorAll('.overlay').forEach(o=>o.remove());
   openRegistryUserDetail(userId);
@@ -8420,7 +8463,7 @@ function go(view){
   if(view==='events'){_userEvCurrentMax=_userEvPageSize;renderUserEvents();initMobileFilters();}
   if(view==='jams'){renderUserJams();}
   if(view==='dashboard'){renderUserDashboard();}
-  if(view==='profile'){populateProfileFields();renderProfileUniverseSettings();renderAssistenzaBox();}
+  if(view==='profile'){ensureInsurancesLoaded().then(()=>renderProfileInsurances(store.currentUser));populateProfileFields();renderProfileUniverseSettings();renderAssistenzaBox();}
   if(view==='admin-events'){renderAdminEvents();setTimeout(()=>obShowTour('tour_admin_events'),400);}
   if(view==='admin'){renderAdminDashboard();setTimeout(()=>obShowTour('tour_admin_intro'),400);}
   if(view==='admin-bookings') renderAdminBookings();
@@ -8528,6 +8571,8 @@ function populateProfileFields(){
   if(statPresEl)statPresEl.textContent=myAttendances.length;
   const statDonEl=document.getElementById('stat-donazioni');
   if(statDonEl)statDonEl.textContent='€'+Math.round(totalDonations);
+  // Render assigned insurances
+  renderProfileInsurances(u);
   // Disable save button after populating, add change listener
   disableProfileSave();
   const pu=document.getElementById('profile-username');
@@ -8541,6 +8586,40 @@ function enableProfileSave(){
 function disableProfileSave(){
   const btn=document.getElementById('profile-save-btn');
   if(btn){btn.disabled=true;btn.style.opacity='.5';}
+}
+
+function renderProfileInsurances(u){
+  const card=document.getElementById('profile-insurances-card');
+  const list=document.getElementById('profile-insurances-list');
+  if(!card||!list)return;
+  // Merge from store.users record (Firestore source of truth) and currentUser
+  const userRec=store.users.find(x=>x.id===u.id);
+  const assignments=(userRec&&userRec.assignedInsurances)||u.assignedInsurances||[];
+  if(!assignments.length){card.style.display='none';return;}
+  card.style.display='';
+  let html='';
+  assignments.forEach(a=>{
+    const ins=store.insurances.find(i=>i.id===a.insuranceId);
+    const name=ins?ins.name:'Assicurazione sconosciuta';
+    const provider=ins&&ins.provider?ins.provider:'';
+    const badge=getInsuranceStatusBadge(a);
+    const assignedDate=a.assignedAt?fmtDateShort(a.assignedAt.split('T')[0]):'N/D';
+    let expiryInfo='';
+    if(a.expiresAt){
+      expiryInfo='Scade il: '+fmtDateShort(a.expiresAt.split('T')[0]);
+    } else if(ins&&ins.validTo){
+      expiryInfo='Polizza valida fino al: '+fmtDateShort(ins.validTo);
+    } else {
+      expiryInfo='Nessuna scadenza';
+    }
+    html+='<div style="padding:12px;border:1px solid var(--s400);border-radius:8px;margin-bottom:8px;background:var(--s200)">';
+    html+='<div class="flex items-center gap-2 mb-1"><span class="font-semibold text-white text-sm">'+esc(name)+'</span> '+badge+'</div>';
+    if(provider) html+='<div class="text-xs txt3">Ente: '+esc(provider)+'</div>';
+    html+='<div class="text-xs txt3">Assegnata il: '+assignedDate+'</div>';
+    html+='<div class="text-xs txt3">'+esc(expiryInfo)+'</div>';
+    html+='</div>';
+  });
+  list.innerHTML=html;
 }
 
 async function saveProfileChanges(){
@@ -10299,12 +10378,13 @@ function _doBookNormal(){
           items.push({type:'sessione',name:s.name,date:fmtDateShort(day.date),time:s.startTime+' — '+s.endTime,tier:tierLabel(tier),price});
           totalAmount+=price;
         }
-        // Session-level early bird
+        // Session-level early bird (fallback: day → event EB)
         const sEbGridId='tier-ebs-'+s.id;
-        if(selectedTiers[sEbGridId]&&s.earlyBird){
+        const _sEBcoll=s.earlyBird||day.earlyBird||ev.earlyBird;
+        if(selectedTiers[sEbGridId]&&_sEBcoll){
           hasSelection=true;
           const tier=selectedTiers[sEbGridId];
-          const price=s.earlyBird[tier]||0;
+          const price=_sEBcoll[tier]||0;
           items.push({type:'early bird sessione',name:'🐦 EB — '+s.name,date:fmtDateShort(day.date),time:s.startTime+' — '+s.endTime,tier:tierLabel(tier)+' (early bird)',price});
           totalAmount+=price;
         }
@@ -13518,14 +13598,15 @@ function buildFullPricingHtml(ev,prefix){
       html+='<p class="text-xs txt3 mb-2">Seleziona le sessioni:</p>';
       html+='<div style="max-width:90%;margin:0 auto">';
       day.sessions.forEach(s=>{
-        const sBtns=buildTierBtns(s.tiers,prefix+'tiers-'+s.id,s.earlyBird,ev.id,subDiscPct);
+        const _sEB=s.earlyBird||day.earlyBird||ev.earlyBird;
+        const sBtns=buildTierBtns(s.tiers,prefix+'tiers-'+s.id,_sEB,ev.id,subDiscPct);
         html+=`<div class="check-item mb-2" onclick="toggleCheck(this,'${s.id}')" style="padding:6px 8px">
           <div class="checkbox"><span style="display:none;color:#fff;font-size:.6rem">✓</span></div>
           <div class="flex-1"><div class="font-medium text-white" style="font-size:.82rem">${escHtml(s.name)}</div>
             <div class="flex gap-2 mt-1 items-center flex-wrap"><span class="text-xs txt3">🕐 ${s.startTime} — ${s.endTime}</span><span class="badge ${badgeLevel(s.level)}">${capitalize(s.level)}</span>${s.teacher?'<span class="text-xs txt3">👤 '+escHtml(s.teacher)+'</span>':''}</div>
           </div></div>`;
         if(sBtns) html+=`<div class="tier-grid mb-2 hidden" id="${prefix}tiers-${s.id}">${sBtns}</div>`;
-        html+=renderEarlyBirdGrid(s.earlyBird,prefix+'tier-ebs-'+s.id,ev.id,s.tiers,subDiscPct);
+        html+=renderEarlyBirdGrid(_sEB,prefix+'tier-ebs-'+s.id,ev.id,s.tiers,subDiscPct);
       });
       html+='</div>';
       html+='</div>';
@@ -13577,7 +13658,8 @@ function collectCheckinBookingData(ev,prefix){
         const gid=prefix+'tiers-'+s.id;
         if(selectedTiers[gid]){const tier=selectedTiers[gid];const price=s.tiers[tier]||0;items.push({type:'sessione',name:s.name,date:fmtDateShort(day.date),time:s.startTime+' — '+s.endTime,tier:tierLabel(tier),tierKey:tier,price,sessionId:s.id});totalAmount+=price;}
         const sEb=prefix+'tier-ebs-'+s.id;
-        if(selectedTiers[sEb]&&s.earlyBird){const tier=selectedTiers[sEb];const price=s.earlyBird[tier]||0;items.push({type:'early bird sessione',name:'🐦 EB — '+s.name,date:fmtDateShort(day.date),time:s.startTime+' — '+s.endTime,tier:tierLabel(tier)+' (EB)',tierKey:tier,price,sessionId:s.id});totalAmount+=price;}
+        const _sEBcoll2=s.earlyBird||day.earlyBird||ev.earlyBird;
+        if(selectedTiers[sEb]&&_sEBcoll2){const tier=selectedTiers[sEb];const price=_sEBcoll2[tier]||0;items.push({type:'early bird sessione',name:'🐦 EB — '+s.name,date:fmtDateShort(day.date),time:s.startTime+' — '+s.endTime,tier:tierLabel(tier)+' (EB)',tierKey:tier,price,sessionId:s.id});totalAmount+=price;}
       });
       const dayGid=prefix+'tier-day-'+ev.id+'-'+di;
       if(selectedTiers[dayGid]&&day.tiers){const tier=selectedTiers[dayGid];const price=day.tiers[tier]||0;items.push({type:'giornata',name:'Giornata — '+fmtDateShort(day.date),date:fmtDateShort(day.date),time:day.startTime+' — '+day.endTime,tier:tierLabel(tier),tierKey:tier,price});totalAmount+=price;}
@@ -13913,7 +13995,8 @@ function showEventDetail(evId,recDate){
       day.sessions.forEach(s=>{
         const sLoc=s.location?`<div class="text-xs txt3 mt-1">${s.locationUrl?'<a href="'+s.locationUrl+'" target="_blank" style="color:var(--brand-l)">📍 '+escHtml(s.location)+' ↗</a>':'📍 '+escHtml(s.location)}</div>`:'';
         if(!skipPricing){
-          const sBtns=buildTierBtns(s.tiers,'tiers-'+s.id,s.earlyBird,ev.id,_sdPct,_userHasEntrySub);
+          const _sEB2=s.earlyBird||day.earlyBird||ev.earlyBird;
+          const sBtns=buildTierBtns(s.tiers,'tiers-'+s.id,_sEB2,ev.id,_sdPct,_userHasEntrySub);
           daysHtml+=`<div class="check-item mb-2" onclick="toggleCheck(this,'${s.id}')" style="padding:8px 10px">
             <div class="checkbox"><span style="display:none;color:#fff;font-size:.6rem">✓</span></div>
             <div class="flex-1">
@@ -13922,7 +14005,7 @@ function showEventDetail(evId,recDate){
               ${s.description?'<div class="text-xs txt3 mt-1" style="line-height:1.3">'+escHtml(s.description)+'</div>':''}${sLoc}
             </div></div>`;
           if(sBtns) daysHtml+=`<div class="tier-grid mb-2 hidden" id="tiers-${s.id}">${sBtns}</div>`;
-          daysHtml+=renderEarlyBirdGrid(s.earlyBird,'tier-ebs-'+s.id,ev.id,s.tiers,_sdPct,_userHasEntrySub);
+          daysHtml+=renderEarlyBirdGrid(_sEB2,'tier-ebs-'+s.id,ev.id,s.tiers,_sdPct,_userHasEntrySub);
         } else {
           // Free/managed: show selectable check-items for sessions
           daysHtml+=`<div class="check-item mb-2" onclick="toggleFreeSession(this,'${s.id}')" style="padding:8px 10px;cursor:pointer">
@@ -14286,7 +14369,7 @@ function showEventDetail(evId,recDate){
         }
         return false;
       })();
-      if(_hasMultiTiers)obShowInfoCard('ic_event_detail_tiers','dynamic-event-detail',true);
+      // Tier info banner removed — users find it via pricing UI directly
     }
 
     if(evConfirmStatus==='attesa')obShowInfoCard('ic_event_detail_waiting','dynamic-event-detail');
@@ -16735,6 +16818,8 @@ function renderFormDays(){
   // Show/hide event-level pricing based on number of days and pricing mode
   const epSec=document.getElementById('ne-event-pricing-section');
   if(epSec) epSec.style.display=(!hidePricing&&formDays.length>1)?'':'none';
+  // Refresh event-level EB tier visibility (day/session tier inputs may have changed)
+  updateEventEBTierVisibility();
 }
 function updateDayTimesDisplay(di){
   // Read current session times from DOM for this day
@@ -16751,9 +16836,19 @@ function updateDayTimesDisplay(di){
   }
 }
 function updateEventEBTierVisibility(){
-  const hasAlto=!!document.getElementById('ne-tier-alto')?.value;
-  const hasMedio=!!document.getElementById('ne-tier-medio')?.value;
-  const hasBasso=!!document.getElementById('ne-tier-basso')?.value;
+  // Check ALL tier levels: event + day + session — so EB price inputs are visible
+  // even for single-day events where tiers are only at session/day level
+  let hasAlto=!!document.getElementById('ne-tier-alto')?.value;
+  let hasMedio=!!document.getElementById('ne-tier-medio')?.value;
+  let hasBasso=!!document.getElementById('ne-tier-basso')?.value;
+  // Scan day-level tier inputs
+  document.querySelectorAll('.ne-d-ta').forEach(el=>{if(el.value)hasAlto=true;});
+  document.querySelectorAll('.ne-d-tm').forEach(el=>{if(el.value)hasMedio=true;});
+  document.querySelectorAll('.ne-d-tb').forEach(el=>{if(el.value)hasBasso=true;});
+  // Scan session-level tier inputs
+  document.querySelectorAll('.ne-s-ta').forEach(el=>{if(el.value)hasAlto=true;});
+  document.querySelectorAll('.ne-s-tm').forEach(el=>{if(el.value)hasMedio=true;});
+  document.querySelectorAll('.ne-s-tb').forEach(el=>{if(el.value)hasBasso=true;});
   const aWrap=document.getElementById('ne-eb-alto-wrap');
   const mWrap=document.getElementById('ne-eb-medio-wrap');
   const bWrap=document.getElementById('ne-eb-basso-wrap');
