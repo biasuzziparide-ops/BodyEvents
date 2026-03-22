@@ -13634,17 +13634,7 @@ function buildFullPricingHtml(ev,prefix){
       <div class="flex items-center gap-2"><span style="font-size:1.1rem">${_discIcon}</span><span class="font-medium text-sm" style="color:var(--green)">${_discLabel}: -${subDiscPct}% su tutti i prezzi</span></div>
       <p class="text-xs txt3 mt-1">${_discDesc}</p></div>`;
   }
-  // V3.1.6: Tier explanation banner
-  const _fpHasTiers=(()=>{
-    const _ck=t=>t&&Object.values(t).filter(v=>v!=null&&v!==''&&v!==0).length>1;
-    if(_ck(ev.tiers))return true;
-    return ev.days.some(d=>_ck(d.tiers)||(d.sessions||[]).some(s=>_ck(s.tiers)));
-  })();
-  if(_fpHasTiers){
-    html+=`<div class="card mb-2" style="background:rgba(168,85,247,.05);border-color:rgba(168,85,247,.25);padding:8px 10px">
-      <div style="font-size:.7rem;font-weight:600;color:var(--brand-l);margin-bottom:2px">💜 Prezzi a scelta libera</div>
-      <p style="font-size:.68rem;color:var(--txt2);line-height:1.5">3 livelli: <strong style="color:var(--yellow)">✦ Sostenitore</strong>, <strong style="color:var(--brand-l)">● Standard</strong>, <strong style="color:var(--blue)">○ Ridotto</strong>. L'esperienza è identica per tutti.</p></div>`;
-  }
+  // V3.1.6: Tier explanation banner — REMOVED (user request)
   // Render each day with sessions and tiers
   ev.days.forEach((day,di)=>{
     html+=`<div class="card mb-2" style="border-color:var(--brand);background:rgba(217,70,239,.03);padding:10px 14px">
@@ -14000,20 +13990,7 @@ function showEventDetail(evId,recDate){
       <div class="flex items-center gap-2"><span style="font-size:1.3rem">${_dIcon}</span><span class="font-semibold" style="color:var(--green)">${_dLabel}: -${_sdPct}% su tutti i prezzi</span></div>
       <p class="text-xs txt3 mt-1">${_dDesc}</p></div>`;
   }
-  // V3.1.6: Tier explanation banner for users when multi-tier pricing is active
-  if(!skipPricing){
-    const _hasTiers=(()=>{
-      const _checkT=t=>t&&Object.values(t).filter(v=>v!=null&&v!==''&&v!==0).length>1;
-      if(_checkT(ev.tiers))return true;
-      return ev.days.some(d=>_checkT(d.tiers)||(d.sessions||[]).some(s=>_checkT(s.tiers)));
-    })();
-    if(_hasTiers){
-      daysHtml+=`<div class="card mb-4" style="background:rgba(168,85,247,.05);border-color:rgba(168,85,247,.25);padding:12px 14px">
-        <div class="flex items-center gap-2 mb-1"><span style="font-size:1rem">💜</span><span class="font-semibold text-sm" style="color:var(--brand-l)">Prezzi a scelta libera</span></div>
-        <p class="text-xs" style="color:var(--txt2);line-height:1.6">Questo evento offre 3 livelli di prezzo: <strong style="color:var(--yellow)">✦ Sostenitore</strong>, <strong style="color:var(--brand-l)">● Standard</strong> e <strong style="color:var(--blue)">○ Ridotto</strong>. L'esperienza è identica per tutti: scegli in base alle tue possibilità. Chi può, contribuisce un po' di più, rendendo l'evento accessibile a chi ne ha bisogno.</p>
-      </div>`;
-    }
-  }
+  // V3.1.6: Tier explanation banner — REMOVED (user request)
   // V3.1.7: Insurance requirement banner
   if(ev.insurance?.enabled&&ev.insurance.requiredInsuranceIds?.length){
     const _curUserId=store.currentUser?.id;
@@ -14407,23 +14384,7 @@ function showEventDetail(evId,recDate){
   // Show onboarding info cards for event detail
   setTimeout(()=>{
     if(ev.days&&ev.days.length>1)obShowInfoCard('ic_event_detail_pricing','dynamic-event-detail');
-    // Show tier ethics banner only if event actually has multiple price tiers (alto/basso)
-    if(!skipPricing){
-      const _hasMultiTiers=(()=>{
-        // Check event-level tiers
-        if(ev.tiers&&(ev.tiers.alto!=null||ev.tiers.basso!=null))return true;
-        // Check day-level tiers
-        if(ev.days)for(const d of ev.days){
-          if(d.tiers&&(d.tiers.alto!=null||d.tiers.basso!=null))return true;
-          // Check session-level tiers
-          if(d.sessions)for(const s of d.sessions){
-            if(s.tiers&&(s.tiers.alto!=null||s.tiers.basso!=null))return true;
-          }
-        }
-        return false;
-      })();
-      if(_hasMultiTiers)obShowInfoCard('ic_event_detail_tiers','dynamic-event-detail',true);
-    }
+    // Tier ethics banner — REMOVED (user request)
 
     if(evConfirmStatus==='attesa')obShowInfoCard('ic_event_detail_waiting','dynamic-event-detail');
   },300);
@@ -17967,10 +17928,18 @@ function initEventDates(){
   if(ed&&!ed.value)ed.value=today;
   updateBookingDeadlineDefault();
 }
-// Booking deadline default: empty (= end of last event day at 23:59)
+// Booking deadline default: 3 days before event start date
 function updateBookingDeadlineDefault(){
-  // No auto-fill — if user doesn't set it, deadline is end of last event day
-  // This function is kept as a no-op to avoid breaking existing onchange calls
+  const bdEl=document.getElementById('ne-booking-deadline');
+  if(!bdEl||bdEl._userEdited)return; // Don't overwrite if user already edited
+  const startDate=document.getElementById('ne-event-start-date')?.value;
+  if(!startDate){bdEl.value='';return;}
+  const d=new Date(startDate+'T00:00:00');
+  d.setDate(d.getDate()-3);
+  const today=localDateStr(new Date());
+  const defaultDate=localDateStr(d);
+  // If 3 days before is in the past, use today instead
+  bdEl.value=defaultDate<today?today:defaultDate;
 }
 function validateBookingDeadline(input){
   input._userEdited=true;
