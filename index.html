@@ -3081,7 +3081,7 @@ let _insurancesLoaded=false;
 async function ensureBookingsLoaded(){
   if(_bookingsLoaded)return;
   const snap=await fbDb.collection('bookings').get();
-  store.bookings=[];snap.forEach(doc=>{const d=doc.data();if(!d.id)d.id=doc.id;store.bookings.push(d);});
+  store.bookings=[];snap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.bookings.push(d);});
   _bookingsLoaded=true;
   _userOwnBookingsLoaded=true;
   // Run booking migrations once (need all bookings)
@@ -3122,7 +3122,7 @@ async function ensureSubscriptionsLoaded(){
 async function ensureUsersLoaded(){
   if(_usersFullyLoaded)return;
   const snap=await fbDb.collection('users').get();
-  store.users=[];snap.forEach(doc=>{const d=doc.data();if(!d.id)d.id=doc.id;store.users.push(d);});
+  store.users=[];snap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.users.push(d);});
   _usersFullyLoaded=true;
 }
 
@@ -3130,7 +3130,7 @@ async function ensureInsurancesLoaded(){
   if(_insurancesLoaded)return;
   try{
     const snap=await fbDb.collection('insurances').get();
-    store.insurances=[];snap.forEach(doc=>{const d=doc.data();if(!d.id)d.id=doc.id;store.insurances.push(d);});
+    store.insurances=[];snap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.insurances.push(d);});
   }catch(e){console.warn('Insurances load skipped:',e.message);store.insurances=[];}
   _insurancesLoaded=true;
 }
@@ -3845,10 +3845,10 @@ async function loadAllData(forceReload){
       fbDb.collection('communityJams').get(),
       fbDb.collection('universes').get()
     ]);
-    store.managers=[];managersSnap.forEach(doc=>{const d=doc.data();if(!d.id)d.id=doc.id;store.managers.push(d);});
-    store.events=[];eventsSnap.forEach(doc=>{const d=doc.data();if(!d.id)d.id=doc.id;store.events.push(d);});
-    store.communityJams=[];jamsSnap.forEach(doc=>{const d=doc.data();if(!d.id)d.id=doc.id;store.communityJams.push(d);});
-    store.universes=[];universesSnap.forEach(doc=>{const d=doc.data();if(!d.id)d.id=doc.id;store.universes.push(d);});
+    store.managers=[];managersSnap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.managers.push(d);});
+    store.events=[];eventsSnap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.events.push(d);});
+    store.communityJams=[];jamsSnap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.communityJams.push(d);});
+    store.universes=[];universesSnap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.universes.push(d);});
     // Ensure all universes have the 4 default event types + clean duplicates
     store.universes.forEach(u=>ensureUniverseHasEventTypes(u));
     // Migrate legacy custom type keys that duplicate defaults (e.g. "community event" → "social")
@@ -7988,7 +7988,7 @@ async function loginWithGoogle(){
         // This "privacy gate" pattern ensures no data processing before consent.
         const now=new Date().toISOString();
         // Auto-subscribe to all active universes (load from Firestore if store empty)
-        if(!store.universes.length){try{const snap=await fbDb.collection('universes').get();store.universes=[];snap.forEach(doc=>{const d=doc.data();if(!d.id)d.id=doc.id;store.universes.push(d);});}catch(e){}}
+        if(!store.universes.length){try{const snap=await fbDb.collection('universes').get();store.universes=[];snap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.universes.push(d);});}catch(e){}}
         const activeUnivs=getActiveUniverses();
         const subscribedUniverses=activeUnivs.map(u=>({universeId:u.id,preferredRole:u.roles&&u.roles[0]||''}));
         // Derive initial role from first universe's first role (if any)
@@ -8086,38 +8086,15 @@ async function loadCurrentUser(uid){
   try{
   // Load all data from Firestore first
   await loadAllData();
-  let userDoc=await fbDb.collection('users').doc(uid).get();
-  if(userDoc.exists){
-    store.currentUser=userDoc.data();
-    if(!store.currentUser.id)store.currentUser.id=uid;
-    if(!store.users.find(u=>u.id===uid)){const _ud=userDoc.data();if(!_ud.id)_ud.id=uid;store.users.push(_ud);}
-    // V3.1.5: Preload only this user's bookings (fast, filtered query)
-    await ensureUserBookingsLoaded(uid);
-    // Check if no master exists — show master setup for first user
-    if(!checkMasterExists()){
-      document.getElementById('modeBanner').style.display='none';
-      document.getElementById('navbar-user').classList.remove('hidden');
-      go('events');
-      showMasterSetup();
-      return;
-    }
-    // Update navbar name
-    document.querySelectorAll('.profile-name-user').forEach(el=>el.textContent=store.currentUser.username||'');
-    updateUserAvatarDisplay();
-    // Hide mode banner for regular users
-    document.getElementById('modeBanner').style.display='none';
-    document.getElementById('navbar-user').classList.remove('hidden');
-    if(_pendingDeepLink){go('events');await handleDeepLink();}
-    else{go('events');}
-    // FAB tooltip replaces the old welcome tour for users
-    checkPrivacyConsent();
-    return;
-  }
+  // V3.1.7 FIX: Check managers FIRST — a user who is also a manager must be treated as manager
   let mgrDoc=await fbDb.collection('managers').doc(uid).get();
   if(mgrDoc.exists){
     store.currentUser=mgrDoc.data();
-    if(!store.currentUser.id)store.currentUser.id=uid;
-    if(!store.managers.find(m=>m.id===uid)){const _md=mgrDoc.data();if(!_md.id)_md.id=uid;store.managers.push(_md);}
+    store.currentUser.id=uid; // ALWAYS force to Firebase Auth UID
+    // Ensure store.managers has this entry with correct ID
+    const existingMgr=store.managers.find(m=>m.id===uid);
+    if(existingMgr){Object.assign(existingMgr,store.currentUser);}
+    else{const _md=mgrDoc.data();_md.id=uid;store.managers.push(_md);}
 
     // Block access if pending approval
     if(store.currentUser.status==='pending_approval'){
@@ -8147,6 +8124,33 @@ async function loadCurrentUser(uid){
     _loadDeferredAdminData();
     // Show welcome tour for new organizers (first login)
     setTimeout(()=>obShowTour('tour_welcome_org'),600);
+    checkPrivacyConsent();
+    return;
+  }
+  // If not a manager, check users collection
+  let userDoc=await fbDb.collection('users').doc(uid).get();
+  if(userDoc.exists){
+    store.currentUser=userDoc.data();
+    store.currentUser.id=uid; // ALWAYS force to Firebase Auth UID
+    if(!store.users.find(u=>u.id===uid)){const _ud=userDoc.data();_ud.id=uid;store.users.push(_ud);}
+    // V3.1.5: Preload only this user's bookings (fast, filtered query)
+    await ensureUserBookingsLoaded(uid);
+    // Check if no master exists — show master setup for first user
+    if(!checkMasterExists()){
+      document.getElementById('modeBanner').style.display='none';
+      document.getElementById('navbar-user').classList.remove('hidden');
+      go('events');
+      showMasterSetup();
+      return;
+    }
+    // Update navbar name
+    document.querySelectorAll('.profile-name-user').forEach(el=>el.textContent=store.currentUser.username||'');
+    updateUserAvatarDisplay();
+    // Hide mode banner for regular users
+    document.getElementById('modeBanner').style.display='none';
+    document.getElementById('navbar-user').classList.remove('hidden');
+    if(_pendingDeepLink){go('events');await handleDeepLink();}
+    else{go('events');}
     checkPrivacyConsent();
     return;
   }
@@ -8216,7 +8220,7 @@ async function submitUserRegistration(){
     await cred.user.updateProfile({displayName:username});
     const now=new Date().toISOString();
     // Auto-subscribe to all active universes (load from Firestore if store empty)
-    if(!store.universes.length){try{const snap=await fbDb.collection('universes').get();store.universes=[];snap.forEach(doc=>{const d=doc.data();if(!d.id)d.id=doc.id;store.universes.push(d);});}catch(e){}}
+    if(!store.universes.length){try{const snap=await fbDb.collection('universes').get();store.universes=[];snap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.universes.push(d);});}catch(e){}}
     const activeUnivs=getActiveUniverses();
     const subscribedUniverses=activeUnivs.map(u=>({universeId:u.id,preferredRole:u.roles&&u.roles[0]||''}));
     const userData={
@@ -8323,7 +8327,7 @@ async function populateRegoUniverses(){
   if(!c)return;
   // Load universes if not loaded yet (user might not be logged in)
   if(!store.universes.length){
-    try{const snap=await fbDb.collection('universes').get();store.universes=[];snap.forEach(doc=>{const d=doc.data();if(!d.id)d.id=doc.id;store.universes.push(d);});}catch(e){console.error('Load universes for reg:',e);}
+    try{const snap=await fbDb.collection('universes').get();store.universes=[];snap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.universes.push(d);});}catch(e){console.error('Load universes for reg:',e);}
   }
   const active=getActiveUniverses();
   if(!active.length){c.innerHTML='<div class="text-xs txt3">Nessun universo disponibile ancora.</div>';return;}
@@ -8497,7 +8501,7 @@ function go(view){
   window.scrollTo(0,0);
   const noNav=['login','register','register-org','privacy-policy','checkin-booked','checkin-walkin','checkin-new'];
   const hideAll=noNav.includes(view);
-  const isManagerOrMaster=store.managers.some(m=>m.id===store.currentUser.id);
+  const isManagerOrMaster=store.managers.some(m=>m.id===store.currentUser?.id)||currentMode==='admin';
   const showBanner=!hideAll&&isManagerOrMaster;
   document.getElementById('modeBanner').style.display=showBanner?'':'none';
   const _navUser=document.getElementById('navbar-user');
@@ -20433,7 +20437,7 @@ fbAuth.getRedirectResult().then(async(result)=>{
       let mgrDoc=await fbDb.collection('managers').doc(user.uid).get();
       if(!mgrDoc.exists){
         const now=new Date().toISOString();
-        if(!store.universes.length){try{const snap=await fbDb.collection('universes').get();store.universes=[];snap.forEach(doc=>{const d=doc.data();if(!d.id)d.id=doc.id;store.universes.push(d);});}catch(e){}}
+        if(!store.universes.length){try{const snap=await fbDb.collection('universes').get();store.universes=[];snap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.universes.push(d);});}catch(e){}}
         const activeUnivs=getActiveUniverses();
         const subscribedUniverses=activeUnivs.map(u=>({universeId:u.id,preferredRole:u.roles&&u.roles[0]||''}));
         const _initRole=(()=>{const r=(subscribedUniverses[0]&&subscribedUniverses[0].preferredRole||'').toLowerCase();if(r.includes('fly'))return 'flyer';if(r.includes('bas'))return 'base';if(r.includes('entramb'))return 'entrambi';return 'non_so';})();
