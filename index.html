@@ -3081,7 +3081,7 @@ let _insurancesLoaded=false;
 async function ensureBookingsLoaded(){
   if(_bookingsLoaded)return;
   const snap=await fbDb.collection('bookings').get();
-  store.bookings=[];snap.forEach(doc=>{store.bookings.push(doc.data());});
+  store.bookings=[];snap.forEach(doc=>{const d=doc.data();if(!d.id)d.id=doc.id;store.bookings.push(d);});
   _bookingsLoaded=true;
   _userOwnBookingsLoaded=true;
   // Run booking migrations once (need all bookings)
@@ -3130,7 +3130,7 @@ async function ensureInsurancesLoaded(){
   if(_insurancesLoaded)return;
   try{
     const snap=await fbDb.collection('insurances').get();
-    store.insurances=[];snap.forEach(doc=>{store.insurances.push(doc.data());});
+    store.insurances=[];snap.forEach(doc=>{const d=doc.data();if(!d.id)d.id=doc.id;store.insurances.push(d);});
   }catch(e){console.warn('Insurances load skipped:',e.message);store.insurances=[];}
   _insurancesLoaded=true;
 }
@@ -3845,10 +3845,10 @@ async function loadAllData(forceReload){
       fbDb.collection('communityJams').get(),
       fbDb.collection('universes').get()
     ]);
-    store.managers=[];managersSnap.forEach(doc=>{store.managers.push(doc.data());});
-    store.events=[];eventsSnap.forEach(doc=>{store.events.push(doc.data());});
-    store.communityJams=[];jamsSnap.forEach(doc=>{store.communityJams.push(doc.data());});
-    store.universes=[];universesSnap.forEach(doc=>{store.universes.push(doc.data());});
+    store.managers=[];managersSnap.forEach(doc=>{const d=doc.data();if(!d.id)d.id=doc.id;store.managers.push(d);});
+    store.events=[];eventsSnap.forEach(doc=>{const d=doc.data();if(!d.id)d.id=doc.id;store.events.push(d);});
+    store.communityJams=[];jamsSnap.forEach(doc=>{const d=doc.data();if(!d.id)d.id=doc.id;store.communityJams.push(d);});
+    store.universes=[];universesSnap.forEach(doc=>{const d=doc.data();if(!d.id)d.id=doc.id;store.universes.push(d);});
     // Ensure all universes have the 4 default event types + clean duplicates
     store.universes.forEach(u=>ensureUniverseHasEventTypes(u));
     // Migrate legacy custom type keys that duplicate defaults (e.g. "community event" → "social")
@@ -7988,7 +7988,7 @@ async function loginWithGoogle(){
         // This "privacy gate" pattern ensures no data processing before consent.
         const now=new Date().toISOString();
         // Auto-subscribe to all active universes (load from Firestore if store empty)
-        if(!store.universes.length){try{const snap=await fbDb.collection('universes').get();store.universes=[];snap.forEach(doc=>{store.universes.push(doc.data());});}catch(e){}}
+        if(!store.universes.length){try{const snap=await fbDb.collection('universes').get();store.universes=[];snap.forEach(doc=>{const d=doc.data();if(!d.id)d.id=doc.id;store.universes.push(d);});}catch(e){}}
         const activeUnivs=getActiveUniverses();
         const subscribedUniverses=activeUnivs.map(u=>({universeId:u.id,preferredRole:u.roles&&u.roles[0]||''}));
         // Derive initial role from first universe's first role (if any)
@@ -8089,7 +8089,8 @@ async function loadCurrentUser(uid){
   let userDoc=await fbDb.collection('users').doc(uid).get();
   if(userDoc.exists){
     store.currentUser=userDoc.data();
-    if(!store.users.find(u=>u.id===uid)){store.users.push(userDoc.data());}
+    if(!store.currentUser.id)store.currentUser.id=uid;
+    if(!store.users.find(u=>u.id===uid)){const _ud=userDoc.data();if(!_ud.id)_ud.id=uid;store.users.push(_ud);}
     // V3.1.5: Preload only this user's bookings (fast, filtered query)
     await ensureUserBookingsLoaded(uid);
     // Check if no master exists — show master setup for first user
@@ -8115,7 +8116,8 @@ async function loadCurrentUser(uid){
   let mgrDoc=await fbDb.collection('managers').doc(uid).get();
   if(mgrDoc.exists){
     store.currentUser=mgrDoc.data();
-    if(!store.managers.find(m=>m.id===uid)){store.managers.push(mgrDoc.data());}
+    if(!store.currentUser.id)store.currentUser.id=uid;
+    if(!store.managers.find(m=>m.id===uid)){const _md=mgrDoc.data();if(!_md.id)_md.id=uid;store.managers.push(_md);}
 
     // Block access if pending approval
     if(store.currentUser.status==='pending_approval'){
@@ -8214,7 +8216,7 @@ async function submitUserRegistration(){
     await cred.user.updateProfile({displayName:username});
     const now=new Date().toISOString();
     // Auto-subscribe to all active universes (load from Firestore if store empty)
-    if(!store.universes.length){try{const snap=await fbDb.collection('universes').get();store.universes=[];snap.forEach(doc=>{store.universes.push(doc.data());});}catch(e){}}
+    if(!store.universes.length){try{const snap=await fbDb.collection('universes').get();store.universes=[];snap.forEach(doc=>{const d=doc.data();if(!d.id)d.id=doc.id;store.universes.push(d);});}catch(e){}}
     const activeUnivs=getActiveUniverses();
     const subscribedUniverses=activeUnivs.map(u=>({universeId:u.id,preferredRole:u.roles&&u.roles[0]||''}));
     const userData={
@@ -8321,7 +8323,7 @@ async function populateRegoUniverses(){
   if(!c)return;
   // Load universes if not loaded yet (user might not be logged in)
   if(!store.universes.length){
-    try{const snap=await fbDb.collection('universes').get();store.universes=[];snap.forEach(doc=>{store.universes.push(doc.data());});}catch(e){console.error('Load universes for reg:',e);}
+    try{const snap=await fbDb.collection('universes').get();store.universes=[];snap.forEach(doc=>{const d=doc.data();if(!d.id)d.id=doc.id;store.universes.push(d);});}catch(e){console.error('Load universes for reg:',e);}
   }
   const active=getActiveUniverses();
   if(!active.length){c.innerHTML='<div class="text-xs txt3">Nessun universo disponibile ancora.</div>';return;}
@@ -20431,7 +20433,7 @@ fbAuth.getRedirectResult().then(async(result)=>{
       let mgrDoc=await fbDb.collection('managers').doc(user.uid).get();
       if(!mgrDoc.exists){
         const now=new Date().toISOString();
-        if(!store.universes.length){try{const snap=await fbDb.collection('universes').get();store.universes=[];snap.forEach(doc=>{store.universes.push(doc.data());});}catch(e){}}
+        if(!store.universes.length){try{const snap=await fbDb.collection('universes').get();store.universes=[];snap.forEach(doc=>{const d=doc.data();if(!d.id)d.id=doc.id;store.universes.push(d);});}catch(e){}}
         const activeUnivs=getActiveUniverses();
         const subscribedUniverses=activeUnivs.map(u=>({universeId:u.id,preferredRole:u.roles&&u.roles[0]||''}));
         const _initRole=(()=>{const r=(subscribedUniverses[0]&&subscribedUniverses[0].preferredRole||'').toLowerCase();if(r.includes('fly'))return 'flyer';if(r.includes('bas'))return 'base';if(r.includes('entramb'))return 'entrambi';return 'non_so';})();
