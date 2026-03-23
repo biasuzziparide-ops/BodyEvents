@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V3.1.8</title>
+<title>BodyEvents — V3.2</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -220,6 +220,11 @@ textarea.input{resize:none;font-family:inherit}
 .mtn-item .mtn-label{font-size:.6rem;font-weight:600;color:var(--txt3);line-height:1;white-space:nowrap}
 .mtn-item.active .mtn-label{color:var(--brand-l)}
 
+/* V3.2: Unified collapsible filter panel (all screen sizes) */
+#filter-panel #desktop-search-wrap{display:none!important}
+#filter-panel.mf-collapsed{max-height:0!important;overflow:hidden!important;border:none!important;margin:0!important;opacity:0;transition:max-height .4s ease,opacity .3s ease,margin .3s ease}
+#filter-panel.mf-expanded{max-height:900px!important;opacity:1;transition:max-height .45s ease,opacity .3s ease,margin .3s ease;margin-bottom:24px!important}
+
 /* === RESPONSIVE === */
 @media(max-width:768px){
   /* === GLOBAL OVERFLOW PREVENTION === */
@@ -254,10 +259,7 @@ textarea.input{resize:none;font-family:inherit}
   .stat-card{padding:12px}
   .stat-card .value{font-size:1.2rem}
   .tier-suggest-banner-inner{padding:14px 40px 14px 14px}
-  #mobile-search-wrap{display:block!important}
-  #filter-panel #desktop-search-wrap{display:none!important}
-  #filter-panel.mf-collapsed{max-height:0!important;overflow:hidden!important;border:none!important;margin:0!important;opacity:0;transition:max-height .4s ease,opacity .3s ease,margin .3s ease}
-  #filter-panel.mf-expanded{max-height:900px!important;opacity:1;transition:max-height .45s ease,opacity .3s ease,margin .3s ease;margin-bottom:24px!important}
+  /* V3.2: mobile-search-wrap and filter-panel styles moved to global scope */
   /* Force ALL inline multi-column grids to stack on mobile */
   [style*="grid-template-columns:1fr 1fr"],[style*="grid-template-columns: 1fr 1fr"]{grid-template-columns:1fr!important}
   [style*="grid-template-columns:repeat(2"]{grid-template-columns:1fr!important}
@@ -396,7 +398,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.1.8</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.2</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -529,8 +531,8 @@ textarea.input{resize:none;font-family:inherit}
   <h1 class="page-title">Home</h1>
   <p class="page-sub mb-6">Scopri i prossimi eventi e prenota il tuo posto</p>
 
-  <!-- Mobile: search bar che si espande -->
-  <div id="mobile-search-wrap" style="display:none;margin-bottom:16px">
+  <!-- Search bar (always visible, expands filter panel on click) -->
+  <div id="mobile-search-wrap" style="margin-bottom:16px">
     <div id="mobile-search-bar" onclick="expandMobileSearch()" style="position:relative;cursor:pointer">
       <div style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--txt3);font-size:.85rem;pointer-events:none" id="mobile-search-icon">🔍</div>
       <input class="input" id="mobile-search-input" readonly
@@ -545,8 +547,8 @@ textarea.input{resize:none;font-family:inherit}
 
   <!-- Filtri avanzati -->
   <div class="card mb-6" id="filter-panel" style="padding:0;overflow:hidden">
-    <!-- Barra di ricerca principale (desktop) -->
-    <div style="padding:16px 20px;background:var(--s100);border-bottom:1px solid var(--s300)" id="desktop-search-wrap">
+    <!-- Barra di ricerca principale (desktop) — V3.2: hidden, using unified search bar -->
+    <div style="padding:16px 20px;background:var(--s100);border-bottom:1px solid var(--s300);display:none" id="desktop-search-wrap">
       <div style="position:relative">
         <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--txt3);font-size:.875rem;pointer-events:none">🔍</span>
         <input class="input" style="padding-left:38px;background:var(--s50);border-color:var(--s400)" placeholder="Cerca eventi, insegnanti, location..." id="filter-text" oninput="renderUserEvents()">
@@ -555,9 +557,9 @@ textarea.input{resize:none;font-family:inherit}
     <!-- Filtri principali (sempre visibili) -->
     <div class="filter-grid" style="padding:12px 16px;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end">
       <div>
-        <label class="label" style="font-size:.65rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:3px">Zona</label>
+        <label class="label" style="font-size:.65rem;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:3px">Zona / Città</label>
         <select class="input" id="filter-zona" onchange="renderUserEvents()" style="padding:7px 28px 7px 10px;font-size:.8rem">
-          <option value="">Tutte</option>
+          <option value="">Tutte le zone</option>
         </select>
       </div>
       <div>
@@ -2725,7 +2727,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.1.8';
+const APP_VERSION='V3.2';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -3193,13 +3195,17 @@ function isInsuranceCurrentlyValid(ins){
   return true;
 }
 
+// V3.2: Helper to find a person (user or manager) by ID
+function findPersonById(userId){
+  return store.users.find(u=>u.id===userId)||store.managers.find(m=>m.id===userId)||null;
+}
+
 function getUserActiveInsurances(userId,managerAffiliatedIds){
-  const user=store.users.find(u=>u.id===userId);
+  const user=findPersonById(userId);
   if(!user||!user.assignedInsurances)return [];
-  const now=new Date().toISOString();
   return user.assignedInsurances.filter(a=>{
-    if(a.expiresAt&&a.expiresAt<now)return false;
     if(managerAffiliatedIds&&!managerAffiliatedIds.includes(a.insuranceId))return false;
+    // V3.2: Use insurance entity validity as authoritative source
     const ins=store.insurances.find(i=>i.id===a.insuranceId);
     return isInsuranceCurrentlyValid(ins);
   });
@@ -3207,13 +3213,13 @@ function getUserActiveInsurances(userId,managerAffiliatedIds){
 
 function isUserInsured(userId,requiredInsuranceIds){
   if(!requiredInsuranceIds||!requiredInsuranceIds.length)return true;
-  const user=store.users.find(u=>u.id===userId);
+  const user=findPersonById(userId);
   if(!user||!user.assignedInsurances)return false;
-  const now=new Date().toISOString();
+  // V3.2: Use insurance entity validity as authoritative source
   return requiredInsuranceIds.some(reqId=>{
     const ins=store.insurances.find(i=>i.id===reqId);
     if(!isInsuranceCurrentlyValid(ins))return false;
-    return user.assignedInsurances.some(a=>a.insuranceId===reqId&&(!a.expiresAt||a.expiresAt>=now));
+    return user.assignedInsurances.some(a=>a.insuranceId===reqId);
   });
 }
 
@@ -3222,20 +3228,26 @@ function getInsuranceName(insId){
   return ins?ins.name:'Assicurazione sconosciuta';
 }
 
+// V3.2: Get the effective expiry for an insurance assignment
+// ALWAYS uses insurance entity's validTo as the authoritative source, NOT the cached assignment.expiresAt
+function getEffectiveInsuranceExpiry(assignment){
+  const ins=store.insurances.find(i=>i.id===assignment.insuranceId);
+  // Insurance entity's validTo is authoritative; assignment.expiresAt is only a cache/fallback
+  return ins?.validTo||assignment.expiresAt||null;
+}
+
 function getInsuranceStatusBadge(assignment){
   if(!assignment)return '';
   const now=new Date().toISOString();
-  const nowMs=Date.now();
-  // Check assignment expiry
-  const exp=assignment.expiresAt;
-  if(exp&&exp<now)return '<span style="font-size:.68rem;padding:2px 6px;border-radius:4px;background:rgba(239,68,68,.12);color:var(--red);font-weight:600">Scaduta</span>';
-  // Check the insurance entity's own validTo date
   const ins=store.insurances.find(i=>i.id===assignment.insuranceId);
-  if(ins&&ins.validTo&&ins.validTo<now)return '<span style="font-size:.68rem;padding:2px 6px;border-radius:4px;background:rgba(239,68,68,.12);color:var(--red);font-weight:600">Polizza scaduta</span>';
+  // Check the insurance entity's own validity FIRST (authoritative)
+  if(ins&&ins.validTo&&ins.validTo<now)return '<span style="font-size:.68rem;padding:2px 6px;border-radius:4px;background:rgba(239,68,68,.12);color:var(--red);font-weight:600">Scaduta</span>';
   if(ins&&ins.validFrom&&ins.validFrom>now)return '<span style="font-size:.68rem;padding:2px 6px;border-radius:4px;background:rgba(99,102,241,.12);color:var(--brand-l);font-weight:600">Non ancora attiva</span>';
-  // Check the earliest expiry (assignment or insurance)
-  const effectiveExpiry=(!exp&&ins?.validTo)?ins.validTo:(exp&&ins?.validTo)?((exp<ins.validTo)?exp:ins.validTo):exp;
-  if(effectiveExpiry){
+  // Fallback: check assignment expiry only if no insurance entity found
+  if(!ins&&assignment.expiresAt&&assignment.expiresAt<now)return '<span style="font-size:.68rem;padding:2px 6px;border-radius:4px;background:rgba(239,68,68,.12);color:var(--red);font-weight:600">Scaduta</span>';
+  // Check effective expiry for "expiring soon" warning
+  const effectiveExpiry=getEffectiveInsuranceExpiry(assignment);
+  if(effectiveExpiry&&effectiveExpiry>=now){
     const daysLeft=Math.ceil((new Date(effectiveExpiry)-new Date())/(1000*60*60*24));
     if(daysLeft<=30)return '<span style="font-size:.68rem;padding:2px 6px;border-radius:4px;background:rgba(245,158,11,.12);color:var(--warn);font-weight:600">Scade tra '+daysLeft+'gg</span>';
   }
@@ -3255,33 +3267,39 @@ async function updateInsurance(insId,updates){
   const oldValidTo=ins.validTo;
   Object.assign(ins,updates);
   await fsUpdate('insurances',insId,updates);
-  // V3.1.8 FIX: Propagate validTo change to all user assignments
+  // V3.2 FIX: Propagate validTo change to all user assignments
   if(updates.validTo!==undefined&&updates.validTo!==oldValidTo){
     await propagateInsuranceDatesToUsers(insId,updates.validTo);
   }
   return ins;
 }
 
-// Propagate insurance validTo to all users who have this insurance assigned
+// Propagate insurance validTo to all users AND managers who have this insurance assigned
 async function propagateInsuranceDatesToUsers(insId,newValidTo){
   await ensureUsersLoaded();
   let updatedCount=0;
+  // Update users
   for(const user of store.users){
     if(!user.assignedInsurances||!user.assignedInsurances.length)continue;
     let changed=false;
-    user.assignedInsurances.forEach(a=>{
-      if(a.insuranceId===insId){
-        a.expiresAt=newValidTo||null;
-        changed=true;
-      }
-    });
+    user.assignedInsurances.forEach(a=>{if(a.insuranceId===insId){a.expiresAt=newValidTo||null;changed=true;}});
     if(changed){
       await fsUpdate('users',user.id,{assignedInsurances:user.assignedInsurances}).catch(err=>console.error('propagateInsuranceDates: failed for user',user.id,err));
       updatedCount++;
     }
   }
+  // Update managers (organizers can also have assigned insurances)
+  for(const mgr of store.managers){
+    if(!mgr.assignedInsurances||!mgr.assignedInsurances.length)continue;
+    let changed=false;
+    mgr.assignedInsurances.forEach(a=>{if(a.insuranceId===insId){a.expiresAt=newValidTo||null;changed=true;}});
+    if(changed){
+      await fsUpdate('managers',mgr.id,{assignedInsurances:mgr.assignedInsurances}).catch(err=>console.error('propagateInsuranceDates: failed for manager',mgr.id,err));
+      updatedCount++;
+    }
+  }
   if(updatedCount>0){
-    console.info('propagateInsuranceDatesToUsers: updated '+updatedCount+' users for insurance '+insId);
+    console.info('propagateInsuranceDatesToUsers: updated '+updatedCount+' records for insurance '+insId);
     showToast('Date aggiornate per '+updatedCount+' utenti assicurati');
   }
 }
@@ -3307,33 +3325,58 @@ async function unaffiliateInsuranceFromManager(managerId,insuranceId){
 }
 
 async function assignInsuranceToUser(userId,insuranceId,assignedBy,expiresAt,surveyAnswers){
-  let user=store.users.find(u=>u.id===userId);
+  let user=null;
   let firestoreId=userId;
-  // Try by email if not found by ID
+  let firestoreCollection='users'; // which Firestore collection to write to
+
+  // V3.2 FIX: Check managers FIRST — organizers may not have a users/ doc
+  const mgr=store.managers.find(m=>m.id===userId);
+  if(mgr){
+    user=mgr;firestoreId=mgr.id;firestoreCollection='managers';
+  }
+  // Also try managers by email
+  if(!user){
+    const mgrByEmail=store.managers.find(m=>m.email===userId);
+    if(mgrByEmail){user=mgrByEmail;firestoreId=mgrByEmail.id;firestoreCollection='managers';}
+  }
+  // Check users store
+  if(!user){
+    user=store.users.find(u=>u.id===userId);
+    if(user)firestoreId=user.id;
+  }
+  // Try by email in users
   if(!user){
     user=store.users.find(u=>u.email===userId);
     if(user)firestoreId=user.id;
   }
-  // Fallback: fetch from Firestore by doc ID
+  // Fallback: fetch from Firestore by doc ID (try managers first, then users)
   if(!user){
     try{
-      const doc=await fbDb.collection('users').doc(userId).get();
+      let doc=await fbDb.collection('managers').doc(userId).get();
       if(doc.exists){
         user=doc.data();if(!user.id)user.id=doc.id;
-        firestoreId=doc.id;
-        const idx=store.users.findIndex(u=>u.id===firestoreId);
-        if(idx>=0)store.users[idx]=user;else store.users.push(user);
+        firestoreId=doc.id;firestoreCollection='managers';
+        const idx=store.managers.findIndex(m=>m.id===firestoreId);
+        if(idx>=0)store.managers[idx]=user;else store.managers.push(user);
+      } else {
+        doc=await fbDb.collection('users').doc(userId).get();
+        if(doc.exists){
+          user=doc.data();if(!user.id)user.id=doc.id;
+          firestoreId=doc.id;firestoreCollection='users';
+          const idx=store.users.findIndex(u=>u.id===firestoreId);
+          if(idx>=0)store.users[idx]=user;else store.users.push(user);
+        }
       }
     }catch(e){console.warn('assignInsurance: Firestore doc lookup failed',e);}
   }
-  // Fallback: Firestore email query
+  // Fallback: Firestore email query (users)
   if(!user){
     try{
       const snap=await fbDb.collection('users').where('email','==',userId).limit(1).get();
       if(!snap.empty){
         const doc=snap.docs[0];
         user=doc.data();if(!user.id)user.id=doc.id;
-        firestoreId=doc.id;
+        firestoreId=doc.id;firestoreCollection='users';
         const idx=store.users.findIndex(u=>u.id===firestoreId);
         if(idx>=0)store.users[idx]=user;else store.users.push(user);
       }
@@ -3341,40 +3384,44 @@ async function assignInsuranceToUser(userId,insuranceId,assignedBy,expiresAt,sur
   }
   // Fallback: resolve through registry
   if(!user){
-    const mgr=store.managers.find(m=>m.id===assignedBy);
-    const regEntry=mgr?.registry?.entries?.find(e=>e.uid===userId);
+    const assignerMgr=store.managers.find(m=>m.id===assignedBy);
+    const regEntry=assignerMgr?.registry?.entries?.find(e=>e.uid===userId);
     if(regEntry&&regEntry.email){
       user=store.users.find(u=>u.email===regEntry.email);
       if(user)firestoreId=user.id;
     }
   }
-  // Last resort: create stub user
+  // Last resort: create stub user in users collection
   if(!user){
-    const mgr=store.managers.find(m=>m.id===assignedBy);
-    const regEntry=mgr?.registry?.entries?.find(e=>e.uid===userId);
+    const assignerMgr=store.managers.find(m=>m.id===assignedBy);
+    const regEntry=assignerMgr?.registry?.entries?.find(e=>e.uid===userId);
     user={id:userId,username:regEntry?.name||userId,email:regEntry?.email||'',assignedInsurances:[]};
-    firestoreId=userId;
+    firestoreId=userId;firestoreCollection='users';
     store.users.push(user);
   }
   if(!user.assignedInsurances)user.assignedInsurances=[];
   const now=new Date().toISOString();
-  const existing=user.assignedInsurances.find(a=>a.insuranceId===insuranceId&&(!a.expiresAt||a.expiresAt>=now));
+  const existing=user.assignedInsurances.find(a=>a.insuranceId===insuranceId);
   if(existing)return existing;
   const assignment={insuranceId,assignedBy,assignedAt:now,expiresAt:expiresAt||null,surveyAnswers:surveyAnswers||{}};
   user.assignedInsurances.push(assignment);
-  const ok=await fsSet('users',firestoreId,{assignedInsurances:user.assignedInsurances});
+  console.info('assignInsuranceToUser: writing to',firestoreCollection,'/',firestoreId);
+  const ok=await fsSet(firestoreCollection,firestoreId,{assignedInsurances:user.assignedInsurances});
   if(!ok){
     user.assignedInsurances=user.assignedInsurances.filter(a=>a!==assignment);
-    throw new Error('Firestore write failed for user '+firestoreId);
+    throw new Error('Firestore write failed for '+firestoreCollection+'/'+firestoreId);
   }
   return assignment;
 }
 
 async function removeInsuranceFromUser(userId,insuranceId){
-  const user=store.users.find(u=>u.id===userId);
+  // V3.2: Check both users and managers
+  let user=store.users.find(u=>u.id===userId);
+  let col='users';
+  if(!user){user=store.managers.find(m=>m.id===userId);col='managers';}
   if(!user||!user.assignedInsurances)return;
   user.assignedInsurances=user.assignedInsurances.filter(a=>a.insuranceId!==insuranceId);
-  await fsUpdate('users',userId,{assignedInsurances:user.assignedInsurances});
+  await fsUpdate(col,userId,{assignedInsurances:user.assignedInsurances});
 }
 
 async function renewInsuranceForUser(userId,insuranceId,newExpiresAt){
@@ -3408,15 +3455,14 @@ async function renderAdminInsurances(){
   const allActive=store.insurances.filter(ins=>ins.status==='active');
   const availableToAffiliate=allActive.filter(ins=>!affiliated.includes(ins.id));
 
-  // Count insured users per insurance
+  // Count insured users per insurance — V3.2: check both users AND managers
   const insuredCounts={};
   myInsurances.forEach(ins=>{insuredCounts[ins.id]=0;});
-  store.users.forEach(u=>{
-    if(!u.assignedInsurances)return;
-    u.assignedInsurances.forEach(a=>{
-      if(insuredCounts[a.insuranceId]!==undefined&&(!a.expiresAt||a.expiresAt>=new Date().toISOString()))insuredCounts[a.insuranceId]++;
-    });
-  });
+  const _countInsured=(person)=>{if(!person.assignedInsurances)return;person.assignedInsurances.forEach(a=>{
+    if(insuredCounts[a.insuranceId]!==undefined){const ins=store.insurances.find(i=>i.id===a.insuranceId);if(isInsuranceCurrentlyValid(ins))insuredCounts[a.insuranceId]++;}
+  });};
+  store.users.forEach(_countInsured);
+  store.managers.forEach(m=>{if(!store.users.some(u=>u.id===m.id))_countInsured(m);});
 
   let h='';
 
@@ -3428,10 +3474,9 @@ async function renderAdminInsurances(){
   // Count expiring within 30 days
   const now=new Date();const in30=new Date(now.getTime()+30*24*60*60*1000).toISOString();
   let expiringSoon=0;
-  store.users.forEach(u=>{
-    if(!u.assignedInsurances)return;
-    u.assignedInsurances.forEach(a=>{if(affiliated.includes(a.insuranceId)&&a.expiresAt&&a.expiresAt>=now.toISOString()&&a.expiresAt<=in30)expiringSoon++;});
-  });
+  const _countExpiring=(person)=>{if(!person.assignedInsurances)return;person.assignedInsurances.forEach(a=>{if(!affiliated.includes(a.insuranceId))return;const _ee=getEffectiveInsuranceExpiry(a);if(_ee&&_ee>=now.toISOString()&&_ee<=in30)expiringSoon++;});};
+  store.users.forEach(_countExpiring);
+  store.managers.forEach(m=>{if(!store.users.some(u=>u.id===m.id))_countExpiring(m);});
   h+='<div class="card" style="padding:16px;text-align:center"><div style="font-size:1.8rem;font-weight:800;color:var(--warn)">'+expiringSoon+'</div><div style="font-size:.78rem;color:var(--txt3)">In scadenza (30gg)</div></div>';
   h+='</div>';
 
@@ -3680,10 +3725,18 @@ function showInsuranceUsersModal(insId){
   if(!ins)return;
   const now=new Date().toISOString();
   const insuredUsers=[];
+  // V3.2: Search both users AND managers
   store.users.forEach(u=>{
     if(!u.assignedInsurances)return;
     const assignment=u.assignedInsurances.find(a=>a.insuranceId===insId);
     if(assignment)insuredUsers.push({user:u,assignment});
+  });
+  store.managers.forEach(m=>{
+    if(!m.assignedInsurances)return;
+    // Skip if already found as user (avoid duplicates)
+    if(insuredUsers.some(x=>x.user.id===m.id))return;
+    const assignment=m.assignedInsurances.find(a=>a.insuranceId===insId);
+    if(assignment)insuredUsers.push({user:m,assignment});
   });
   const overlay=document.createElement('div');overlay.className='overlay';
   let h='<div class="dialog" style="max-width:520px;width:92%;max-height:85vh;overflow-y:auto">';
@@ -3694,11 +3747,12 @@ function showInsuranceUsersModal(insId){
   } else {
     insuredUsers.forEach(({user:u,assignment:a})=>{
       const name=u.username||u.name||u.email;
-      const isExpired=a.expiresAt&&a.expiresAt<now;
+      const _effExp2=getEffectiveInsuranceExpiry(a);
+      const isExpired=_effExp2&&_effExp2<now;
       const statusBadge=getInsuranceStatusBadge(a);
       h+='<div style="display:flex;align-items:center;gap:10px;padding:10px;border-bottom:1px solid var(--s300);'+(isExpired?'opacity:.6':'')+'">';
       h+='<div style="flex:1;min-width:0"><div style="font-size:.84rem;font-weight:500;color:var(--txt1)">'+escHtml(name)+'</div>';
-      h+='<div style="font-size:.72rem;color:var(--txt3)">'+escHtml(u.email||'')+' · Scade: '+(a.expiresAt?fmtDateShort(a.expiresAt.split('T')[0]):'Mai')+'</div></div>';
+      h+='<div style="font-size:.72rem;color:var(--txt3)">'+escHtml(u.email||'')+' · Scade: '+(_effExp2?fmtDateShort(_effExp2.split('T')[0]):'Mai')+'</div></div>';
       h+=statusBadge;
       h+='<div style="display:flex;gap:4px;flex-shrink:0">';
       if(isExpired){
@@ -4753,8 +4807,8 @@ function openPartnerSearchModal(){
 function filterPartnerList(){
   const txt=(document.getElementById('partner-search-text')?.value||'').toLowerCase();
   const univFilter=document.getElementById('partner-search-univ')?.value||'';
+  // V3.2: Show only approved organizers — no regular users
   const approved=getApprovedManagers();
-  const allUsers=store.users.filter(u=>u.id!==store.currentUser.id&&!store.managers.some(m=>m.id===u.id));
   const alreadySelected=window._partnerAlreadySelected||new Set();
   const filtered=approved.filter(m=>{
     if(txt&&!m.orgName.toLowerCase().includes(txt)&&!m.username.toLowerCase().includes(txt))return false;
@@ -4762,19 +4816,12 @@ function filterPartnerList(){
     return true;
   });
   const c=document.getElementById('partner-search-results');if(!c)return;
-  const filteredUsers=allUsers.filter(u=>{
-    if(txt&&!u.username.toLowerCase().includes(txt)&&!(u.email||'').toLowerCase().includes(txt))return false;
-    return true;
-  });
-  if(!filtered.length&&!filteredUsers.length){c.innerHTML='<div class="text-sm txt3 text-center" style="padding:20px">Nessun risultato trovato</div>';return;}
+  if(!filtered.length){c.innerHTML='<div class="text-sm txt3 text-center" style="padding:20px">Nessun organizzatore trovato</div>';return;}
   c.innerHTML=filtered.map(m=>{
     const univs=(m.universes||[]).map(uid=>{const u=store.universes.find(x=>x.id===uid);return u?(u.emoji+' '+u.name):'';}).filter(Boolean).join(', ')||'—';
     const checked=alreadySelected.has(m.id)?'checked':'';
     return '<label class="flex items-center gap-3" style="cursor:pointer;padding:10px 12px;border-bottom:1px solid var(--s300)"><input type="checkbox" class="partner-cb" value="'+m.id+'" '+checked+'><div style="flex:1"><div class="text-sm text-white font-medium">'+m.orgName+'</div><div class="text-xs txt3">'+m.username+' · '+univs+'</div></div></label>';
-  }).join('')+(!filteredUsers.length?'':'<div style="padding:8px 12px;border-top:2px solid var(--s300);margin-top:8px"><div style="font-size:.72rem;font-weight:600;color:var(--txt3);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">👤 Utenti</div></div>'+filteredUsers.map(u=>{
-    const checked=alreadySelected.has(u.id)?'checked':'';
-    return '<label class="flex items-center gap-3" style="cursor:pointer;padding:10px 12px;border-bottom:1px solid var(--s300)"><input type="checkbox" class="partner-cb" value="'+u.id+'" '+checked+'><div style="flex:1"><div class="text-sm text-white font-medium">'+escHtml(u.username||u.name||'Utente')+'</div><div class="text-xs txt3">'+escHtml(u.email||'')+'</div></div></label>';
-  }).join(''));
+  }).join('');
 }
 function confirmPartnerSelection(){
   const checks=document.querySelectorAll('#partner-search-results .partner-cb:checked');
@@ -5130,7 +5177,8 @@ async function renderProfileInsurances(u){
     html+='<div style="padding:12px;background:var(--s200);border-radius:12px;margin-bottom:8px">';
     html+='<div class="flex items-center gap-2 mb-1"><span class="font-semibold text-white text-sm">'+escHtml(name)+'</span> '+badge+'</div>';
     if(ins?.description)html+='<div class="text-xs txt3 mb-1">'+escHtml(ins.description)+'</div>';
-    if(a.expiresAt)html+='<div class="text-xs txt3">Scadenza: '+new Date(a.expiresAt).toLocaleDateString('it-IT')+'</div>';
+    const _effExp=getEffectiveInsuranceExpiry(a);
+    if(_effExp)html+='<div class="text-xs txt3">Scadenza: '+new Date(_effExp).toLocaleDateString('it-IT')+'</div>';
     if(a.assignedAt)html+='<div class="text-xs txt3">Assegnata: '+new Date(a.assignedAt).toLocaleDateString('it-IT')+'</div>';
     html+='</div>';
   });
@@ -7259,11 +7307,12 @@ function openRegistryUserDetail(uid){
       _regUserIns.forEach(a=>{
         const insName=getInsuranceName(a.insuranceId);
         const statusBadge=getInsuranceStatusBadge(a);
-        const isExpired=a.expiresAt&&a.expiresAt<_regNow;
+        const _effExp3=getEffectiveInsuranceExpiry(a);
+        const isExpired=_effExp3&&_effExp3<_regNow;
         h+='<div style="background:var(--s100);border:1px solid var(--s300);border-radius:12px;padding:10px 14px;margin-bottom:6px;display:flex;align-items:center;gap:10px;'+(isExpired?'opacity:.6':'')+'">';
         h+='<span style="font-size:1rem">🛡️</span>';
         h+='<div style="flex:1"><div style="font-size:.84rem;font-weight:600;color:var(--txt1)">'+escHtml(insName)+'</div>';
-        h+='<div style="font-size:.72rem;color:var(--txt3)">Assegnata: '+fmtDateShort(a.assignedAt.split('T')[0])+' · Scade: '+(a.expiresAt?fmtDateShort(a.expiresAt.split('T')[0]):'Mai')+'</div></div>';
+        h+='<div style="font-size:.72rem;color:var(--txt3)">Assegnata: '+fmtDateShort(a.assignedAt.split('T')[0])+' · Scade: '+(_effExp3?fmtDateShort(_effExp3.split('T')[0]):'Mai')+'</div></div>';
         h+=statusBadge;
         h+='<div style="display:flex;gap:4px;flex-shrink:0">';
         if(isExpired){
@@ -8585,6 +8634,10 @@ function go(view){
   if(view==='admin-cost-management'&&window._costMgmtEventId){renderCostManagement(window._costMgmtEventId);}
   if(view==='admin-org-profile'){populateOrgProfile();renderAssistenzaBox();}
   if(view==='register-org'){populateRegoUniverses();}
+  // V3.2: Show event deep-link banner on register page if user arrived via shared event link
+  if(view==='register'&&_pendingDeepLink&&(_pendingDeepLink.type==='event'||_pendingDeepLink.type==='checkin')){
+    setTimeout(()=>_showEventDeepLinkBanner('view-register'),50);
+  }
   if(view==='privacy-policy'){
     const master=store.managers.find(m=>m.role==='master');
     const privEmail=master?(master.contactEmail||master.email):'';
@@ -11633,6 +11686,8 @@ function resetFilters(){
   const dfEl=document.getElementById('filter-date-from');if(dfEl)dfEl.value=today;
   ['filter-type','filter-zona','filter-universe'].forEach(id=>{const el=document.getElementById(id);if(el)el.selectedIndex=0;});
   const ctgl=document.getElementById('filter-community-toggle');if(ctgl)ctgl.checked=true;
+  // V3.2: Also clear the unified search input
+  const msi=document.getElementById('mobile-search-input');if(msi)msi.value='';
   _userEvCurrentMax=_userEvPageSize;
   renderUserEvents();
   showToast('Filtri resettati');
@@ -11640,11 +11695,9 @@ function resetFilters(){
 
 // === MOBILE COLLAPSIBLE FILTERS ===
 function initMobileFilters(){
-  if(window.innerWidth>768)return;
+  // V3.2: Collapse filter panel on ALL screen sizes (not just mobile)
   const fp=document.getElementById('filter-panel');
-  const btn=document.getElementById('mobile-search-btn');
-  if(!fp||!btn)return;
-  // Collapse filters on mobile by default
+  if(!fp)return;
   fp.classList.add('mf-collapsed');
   fp.classList.remove('mf-expanded');
   collapseMobileSearch();
@@ -11693,13 +11746,32 @@ function collapseMobileSearch(){
   input.style.boxShadow='none';
   bar.style.cursor='pointer';
   bar.onclick=()=>expandMobileSearch();
-  if(right)right.innerHTML='<span style="font-size:.6rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px">Filtri</span>';
+  // V3.2: Show active filter count badge when filters are active
+  const _activeCount=_countActiveFilters();
+  if(_activeCount>0){
+    if(right)right.innerHTML='<span style="font-size:.6rem;color:#fff;background:var(--brand);padding:2px 8px;border-radius:6px">'+_activeCount+' filtro'+ (_activeCount>1?'i':'')+' attivo'+(_activeCount>1?'i':'')+'</span>';
+  } else {
+    if(right)right.innerHTML='<span style="font-size:.6rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px">Filtri</span>';
+  }
   input.blur();
   // Hide filter panel
   if(fp){
     fp.classList.remove('mf-expanded');
     fp.classList.add('mf-collapsed');
   }
+}
+function _countActiveFilters(){
+  let count=0;
+  const txt=(document.getElementById('filter-text')||{}).value||'';
+  const mTxt=(document.getElementById('mobile-search-input')||{}).value||'';
+  if(txt||mTxt)count++;
+  if((document.getElementById('filter-zona')||{}).value)count++;
+  if((document.getElementById('filter-type')||{}).value)count++;
+  if((document.getElementById('filter-universe')||{}).value)count++;
+  if((document.getElementById('filter-maestro')||{}).value)count++;
+  if((document.getElementById('filter-date-to')||{}).value)count++;
+  if((document.getElementById('filter-price-max')||{}).value)count++;
+  return count;
 }
 function toggleMobileFilters(){
   if(_mobileSearchExpanded)collapseMobileSearch();
@@ -12695,13 +12767,23 @@ function getFilteredEvents(){
     return false;
   });}
   if(tipo)evts=evts.filter(e=>e.type===tipo);
-  if(zona)evts=evts.filter(e=>{
-    if(e.orgName===zona)return true;
+  if(zona){const zonaL=zona.toLowerCase();evts=evts.filter(e=>{
+    // V3.2: Match by geographic zone — check organizer city, partner cities, and event location
+    const mgr=store.managers.find(m=>m.id===e.managerId);
+    if(mgr&&mgr.city&&mgr.city.trim().toLowerCase()===zonaL)return true;
+    // Check event location text contains the city
+    if(e.location){
+      const extractedCity=_extractCityFromLocation(e.location);
+      if(extractedCity&&extractedCity.toLowerCase()===zonaL)return true;
+      // Also match if location text contains the zone name
+      if(e.location.toLowerCase().includes(zonaL))return true;
+    }
+    // Check partner organizer cities
     if(e.partnerIds&&e.partnerIds.length){
-      return e.partnerIds.some(pid=>{const mgr=store.managers.find(m=>m.id===pid);return mgr&&mgr.orgName===zona;});
+      return e.partnerIds.some(pid=>{const pm=store.managers.find(m=>m.id===pid);return pm&&pm.city&&pm.city.trim().toLowerCase()===zonaL;});
     }
     return false;
-  });
+  });}
   if(maestro)evts=evts.filter(e=>e.teacher.toLowerCase().includes(maestro.toLowerCase()));
   if(dateFrom)evts=evts.filter(e=>e.days.some(d=>d.date>=dateFrom));
   if(dateTo)evts=evts.filter(e=>e.days.some(d=>d.date<=dateTo));
@@ -12725,13 +12807,47 @@ function getJamTypeDisplay(type){
   return getEventTypeIcon(type)+' '+getEventTypeLabel(type);
 }
 function populateZonaFilter(){
+  // V3.2: Zona filter now shows geographic cities from organizers + event locations
   const sel=document.getElementById('filter-zona');if(!sel)return;
   const curVal=sel.value;
-  const orgNames=new Set();
-  store.managers.filter(m=>m.status!=='pending_approval').forEach(m=>{if(m.orgName)orgNames.add(m.orgName);});
-  let html='<option value="">Tutte</option>';
-  Array.from(orgNames).sort().forEach(o=>{html+='<option value="'+o+'"'+(curVal===o?' selected':'')+'>'+o+'</option>';});
+  const cities=new Set();
+  // Source 1: organizer city field (structured, set during registration)
+  store.managers.filter(m=>m.status!=='pending_approval').forEach(m=>{
+    if(m.city){
+      // Normalize: trim, capitalize first letter of each word
+      const normalized=m.city.trim().split(/\s+/).map(w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(' ');
+      if(normalized)cities.add(normalized);
+    }
+  });
+  // Source 2: event location text — try to extract city (last comma-separated segment)
+  store.events.filter(e=>e.status==='pubblicato').forEach(e=>{
+    if(e.location){
+      const _extractedCity=_extractCityFromLocation(e.location);
+      if(_extractedCity)cities.add(_extractedCity);
+    }
+  });
+  let html='<option value="">Tutte le zone</option>';
+  Array.from(cities).sort((a,b)=>a.localeCompare(b,'it')).forEach(c=>{
+    html+='<option value="'+escHtml(c)+'"'+(curVal===c?' selected':'')+'>📍 '+escHtml(c)+'</option>';
+  });
   sel.innerHTML=html;
+}
+function _extractCityFromLocation(location){
+  if(!location||location.match(/^https?:\/\//))return null;
+  // Split by comma, take the last meaningful segment as city
+  const parts=location.split(',').map(p=>p.trim()).filter(p=>p.length>1);
+  if(!parts.length)return null;
+  // Last segment is usually the city; skip if it looks like a ZIP code or country
+  let candidate=parts[parts.length-1];
+  // If last part looks like a country or zip, try second-to-last
+  if(candidate.match(/^\d{4,}$/)||candidate.toLowerCase()==='italia'||candidate.toLowerCase()==='italy'){
+    candidate=parts.length>1?parts[parts.length-2]:null;
+  }
+  if(!candidate||candidate.length<2)return null;
+  // Normalize: remove parenthetical province codes like "(MI)", leading/trailing spaces
+  candidate=candidate.replace(/\s*\([A-Z]{2}\)\s*/,'').trim();
+  // Capitalize
+  return candidate.split(/\s+/).map(w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(' ');
 }
 function populateJamTypeFilters(){
   ['jam-user-filter-type','jam-admin-filter-type'].forEach(selId=>{
@@ -14045,7 +14161,7 @@ function showEventDetail(evId,recDate){
     const _insPrice=ev.insurance.price||0;
     if(_isInsured){
       // Find the matching insurance to show validity
-      const _matchedInsId=ev.insurance.requiredInsuranceIds.find(rid=>{const _ui=store.users.find(u=>u.id===_curUserId);return _ui?.assignedInsurances?.some(a=>a.insuranceId===rid&&(!a.expiresAt||a.expiresAt>=new Date().toISOString()));});
+      const _matchedInsId=ev.insurance.requiredInsuranceIds.find(rid=>{const _ui=store.users.find(u=>u.id===_curUserId);return _ui?.assignedInsurances?.some(a=>a.insuranceId===rid);});
       const _matchedIns=_matchedInsId?store.insurances.find(i=>i.id===_matchedInsId):null;
       const _insExpDate=_matchedIns?.validTo?new Date(_matchedIns.validTo).toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'}):'';
       daysHtml+=`<div class="card mb-4" style="background:rgba(16,185,129,.05);border-color:rgba(16,185,129,.25);padding:12px 14px">
@@ -18483,8 +18599,9 @@ async function renderUsersTab(){
 }
 
 /* === User Detail overlay === */
-function showUserDetail(userId){
+async function showUserDetail(userId){
   const u=store.users.find(x=>x.id===userId);if(!u)return;
+  await ensureInsurancesLoaded();
   const today=localDateStr(new Date());
   const allBks=store.bookings.filter(b=>b.userId===userId&&b.status!=='cancellata');
   // Split bookings: active (event in future or today) vs past
@@ -18498,6 +18615,14 @@ function showUserDetail(userId){
   const checkins=store.attendances[userId]||[];
   const roleLbl=getRoleLabelHtml(getUserEffectiveRole(u));
   const statusColor=u.status==='attivo'?'var(--green)':'var(--yellow)';
+
+  // V3.2: Check if this user is also an organizer
+  const linkedMgr=store.managers.find(m=>m.id===userId);
+
+  // V3.2: Merge insurance assignments from both user and manager records
+  const userIns=u.assignedInsurances||[];
+  const mgrIns=(linkedMgr?.assignedInsurances||[]).filter(a=>!userIns.some(ua=>ua.insuranceId===a.insuranceId));
+  const allInsAssignments=[...userIns,...mgrIns];
 
   // Booking row builder
   const bkRow=(b)=>{const ev=store.events.find(e=>e.id===b.eventId);const d0=ev&&ev.days&&ev.days[0]?fmtDate(ev.days[0].date):'—';
@@ -18514,6 +18639,24 @@ function showUserDetail(userId){
   });
   univHtml+='</div>';
 
+  // V3.2: Insurance section — merge from user + manager records
+  let insHtml='';
+  if(allInsAssignments.length){
+    insHtml='<h3 class="font-semibold text-white mb-2 mt-4">🛡️ Assicurazioni ('+allInsAssignments.length+')</h3><div class="card mb-4" style="padding:12px">';
+    allInsAssignments.forEach(a=>{
+      const ins=store.insurances.find(i=>i.id===a.insuranceId);
+      const name=ins?ins.name:a.insuranceId;
+      const badge=getInsuranceStatusBadge(a);
+      const _effExp=getEffectiveInsuranceExpiry(a);
+      const storedOn=mgrIns.includes(a)?'profilo organizzatore':'profilo utente';
+      insHtml+='<div style="padding:10px;background:var(--s200);border-radius:10px;margin-bottom:6px;display:flex;align-items:center;gap:10px">';
+      insHtml+='<span style="font-size:1rem">🛡️</span>';
+      insHtml+='<div style="flex:1"><div style="font-size:.84rem;font-weight:600;color:var(--txt1)">'+escHtml(name)+' '+badge+'</div>';
+      insHtml+='<div style="font-size:.72rem;color:var(--txt3)">Scade: '+(_effExp?fmtDateShort(_effExp.split('T')[0]):'Mai')+' · Salvata su: <em>'+storedOn+'</em></div></div></div>';
+    });
+    insHtml+='</div>';
+  }
+
   const o=document.getElementById('user-form-overlay');
   o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;overflow-y:auto';
   o.innerHTML=`<div style="background:var(--s100);border:1px solid var(--s400);border-radius:20px;padding:24px;max-width:700px;width:100%;margin:20px auto">
@@ -18526,10 +18669,11 @@ function showUserDetail(userId){
       <div>
         <div class="text-lg font-bold text-white">${escHtml(u.username)}</div>
         <div class="text-sm txt2">${escHtml(u.email)}</div>
-        <div class="flex gap-2 mt-1">
+        <div class="flex gap-2 mt-1 flex-wrap">
           <span class="badge" style="background:${u.status==='attivo'?'var(--green-bg)':'var(--yellow-bg)'};color:${statusColor}">${u.status==='attivo'?'✅ Attivo':'⏸️ Sospeso'}</span>
           <span class="badge badge-bozza">${roleLbl}</span>
           <span class="badge" style="background:var(--blue-bg);color:var(--blue)">${u.authMethod==='google'?'Google':'Magic Link'}</span>
+          ${linkedMgr?`<span class="badge" style="background:rgba(168,85,247,.12);color:#a855f7;border:1px solid rgba(168,85,247,.3);font-weight:600">🛡️ Organizzatore: ${escHtml(linkedMgr.orgName)}</span>`:''}
         </div>
       </div>
     </div>
@@ -18539,6 +18683,8 @@ function showUserDetail(userId){
       <div class="card" style="padding:12px"><div class="text-xs txt3">Prenotazioni attive</div><div class="text-sm font-medium" style="color:var(--green)">${activeBks.length}</div></div>
       <div class="card" style="padding:12px"><div class="text-xs txt3">Eventi passati</div><div class="text-sm font-medium" style="color:var(--blue)">${pastBks.length}</div></div>
     </div>
+
+    ${insHtml}
 
     <h3 class="font-semibold text-white mb-2 mt-4">🌐 Universi (clicca per attivare/disattivare)</h3>
     <div class="card mb-4" style="padding:12px">${univHtml}</div>
@@ -18558,8 +18704,9 @@ function showUserDetail(userId){
 
     <div class="flex gap-2 flex-wrap mt-4">
       <button class="btn btn-sm btn-primary" onclick="document.getElementById('user-form-overlay').style.display='none';openUserForm('user','${u.id}')">✏️ Modifica</button>
-      ${!store.managers.some(m=>m.id===u.id)?`<button class="btn btn-sm" style="background:rgba(168,85,247,.12);color:#a855f7;border:1px solid rgba(168,85,247,.3)" onclick="document.getElementById('user-form-overlay').style.display='none';openPromoteToOrgModal('${u.id}')">🛡️ Promuovi a organizzatore</button>`:''}
+      ${!linkedMgr?`<button class="btn btn-sm" style="background:rgba(168,85,247,.12);color:#a855f7;border:1px solid rgba(168,85,247,.3)" onclick="document.getElementById('user-form-overlay').style.display='none';openPromoteToOrgModal('${u.id}')">🛡️ Promuovi a organizzatore</button>`:''}
       ${u.status==='attivo'?`<button class="btn btn-sm" style="background:var(--yellow-bg);color:var(--yellow);border:1px solid var(--yellow)" onclick="document.getElementById('user-form-overlay').style.display='none';toggleUserStatus('${u.id}')">⏸️ Sospendi</button>`:`<button class="btn btn-sm" style="background:var(--green-bg);color:var(--green);border:1px solid var(--green)" onclick="document.getElementById('user-form-overlay').style.display='none';toggleUserStatus('${u.id}')">▶️ Riattiva</button>`}
+      ${linkedMgr?`<button class="btn btn-sm" style="background:rgba(168,85,247,.12);color:#a855f7;border:1px solid rgba(168,85,247,.3)" onclick="document.getElementById('user-form-overlay').style.display='none';showOrgDetail('${u.id}')">🛡️ Vai a profilo organizzatore</button>`:''}
       <button class="btn btn-sm" style="background:var(--s300);color:var(--txt2)" onclick="document.getElementById('user-form-overlay').style.display='none'">Chiudi</button>
     </div>
   </div>`;
@@ -20359,6 +20506,19 @@ function checkPrivacyConsent(){
 
 // Deep link handler — process URL params (?event=..., ?checkin=..., ?sub=...)
 let _pendingDeepLink=null;
+/* ── Event deep-link banner for login/register page ── */
+function _showEventDeepLinkBanner(targetView){
+  // Show a banner on login or register page indicating the user arrived via shared event link
+  const view=document.getElementById(targetView);if(!view)return;
+  const old=view.querySelector('.event-deeplink-banner');if(old)old.remove();
+  const banner=document.createElement('div');
+  banner.className='event-deeplink-banner';
+  banner.style.cssText='max-width:480px;width:100%;margin:0 auto 16px;padding:14px 18px;background:rgba(99,102,241,.08);border:1px solid var(--brand);border-radius:12px;text-align:center';
+  banner.innerHTML='<div style="font-size:1.2rem;margin-bottom:4px">🎯</div><div class="font-semibold text-white" style="font-size:.95rem">Hai ricevuto un link ad un evento!</div><div class="text-xs txt3 mt-1">Accedi o registrati per visualizzare i dettagli e prenotarti</div>';
+  const formContainer=view.querySelector('div > div');
+  if(formContainer)formContainer.insertBefore(banner,formContainer.firstChild);
+}
+
 /* ── Invite banner for registration page ── */
 function _showInviteBanner(orgName){
   if(!orgName)return;
@@ -20391,6 +20551,16 @@ function checkDeepLink(){
   } else if(inviteOrg){
     _pendingDeepLink={type:'invite',orgId:inviteOrg};
   }
+  // V3.2 FIX: Persist deep link in localStorage so it survives Google signInWithRedirect page reloads
+  if(_pendingDeepLink){
+    try{localStorage.setItem('_pendingDeepLink',JSON.stringify(_pendingDeepLink));}catch(e){}
+  } else {
+    // No URL params — try to restore from localStorage (redirect came back with clean URL)
+    try{
+      const saved=localStorage.getItem('_pendingDeepLink');
+      if(saved){_pendingDeepLink=JSON.parse(saved);}
+    }catch(e){}
+  }
   // Clean URL params (keep clean address bar) but preserve mode=signIn for magic links
   if((eventId||checkinId||subToken||inviteOrg)&&!params.get('mode')){
     window.history.replaceState(null,'',window.location.pathname);
@@ -20400,6 +20570,8 @@ async function handleDeepLink(){
   if(!_pendingDeepLink)return;
   const dl=_pendingDeepLink;
   _pendingDeepLink=null;
+  // V3.2: Clear persisted deep link from localStorage
+  try{localStorage.removeItem('_pendingDeepLink');}catch(e){}
   if(dl.type==='event'){
     // Open event detail view
     const ev=store.events.find(e=>e.id===dl.id)||store.communityJams?.find(j=>j.id===dl.id);
@@ -20647,6 +20819,12 @@ fbAuth.onAuthStateChanged(async(user)=>{
     // No user logged in — show login page
     document.getElementById('view-login').classList.add('active');
     dismissAuthSplash();
+    // V3.2: If event/checkin deep link: show contextual banner on login page
+    if(_pendingDeepLink&&(_pendingDeepLink.type==='event'||_pendingDeepLink.type==='checkin')){
+      _showEventDeepLinkBanner('view-login');
+      // Also show on register page when they navigate there
+      setTimeout(()=>_showEventDeepLinkBanner('view-register'),100);
+    }
     // If invite deep link: auto-navigate to register page and show invite banner
     if(_pendingDeepLink&&_pendingDeepLink.type==='invite'){
       window._inviteOrgId=_pendingDeepLink.orgId;
