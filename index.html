@@ -12638,8 +12638,24 @@ function getFilteredEvents(){
   // Expand recurring events into virtual instances (next 2 occurrences)
   let evts=expandRecurringForList(baseEvts);
   // Universe filter: if no explicit filter, show only subscribed universes
-  if(univFilter){evts=evts.filter(e=>(e.universeIds||[e.universeId]).includes(univFilter));}
-  else{const subIds=getUserSubscribedUniverseIds();if(subIds.length)evts=evts.filter(e=>{const eIds=e.universeIds||[e.universeId].filter(Boolean);return eIds.some(id=>subIds.includes(id))||!eIds.length;});}
+  if(univFilter){evts=evts.filter(e=>{
+    const eIds=e.universeIds||[e.universeId].filter(Boolean);
+    if(eIds.includes(univFilter))return true;
+    // Also match if any partner belongs to the filtered universe
+    if(e.partnerIds&&e.partnerIds.length){
+      return e.partnerIds.some(pid=>{const pmgr=store.managers.find(m=>m.id===pid);return pmgr&&(pmgr.universes||[]).includes(univFilter);});
+    }
+    return false;
+  });}
+  else{const subIds=getUserSubscribedUniverseIds();if(subIds.length)evts=evts.filter(e=>{
+    const eIds=e.universeIds||[e.universeId].filter(Boolean);
+    if(eIds.some(id=>subIds.includes(id))||!eIds.length)return true;
+    // Also show events where a partner org belongs to one of the user's subscribed universes
+    if(e.partnerIds&&e.partnerIds.length){
+      return e.partnerIds.some(pid=>{const pmgr=store.managers.find(m=>m.id===pid);return pmgr&&(pmgr.universes||[]).some(uid=>subIds.includes(uid));});
+    }
+    return false;
+  });}
   if(q){const ql=q.toLowerCase();evts=evts.filter(e=>{
     const base=(e.title+e.description+e.teacher+e.location+e.orgName).toLowerCase();
     if(base.includes(ql))return true;
@@ -15962,7 +15978,8 @@ function filterCommunityEvts(s){communityStatusFilter=s;renderCommunityEvents();
 function renderCommunityEvents(){
   const c=document.getElementById('community-events-container');if(!c)return;
   const u=store.currentUser;
-  let evts=store.events.filter(e=>e.managerId!==u.id);
+  // Admin sees ALL events (own + all other organizers')
+  let evts=[...store.events];
   evts.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
   const pub=evts.filter(e=>e.status==='pubblicato').length;
   const boz=evts.filter(e=>e.status==='bozza').length;
@@ -15997,7 +16014,7 @@ function renderCommunityEvents(){
         </div>
       </div>
     </div>`;
-  }).join('')||'<div class="card text-center txt3">Nessun evento di altri organizzatori.</div>';
+  }).join('')||'<div class="card text-center txt3">Nessun evento presente sulla piattaforma.</div>';
 }
 
 /* ==============================
