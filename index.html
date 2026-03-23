@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V3.1.7</title>
+<title>BodyEvents — V3.1.8</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -396,7 +396,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.1.7</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.1.8</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -1433,8 +1433,9 @@ textarea.input{resize:none;font-family:inherit}
       <div class="grid grid-2 gap-3 mb-4">
         <div><label class="label">Tipo evento *</label>
           <select class="input" id="ne-type" onchange="onEventTypeChange()"></select>
-          <input class="input mt-2 hidden" id="ne-custom-type" placeholder="Scrivi la nuova tipologia...">
-          <button type="button" class="btn btn-sm mt-1 hidden" id="ne-custom-type-save" onclick="saveCustomEventTypeFromForm()" style="font-size:.7rem;padding:4px 10px;background:var(--green-bg);color:var(--green);border:1px solid var(--green)">+ Aggiungi tipologia</button>
+          <!-- V3.1.7: Custom type creation disabled — only predefined/catalog types allowed -->
+          <input class="input mt-2 hidden" id="ne-custom-type" placeholder="Scrivi la nuova tipologia..." style="display:none">
+          <button type="button" class="btn btn-sm mt-1 hidden" id="ne-custom-type-save" onclick="saveCustomEventTypeFromForm()" style="display:none">+ Aggiungi tipologia</button>
         </div>
         <!-- Livello evento: calcolato automaticamente dalle sessioni (V2.13.0) -->
         <div></div>
@@ -2724,7 +2725,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.1.7';
+const APP_VERSION='V3.1.8';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -4228,9 +4229,9 @@ async function _splitConcludedRecurringDates(){
         allowDayPurchase:ev.allowDayPurchase||false
       };
 
-      // Save instance to Firestore
-      await fsSet('events',instanceId,instance).catch(console.error);
-      store.events.push(instance);
+      // Save instance to Firestore — V3.1.7 FIX: only add to local store if Firestore succeeds
+      const instOk=await fsSet('events',instanceId,instance);
+      if(instOk){store.events.push(instance);}else{console.error('Failed to save recurring instance to Firestore:',instanceId);continue;}
 
       // Migrate bookings: change eventId from parent to instance, clear recurringDate
       const booksToMigrate=store.bookings.filter(b=>b.eventId===ev.id&&b.recurringDate===dateStr);
@@ -17160,13 +17161,12 @@ function populateEventTypeDropdown(selectedUnivIds,currentValue){
   const types=getAllEventTypes();
   let html='';
   types.forEach(t=>{html+='<option value="'+t+'">'+getEventTypeLabel(t)+'</option>';});
-  html+='<option value="__custom__">✏️ Altro (crea nuova tipologia)</option>';
+  // V3.1.7: Custom type option removed — only predefined/catalog types allowed
   sel.innerHTML=html;
   if(currentValue){
     if(types.includes(currentValue)){sel.value=currentValue;}
-    else if(currentValue==='__custom__'||currentValue==='custom'){sel.value='__custom__';}
     else{
-      // Custom type that's not in the catalog yet — add as temp option
+      // Legacy custom type on existing event — show as temp option for backward compat
       sel.insertAdjacentHTML('beforeend','<option value="'+currentValue+'">'+getEventTypeLabel(currentValue)+'</option>');
       sel.value=currentValue;
     }
@@ -17387,7 +17387,8 @@ function collectFormData(){
   if(!universeIds.length){showToast('Seleziona almeno un universo!','error');return null;}
   const universeId=universeIds[0]; // Primary universe for backward compat
   const eventType=document.getElementById('ne-type').value||'jam';
-  const finalType=eventType==='__custom__'?(normalizeTypeName(document.getElementById('ne-custom-type')?.value)||'evento'):eventType;
+  // V3.1.7: Custom type creation disabled — fallback to 'jam' if somehow __custom__ is selected
+  const finalType=(eventType==='__custom__'||eventType==='custom')?'jam':eventType;
   // Validate booking deadline
   const recChkPre=document.getElementById('ne-recurrence')?.checked;
   if(!recChkPre){
@@ -17837,7 +17838,7 @@ function saveAsDraft(){
     const existingEv=store.events.find(e=>e.id===editingEventId);
     if(existingEv&&existingEv.managerId!==store.currentUser.id){showToast('Solo l\'organizzatore capofila può modificare questo evento','error');return;}
     // Update existing event
-    showConfirm('Salva modifiche','Salvare le modifiche come bozza?',()=>{
+    showConfirm('Salva modifiche','Salvare le modifiche come bozza?',async()=>{
       try{
         const idx=store.events.findIndex(e=>e.id===editingEventId);
         if(idx>=0){
@@ -17846,15 +17847,18 @@ function saveAsDraft(){
           // Preserve recurrence metadata
           if(oldEv.recurrence){if(ev.recurrence){ev.recurrence.exceptions=oldEv.recurrence.exceptions||{};ev.recurrence.active=oldEv.recurrence.active;ev.recurrence.pausedUntil=oldEv.recurrence.pausedUntil||null;}else{ev.recurrence=oldEv.recurrence;}}
           if(oldEv.bookings)ev.bookings=oldEv.bookings;
+          // V3.1.7 FIX: Write to Firestore FIRST, then update local store
+          const ok=await fsSet('events',ev.id,ev);
+          if(!ok){showToast('❌ Salvataggio su cloud fallito — le modifiche NON sono state salvate. Riprova.','error');return;}
           store.events[idx]=ev;
-          fsSet('events',ev.id,ev).catch(err=>{console.error('saveAsDraft fsSet failed:',err);showToast('⚠️ Salvataggio locale OK ma sync cloud fallito — riprova','error');});
           handlePricingModeChange(editingEventId,oldPM,ev.pricingMode);
         } else {
-          // Safety: event not found in store — push as new to prevent data loss
+          // Safety: event not found in store — write to Firestore first
           ev.id=editingEventId;ev.status='bozza';
+          const ok=await fsSet('events',ev.id,ev);
+          if(!ok){showToast('❌ Salvataggio su cloud fallito — bozza NON salvata. Riprova.','error');return;}
           store.events.push(ev);
-          fsSet('events',ev.id,ev).catch(console.error);
-          console.warn('saveAsDraft: event idx not found, pushed as new to prevent loss');
+          console.warn('saveAsDraft: event idx not found, pushed as new after Firestore confirm');
         }
         editingEventId=null;resetForm();restoreFormTitle();go('admin-events');showToast('Modifiche salvate come bozza!');
       }catch(err){
@@ -17866,11 +17870,13 @@ function saveAsDraft(){
       }
     });
   } else {
-    showConfirm('Salva bozza','Salvare come bozza?',()=>{
+    showConfirm('Salva bozza','Salvare come bozza?',async()=>{
       try{
         ev.id=genId('ev');
+        // V3.1.7 FIX: Write to Firestore FIRST, then add to local store
+        const ok=await fsSet('events',ev.id,ev);
+        if(!ok){showToast('❌ Salvataggio su cloud fallito — bozza NON creata. Riprova.','error');return;}
         store.events.push(ev);
-        fsSet('events',ev.id,ev).catch(err=>{console.error('saveAsDraft new fsSet failed:',err);showToast('⚠️ Bozza salvata localmente ma sync cloud fallito','error');});
         resetForm();go('admin-events');showToast('Bozza salvata!');
       }catch(err){console.error('saveAsDraft new error:',err);showToast('Errore durante il salvataggio','error');}
     });
@@ -17883,7 +17889,7 @@ function publishNewEvent(){
     // Permission check: only capofila can publish edits
     const existingEv=store.events.find(e=>e.id===editingEventId);
     if(existingEv&&existingEv.managerId!==store.currentUser.id){showToast('Solo l\'organizzatore capofila può modificare questo evento','error');return;}
-    showConfirm('Pubblica modifiche','Pubblicare le modifiche?',()=>{
+    showConfirm('Pubblica modifiche','Pubblicare le modifiche?',async()=>{
       try{
         const idx=store.events.findIndex(e=>e.id===editingEventId);
         if(idx>=0){
@@ -17892,16 +17898,19 @@ function publishNewEvent(){
           // Preserve recurrence metadata
           if(oldEv2.recurrence){if(ev.recurrence){ev.recurrence.exceptions=oldEv2.recurrence.exceptions||{};ev.recurrence.active=oldEv2.recurrence.active;ev.recurrence.pausedUntil=oldEv2.recurrence.pausedUntil||null;}else{ev.recurrence=oldEv2.recurrence;}}
           if(oldEv2.bookings)ev.bookings=oldEv2.bookings;
+          // V3.1.7 FIX: Write to Firestore FIRST, then update local store
+          const ok=await fsSet('events',ev.id,ev);
+          if(!ok){showToast('❌ Pubblicazione su cloud fallita — le modifiche NON sono state salvate. Riprova.','error');return;}
           store.events[idx]=ev;
-          fsSet('events',ev.id,ev).catch(err=>{console.error('publishNewEvent fsSet failed:',err);showToast('⚠️ Pubblicato localmente ma sync cloud fallito — riprova','error');});
           const rl=handlePricingModeChange(editingEventId,oldPM,ev.pricingMode);
           if(rl&&rl.length)showToast('⚠️ '+rl.length+' iscritti da rimborsare — controlla dettaglio evento','error');
         } else {
-          // Safety: event not found in store — push as new to prevent data loss
+          // Safety: event not found in store — write to Firestore first
           ev.id=editingEventId;ev.status='pubblicato';
+          const ok=await fsSet('events',ev.id,ev);
+          if(!ok){showToast('❌ Pubblicazione su cloud fallita — evento NON salvato. Riprova.','error');return;}
           store.events.push(ev);
-          fsSet('events',ev.id,ev).catch(console.error);
-          console.warn('publishNewEvent: event idx not found, pushed as new to prevent loss');
+          console.warn('publishNewEvent: event idx not found, pushed as new after Firestore confirm');
         }
         editingEventId=null;resetForm();restoreFormTitle();go('admin-events');showToast('Evento aggiornato e pubblicato!');
       }catch(err){
@@ -17913,12 +17922,14 @@ function publishNewEvent(){
       }
     });
   } else {
-    showConfirm('Pubblica evento','Pubblicare ora? Sarà visibile a tutti.',()=>{
+    showConfirm('Pubblica evento','Pubblicare ora? Sarà visibile a tutti.',async()=>{
       try{
         ev.id=genId('ev');
         ev.status='pubblicato';
+        // V3.1.7 FIX: Write to Firestore FIRST, then add to local store
+        const ok=await fsSet('events',ev.id,ev);
+        if(!ok){showToast('❌ Pubblicazione su cloud fallita — evento NON creato. Riprova.','error');return;}
         store.events.push(ev);
-        fsSet('events',ev.id,ev).catch(err=>{console.error('publishNewEvent new fsSet failed:',err);showToast('⚠️ Pubblicato localmente ma sync cloud fallito','error');});
         resetForm();go('admin-events');showToast('Evento pubblicato!');
       }catch(err){console.error('publishNewEvent new error:',err);showToast('Errore durante la pubblicazione','error');}
     });
