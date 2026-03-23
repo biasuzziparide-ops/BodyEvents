@@ -3252,9 +3252,38 @@ async function createInsurance(name,description,provider,createdBy,validFrom,val
 async function updateInsurance(insId,updates){
   const ins=store.insurances.find(i=>i.id===insId);
   if(!ins)return null;
+  const oldValidTo=ins.validTo;
   Object.assign(ins,updates);
   await fsUpdate('insurances',insId,updates);
+  // V3.1.8 FIX: Propagate validTo change to all user assignments
+  if(updates.validTo!==undefined&&updates.validTo!==oldValidTo){
+    await propagateInsuranceDatesToUsers(insId,updates.validTo);
+  }
   return ins;
+}
+
+// Propagate insurance validTo to all users who have this insurance assigned
+async function propagateInsuranceDatesToUsers(insId,newValidTo){
+  await ensureUsersLoaded();
+  let updatedCount=0;
+  for(const user of store.users){
+    if(!user.assignedInsurances||!user.assignedInsurances.length)continue;
+    let changed=false;
+    user.assignedInsurances.forEach(a=>{
+      if(a.insuranceId===insId){
+        a.expiresAt=newValidTo||null;
+        changed=true;
+      }
+    });
+    if(changed){
+      await fsUpdate('users',user.id,{assignedInsurances:user.assignedInsurances}).catch(err=>console.error('propagateInsuranceDates: failed for user',user.id,err));
+      updatedCount++;
+    }
+  }
+  if(updatedCount>0){
+    console.info('propagateInsuranceDatesToUsers: updated '+updatedCount+' users for insurance '+insId);
+    showToast('Date aggiornate per '+updatedCount+' utenti assicurati');
+  }
 }
 
 async function archiveInsurance(insId){
@@ -18456,26 +18485,38 @@ async function renderUsersTab(){
 /* === User Detail overlay === */
 function showUserDetail(userId){
   const u=store.users.find(x=>x.id===userId);if(!u)return;
-  const bks=store.bookings.filter(b=>b.userId===userId&&b.status!=='cancellata');
-  const cancelled=store.bookings.filter(b=>b.userId===userId&&b.status==='cancellata');
+  const today=localDateStr(new Date());
+  const allBks=store.bookings.filter(b=>b.userId===userId&&b.status!=='cancellata');
+  // Split bookings: active (event in future or today) vs past
+  const activeBks=[];const pastBks=[];
+  allBks.forEach(b=>{
+    const ev=store.events.find(e=>e.id===b.eventId);
+    if(!ev){pastBks.push(b);return;}
+    const lastDay=ev.days&&ev.days.length?ev.days[ev.days.length-1].date:null;
+    if(lastDay&&lastDay>=today)activeBks.push(b);else pastBks.push(b);
+  });
   const checkins=store.attendances[userId]||[];
   const roleLbl=getRoleLabelHtml(getUserEffectiveRole(u));
   const statusColor=u.status==='attivo'?'var(--green)':'var(--yellow)';
 
-  let bkRows='';
-  bks.forEach(b=>{
-    const ev=store.events.find(e=>e.id===b.eventId);
-    bkRows+=`<tr>
-      <td class="text-sm">${ev?escHtml(ev.title):'Evento rimosso'}</td>
-      <td class="text-sm txt2">${fmtDate(b.bookedAt)}</td>
-      <td class="text-sm">${b.paymentStatus==='gratuito'?'🆓 Gratuito':b.paymentStatus==='pagato'?'✅ Pagato':'⏳ '+b.paymentStatus}</td>
-      <td class="text-sm text-right">${b.amount>0?b.amount+'€':'—'}</td>
-    </tr>`;
+  // Booking row builder
+  const bkRow=(b)=>{const ev=store.events.find(e=>e.id===b.eventId);const d0=ev&&ev.days&&ev.days[0]?fmtDate(ev.days[0].date):'—';
+    return `<tr><td class="text-sm">${ev?escHtml(ev.title):'Evento rimosso'}</td><td class="text-sm txt2">${d0}</td><td class="text-sm">${b.paymentStatus==='gratuito'?'🆓 Gratuito':b.paymentStatus==='pagato'?'✅ Pagato':'⏳ '+(b.paymentStatus||'in attesa')}</td><td class="text-sm text-right">${b.amount>0?b.amount+'€':'—'}</td></tr>`;
+  };
+
+  // Universes section
+  const allUnivs=getActiveUniverses();
+  const userSubIds=(u.subscribedUniverses||[]).map(s=>s.universeId);
+  let univHtml='<div class="flex flex-wrap gap-2">';
+  allUnivs.forEach(univ=>{
+    const isActive=userSubIds.includes(univ.id);
+    univHtml+=`<button class="btn btn-sm" style="background:${isActive?'var(--green-bg)':'var(--s300)'};color:${isActive?'var(--green)':'var(--txt3)'};border:1px solid ${isActive?'var(--green)':'var(--s400)'};font-size:.75rem" onclick="adminToggleUserUniverse('${userId}','${univ.id}');event.stopPropagation()">${univ.emoji||''} ${escHtml(univ.name)} ${isActive?'✓':''}</button>`;
   });
+  univHtml+='</div>';
 
   const o=document.getElementById('user-form-overlay');
   o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;overflow-y:auto';
-  o.innerHTML=`<div style="background:var(--s100);border:1px solid var(--s400);border-radius:20px;padding:24px;max-width:640px;width:100%;margin:20px auto">
+  o.innerHTML=`<div style="background:var(--s100);border:1px solid var(--s400);border-radius:20px;padding:24px;max-width:700px;width:100%;margin:20px auto">
     <div class="flex justify-between items-center mb-6">
       <h2 class="text-xl font-bold text-white">👤 Dettaglio Utente</h2>
       <button class="btn btn-ghost" onclick="document.getElementById('user-form-overlay').style.display='none'">✕</button>
@@ -18495,12 +18536,26 @@ function showUserDetail(userId){
     <div class="grid grid-2 gap-3 mb-4">
       <div class="card" style="padding:12px"><div class="text-xs txt3">Registrato il</div><div class="text-sm font-medium">${fmtDate(u.registeredAt)}</div></div>
       <div class="card" style="padding:12px"><div class="text-xs txt3">Check-in effettuati</div><div class="text-sm font-medium">${checkins.length}</div></div>
+      <div class="card" style="padding:12px"><div class="text-xs txt3">Prenotazioni attive</div><div class="text-sm font-medium" style="color:var(--green)">${activeBks.length}</div></div>
+      <div class="card" style="padding:12px"><div class="text-xs txt3">Eventi passati</div><div class="text-sm font-medium" style="color:var(--blue)">${pastBks.length}</div></div>
+    </div>
+
+    <h3 class="font-semibold text-white mb-2 mt-4">🌐 Universi (clicca per attivare/disattivare)</h3>
+    <div class="card mb-4" style="padding:12px">${univHtml}</div>
+
+    ${activeBks.length?`<h3 class="font-semibold text-white mb-2 mt-4">📋 Prenotazioni attive (${activeBks.length})</h3>
+    <div class="overflow-auto mb-4" style="max-height:220px"><table class="table w-full"><thead><tr><th>Evento</th><th>Data</th><th>Pagamento</th><th class="text-right">Importo</th></tr></thead><tbody>${activeBks.map(bkRow).join('')}</tbody></table></div>`:'<p class="txt3 text-sm mt-4">Nessuna prenotazione attiva</p>'}
+
+    ${pastBks.length?`<h3 class="font-semibold text-white mb-2 mt-4">📜 Eventi passati (${pastBks.length})</h3>
+    <div class="overflow-auto mb-4" style="max-height:220px"><table class="table w-full"><thead><tr><th>Evento</th><th>Data</th><th>Pagamento</th><th class="text-right">Importo</th></tr></thead><tbody>${pastBks.map(bkRow).join('')}</tbody></table></div>`:''}
+
+    ${checkins.length?`<h3 class="font-semibold text-white mb-2">✅ Check-in registrati (${checkins.length})</h3><div class="flex flex-wrap gap-2 mb-4">${checkins.map(t=>'<span class="badge badge-pubblicato" style="font-size:.7rem">'+t+'</span>').join('')}</div>`:''}
+
+    <div class="grid grid-2 gap-3 mb-4">
       <div class="card" style="padding:12px"><div class="text-xs txt3">Consenso Privacy</div><div class="text-sm font-medium">${u.consents?.privacy?'✅ Sì':'❌ No'}</div></div>
       <div class="card" style="padding:12px"><div class="text-xs txt3">Consenso Marketing</div><div class="text-sm font-medium">${u.consents?.marketing?'✅ Sì':'❌ No'}</div></div>
     </div>
-    ${bks.length?`<h3 class="font-semibold text-white mb-2 mt-4">📋 Prenotazioni attive (${bks.length})</h3>
-    <div class="overflow-auto mb-4"><table class="table w-full"><thead><tr><th>Evento</th><th>Data</th><th>Pagamento</th><th class="text-right">Importo</th></tr></thead><tbody>${bkRows}</tbody></table></div>`:'<p class="txt3 text-sm mt-4">Nessuna prenotazione attiva</p>'}
-    ${checkins.length?`<h3 class="font-semibold text-white mb-2">✅ Eventi frequentati</h3><div class="flex flex-wrap gap-2 mb-4">${checkins.map(t=>'<span class="badge badge-pubblicato">'+t+'</span>').join('')}</div>`:''}
+
     <div class="flex gap-2 flex-wrap mt-4">
       <button class="btn btn-sm btn-primary" onclick="document.getElementById('user-form-overlay').style.display='none';openUserForm('user','${u.id}')">✏️ Modifica</button>
       ${!store.managers.some(m=>m.id===u.id)?`<button class="btn btn-sm" style="background:rgba(168,85,247,.12);color:#a855f7;border:1px solid rgba(168,85,247,.3)" onclick="document.getElementById('user-form-overlay').style.display='none';openPromoteToOrgModal('${u.id}')">🛡️ Promuovi a organizzatore</button>`:''}
@@ -18510,51 +18565,120 @@ function showUserDetail(userId){
   </div>`;
 }
 
-/* === Org Detail overlay === */
-function showOrgDetail(mId){
-  const m=store.managers.find(x=>x.id===mId);if(!m)return;
-  const evts=store.events.filter(e=>e.managerId===mId);
-  const pubEvts=evts.filter(e=>e.status==='pubblicato');
-  const totalBks=store.bookings.filter(b=>evts.some(e=>e.id===b.eventId)&&b.status!=='cancellata').length;
+/* === Admin toggle universe for a user === */
+async function adminToggleUserUniverse(userId,univId){
+  const u=store.users.find(x=>x.id===userId);if(!u)return;
+  if(!u.subscribedUniverses)u.subscribedUniverses=[];
+  const idx=u.subscribedUniverses.findIndex(s=>s.universeId===univId);
+  if(idx>=0){u.subscribedUniverses.splice(idx,1);}
+  else{const univ=store.universes.find(x=>x.id===univId);u.subscribedUniverses.push({universeId:univId,preferredRole:univ?.roles?.[0]||''});}
+  await fsUpdate('users',userId,{subscribedUniverses:u.subscribedUniverses});
+  showUserDetail(userId); // Refresh panel
+}
 
-  let evRows='';
-  evts.forEach(e=>{
-    const bkCount=store.bookings.filter(b=>b.eventId===e.id&&b.status!=='cancellata').length;
-    const d0=e.days[0];
-    evRows+=`<tr>
-      <td class="text-sm font-medium">${escHtml(e.title)}</td>
-      <td class="text-sm txt2">${d0?fmtDate(d0.date):'—'}</td>
-      <td><span class="badge badge-${e.status}">${e.status}</span></td>
-      <td class="text-sm text-center">${bkCount}</td>
-    </tr>`;
+/* === Org Detail overlay === */
+async function showOrgDetail(mId){
+  const m=store.managers.find(x=>x.id===mId);if(!m)return;
+  await ensureInsurancesLoaded();
+  const today=localDateStr(new Date());
+  const evts=store.events.filter(e=>e.managerId===mId);
+  // Also events where this org is partner
+  const partnerEvts=store.events.filter(e=>e.managerId!==mId&&e.partnerIds&&e.partnerIds.includes(mId));
+  const allEvts=[...evts,...partnerEvts];
+  // Events by status
+  const pubEvts=evts.filter(e=>e.status==='pubblicato'&&!(e.alert&&e.alert.type==='cancellato'));
+  const draftEvts=evts.filter(e=>e.status==='bozza');
+  const cancelledEvts=evts.filter(e=>e.alert&&e.alert.type==='cancellato');
+  // Past vs future for published
+  const pastEvts=pubEvts.filter(e=>{const ld=e.days&&e.days.length?e.days[e.days.length-1].date:null;return ld&&ld<today;});
+  const futureEvts=pubEvts.filter(e=>{const ld=e.days&&e.days.length?e.days[e.days.length-1].date:null;return !ld||ld>=today;});
+  const totalBks=store.bookings.filter(b=>allEvts.some(e=>e.id===b.eventId)&&b.status!=='cancellata').length;
+
+  // Universes section
+  const allUnivs=getActiveUniverses();
+  const mgrUnivIds=m.universes||[];
+  let univHtml='<div class="flex flex-wrap gap-2">';
+  allUnivs.forEach(univ=>{
+    const isActive=mgrUnivIds.includes(univ.id);
+    univHtml+=`<button class="btn btn-sm" style="background:${isActive?'var(--green-bg)':'var(--s300)'};color:${isActive?'var(--green)':'var(--txt3)'};border:1px solid ${isActive?'var(--green)':'var(--s400)'};font-size:.75rem" onclick="adminToggleOrgUniverse('${mId}','${univ.id}');event.stopPropagation()">${univ.emoji||''} ${escHtml(univ.name)} ${isActive?'✓':''}</button>`;
   });
+  univHtml+='</div>';
+
+  // Insurances section
+  const now=localDateStr(new Date());
+  const affiliatedIds=m.affiliatedInsurances||[];
+  const allIns=store.insurances||[];
+  let insHtml='';
+  if(allIns.length){
+    insHtml='<div class="flex flex-wrap gap-2">';
+    allIns.forEach(ins=>{
+      const isAffiliated=affiliatedIds.includes(ins.id);
+      insHtml+=`<button class="btn btn-sm" style="background:${isAffiliated?'rgba(59,130,246,.12)':'var(--s300)'};color:${isAffiliated?'var(--blue)':'var(--txt3)'};border:1px solid ${isAffiliated?'var(--blue)':'var(--s400)'};font-size:.75rem" onclick="adminToggleOrgInsurance('${mId}','${ins.id}');event.stopPropagation()">🛡️ ${escHtml(ins.name||ins.id)} ${isAffiliated?'✓':''}</button>`;
+    });
+    insHtml+='</div>';
+  } else {
+    insHtml='<span class="text-sm txt3">Nessuna assicurazione nel sistema</span>';
+  }
+
+  // Event row builder
+  const evRow=(e,isPartner)=>{
+    const bkCount=store.bookings.filter(b=>b.eventId===e.id&&b.status!=='cancellata').length;
+    const d0=e.days&&e.days[0];
+    const statusBadge=e.alert&&e.alert.type==='cancellato'?'<span class="badge" style="background:var(--red-bg);color:var(--red)">Cancellato</span>':`<span class="badge badge-${e.status}">${e.status}</span>`;
+    return `<tr><td class="text-sm font-medium">${escHtml(e.title)}${isPartner?' <span class="text-xs txt3">(partner)</span>':''}</td><td class="text-sm txt2">${d0?fmtDate(d0.date):'—'}</td><td>${statusBadge}</td><td class="text-sm text-center">${bkCount}</td></tr>`;
+  };
 
   const o=document.getElementById('user-form-overlay');
   o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;overflow-y:auto';
-  o.innerHTML=`<div style="background:var(--s100);border:1px solid var(--s400);border-radius:20px;padding:24px;max-width:640px;width:100%;margin:20px auto">
+  o.innerHTML=`<div style="background:var(--s100);border:1px solid var(--s400);border-radius:20px;padding:24px;max-width:740px;width:100%;margin:20px auto">
     <div class="flex justify-between items-center mb-6">
       <h2 class="text-xl font-bold text-white">🛡️ Dettaglio Organizzatore</h2>
       <button class="btn btn-ghost" onclick="document.getElementById('user-form-overlay').style.display='none'">✕</button>
     </div>
     <div class="flex gap-4 items-center mb-6">
-      <div style="width:64px;height:64px;border-radius:16px;background:var(--green-bg);display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:var(--green);font-weight:700;flex-shrink:0">${m.orgName.substring(0,2).toUpperCase()}</div>
+      <div style="width:64px;height:64px;border-radius:16px;background:var(--green-bg);display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:var(--green);font-weight:700;flex-shrink:0">${(m.orgName||'').substring(0,2).toUpperCase()}</div>
       <div>
         <div class="text-lg font-bold text-white">${escHtml(m.orgName)}</div>
         <div class="text-sm txt2">${escHtml(m.username)} · ${escHtml(m.email)}</div>
         <div class="flex gap-2 mt-1">
           ${m.role==='master'?'<span class="badge badge-workshop">👑 Master</span>':'<span class="badge badge-pubblicato">🛡️ Manager</span>'}
+          ${m.phone?'<span class="badge" style="background:var(--s300);color:var(--txt2);font-size:.65rem">📞 '+escHtml(m.phone)+'</span>':''}
         </div>
       </div>
     </div>
-    <div class="grid grid-3 gap-3 mb-4">
-      <div class="stat-card"><div class="value" style="color:var(--blue)">${evts.length}</div><div class="label">Eventi totali</div></div>
-      <div class="stat-card"><div class="value" style="color:var(--green)">${pubEvts.length}</div><div class="label">Pubblicati</div></div>
-      <div class="stat-card"><div class="value" style="color:var(--brand-l)">${totalBks}</div><div class="label">Prenotazioni</div></div>
+
+    <div class="grid grid-2 gap-3 mb-4" style="grid-template-columns:repeat(auto-fill,minmax(130px,1fr))">
+      <div class="stat-card"><div class="value" style="color:var(--green)">${futureEvts.length}</div><div class="label">Pubblicati attivi</div></div>
+      <div class="stat-card"><div class="value" style="color:var(--blue)">${pastEvts.length}</div><div class="label">Conclusi</div></div>
+      <div class="stat-card"><div class="value" style="color:var(--yellow)">${draftEvts.length}</div><div class="label">Bozze</div></div>
+      <div class="stat-card"><div class="value" style="color:var(--red)">${cancelledEvts.length}</div><div class="label">Cancellati</div></div>
+      <div class="stat-card"><div class="value" style="color:var(--brand-l)">${totalBks}</div><div class="label">Prenotazioni tot.</div></div>
+      <div class="stat-card"><div class="value" style="color:var(--txt2)">${partnerEvts.length}</div><div class="label">Come partner</div></div>
     </div>
+
     ${m.city?`<div class="card mb-3" style="padding:12px"><div class="text-xs txt3">Città / Zona</div><div class="text-sm font-medium">${escHtml(m.city)}</div></div>`:''}
     ${m.description?`<div class="card mb-3" style="padding:12px"><div class="text-xs txt3">Descrizione</div><div class="text-sm">${escHtml(m.description)}</div></div>`:''}
-    ${evts.length?`<h3 class="font-semibold text-white mb-2 mt-4">📅 Eventi (${evts.length})</h3>
-    <div class="overflow-auto mb-4"><table class="table w-full"><thead><tr><th>Evento</th><th>Data</th><th>Stato</th><th class="text-center">Iscritti</th></tr></thead><tbody>${evRows}</tbody></table></div>`:'<p class="txt3 text-sm mt-4">Nessun evento creato</p>'}
+
+    <h3 class="font-semibold text-white mb-2 mt-4">🌐 Universi (clicca per attivare/disattivare)</h3>
+    <div class="card mb-4" style="padding:12px">${univHtml}</div>
+
+    <h3 class="font-semibold text-white mb-2 mt-4">🛡️ Assicurazioni affiliate (clicca per attivare/disattivare)</h3>
+    <div class="card mb-4" style="padding:12px">${insHtml}</div>
+
+    ${futureEvts.length?`<h3 class="font-semibold text-white mb-2 mt-4">📅 Eventi attivi (${futureEvts.length})</h3>
+    <div class="overflow-auto mb-4" style="max-height:200px"><table class="table w-full"><thead><tr><th>Evento</th><th>Data</th><th>Stato</th><th class="text-center">Iscritti</th></tr></thead><tbody>${futureEvts.map(e=>evRow(e,false)).join('')}</tbody></table></div>`:''}
+
+    ${pastEvts.length?`<h3 class="font-semibold text-white mb-2 mt-4">📜 Eventi conclusi (${pastEvts.length})</h3>
+    <div class="overflow-auto mb-4" style="max-height:200px"><table class="table w-full"><thead><tr><th>Evento</th><th>Data</th><th>Stato</th><th class="text-center">Iscritti</th></tr></thead><tbody>${pastEvts.map(e=>evRow(e,false)).join('')}</tbody></table></div>`:''}
+
+    ${draftEvts.length?`<h3 class="font-semibold text-white mb-2 mt-4">📝 Bozze (${draftEvts.length})</h3>
+    <div class="overflow-auto mb-4" style="max-height:160px"><table class="table w-full"><thead><tr><th>Evento</th><th>Data</th><th>Stato</th><th class="text-center">Iscritti</th></tr></thead><tbody>${draftEvts.map(e=>evRow(e,false)).join('')}</tbody></table></div>`:''}
+
+    ${partnerEvts.length?`<h3 class="font-semibold text-white mb-2 mt-4">🤝 Eventi come partner (${partnerEvts.length})</h3>
+    <div class="overflow-auto mb-4" style="max-height:160px"><table class="table w-full"><thead><tr><th>Evento</th><th>Data</th><th>Stato</th><th class="text-center">Iscritti</th></tr></thead><tbody>${partnerEvts.map(e=>evRow(e,true)).join('')}</tbody></table></div>`:''}
+
+    ${!evts.length&&!partnerEvts.length?'<p class="txt3 text-sm mt-4">Nessun evento creato</p>':''}
+
     ${(m.status==='pending_approval'&&m.id!==store.currentUser.id)?`
     <div class="card mb-4" style="background:rgba(245,158,11,.06);border:1px solid var(--yellow);padding:16px">
       <div class="flex items-center gap-2 mb-2"><span>⏳</span><span class="font-semibold text-white text-sm">In attesa di approvazione</span></div>
@@ -18569,6 +18693,26 @@ function showOrgDetail(mId){
       <button class="btn btn-sm" style="background:var(--s300);color:var(--txt2)" onclick="document.getElementById('user-form-overlay').style.display='none'">Chiudi</button>
     </div>
   </div>`;
+}
+
+/* === Admin toggle universe for an organizer === */
+async function adminToggleOrgUniverse(mId,univId){
+  const m=store.managers.find(x=>x.id===mId);if(!m)return;
+  if(!m.universes)m.universes=[];
+  const idx=m.universes.indexOf(univId);
+  if(idx>=0){m.universes.splice(idx,1);}else{m.universes.push(univId);}
+  await fsUpdate('managers',mId,{universes:m.universes});
+  showOrgDetail(mId); // Refresh panel
+}
+
+/* === Admin toggle insurance affiliation for an organizer === */
+async function adminToggleOrgInsurance(mId,insId){
+  const m=store.managers.find(x=>x.id===mId);if(!m)return;
+  if(!m.affiliatedInsurances)m.affiliatedInsurances=[];
+  const idx=m.affiliatedInsurances.indexOf(insId);
+  if(idx>=0){m.affiliatedInsurances.splice(idx,1);}else{m.affiliatedInsurances.push(insId);}
+  await fsUpdate('managers',mId,{affiliatedInsurances:m.affiliatedInsurances});
+  showOrgDetail(mId); // Refresh panel
 }
 
 /* === Add/Edit User Form === */
