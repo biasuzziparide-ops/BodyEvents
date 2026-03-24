@@ -168,7 +168,7 @@ textarea.input{resize:none;font-family:inherit}
 .dialog-icon.danger{background:var(--red-bg);color:var(--red)}
 
 /* === TOAST === */
-.toast{position:fixed;bottom:24px;right:24px;z-index:60;display:flex;align-items:center;gap:10px;padding:12px 20px;border-radius:12px;font-size:.875rem;font-weight:500;box-shadow:0 8px 30px rgba(0,0,0,.3);animation:slideUp .3s ease}
+.toast{position:fixed;bottom:24px;right:24px;z-index:10001;display:flex;align-items:center;gap:10px;padding:12px 20px;border-radius:12px;font-size:.875rem;font-weight:500;box-shadow:0 8px 30px rgba(0,0,0,.3);animation:slideUp .3s ease}
 .toast-success{background:rgba(5,46,22,.85);border:1px solid rgba(16,185,129,.3);color:#6ee7b7}
 .toast-error{background:rgba(69,10,10,.85);border:1px solid rgba(239,68,68,.3);color:#fca5a5}
 @keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
@@ -201,6 +201,7 @@ textarea.input{resize:none;font-family:inherit}
 /* === TABLE === */
 .table{width:100%;font-size:.875rem;border-collapse:collapse}
 .table th{text-align:left;font-size:.75rem;color:var(--txt3);padding:8px 12px;border-bottom:1px solid var(--s300);font-weight:500}
+.table th[onclick]:hover{color:var(--txt1);background:var(--s200);border-radius:6px 6px 0 0}
 .table td{padding:10px 12px;border-bottom:1px solid rgba(45,45,58,.5);color:var(--txt2)}
 .table tr:hover td{background:rgba(37,37,47,.5)}
 
@@ -3176,12 +3177,17 @@ function _showDeferredLoading(container){
 ============================== */
 function genId(prefix){return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).substring(2,6);}
 
+function _stripUndefined(obj){
+  if(obj===null||obj===undefined||typeof obj!=='object')return obj;
+  if(Array.isArray(obj))return obj.map(v=>_stripUndefined(v));
+  const out={};for(const k of Object.keys(obj)){if(obj[k]!==undefined)out[k]=_stripUndefined(obj[k]);}return out;
+}
 async function fsSet(col,id,data){
-  try{await fbDb.collection(col).doc(id).set(data,{merge:true});return true;}
+  try{await fbDb.collection(col).doc(id).set(_stripUndefined(data),{merge:true});return true;}
   catch(e){console.error('fsSet error:',col,id,e);showToast('Errore salvataggio dati','error');return false;}
 }
 async function fsUpdate(col,id,data){
-  try{await fbDb.collection(col).doc(id).update(data);}
+  try{await fbDb.collection(col).doc(id).update(_stripUndefined(data));}
   catch(e){
     if(e.code==='not-found'||e.message?.includes('No document to update')){
       console.warn('fsUpdate: doc not found, falling back to fsSet with merge:',col,id);
@@ -3441,11 +3447,17 @@ async function removeInsuranceFromUser(userId,insuranceId){
 }
 
 async function renewInsuranceForUser(userId,insuranceId,newExpiresAt){
-  const user=store.users.find(u=>u.id===userId);
+  // V3.2.1 FIX: Check both users AND managers
+  let user=store.users.find(u=>u.id===userId);
+  let col='users';
+  if(!user||!user.assignedInsurances||!user.assignedInsurances.find(x=>x.insuranceId===insuranceId)){
+    const mgr=store.managers.find(m=>m.id===userId);
+    if(mgr&&mgr.assignedInsurances&&mgr.assignedInsurances.find(x=>x.insuranceId===insuranceId)){user=mgr;col='managers';}
+  }
   if(!user||!user.assignedInsurances)return;
   const a=user.assignedInsurances.find(x=>x.insuranceId===insuranceId);
   if(a){a.expiresAt=newExpiresAt;a.assignedAt=new Date().toISOString();}
-  await fsUpdate('users',userId,{assignedInsurances:user.assignedInsurances});
+  await fsUpdate(col,userId,{assignedInsurances:user.assignedInsurances});
 }
 
 async function saveManagerInsuranceSurvey(managerId,surveyQuestions){
@@ -3684,8 +3696,13 @@ async function showAssignInsuranceModal(insId){
   const overlay=document.createElement('div');overlay.className='overlay';
   let h='<div class="dialog" style="max-width:520px;width:92%;max-height:85vh;overflow-y:auto">';
   h+='<h2 style="font-size:1.05rem;font-weight:700;color:var(--txt1);margin-bottom:4px">👤 Assegna: '+escHtml(ins.name)+'</h2>';
-  h+='<p style="font-size:.78rem;color:var(--txt3);margin-bottom:12px">Seleziona gli utenti a cui assegnare questa assicurazione</p>';
-  h+='<div class="mb-3"><label class="label">Data scadenza</label><input type="date" id="ins-assign-expiry" class="input" value="'+(new Date(Date.now()+365*24*60*60*1000).toISOString().split('T')[0])+'"></div>';
+  h+='<p style="font-size:.78rem;color:var(--txt3);margin-bottom:8px">Seleziona gli utenti a cui assegnare questa assicurazione</p>';
+  // Show insurance validity info (read-only) instead of date picker
+  if(ins.validTo||ins.validFrom){
+    h+='<div style="padding:8px 12px;background:var(--s200);border-radius:8px;margin-bottom:12px;font-size:.78rem;color:var(--txt2)">';
+    h+='🛡️ Validità: '+(ins.validFrom?fmtDateShort(ins.validFrom.split('T')[0]):'—')+' → '+(ins.validTo?fmtDateShort(ins.validTo.split('T')[0]):'Illimitata');
+    h+='</div>';
+  }
   h+='<div class="mb-3"><input type="text" id="ins-assign-search" class="input" placeholder="🔍 Cerca utente..." oninput="filterInsAssignList(this.value,\''+insId+'\')"></div>';
   h+='<div id="ins-assign-list" style="max-height:300px;overflow-y:auto">';
   // List all users from registry + store.users — resolve registry IDs to real store user IDs
@@ -3698,8 +3715,12 @@ async function showAssignInsuranceModal(insId){
   store.users.forEach(u=>{if(!allUsers.has(u.id))allUsers.set(u.id,{id:u.id,name:u.username||u.name||u.email,email:u.email});});
   const now=new Date().toISOString();
   allUsers.forEach((u,uid)=>{
+    // V3.2.1 FIX: Check BOTH store.users AND store.managers for existing assignments
     const storeUser=store.users.find(x=>x.id===uid);
-    const already=(storeUser?.assignedInsurances||[]).some(a=>a.insuranceId===insId&&(!a.expiresAt||a.expiresAt>=now));
+    const storeMgr=store.managers.find(x=>x.id===uid);
+    const userAssigns=storeUser?.assignedInsurances||[];
+    const mgrAssigns=storeMgr?.assignedInsurances||[];
+    const already=[...userAssigns,...mgrAssigns].some(a=>a.insuranceId===insId);
     h+='<div class="ins-assign-row" data-name="'+(u.name||'').toLowerCase()+'" data-email="'+(u.email||'').toLowerCase()+'" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--s300);'+(already?'opacity:.5':'')+'">';
     h+='<div style="flex:1;min-width:0"><div style="font-size:.84rem;font-weight:500;color:var(--txt1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escHtml(u.name||uid)+'</div>';
     h+='<div style="font-size:.72rem;color:var(--txt3)">'+escHtml(u.email||'')+'</div></div>';
@@ -3728,11 +3749,21 @@ function filterInsAssignList(query,insId){
 
 async function doAssignInsuranceToUser(userId,insId,btn){
   btn.disabled=true;btn.textContent='...';
-  const expiry=document.getElementById('ins-assign-expiry')?.value||null;
-  const expiresAt=expiry?new Date(expiry+'T23:59:59').toISOString():null;
-  await assignInsuranceToUser(userId,insId,store.currentUser.id,expiresAt,{});
-  btn.textContent='✓ Assicurato';btn.style.background='rgba(16,185,129,.2)';btn.style.color='var(--green)';
-  showToast('Assicurazione assegnata!');
+  try{
+    // V3.2.1: Use insurance entity's validTo as authoritative expiry — no date picker
+    const ins=store.insurances.find(i=>i.id===insId);
+    const expiresAt=ins?.validTo?new Date(ins.validTo.split('T')[0]+'T23:59:59').toISOString():null;
+    await assignInsuranceToUser(userId,insId,store.currentUser.id,expiresAt,{});
+    btn.textContent='✓ Assicurato';btn.style.background='rgba(16,185,129,.2)';btn.style.color='var(--green)';btn.style.border='none';
+    btn.onclick=null;
+    showToast('Assicurazione assegnata!');
+    // Update counter in parent insurance view
+    renderAdminInsurances();
+  }catch(e){
+    console.error('doAssignInsuranceToUser error:',e);
+    btn.disabled=false;btn.textContent='Assegna';
+    showToast('Errore assegnazione: '+e.message,'error');
+  }
 }
 
 // === VIEW INSURED USERS MODAL ===
@@ -3795,13 +3826,22 @@ async function doRemoveInsurance(userId,insId,btn){
 }
 
 async function doRenewInsurance(userId,insId,btn){
-  const newExpiry=prompt('Nuova data scadenza (YYYY-MM-DD):',new Date(Date.now()+365*24*60*60*1000).toISOString().split('T')[0]);
-  if(!newExpiry)return;
+  // V3.2.1: Use insurance entity's validTo as authoritative date — no manual prompt
+  const ins=store.insurances.find(i=>i.id===insId);
+  const newExpiry=ins?.validTo?ins.validTo.split('T')[0]:null;
+  if(!newExpiry){showToast('Questa assicurazione non ha una data di scadenza impostata','error');return;}
+  if(!confirm('Rinnovare l\'assicurazione con scadenza '+fmtDateShort(newExpiry)+'?'))return;
   btn.disabled=true;btn.textContent='...';
-  await renewInsuranceForUser(userId,insId,new Date(newExpiry+'T23:59:59').toISOString());
-  showToast('Assicurazione rinnovata!');
-  btn.closest('.overlay')?.remove();
-  renderAdminInsurances();
+  try{
+    await renewInsuranceForUser(userId,insId,new Date(newExpiry+'T23:59:59').toISOString());
+    showToast('Assicurazione rinnovata!');
+    btn.closest('.overlay')?.remove();
+    renderAdminInsurances();
+  }catch(e){
+    console.error('doRenewInsurance error:',e);
+    btn.disabled=false;btn.textContent='🔄 Rinnova';
+    showToast('Errore rinnovo: '+e.message,'error');
+  }
 }
 
 // === INSURANCE SURVEY MODAL ===
@@ -3873,18 +3913,26 @@ function showQuickAssignInsurance(userId){
   const mgr=store.managers.find(m=>m.id===store.currentUser?.id);
   if(!mgr)return;
   const affiliated=mgr.affiliatedInsurances||[];
+  // V3.2.1 FIX: Check BOTH users AND managers for existing assignments
   const user=store.users.find(u=>u.id===userId);
-  const existing=(user?.assignedInsurances||[]).filter(a=>affiliated.includes(a.insuranceId)&&(!a.expiresAt||a.expiresAt>=new Date().toISOString()));
-  const existingIds=new Set(existing.map(a=>a.insuranceId));
+  const mgrRec=store.managers.find(m=>m.id===userId);
+  const allAssigns=[...(user?.assignedInsurances||[]),...(mgrRec?.assignedInsurances||[])];
+  const existingIds=new Set(allAssigns.filter(a=>affiliated.includes(a.insuranceId)).map(a=>a.insuranceId));
   const available=store.insurances.filter(ins=>affiliated.includes(ins.id)&&ins.status==='active'&&!existingIds.has(ins.id));
   if(!available.length){showToast('Tutte le assicurazioni sono già assegnate');return;}
   const overlay=document.createElement('div');overlay.className='overlay';
   let h='<div class="dialog" style="max-width:420px;width:92%">';
   h+='<h2 style="font-size:1.05rem;font-weight:700;color:var(--txt1);margin-bottom:12px">➕ Assegna Assicurazione</h2>';
-  h+='<div class="mb-3"><label class="label">Assicurazione</label><select id="qa-ins-sel" class="input">';
-  available.forEach(ins=>{h+='<option value="'+ins.id+'">'+escHtml(ins.name)+'</option>';});
+  h+='<div class="mb-3"><label class="label">Assicurazione</label><select id="qa-ins-sel" class="input" onchange="(function(sel){var v=sel.options[sel.selectedIndex].dataset.validity||\'\';document.getElementById(\'qa-ins-validity\').textContent=v;})(this)">';
+  available.forEach(ins=>{
+    const vLabel=(ins.validFrom||ins.validTo)?('Validità: '+(ins.validFrom?fmtDateShort(ins.validFrom.split('T')[0]):'—')+' → '+(ins.validTo?fmtDateShort(ins.validTo.split('T')[0]):'Illimitata')):'';
+    h+='<option value="'+ins.id+'" data-validity="'+escHtml(vLabel)+'">'+escHtml(ins.name)+'</option>';
+  });
   h+='</select></div>';
-  h+='<div class="mb-3"><label class="label">Scadenza</label><input type="date" id="qa-ins-expiry" class="input" value="'+(new Date(Date.now()+365*24*60*60*1000).toISOString().split('T')[0])+'"></div>';
+  // V3.2.1: Show validity info (read-only) instead of date picker
+  const firstIns=available[0];
+  const firstLabel=(firstIns?.validFrom||firstIns?.validTo)?('Validità: '+(firstIns.validFrom?fmtDateShort(firstIns.validFrom.split('T')[0]):'—')+' → '+(firstIns.validTo?fmtDateShort(firstIns.validTo.split('T')[0]):'Illimitata')):'';
+  if(firstLabel)h+='<div style="padding:6px 10px;background:var(--s200);border-radius:8px;margin-bottom:12px;font-size:.75rem;color:var(--txt2)" id="qa-ins-validity">'+escHtml(firstLabel)+'</div>';
   h+='<div class="flex gap-2 mt-4">';
   h+='<button class="btn" style="background:var(--brand);color:#fff;flex:1" onclick="doQuickAssign(\''+userId+'\',this)">Assegna</button>';
   h+='<button class="btn btn-secondary" onclick="this.closest(\'.overlay\').remove()">Annulla</button>';
@@ -3896,14 +3944,21 @@ function showQuickAssignInsurance(userId){
 
 async function doQuickAssign(userId,btn){
   btn.disabled=true;btn.textContent='...';
-  const insId=document.getElementById('qa-ins-sel')?.value;
-  const expiry=document.getElementById('qa-ins-expiry')?.value;
-  const expiresAt=expiry?new Date(expiry+'T23:59:59').toISOString():null;
-  await assignInsuranceToUser(userId,insId,store.currentUser.id,expiresAt,{});
-  showToast('Assicurazione assegnata!');
-  // Close both overlays and re-open user detail
-  document.querySelectorAll('.overlay').forEach(o=>o.remove());
-  openRegistryUserDetail(userId);
+  try{
+    const insId=document.getElementById('qa-ins-sel')?.value;
+    // V3.2.1: Use insurance entity's validTo as authoritative expiry — no date picker
+    const ins=store.insurances.find(i=>i.id===insId);
+    const expiresAt=ins?.validTo?new Date(ins.validTo.split('T')[0]+'T23:59:59').toISOString():null;
+    await assignInsuranceToUser(userId,insId,store.currentUser.id,expiresAt,{});
+    showToast('Assicurazione assegnata!');
+    // Close both overlays and re-open user detail
+    document.querySelectorAll('.overlay').forEach(o=>o.remove());
+    openRegistryUserDetail(userId);
+  }catch(e){
+    console.error('doQuickAssign error:',e);
+    btn.disabled=false;btn.textContent='Assegna';
+    showToast('Errore assegnazione: '+e.message,'error');
+  }
 }
 
 /* Safe push: add booking to store only if not already present (prevents in-memory duplicates).
@@ -5168,7 +5223,7 @@ async function renderProfileInsurances(u){
   const card=document.getElementById('profile-insurances-card');
   const list=document.getElementById('profile-insurances-list');
   if(!card||!list)return;
-  // Fresh fetch from Firestore to ensure up-to-date data
+  // V3.2.1 FIX: Fresh fetch from BOTH users AND managers collections
   try{
     const freshDoc=await fbDb.collection('users').doc(u.id).get();
     if(freshDoc.exists){
@@ -5179,7 +5234,25 @@ async function renderProfileInsurances(u){
         if(storeRec)storeRec.assignedInsurances=freshData.assignedInsurances;
       }
     }
-  }catch(e){console.warn('renderProfileInsurances: fresh fetch failed',e);}
+  }catch(e){console.warn('renderProfileInsurances: users fetch failed',e);}
+  // Also check managers collection (user might also be an organizer with insurances there)
+  try{
+    const mgrDoc=await fbDb.collection('managers').doc(u.id).get();
+    if(mgrDoc.exists){
+      const mgrData=mgrDoc.data();
+      if(mgrData.assignedInsurances&&mgrData.assignedInsurances.length){
+        const storeMgr=store.managers.find(x=>x.id===u.id);
+        if(storeMgr)storeMgr.assignedInsurances=mgrData.assignedInsurances;
+        // Merge manager assignments into user's list (avoid duplicates)
+        if(!u.assignedInsurances)u.assignedInsurances=[];
+        mgrData.assignedInsurances.forEach(ma=>{
+          if(!u.assignedInsurances.some(ua=>ua.insuranceId===ma.insuranceId)){
+            u.assignedInsurances.push(ma);
+          }
+        });
+      }
+    }
+  }catch(e){console.warn('renderProfileInsurances: managers fetch failed',e);}
   const assignments=u.assignedInsurances||[];
   if(!assignments.length){card.style.display='none';return;}
   card.style.display='';
@@ -5725,14 +5798,14 @@ function renderSubTypes(c){
       html+='<span>🎟️ '+t.entries+' ingressi</span>';
     }
     html+='<span>'+expiryLabel+'</span>';
-    html+='<span>💰 €'+(t.price||0).toFixed(2)+'</span>';
+    html+='<span>💰 €'+fmtEuro(t.price||0)+'</span>';
     html+='</div>';
     if(compatTypes) html+='<div class="mt-2 flex gap-2 flex-wrap">'+compatTypes+'</div>';
     if(t.notes) html+='<div class="text-xs txt3 mt-2">📝 '+t.notes+'</div>';
     html+='<div class="text-xs mt-3" style="display:flex;gap:16px;flex-wrap:wrap">';
     html+='<span style="color:var(--green)">✅ '+activeSubs.length+' attivi</span>';
     html+='<span style="color:var(--red)">⏳ '+expiredSubs.length+' scaduti</span>';
-    html+='<span style="color:var(--yellow)">💰 €'+totalRevenue.toFixed(2)+' incassati</span>';
+    html+='<span style="color:var(--yellow)">💰 €'+fmtEuro(totalRevenue)+' incassati</span>';
     html+='</div></div>';
     html+='<div style="display:flex;gap:6px;flex-shrink:0" onclick="event.stopPropagation()">';
     html+='<button class="btn btn-sm btn-secondary" onclick="editSubType(\''+t.id+'\')">✏️</button>';
@@ -5778,8 +5851,8 @@ function renderSubAssigned(c){
   let html='';
   // Metrics cards
   html+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px">';
-  html+='<div class="card" style="padding:14px;text-align:center;border-color:var(--green)"><div class="text-xs txt3 mb-1">💰 Entrate totali</div><div class="text-lg font-bold" style="color:var(--green)">€'+totalRevenue.toFixed(2)+'</div></div>';
-  html+='<div class="card" style="padding:14px;text-align:center;border-color:var(--yellow)"><div class="text-xs txt3 mb-1">⏳ Da incassare</div><div class="text-lg font-bold" style="color:var(--yellow)">€'+pendingRevenue.toFixed(2)+'</div></div>';
+  html+='<div class="card" style="padding:14px;text-align:center;border-color:var(--green)"><div class="text-xs txt3 mb-1">💰 Entrate totali</div><div class="text-lg font-bold" style="color:var(--green)">€'+fmtEuro(totalRevenue)+'</div></div>';
+  html+='<div class="card" style="padding:14px;text-align:center;border-color:var(--yellow)"><div class="text-xs txt3 mb-1">⏳ Da incassare</div><div class="text-lg font-bold" style="color:var(--yellow)">€'+fmtEuro(pendingRevenue)+'</div></div>';
   html+='<div class="card" style="padding:14px;text-align:center"><div class="text-xs txt3 mb-1">📊 Totale venduti</div><div class="text-lg font-bold text-white">'+(totalSold-freeSubs.length)+'</div></div>';
   html+='<div class="card" style="padding:14px;text-align:center"><div class="text-xs txt3 mb-1">🆓 Gratuiti/Omaggio</div><div class="text-lg font-bold text-white">'+freeSubs.length+'</div></div>';
   html+='</div>';
@@ -5791,7 +5864,7 @@ function renderSubAssigned(c){
     typeEntries.forEach(([name,data])=>{
       html+='<div style="background:var(--s200);border-radius:8px;padding:10px 12px"><div class="font-medium text-white text-sm">'+escHtml(name)+'</div>';
       html+='<div class="text-xs txt3 mt-1">'+data.count+' assegnati · '+data.free+' gratuiti</div>';
-      html+='<div class="text-sm mt-1" style="color:var(--green)">💰 €'+data.paid.toFixed(2)+'</div></div>';
+      html+='<div class="text-sm mt-1" style="color:var(--green)">💰 €'+fmtEuro(data.paid)+'</div></div>';
     });
     html+='</div></details>';
   }
@@ -6196,7 +6269,7 @@ async function saveSubType(overlay,editId){
       const entriesChanged=existing.entries!==entries;
       const changesDesc=[];
       if(entriesChanged)changesDesc.push('Ingressi: '+existing.entries+' → '+entries);
-      if(priceChanged)changesDesc.push('Prezzo: €'+existing.price?.toFixed(2)+' → €'+price.toFixed(2));
+      if(priceChanged)changesDesc.push('Prezzo: €'+fmtEuro(existing.price)+' → €'+fmtEuro(price));
       if(existing.name!==name)changesDesc.push('Nome: "'+existing.name+'" → "'+name+'"');
       if(existing.validityDays!==validityDays)changesDesc.push('Validità: '+(existing.validityDays||'illimitata')+' → '+(validityDays||'illimitata'));
       if(existing.expiryMode!==expiryMode||existing.absoluteExpiry!==absoluteExpiry)changesDesc.push('Modalità scadenza aggiornata');
@@ -6360,10 +6433,10 @@ function showSubDetail(subId){
   html+='<div class="text-sm mt-1"><strong>Ingressi:</strong> '+remaining+'/'+s.entriesTotal+' rimanenti</div>';
   html+='<div class="text-sm mt-1"><strong>Assegnato il:</strong> '+fmtDateShort(s.assignedAt?.split('T')[0]||'')+'</div>';
   if(s.expiresAt) html+='<div class="text-sm mt-1"><strong>Scade il:</strong> '+fmtDateShort(s.expiresAt.split('T')[0])+'</div>';
-  html+='<div class="text-sm mt-1"><strong>Pagamento:</strong> '+({pagato:'✅ Pagato',da_pagare:'❌ Da pagare',omaggio:'🎁 Omaggio',omaggiato:'🎁 Omaggio',gratuito:'🎁 Omaggio',prezzo_modificato:'💰 Prezzo modificato — verificare'}[s.paymentStatus]||s.paymentStatus)+(s.paymentAmount?' — €'+s.paymentAmount.toFixed(2):'')+'</div>';
+  html+='<div class="text-sm mt-1"><strong>Pagamento:</strong> '+({pagato:'✅ Pagato',da_pagare:'❌ Da pagare',omaggio:'🎁 Omaggio',omaggiato:'🎁 Omaggio',gratuito:'🎁 Omaggio',prezzo_modificato:'💰 Prezzo modificato — verificare'}[s.paymentStatus]||s.paymentStatus)+(s.paymentAmount?' — €'+fmtEuro(s.paymentAmount):'')+'</div>';
   if(s.paymentStatus==='prezzo_modificato'){
     const newPrice=sType?.price||0;
-    html+='<div class="text-xs mt-1" style="color:var(--yellow);background:rgba(245,158,11,.08);padding:6px 10px;border-radius:8px;border:1px solid rgba(245,158,11,.2)">⚠️ Pagato €'+(s.originalPaidAmount||0).toFixed(2)+' — nuovo prezzo tipologia: €'+newPrice.toFixed(2)+'. Verificare differenza.</div>';
+    html+='<div class="text-xs mt-1" style="color:var(--yellow);background:rgba(245,158,11,.08);padding:6px 10px;border-radius:8px;border:1px solid rgba(245,158,11,.2)">⚠️ Pagato €'+fmtEuro(s.originalPaidAmount||0)+' — nuovo prezzo tipologia: €'+fmtEuro(newPrice)+'. Verificare differenza.</div>';
   }
   if(s.notes) html+='<div class="text-sm mt-1"><strong>Note:</strong> '+s.notes+'</div>';
   html+='</div>';
@@ -6532,8 +6605,8 @@ function openSubTypePanel(typeId){
   html+='<div class="grid grid-4 gap-3 mb-4">';
   html+='<div class="stat-card"><div class="value" style="color:var(--green)">'+activeSubs.length+'</div><div class="label">Attivi</div></div>';
   html+='<div class="stat-card"><div class="value" style="color:var(--txt3)">'+expiredSubs.length+'</div><div class="label">Scaduti/Sospesi</div></div>';
-  html+='<div class="stat-card"><div class="value" style="color:var(--green)">€'+totalRevenue.toFixed(0)+'</div><div class="label">Incassati</div></div>';
-  html+='<div class="stat-card"><div class="value" style="color:var(--yellow)">€'+pendingRevenue.toFixed(0)+'</div><div class="label">Da incassare</div></div>';
+  html+='<div class="stat-card"><div class="value" style="color:var(--green)">€'+fmtEuro(totalRevenue)+'</div><div class="label">Incassati</div></div>';
+  html+='<div class="stat-card"><div class="value" style="color:var(--yellow)">€'+fmtEuro(pendingRevenue)+'</div><div class="label">Da incassare</div></div>';
   html+='</div>';
   if(freeSubs.length>0) html+='<div class="text-xs txt3 mb-3" style="text-align:center">🆓 '+freeSubs.length+' abbonament'+(freeSubs.length===1?'o':'i')+' gratuit'+(freeSubs.length===1?'o':'i')+'/omaggio (non inclus'+(freeSubs.length===1?'o':'i')+' nelle entrate)</div>';
 
@@ -6544,7 +6617,7 @@ function openSubTypePanel(typeId){
   if(_isDiscType) html+='<span>📉 Sconto <strong>'+(t.discountPercent||0)+'%</strong></span>';
   else html+='<span>🎟️ <strong>'+t.entries+'</strong> ingressi</span>';
   html+='<span>'+expiryLabel+'</span>';
-  html+='<span>💰 <strong>€'+(t.price||0).toFixed(2)+'</strong></span>';
+  html+='<span>💰 <strong>€'+fmtEuro(t.price||0)+'</strong></span>';
   if(univ) html+='<span>'+univ.emoji+' '+univ.name+'</span>';
   html+='</div></div>';
 
@@ -6659,7 +6732,7 @@ async function exportSubTypeExcel(typeId){
   // Subtitle
   ws.mergeCells(2,1,2,totalCols);
   const subCell=ws.getCell('A2');
-  subCell.value='Ingressi: '+t.entries+' | Prezzo: €'+(t.price||0).toFixed(2)+' | Esportato il: '+new Date().toLocaleDateString('it-IT');
+  subCell.value='Ingressi: '+t.entries+' | Prezzo: €'+fmtEuro(t.price||0)+' | Esportato il: '+new Date().toLocaleDateString('it-IT');
   subCell.font={name:'Calibri',size:10,italic:true,color:{argb:'FF9CA3AF'}};
   subCell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1E1E2E'}};
   subCell.alignment={horizontal:'center',vertical:'middle'};
@@ -7527,6 +7600,9 @@ function isRegistryCollapsed(listId){
 }
 
 function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+/* V3.2.1: Format euro amount with max 2 decimal places. Removes trailing zeros: 10.00→10, 10.50→10.50, 10.123→10.12 */
+function fmtEuro(n){if(n==null||isNaN(n))return '0';const v=Math.round(n*100)/100;return v%1===0?v.toString():v.toFixed(2);}
 
 function updateRegistryCell(uid,colId,value){
   const reg=getRegistryData();
@@ -11936,6 +12012,19 @@ async function renderUserDashboard(){
   // Get community events user has joined
   const joinedJams=store.communityJams.filter(j=>j.status!=='cancellato'&&!(j.alert&&j.alert.type==='cancellato')&&(j.participants||[]).some(p=>p.userId===uid));
 
+  // V3.2.1: Preload participant counts for Jam/Social bookings (per-occurrence)
+  if(!_bookingsLoaded){
+    const _dashJamBks=active.filter(b=>{const ev=store.events.find(e=>e.id===b.eventId);return ev&&(ev.type==='jam'||ev.type==='social');});
+    const _dashJamEvts=_dashJamBks.map(b=>{const ev=store.events.find(e=>e.id===b.eventId);return {id:ev.id,_recDate:b.recurringDate||null};}).filter(e=>_evPartCounts[_partCountKey(e.id,e._recDate)]===undefined);
+    if(_dashJamEvts.length&&!_evPartCountsLoading){
+      _evPartCountsLoading=true;
+      _loadJamSocialParticipantCounts(_dashJamEvts).then(()=>{
+        _evPartCountsLoading=false;
+        if(currentView==='dashboard')renderUserDashboard();
+      }).catch(()=>{_evPartCountsLoading=false;});
+    }
+  }
+
   // Sort active bookings by event date
   active.sort((a,b)=>{
     const evA=store.events.find(e=>e.id===a.eventId);
@@ -12253,6 +12342,16 @@ async function renderUserDashboard(){
     const _cancelInline=!hasAlert&&_cancelBtn?`<div style="margin-top:10px">${_cancelBtn}</div>`:'';
     const _cancelBelow=hasAlert&&_cancelBtn?`<div style="display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(168,85,247,.12)">${_cancelBtn}</div>`:'';
 
+    // V3.2.1: Participant pip for Jam/Social in bookings dashboard
+    const _bkIsJamSocial=ev.type==='jam'||ev.type==='social';
+    const _bkPipHtml=(()=>{
+      if(!_bkIsJamSocial)return '';
+      const _pipKey=_partCountKey(ev.id,b.recurringDate||null);
+      const _pCount=(_evPartCounts[_pipKey]!==undefined)?_evPartCounts[_pipKey]:store.bookings.filter(bk=>bk.eventId===ev.id&&bk.status!=='cancellata'&&(bk.recurringDate||null)===(b.recurringDate||null)).length;
+      if(_pCount<=0)return '';
+      return '<div class="participants-pip"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>'+_pCount+'</div>';
+    })();
+
     html+=`<div class="card-hover mb-4" style="border-radius:16px;overflow:hidden;padding:0;border-color:${borderColor};background:${bgColor};position:relative${alertType==='cancellato'?';opacity:.8':''}" onclick="showEventDetail('${ev.id}'${b.recurringDate?`,'${b.recurringDate}'`:''})">
       ${alertStamp}
       <div style="display:flex;align-items:stretch;position:relative;z-index:2">
@@ -12260,7 +12359,7 @@ async function renderUserDashboard(){
         <div style="flex:1;min-width:0;padding:14px 16px;display:flex;flex-direction:column;gap:0">
           ${i===0&&!hasAlert?'<div style="font-size:.65rem;color:var(--txt3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Prossimo evento</div>':''}
           <div style="display:flex;gap:14px;align-items:flex-start">
-            ${cardThumb}
+            <div style="position:relative">${_bkPipHtml}${cardThumb}</div>
             <div style="flex:1;min-width:0">
               <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
                 ${_orgLogoHtml}<h3 style="margin:0;font-size:.95rem;font-weight:600;color:#fff;line-height:1.3;overflow-wrap:break-word;word-break:break-word;min-width:0">${escHtml(ev.title)}</h3>
@@ -12318,11 +12417,20 @@ async function renderUserDashboard(){
       const _pOrgLogo=_pMgr&&_pMgr.orgLogo?`<div style="width:22px;height:22px;border-radius:50%;overflow:hidden;border:2px solid var(--s300);flex-shrink:0;opacity:.6"><img src="${_pMgr.orgLogo}" style="width:100%;height:100%;object-fit:cover" alt=""></div>`:'';
       // Universe strip (muted)
       const _pUniStrip=getUniverseStripHtml(ev);
+      // V3.2.1: Participant pip for Jam/Social in past bookings
+      const _pBkIsJamSocial=ev.type==='jam'||ev.type==='social';
+      const _pBkPipHtml=(()=>{
+        if(!_pBkIsJamSocial)return '';
+        const _pipKey=_partCountKey(ev.id,b.recurringDate||null);
+        const _pCount=(_evPartCounts[_pipKey]!==undefined)?_evPartCounts[_pipKey]:store.bookings.filter(bk=>bk.eventId===ev.id&&bk.status!=='cancellata'&&(bk.recurringDate||null)===(b.recurringDate||null)).length;
+        if(_pCount<=0)return '';
+        return '<div class="participants-pip"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>'+_pCount+'</div>';
+      })();
       html+=`<div class="card-hover mb-4" style="border-radius:16px;overflow:hidden;padding:0;border-color:var(--s300);opacity:.6;cursor:pointer" onclick="showEventDetail('${ev.id}'${b.recurringDate?`,'${b.recurringDate}'`:''})">
         <div style="display:flex;align-items:stretch">
           ${_pUniStrip}
           <div style="flex:1;min-width:0;padding:14px 16px;display:flex;gap:14px;align-items:flex-start">
-            ${_pCardThumb}
+            <div style="position:relative">${_pBkPipHtml}${_pCardThumb}</div>
             <div style="flex:1;min-width:0">
               <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
                 ${_pOrgLogo}<h3 style="margin:0;font-size:.95rem;font-weight:600;color:var(--txt3);line-height:1.3;overflow-wrap:break-word;word-break:break-word;min-width:0">${escHtml(ev.title)}</h3>
@@ -15321,6 +15429,43 @@ async function renderCostManagement(evId){
   html+='<p class="text-sm txt3 mb-4">'+escHtml(ev.title)+'</p>';
   if(readOnly)html+='<div class="card mb-4" style="background:rgba(99,102,241,.06);border-color:rgba(99,102,241,.2);padding:10px 14px;text-align:center"><span class="text-sm" style="color:#6366f1">📦 Modalità sola lettura</span></div>';
 
+  // ========== SECTION 0: REVENUE OVERVIEW (moved from event detail V3.2.1) ==========
+  if(ev.pricingMode!=='free'&&isCapo){
+    const depAmount=(ev.deposit&&ev.deposit.required&&ev.deposit.amount)?ev.deposit.amount:0;
+    const rvActive=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata');
+    const rvGifts=rvActive.filter(b=>b.gift);
+    const rvPaying=rvActive.filter(b=>!b.gift&&b.paymentStatus!=='gratuito'&&b.paymentStatus!=='abbonamento');
+    const rvTotalRevenue=rvPaying.reduce((s,b)=>s+(b.amount||0),0);
+    const rvPaidRevenue=rvPaying.filter(b=>b.paymentStatus==='pagato').reduce((s,b)=>s+(b.amount||0),0);
+    const rvReceivedDep=rvActive.filter(b=>b.depositStatus==='ricevuto'&&!b.gift);
+    const rvPendingDep=rvActive.filter(b=>b.depositStatus==='pending'&&!b.gift);
+    const rvReceivedRevenue=rvReceivedDep.length*depAmount;
+    const rvPendingRevenue=rvPendingDep.length*depAmount;
+    const rvUnpaidRevenue=rvPaying.reduce((s,b)=>{
+      const owed=b.amount||0;
+      const paid=(b.paymentStatus==='pagato')?owed:0;
+      const depRcv=(b.depositStatus==='ricevuto')?depAmount:0;
+      return s+(owed-paid-depRcv);
+    },0);
+
+    html+='<div class="card mb-4" style="padding:0;overflow:hidden">';
+    html+='<div style="padding:14px 18px;background:var(--s100);border-bottom:1px solid var(--s300)"><h2 style="font-size:1rem;font-weight:700;color:var(--txt1);margin:0">💰 Panoramica Incassi</h2></div>';
+    html+='<div style="padding:16px 18px">';
+    html+='<div class="grid gap-3 mb-3" style="grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">';
+    html+='<div class="stat-card"><div class="value" style="color:var(--brand-l)">€'+fmtEuro(rvTotalRevenue)+'</div><div class="label">Totale previsto</div></div>';
+    html+='<div class="stat-card"><div class="value" style="color:var(--green)">€'+fmtEuro(rvPaidRevenue)+'</div><div class="label">Incassato</div></div>';
+    html+='<div class="stat-card"><div class="value" style="color:var(--yellow)">€'+fmtEuro(rvUnpaidRevenue)+'</div><div class="label">Da incassare</div></div>';
+    if(depAmount>0){
+      html+='<div class="stat-card"><div class="value" style="color:var(--green)">€'+fmtEuro(rvReceivedRevenue)+'</div><div class="label">Anticipi ricevuti</div></div>';
+      html+='<div class="stat-card"><div class="value" style="color:var(--yellow)">€'+fmtEuro(rvPendingRevenue)+'</div><div class="label">Anticipi in attesa</div></div>';
+    }
+    if(rvGifts.length>0){
+      html+='<div class="stat-card"><div class="value" style="color:var(--purple)">'+rvGifts.length+'</div><div class="label">🎁 Regali</div></div>';
+    }
+    html+='</div>';
+    html+='</div></div>';
+  }
+
   // ========== SECTION A: GENERAL COSTS ==========
   html+='<div class="card mb-4" style="padding:0;overflow:hidden">';
   html+='<div style="padding:14px 18px;background:var(--s100);border-bottom:1px solid var(--s300)"><h2 style="font-size:1rem;font-weight:700;color:var(--txt1);margin:0">📋 Costi generali</h2></div>';
@@ -15358,11 +15503,11 @@ async function renderCostManagement(evId){
         html+='<input type="number" value="'+(item.multiplier||1)+'" min="1" style="background:var(--s100);border:1px solid var(--s300);border-radius:6px;padding:4px 6px;color:var(--txt1);font-size:.82rem;text-align:center;width:100%" onchange="updateCostItem(\''+evId+'\',\''+section.id+'\',\''+item.id+'\',\'multiplier\',parseFloat(this.value)||1)">';
       } else {
         html+='<span class="text-sm" style="color:var(--txt1)">'+escHtml(item.label)+'</span>';
-        html+='<span class="text-sm" style="text-align:center;color:var(--txt2)">€'+(item.unitValue||0)+'</span>';
+        html+='<span class="text-sm" style="text-align:center;color:var(--txt2)">€'+fmtEuro(item.unitValue||0)+'</span>';
         html+='<span class="text-sm" style="text-align:center;color:var(--txt2)">'+(item.quantity||1)+'</span>';
         html+='<span class="text-sm" style="text-align:center;color:var(--txt2)">'+(item.multiplier||1)+'</span>';
       }
-      html+='<span id="cost-total-'+item.id+'" style="text-align:center;font-weight:700;color:var(--green);font-size:.88rem">€'+total+'</span>';
+      html+='<span id="cost-total-'+item.id+'" style="text-align:center;font-weight:700;color:var(--green);font-size:.88rem">€'+fmtEuro(total)+'</span>';
 
       if(hasPartners){
         const sm=item.splitMode||'equal';
@@ -15435,7 +15580,7 @@ async function renderCostManagement(evId){
       if(!readOnly){
         html+='<input type="number" value="'+(sc.amount||0)+'" style="background:var(--s100);border:1px solid var(--s300);border-radius:6px;padding:4px 6px;color:var(--txt1);font-size:.82rem;text-align:center;width:100%" onchange="updateSessionCost(\''+evId+'\',\''+s.id+'\',\'amount\',parseFloat(this.value)||0)">';
       } else {
-        html+='<span class="text-sm" style="text-align:center;color:var(--txt1);font-weight:600">€'+(sc.amount||0)+'</span>';
+        html+='<span class="text-sm" style="text-align:center;color:var(--txt1);font-weight:600">€'+fmtEuro(sc.amount||0)+'</span>';
       }
 
       if(hasPartners){
@@ -15522,17 +15667,17 @@ function _buildCostSummary(ev,costs,isCapo,hasPartners,allParticipants,getPartne
   if(isCapo){
     // Capofila sees everything
     h+='<div class="grid gap-3 mb-4" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">';
-    h+='<div class="stat-card"><div class="value" style="color:var(--green)">€'+totalRevenue+'</div><div class="label">Incassato</div></div>';
-    h+='<div class="stat-card"><div class="value" style="color:var(--red)">€'+totalCosts+'</div><div class="label">Costi totali</div></div>';
-    h+='<div class="stat-card" style="border:1px solid '+(profit>=0?'rgba(16,185,129,.3)':'rgba(239,68,68,.3)')+'"><div class="value" style="color:'+(profit>=0?'var(--green)':'var(--red)')+'">€'+profit+'</div><div class="label">'+(profit>=0?'📈 Profitto':'📉 Perdita')+'</div></div>';
+    h+='<div class="stat-card"><div class="value" style="color:var(--green)">€'+fmtEuro(totalRevenue)+'</div><div class="label">Incassato</div></div>';
+    h+='<div class="stat-card"><div class="value" style="color:var(--red)">€'+fmtEuro(totalCosts)+'</div><div class="label">Costi totali</div></div>';
+    h+='<div class="stat-card" style="border:1px solid '+(profit>=0?'rgba(16,185,129,.3)':'rgba(239,68,68,.3)')+'"><div class="value" style="color:'+(profit>=0?'var(--green)':'var(--red)')+'">€'+fmtEuro(profit)+'</div><div class="label">'+(profit>=0?'📈 Profitto':'📉 Perdita')+'</div></div>';
     h+='</div>';
 
     // Cost breakdown
     if(generalTotal>0||sessionTotal>0){
       h+='<div style="font-size:.82rem;color:var(--txt3);margin-bottom:8px">Dettaglio costi:</div>';
       h+='<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:.82rem;margin-bottom:12px">';
-      if(generalTotal>0)h+='<span style="color:var(--txt2)">📋 Generali: <strong style="color:var(--txt1)">€'+generalTotal+'</strong></span>';
-      if(sessionTotal>0)h+='<span style="color:var(--txt2)">🎓 Sessioni: <strong style="color:var(--txt1)">€'+sessionTotal+'</strong></span>';
+      if(generalTotal>0)h+='<span style="color:var(--txt2)">📋 Generali: <strong style="color:var(--txt1)">€'+fmtEuro(generalTotal)+'</strong></span>';
+      if(sessionTotal>0)h+='<span style="color:var(--txt2)">🎓 Sessioni: <strong style="color:var(--txt1)">€'+fmtEuro(sessionTotal)+'</strong></span>';
       h+='</div>';
     }
 
@@ -15572,9 +15717,9 @@ function _buildCostSummary(ev,costs,isCapo,hasPartners,allParticipants,getPartne
         h+='<div style="background:var(--s100);border:1px solid var(--s300);border-radius:10px;padding:12px 14px;margin-bottom:8px'+(isMe?';border-left:3px solid var(--brand)':';border-left:3px solid #a855f7')+'">';
         h+='<div style="font-size:.85rem;font-weight:600;color:var(--txt1);margin-bottom:6px">'+escHtml(name)+(isMe?' (tu)':'')+' <span class="text-xs" style="color:var(--txt3)">'+revPct+'% ricavi</span></div>';
         h+='<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:.82rem">';
-        h+='<span style="color:var(--green)">Ricavi: €'+pRevenue+'</span>';
-        h+='<span style="color:var(--red)">Costi: €'+pCosts+'</span>';
-        h+='<span style="font-weight:700;color:'+(pProfit>=0?'var(--green)':'var(--red)')+'">Profitto: €'+pProfit+'</span>';
+        h+='<span style="color:var(--green)">Ricavi: €'+fmtEuro(pRevenue)+'</span>';
+        h+='<span style="color:var(--red)">Costi: €'+fmtEuro(pCosts)+'</span>';
+        h+='<span style="font-weight:700;color:'+(pProfit>=0?'var(--green)':'var(--red)')+'">Profitto: €'+fmtEuro(pProfit)+'</span>';
         h+='</div></div>';
       });
       h+='</div>';
@@ -15604,9 +15749,9 @@ function _buildCostSummary(ev,costs,isCapo,hasPartners,allParticipants,getPartne
     const myProfit=myRevenue-myCosts;
 
     h+='<div class="grid gap-3" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">';
-    h+='<div class="stat-card"><div class="value" style="color:var(--green)">€'+myRevenue+'</div><div class="label">I tuoi ricavi ('+(revPct)+'%)</div></div>';
-    h+='<div class="stat-card"><div class="value" style="color:var(--red)">€'+myCosts+'</div><div class="label">I tuoi costi</div></div>';
-    h+='<div class="stat-card" style="border:1px solid '+(myProfit>=0?'rgba(16,185,129,.3)':'rgba(239,68,68,.3)')+'"><div class="value" style="color:'+(myProfit>=0?'var(--green)':'var(--red)')+'">€'+myProfit+'</div><div class="label">'+(myProfit>=0?'Profitto':'Perdita')+'</div></div>';
+    h+='<div class="stat-card"><div class="value" style="color:var(--green)">€'+fmtEuro(myRevenue)+'</div><div class="label">I tuoi ricavi ('+(revPct)+'%)</div></div>';
+    h+='<div class="stat-card"><div class="value" style="color:var(--red)">€'+fmtEuro(myCosts)+'</div><div class="label">I tuoi costi</div></div>';
+    h+='<div class="stat-card" style="border:1px solid '+(myProfit>=0?'rgba(16,185,129,.3)':'rgba(239,68,68,.3)')+'"><div class="value" style="color:'+(myProfit>=0?'var(--green)':'var(--red)')+'">€'+fmtEuro(myProfit)+'</div><div class="label">'+(myProfit>=0?'Profitto':'Perdita')+'</div></div>';
     h+='</div>';
   }
 
@@ -15962,7 +16107,7 @@ function copyEventAsTemplate(id){
       if(bdDaysEl)bdDaysEl.value=ev.bookingDeadlineDaysBefore;
     }
     // === IMAGES (copy from source event) ===
-    if(ev.imageThumb){evImages.thumb={src:ev.imageThumb.src,zoom:ev.imageThumb.zoom||100,posX:ev.imageThumb.posX||0,posY:ev.imageThumb.posY||0,maskType:ev.imageThumb.maskType||undefined};const img=document.getElementById('ne-img-thumb-img');const preview=document.getElementById('ne-img-thumb-preview');if(img){img.src=ev.imageThumb.src;img.style.width='100%';img.style.height='auto';img.style.display='block';img.style.objectFit='cover';}if(preview)preview.style.display='block';if(ev.imageThumb.maskType){selectedThumbMask=ev.imageThumb.maskType;selectThumbMask(ev.imageThumb.maskType);}}
+    if(ev.imageThumb){evImages.thumb={src:ev.imageThumb.src,zoom:ev.imageThumb.zoom||100,posX:ev.imageThumb.posX||0,posY:ev.imageThumb.posY||0,maskType:ev.imageThumb.maskType||null};const img=document.getElementById('ne-img-thumb-img');const preview=document.getElementById('ne-img-thumb-preview');if(img){img.src=ev.imageThumb.src;img.style.width='100%';img.style.height='auto';img.style.display='block';img.style.objectFit='cover';}if(preview)preview.style.display='block';if(ev.imageThumb.maskType){selectedThumbMask=ev.imageThumb.maskType;selectThumbMask(ev.imageThumb.maskType);}}
     if(ev.imageHeader){evImages.header={src:ev.imageHeader.src,zoom:ev.imageHeader.zoom||100,posX:ev.imageHeader.posX||0,posY:ev.imageHeader.posY||0};const img=document.getElementById('ne-img-header-img');const preview=document.getElementById('ne-img-header-preview');if(img){img.src=ev.imageHeader.src;img.style.width='100%';img.style.height='auto';img.style.display='block';img.style.objectFit='cover';}if(preview)preview.style.display='block';}
     if(ev.imageThumb||ev.imageHeader||ev.image){const ic=document.getElementById('ne-images-collapsible');if(ic){ic.classList.remove('hidden');const arrow=ic.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
     // === AUTO-EXPAND COLLAPSIBLE SECTIONS ===
@@ -18215,7 +18360,7 @@ function editEvent(id){
   // Restore images (dual system)
   function restoreImgEdit(key,data){
     if(!data||!data.src)return;
-    evImages[key]={src:data.src,zoom:data.zoom||100,posX:data.posX||0,posY:data.posY||0,maskType:data.maskType||undefined};
+    evImages[key]={src:data.src,zoom:data.zoom||100,posX:data.posX||0,posY:data.posY||0,maskType:data.maskType||null};
     const img=document.getElementById('ne-img-'+key+'-img');
     const preview=document.getElementById('ne-img-'+key+'-preview');
     if(img){img.src=data.src;img.style.width='100%';img.style.height='auto';img.style.display='block';img.style.objectFit='cover';img.style.position='relative';img.style.left='0';img.style.top='0';}
@@ -18748,6 +18893,20 @@ function _findDayIndex(ev,it){
    GESTIONE UTENTI & ORGANIZZATORI
 ============================== */
 let currentUserTab='users';
+/* Sort state for users/orgs tables: {col:'fieldname', dir:'asc'|'desc'} */
+let _usersSortState={col:'username',dir:'asc'};
+let _orgsSortState={col:'username',dir:'asc'};
+function _toggleUserSort(tab,col){
+  const st=tab==='users'?_usersSortState:_orgsSortState;
+  if(st.col===col)st.dir=st.dir==='asc'?'desc':'asc';
+  else{st.col=col;st.dir='asc';}
+  renderUsersTab();
+}
+function _sortArrow(tab,col){
+  const st=tab==='users'?_usersSortState:_orgsSortState;
+  if(st.col!==col)return ' <span style="opacity:.3;font-size:.65rem">⇅</span>';
+  return st.dir==='asc'?' <span style="font-size:.65rem">▲</span>':' <span style="font-size:.65rem">▼</span>';
+}
 
 function switchUserTab(tab){
   currentUserTab=tab;
@@ -18793,11 +18952,28 @@ async function renderUsersTab(){
 
     let list=store.users.filter(u=>{
       if(!q)return true;
-      return u.username.toLowerCase().includes(q)||u.email.toLowerCase().includes(q);
+      return (u.username||'').toLowerCase().includes(q)||(u.email||'').toLowerCase().includes(q);
     });
     if(!list.length){c.innerHTML='<div class="card text-center txt2 mt-4">Nessun utente trovato</div>';return;}
+    /* Sort users list */
+    const _uSc=_usersSortState.col,_uSd=_usersSortState.dir==='asc'?1:-1;
+    list.sort((a,b)=>{
+      let va,vb;
+      if(_uSc==='username'){va=(a.username||'').toLowerCase();vb=(b.username||'').toLowerCase();}
+      else if(_uSc==='email'){va=(a.email||'').toLowerCase();vb=(b.email||'').toLowerCase();}
+      else if(_uSc==='role'){va=getUserEffectiveRole(a);vb=getUserEffectiveRole(b);}
+      else if(_uSc==='status'){va=a.status||'';vb=b.status||'';}
+      else if(_uSc==='registeredAt'){va=a.registeredAt||'';vb=b.registeredAt||'';}
+      else{va='';vb='';}
+      return va<vb?-_uSd:va>vb?_uSd:0;
+    });
     let html='<div class="overflow-auto"><table class="table w-full"><thead><tr>';
-    html+='<th>Utente</th><th>Email</th><th>Ruolo</th><th>Stato</th><th>Registrato</th><th>Azioni</th>';
+    html+='<th style="cursor:pointer;user-select:none" onclick="_toggleUserSort(\'users\',\'username\')">Utente'+_sortArrow('users','username')+'</th>';
+    html+='<th style="cursor:pointer;user-select:none" onclick="_toggleUserSort(\'users\',\'email\')">Email'+_sortArrow('users','email')+'</th>';
+    html+='<th style="cursor:pointer;user-select:none" onclick="_toggleUserSort(\'users\',\'role\')">Ruolo'+_sortArrow('users','role')+'</th>';
+    html+='<th style="cursor:pointer;user-select:none" onclick="_toggleUserSort(\'users\',\'status\')">Stato'+_sortArrow('users','status')+'</th>';
+    html+='<th style="cursor:pointer;user-select:none" onclick="_toggleUserSort(\'users\',\'registeredAt\')">Registrato'+_sortArrow('users','registeredAt')+'</th>';
+    html+='<th>Azioni</th>';
     html+='</tr></thead><tbody>';
     list.forEach(u=>{
       const statusBadge=u.status==='attivo'
@@ -18836,14 +19012,35 @@ async function renderUsersTab(){
 
     let list=store.managers.filter(m=>{
       if(!q)return true;
-      return m.username.toLowerCase().includes(q)||m.email.toLowerCase().includes(q)||m.orgName.toLowerCase().includes(q);
+      return (m.username||'').toLowerCase().includes(q)||(m.email||'').toLowerCase().includes(q)||(m.orgName||'').toLowerCase().includes(q);
     });
     if(!list.length){c.innerHTML='<div class="card text-center txt2 mt-4">Nessun organizzatore trovato</div>';return;}
+    /* Pre-compute event counts for sorting */
+    const _mgrEvCounts={};list.forEach(m=>{_mgrEvCounts[m.id]=store.events.filter(e=>e.managerId===m.id).length;});
+    /* Sort orgs list */
+    const _oSc=_orgsSortState.col,_oSd=_orgsSortState.dir==='asc'?1:-1;
+    list.sort((a,b)=>{
+      let va,vb;
+      if(_oSc==='username'){va=(a.username||'').toLowerCase();vb=(b.username||'').toLowerCase();}
+      else if(_oSc==='orgName'){va=(a.orgName||'').toLowerCase();vb=(b.orgName||'').toLowerCase();}
+      else if(_oSc==='email'){va=(a.email||'').toLowerCase();vb=(b.email||'').toLowerCase();}
+      else if(_oSc==='role'){va=a.role||'';vb=b.role||'';}
+      else if(_oSc==='status'){va=a.status||'';vb=b.status||'';}
+      else if(_oSc==='evCount'){va=_mgrEvCounts[a.id]||0;vb=_mgrEvCounts[b.id]||0;}
+      else{va='';vb='';}
+      return va<vb?-_oSd:va>vb?_oSd:0;
+    });
     let html='<div class="overflow-auto"><table class="table w-full"><thead><tr>';
-    html+='<th>Organizzatore</th><th>Organizzazione</th><th>Email</th><th>Ruolo</th><th>Stato</th><th>Eventi</th><th>Azioni</th>';
+    html+='<th style="cursor:pointer;user-select:none" onclick="_toggleUserSort(\'orgs\',\'username\')">Organizzatore'+_sortArrow('orgs','username')+'</th>';
+    html+='<th style="cursor:pointer;user-select:none" onclick="_toggleUserSort(\'orgs\',\'orgName\')">Organizzazione'+_sortArrow('orgs','orgName')+'</th>';
+    html+='<th style="cursor:pointer;user-select:none" onclick="_toggleUserSort(\'orgs\',\'email\')">Email'+_sortArrow('orgs','email')+'</th>';
+    html+='<th style="cursor:pointer;user-select:none" onclick="_toggleUserSort(\'orgs\',\'role\')">Ruolo'+_sortArrow('orgs','role')+'</th>';
+    html+='<th style="cursor:pointer;user-select:none" onclick="_toggleUserSort(\'orgs\',\'status\')">Stato'+_sortArrow('orgs','status')+'</th>';
+    html+='<th style="cursor:pointer;user-select:none" onclick="_toggleUserSort(\'orgs\',\'evCount\')">Eventi'+_sortArrow('orgs','evCount')+'</th>';
+    html+='<th>Azioni</th>';
     html+='</tr></thead><tbody>';
     list.forEach(m=>{
-      const evCount=store.events.filter(e=>e.managerId===m.id).length;
+      const evCount=_mgrEvCounts[m.id]||0;
       const roleBadge=m.role==='master'
         ?'<span class="badge badge-workshop">👑 Master</span>'
         :'<span class="badge badge-pubblicato">🛡️ Manager</span>';
@@ -19174,8 +19371,8 @@ function openUserForm(type,editId){
     </div>
     <div class="flex flex-col gap-3">
       <h3 class="font-semibold text-white" style="font-size:.9rem">👤 Dati personali</h3>
-      <div><label class="label">Username *</label><input class="input" id="uf-username" value="${data.username||''}"></div>
-      <div><label class="label">Email *</label><input class="input" type="email" id="uf-email" value="${data.email||''}"></div>
+      <div><label class="label">Username *</label><input class="input" id="uf-username" value="${escHtml(data.username||'')}"></div>
+      <div><label class="label">Email *</label><input class="input" type="email" id="uf-email" value="${escHtml(data.email||'')}"></div>
       ${type==='user'?`
       <div><label class="label">Ruolo preferito</label>
         <select class="input" id="uf-role">
@@ -19195,9 +19392,9 @@ function openUserForm(type,editId){
       ${type==='org'?`
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <h3 class="font-semibold text-white" style="font-size:.9rem">🛡️ Dati organizzazione</h3>
-      <div><label class="label">Nome gruppo *</label><input class="input" id="uf-orgname" value="${data.orgName||''}"></div>
-      <div><label class="label">Città / Zona *</label><input class="input" id="uf-orgcity" value="${data.city||''}"></div>
-      <div><label class="label">Descrizione</label><textarea class="input" id="uf-orgdesc" rows="3">${data.description||''}</textarea></div>
+      <div><label class="label">Nome gruppo *</label><input class="input" id="uf-orgname" value="${escHtml(data.orgName||'')}"></div>
+      <div><label class="label">Città / Zona *</label><input class="input" id="uf-orgcity" value="${escHtml(data.city||'')}"></div>
+      <div><label class="label">Descrizione</label><textarea class="input" id="uf-orgdesc" rows="3">${escHtml(data.description||'')}</textarea></div>
       <div><label class="label">Ruolo</label>
         <select class="input" id="uf-orgrole">
           <option value="manager" ${data.role!=='master'?'selected':''}>Manager (Organizzatore)</option>
@@ -19213,14 +19410,15 @@ function openUserForm(type,editId){
   </div>`;
 }
 
-function saveUserForm(type,editId){
+async function saveUserForm(type,editId){
+  try{
   const username=(document.getElementById('uf-username')?.value||'').trim();
   const email=(document.getElementById('uf-email')?.value||'').trim();
 
   if(!username||!email){showToast('Compila username ed email','error');return;}
-  // Check email uniqueness
-  const allEmails=[...store.users.map(u=>({id:u.id,email:u.email,type:'user'})),...store.managers.map(m=>({id:m.id,email:m.email,type:'org'}))];
-  const dup=allEmails.find(x=>x.email.toLowerCase()===email.toLowerCase()&&!(editId&&x.id===editId));
+  // Check email uniqueness (null-safe: skip entries with missing email)
+  const allEmails=[...store.users.map(u=>({id:u.id,email:u.email||'',type:'user'})),...store.managers.map(m=>({id:m.id,email:m.email||'',type:'org'}))];
+  const dup=allEmails.find(x=>x.email&&x.email.toLowerCase()===email.toLowerCase()&&!(editId&&x.id===editId));
   if(dup){showToast('Email già esistente nel sistema','error');return;}
 
   if(type==='user'){
@@ -19229,15 +19427,18 @@ function saveUserForm(type,editId){
 
     if(editId){
       const u=store.users.find(x=>x.id===editId);
-      if(u){u.username=username;u.email=email;u.role=role;u.status=status;fsUpdate('users',u.id,{username,email,role,status}).catch(console.error);}
-      showToast('Utente aggiornato: '+username);
+      if(u){
+        u.username=username;u.email=email;u.role=role;u.status=status;
+        try{await fsUpdate('users',u.id,{username,email,role,status});}catch(e){console.error('saveUserForm fsUpdate error:',e);showToast('Errore salvataggio: '+e.message,'error');return;}
+      }
+      showToast('✅ Utente aggiornato: '+username);
     } else {
       const now=new Date().toISOString();
       const newId='u'+Date.now();
       const newUser={id:newId,username,email,role,status:'attivo',registeredAt:now.split('T')[0],authMethod:'magic_link',consents:{privacy:false,privacyDate:null,marketing:false,marketingDate:null}};
       store.users.push(newUser);
-      fsSet('users',newId,newUser).catch(console.error);
-      showToast('Utente creato: '+username);
+      try{await fsSet('users',newId,newUser);}catch(e){console.error('saveUserForm fsSet error:',e);showToast('Errore creazione: '+e.message,'error');return;}
+      showToast('✅ Utente creato: '+username);
     }
   } else {
     const orgName=(document.getElementById('uf-orgname')?.value||'').trim();
@@ -19248,19 +19449,23 @@ function saveUserForm(type,editId){
 
     if(editId){
       const m=store.managers.find(x=>x.id===editId);
-      if(m){m.username=username;m.email=email;m.orgName=orgName;m.city=orgCity;m.description=orgDesc;m.role=orgRole;fsUpdate('managers',m.id,{username,email,orgName,city:orgCity,description:orgDesc,role:orgRole}).catch(console.error);}
-      showToast('Organizzatore aggiornato: '+orgName);
+      if(m){
+        m.username=username;m.email=email;m.orgName=orgName;m.city=orgCity;m.description=orgDesc;m.role=orgRole;
+        try{await fsUpdate('managers',m.id,{username,email,orgName,city:orgCity,description:orgDesc,role:orgRole});}catch(e){console.error('saveUserForm fsUpdate error:',e);showToast('Errore salvataggio: '+e.message,'error');return;}
+      }
+      showToast('✅ Organizzatore aggiornato: '+orgName);
     } else {
       const now=new Date().toISOString();
       const newId='m'+Date.now();
       const newManager={id:newId,username,email,orgName,city:orgCity,description:orgDesc,role:orgRole,status:'pending_approval',consents:{privacy:false,privacyDate:null,terms:false,termsDate:null,marketing:false,marketingDate:null},requestedAt:now.split('T')[0]};
       store.managers.push(newManager);
-      fsSet('managers',newId,newManager).catch(console.error);
-      showToast('Organizzatore creato: '+orgName);
+      try{await fsSet('managers',newId,newManager);}catch(e){console.error('saveUserForm fsSet error:',e);showToast('Errore creazione: '+e.message,'error');return;}
+      showToast('✅ Organizzatore creato: '+orgName);
     }
   }
   document.getElementById('user-form-overlay').style.display='none';
   renderUsersTab();
+  }catch(e){console.error('saveUserForm unexpected error:',e);showToast('Errore imprevisto: '+e.message,'error');}
 }
 
 /* === Toggle user active/suspended === */
@@ -20329,40 +20534,8 @@ async function showAdminEventDetail(evId){
       <div class="stat-card"><div class="value" style="color:var(--green)">${active.filter(b=>b.checkedIn).length}</div><div class="label">Presenti</div></div>
     </div>
 
-    <!-- Revenue -->
-    <h2 class="font-semibold text-white mb-3">💰 Incassi${viewSubtitle}</h2>
-    <div class="grid gap-3 mb-6" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">
-      <div class="stat-card"><div class="value" style="color:var(--green)">€${totalRevenue}</div><div class="label">Totale previsto</div></div>
-      <div class="stat-card"><div class="value" style="color:var(--brand-l)">€${paidRevenue}</div><div class="label">💰 Incassato</div></div>
-      <div class="stat-card"><div class="value" style="color:var(--yellow)">€${unpaidRevenue}</div><div class="label">Da incassare</div></div>
-      <div class="stat-card"><div class="value" style="color:var(--blue)">€${receivedRevenue}</div><div class="label">Anticipi ricevuti</div></div>
-      <div class="stat-card"><div class="value" style="color:var(--yellow)">€${pendingRevenue}</div><div class="label">Anticipi in attesa</div></div>
-      ${gifts.length?'<div class="stat-card"><div class="value" style="color:var(--purple)">'+gifts.length+'</div><div class="label">🎁 Regali</div></div>':''}
-    </div>
-    ${(()=>{
-      if(ev.pricingMode==='free')return '';
-      const _tCounts={alto:0,medio:0,basso:0};
-      const _tRevenue={alto:0,medio:0,basso:0};
-      paying.forEach(b=>{const t=b.tier||'medio';if(_tCounts[t]!==undefined){_tCounts[t]++;_tRevenue[t]+=(b.amount||0);}});
-      const _hasMixed=(_tCounts.alto+_tCounts.basso)>0;
-      if(!_hasMixed)return '';
-      const _total=_tCounts.alto+_tCounts.medio+_tCounts.basso;
-      const _pct=t=>_total?Math.round(_tCounts[t]/_total*100):0;
-      return '<div class="card mb-6" style="padding:12px 14px">'
-        +'<div style="font-size:.78rem;font-weight:600;color:var(--txt1);margin-bottom:8px">📊 Distribuzione Tier</div>'
-        +'<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">'
-        +'<div style="flex:1;min-width:180px">'
-        +'<div style="display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--s300);margin-bottom:6px">'
-        +(_tCounts.alto?'<div style="width:'+_pct('alto')+'%;background:var(--yellow);transition:width .3s"></div>':'')
-        +(_tCounts.medio?'<div style="width:'+_pct('medio')+'%;background:var(--purple);transition:width .3s"></div>':'')
-        +(_tCounts.basso?'<div style="width:'+_pct('basso')+'%;background:var(--blue);transition:width .3s"></div>':'')
-        +'</div>'
-        +'<div style="display:flex;gap:12px;flex-wrap:wrap;font-size:.72rem">'
-        +(_tCounts.alto?'<span style="color:var(--yellow)">✦ Sost. <strong>'+_tCounts.alto+'</strong> (€'+_tRevenue.alto+')</span>':'')
-        +(_tCounts.medio?'<span style="color:var(--purple)">● Std <strong>'+_tCounts.medio+'</strong> (€'+_tRevenue.medio+')</span>':'')
-        +(_tCounts.basso?'<span style="color:var(--blue)">○ Rid. <strong>'+_tCounts.basso+'</strong> (€'+_tRevenue.basso+')</span>':'')
-        +'</div></div></div></div>';
-    })()}
+    <!-- V3.2.1: Revenue cards moved to Costi section — show compact summary + link -->
+    ${ev.pricingMode!=='free'&&isEventCapofila(ev,store.currentUser.id)?'<div class="card mb-6" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px"><div style="display:flex;gap:16px;flex-wrap:wrap;font-size:.88rem"><span style="color:var(--green);font-weight:600">€'+fmtEuro(paidRevenue)+' incassato</span><span style="color:var(--yellow)">€'+fmtEuro(unpaidRevenue)+' da incassare</span></div><button class="btn btn-sm" style="background:rgba(234,179,8,.1);color:var(--yellow);border:1px solid rgba(234,179,8,.25);font-size:.75rem" onclick="openCostManagement(\''+ev.id+'\')">💰 Dettaglio Costi →</button></div>':''}
 
     ${(()=>{
       if(!ev.refunds||!ev.refunds.length)return '';
@@ -20377,9 +20550,9 @@ async function showAdminEventDetail(evId){
         +pending.length+' di '+ev.refunds.length+' in sospeso</span></div>'
         +'<p class="text-sm txt3 mb-4">L\'evento è stato reso gratuito. I seguenti iscritti avevano già pagato e necessitano di rimborso.</p>'
         +'<div class="grid grid-3 gap-3 mb-4">'
-        +'<div class="stat-card"><div class="value" style="color:var(--orange)">€'+totalToRefund+'</div><div class="label">Totale da rimborsare</div></div>'
-        +'<div class="stat-card"><div class="value" style="color:var(--green)">€'+refundedAmt+'</div><div class="label">Già rimborsati</div></div>'
-        +'<div class="stat-card"><div class="value" style="color:var(--red)">€'+pendingAmt+'</div><div class="label">Ancora da rimborsare</div></div>'
+        +'<div class="stat-card"><div class="value" style="color:var(--orange)">€'+fmtEuro(totalToRefund)+'</div><div class="label">Totale da rimborsare</div></div>'
+        +'<div class="stat-card"><div class="value" style="color:var(--green)">€'+fmtEuro(refundedAmt)+'</div><div class="label">Già rimborsati</div></div>'
+        +'<div class="stat-card"><div class="value" style="color:var(--red)">€'+fmtEuro(pendingAmt)+'</div><div class="label">Ancora da rimborsare</div></div>'
         +'</div>'
         +'<div class="table-wrap" style="overflow:auto"><table class="table"><thead><tr><th>Partecipante</th><th>Email</th><th>Pagato</th><th>Anticipo</th><th>Tot. rimborso</th><th>Stato</th><th>Azione</th></tr></thead><tbody>'
         +ev.refunds.map(r=>{
@@ -20394,9 +20567,9 @@ async function showAdminEventDetail(evId){
           return '<tr style="'+rowStyle+'">'
             +'<td class="font-medium text-white text-sm">'+escHtml(r.userName)+'</td>'
             +'<td class="text-xs txt3">'+escHtml(r.email)+'</td>'
-            +'<td class="text-sm">'+(r.paidAmount?'€'+r.paidAmount:'—')+'</td>'
-            +'<td class="text-sm">'+(r.depositAmount?'€'+r.depositAmount:'—')+'</td>'
-            +'<td class="font-bold" style="color:var(--orange)">€'+r.totalRefund+'</td>'
+            +'<td class="text-sm">'+(r.paidAmount?'€'+fmtEuro(r.paidAmount):'—')+'</td>'
+            +'<td class="text-sm">'+(r.depositAmount?'€'+fmtEuro(r.depositAmount):'—')+'</td>'
+            +'<td class="font-bold" style="color:var(--orange)">€'+fmtEuro(r.totalRefund)+'</td>'
             +'<td>'+statusHtml+'</td>'
             +'<td>'+actionHtml+'</td></tr>';
         }).join('')
@@ -20424,7 +20597,7 @@ async function showAdminEventDetail(evId){
             :b.depositStatus==='ricevuto'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">✅ Ricevuto</span>'
             :'<span class="text-xs txt3">—</span>');
           const giftBtn=isArchived?'':'<button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:.7rem;margin-left:4px" onclick="event.stopPropagation();toggleGift(\''+b.id+'\',\'detail\')" title="'+(b.gift?'Rimuovi regalo':'Segna come regalo')+'">'+(b.gift?'↩️':'🎁')+'</button>';
-          const amountHtml=b.gift?'<span style="color:var(--purple)">🎁 Regalo</span>':'€'+(b.amount||0);
+          const amountHtml=b.gift?'<span style="color:var(--purple)">🎁 Regalo</span>':'€'+fmtEuro(b.amount||0);
           const payHtml=isArchived?(b.gift?'<span class="text-xs txt3">—</span>':b.paymentStatus==='pagato'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">💰 Pagato</span>':b.paymentStatus==='gratuito'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🎟️ Gratuito</span>':b.paymentStatus==='abbonamento'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🎟️ Abb.</span>':'<span class="text-xs txt3">Non pagato</span>')
             :(b.gift?'<span class="text-xs txt3">—</span>'
             :b.paymentStatus==='pagato'?'<span class="badge" style="background:var(--green-bg);color:var(--green);cursor:pointer" onclick="event.stopPropagation();togglePayment(\''+b.id+'\',\'detail\')">💰 Pagato</span>'
@@ -20435,7 +20608,7 @@ async function showAdminEventDetail(evId){
           const _bPaid=(b.gift||b.paymentStatus==='pagato'||b.paymentStatus==='gratuito'||b.paymentStatus==='abbonamento')?_bOwed:0;
           const _bDep=(!b.gift&&b.depositStatus==='ricevuto')?depAmount:0;
           const _bDaInc=Math.max(0,_bOwed-_bPaid-_bDep);
-          const daIncHtml=b.gift?'<span class="text-xs txt3">—</span>':(_bDaInc>0?'<span style="color:var(--yellow);font-weight:600">€'+_bDaInc+'</span>':'<span style="color:var(--green)">€0</span>');
+          const daIncHtml=b.gift?'<span class="text-xs txt3">—</span>':(_bDaInc>0?'<span style="color:var(--yellow);font-weight:600">€'+fmtEuro(_bDaInc)+'</span>':'<span style="color:var(--green)">€0</span>');
           const avatarCls=b.color||'';
           const avatarStyle=!avatarCls?'style="background:var(--s300);color:var(--txt3)"':'';
           const _pUser=store.users.find(x=>x.id===b.userId)||store.managers.find(x=>x.id===b.userId);
@@ -20468,7 +20641,7 @@ async function showAdminEventDetail(evId){
       <table class="table"><thead><tr><th>Utente</th><th>Importo</th></tr></thead>
       <tbody>${cancelled.map(b=>{const _cu=store.users.find(x=>x.id===b.userId)||store.managers.find(x=>x.id===b.userId);const _cl=_cu?.profileLogo||null;return `<tr>
         <td><div class="flex items-center gap-2"><div class="avatar" style="background:var(--s300);color:var(--txt3)${_cl?';overflow:hidden':''}">${_cl?'<img src="'+_cl+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':b.initials}</div><div class="font-medium text-white text-sm" style="text-decoration:line-through">${escHtml(b.userName)}</div></div></td>
-        <td class="text-sm txt3">€${b.amount}</td>
+        <td class="text-sm txt3">€${fmtEuro(b.amount)}</td>
       </tr>`}).join('')}</tbody></table>
     </div>`:''}
   </div>`;
