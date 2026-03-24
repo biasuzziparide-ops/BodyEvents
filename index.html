@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V3.2.1</title>
+<title>BodyEvents — V3.2</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -47,8 +47,8 @@ a{color:var(--brand-l);text-decoration:none}
 @keyframes fab-pulse{0%{box-shadow:0 4px 16px rgba(0,0,0,.4)}50%{box-shadow:0 4px 16px rgba(0,0,0,.4),0 0 0 8px rgba(217,70,239,.15)}100%{box-shadow:0 4px 16px rgba(0,0,0,.4)}}
 @keyframes pulse-glow{0%,100%{opacity:.75}50%{opacity:1}}
 /* V3.2: Participant count pip — top-left corner of thumb/date block (Jam & Social only) */
-.participants-pip{position:absolute;top:-6px;left:-6px;min-width:22px;height:22px;padding:0 5px;border-radius:11px;background:linear-gradient(135deg,rgba(245,158,11,.85),rgba(249,115,22,.8));color:#fff;font-size:.6rem;font-weight:700;display:flex;align-items:center;justify-content:center;gap:2px;box-shadow:0 1px 6px rgba(249,115,22,.35);z-index:2;line-height:1}
-.participants-pip svg{width:10px;height:10px;fill:#fff;flex-shrink:0}
+.participants-pip{position:absolute;top:-6px;left:-6px;min-width:22px;height:22px;padding:0 5px;border-radius:11px;background:linear-gradient(135deg,rgba(245,158,11,.7),rgba(249,115,22,.65));color:rgba(255,255,255,.9);font-size:.6rem;font-weight:700;display:flex;align-items:center;justify-content:center;gap:2px;box-shadow:0 1px 6px rgba(249,115,22,.25);z-index:2;line-height:1}
+.participants-pip svg{width:10px;height:10px;fill:rgba(255,255,255,.9);flex-shrink:0}
 #info-fab.fab-pulse{animation:fab-pulse 2.5s ease-in-out 3}
 #info-fab-tooltip{position:fixed;bottom:90px;left:68px;z-index:9991;background:var(--s100);border:1px solid var(--s300);border-radius:12px;padding:10px 14px;max-width:200px;box-shadow:0 8px 24px rgba(0,0,0,.5);animation:fab-tt-in .4s ease-out}
 #info-fab-tooltip::before{content:'';position:absolute;left:-6px;bottom:14px;width:12px;height:12px;background:var(--s100);border-left:1px solid var(--s300);border-bottom:1px solid var(--s300);transform:rotate(45deg)}
@@ -402,7 +402,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.2.1</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.2</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2731,7 +2731,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.2.1';
+const APP_VERSION='V3.2';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -9998,9 +9998,7 @@ async function doBook(){
       const initials=nameParts.map(p=>p[0]).join('').toUpperCase().substring(0,2);
       const avatarColors=['avatar-blue','avatar-green','avatar-purple','avatar-pink','avatar-yellow'];
       // Build items — full event, price 0
-      // V3.2 FIX: Use recurring date when applicable
-      const _ownEffDate=currentBookingRecDate||(ev.days[0]?.date);
-      const _ownItems=[{type:'iscrizione organizzatore',name:ev.title,date:fmtDateShort(_ownEffDate),time:'',tier:'Organizzatore',price:0}];
+      const _ownItems=[{type:'iscrizione organizzatore',name:ev.title,date:fmtDateShort(ev.days[0]?.date),time:'',tier:'Organizzatore',price:0}];
       const _ownSessionIds=[];ev.days.forEach(d=>(d.sessions||[]).forEach(s=>_ownSessionIds.push(s.id)));
       const newBooking={
         id:genId('bk'),eventId:ev.id,userId:store.currentUser.id,
@@ -10252,39 +10250,30 @@ function _doBookNormal(){
       return;
     }
     // Build items list from selections
-    // V3.2 FIX: Helper for effective date in free/managed booking items
-    const _effDateFree=(dayDate)=>{
-      if(!currentBookingRecDate||!dayDate||!ev.days||!ev.days[0]||!ev.days[0].date)return dayDate;
-      const baseMs=new Date(ev.days[0].date+'T00:00:00').getTime();
-      const recMs=new Date(currentBookingRecDate+'T00:00:00').getTime();
-      const dayMs=new Date(dayDate+'T00:00:00').getTime();
-      return localDateStr(new Date(dayMs+(recMs-baseMs)));
-    };
     const freeItems=[];
     const freeSessionIds=[];
     let freeScope='evento';
     if(hasMultipleSessions&&hasSelections){
       ev.days.forEach((day,di)=>{
-        const _fd=_effDateFree(day.date);
         if(freeSelectedDays.has(di)){
           // Whole day selected
           freeScope=freeScope==='sessione'?'misto':'giornata';
           day.sessions.forEach(s=>freeSessionIds.push(s.id));
-          freeItems.push({type:'giornata',name:'Giornata intera — '+fmtDateShort(_fd),date:fmtDateShort(_fd),time:day.startTime+' — '+day.endTime,tier:evIsFree?'Gratuito':'Da definire',price:0});
+          freeItems.push({type:'giornata',name:'Giornata intera — '+fmtDateShort(day.date),date:fmtDateShort(day.date),time:day.startTime+' — '+day.endTime,tier:evIsFree?'Gratuito':'Da definire',price:0});
         } else {
           // Check individual sessions
           (day.sessions||[]).forEach(s=>{
             if(freeSelectedSessions.has(s.id)){
               freeScope='sessione';
               freeSessionIds.push(s.id);
-              freeItems.push({type:'sessione',name:s.name,date:fmtDateShort(_fd),time:s.startTime+' — '+s.endTime,tier:evIsFree?'Gratuito':'Da definire',price:0});
+              freeItems.push({type:'sessione',name:s.name,date:fmtDateShort(day.date),time:s.startTime+' — '+s.endTime,tier:evIsFree?'Gratuito':'Da definire',price:0});
             }
           });
         }
       });
     } else {
       // Single-session days or single day → book entire event
-      freeItems.push({type:evIsFree?'iscrizione gratuita':'interesse',name:ev.title,date:fmtDateShort(_effDateFree(ev.days[0]?.date)),time:'',tier:evIsFree?'Gratuito':'Da definire',price:0});
+      freeItems.push({type:evIsFree?'iscrizione gratuita':'interesse',name:ev.title,date:fmtDateShort(ev.days[0]?.date),time:'',tier:evIsFree?'Gratuito':'Da definire',price:0});
       ev.days.forEach(d=>(d.sessions||[]).forEach(s=>freeSessionIds.push(s.id)));
     }
     // Build summary HTML for the dialog
@@ -10550,14 +10539,6 @@ function _doBookNormal(){
 
   // Collect what the user selected
   const tierLabel=t=>t==='alto'?'Sostenitore':t==='medio'?'Standard':'Ridotto';
-  // V3.2 FIX: Helper for effective date (recurring events show recurrence date, not template date)
-  const _effDate=(dayDate)=>{
-    if(!currentBookingRecDate||!dayDate||!ev.days||!ev.days[0]||!ev.days[0].date)return dayDate;
-    const baseMs=new Date(ev.days[0].date+'T00:00:00').getTime();
-    const recMs=new Date(currentBookingRecDate+'T00:00:00').getTime();
-    const dayMs=new Date(dayDate+'T00:00:00').getTime();
-    return localDateStr(new Date(dayMs+(recMs-baseMs)));
-  };
   const items=[];let totalAmount=0;let hasSelection=false;
   // Check session-level selections
   ev.days.forEach((day,di)=>{
@@ -11478,42 +11459,6 @@ function confirmNewCheckin(evId){
 let _userEvSubsLoading=false;
 const _userEvPageSize=20;
 let _userEvCurrentMax=20;
-// V3.2.1: Cache for participant counts per event+recurringDate (loaded lazily for Jam/Social cards)
-// Key format: "eventId" for non-recurring, "eventId_YYYY-MM-DD" for recurring occurrences
-const _evPartCounts={};
-let _evPartCountsLoading=false;
-function _partCountKey(eventId,recDate){return recDate?eventId+'_'+recDate:eventId;}
-async function _loadJamSocialParticipantCounts(evList){
-  if(_bookingsLoaded||!evList.length)return; // admin already has all bookings
-  // Deduplicate by base eventId (we query all bookings for the event, then split by recurringDate)
-  const uniqueEvIds=[...new Set(evList.map(e=>e.id))];
-  const toLoad=uniqueEvIds.filter(id=>!_eventBookingsLoadedSet.has(id));
-  // Also check if all keys for this event's occurrences are already cached
-  const keysNeeded=evList.map(e=>_partCountKey(e.id,e._recDate||null));
-  const missingKeys=keysNeeded.filter(k=>_evPartCounts[k]===undefined);
-  if(!missingKeys.length)return;
-  const evIdsToQuery=[...new Set(evList.filter(e=>_evPartCounts[_partCountKey(e.id,e._recDate||null)]===undefined).map(e=>e.id))];
-  if(!evIdsToQuery.length)return;
-  // Firestore 'in' queries support max 10 values per query
-  for(let i=0;i<evIdsToQuery.length;i+=10){
-    const batch=evIdsToQuery.slice(i,i+10);
-    try{
-      const snap=await fbDb.collection('bookings').where('eventId','in',batch).get();
-      // Initialize all needed keys for this batch to 0
-      evList.filter(e=>batch.includes(e.id)).forEach(e=>{
-        const k=_partCountKey(e.id,e._recDate||null);
-        if(_evPartCounts[k]===undefined)_evPartCounts[k]=0;
-      });
-      snap.forEach(doc=>{
-        const d=doc.data();
-        if(d.eventId&&d.status!=='cancellata'){
-          const k=_partCountKey(d.eventId,d.recurringDate||null);
-          _evPartCounts[k]=(_evPartCounts[k]||0)+1;
-        }
-      });
-    }catch(e){console.warn('Participant count query error:',e);evList.filter(ev=>batch.includes(ev.id)).forEach(ev=>{_evPartCounts[_partCountKey(ev.id,ev._recDate||null)]=0;});}
-  }
-}
 async function renderUserEvents(){
   const c=document.getElementById('user-events-container');if(!c)return;
   // V3.1.5: Load subscriptions in background for pricing badges (non-blocking)
@@ -11521,18 +11466,6 @@ async function renderUserEvents(){
   populateUniverseFilters();
   populateZonaFilter();
   const evts=getFilteredEvents();
-  // V3.2.1: Preload participant counts for Jam/Social events in background (per-occurrence for recurring)
-  const _jamSocialEvts=evts.filter(e=>e.type==='jam'||e.type==='social');
-  if(_jamSocialEvts.length&&!_evPartCountsLoading){
-    const _anyMissing=_jamSocialEvts.some(e=>_evPartCounts[_partCountKey(e.id,e._recDate||null)]===undefined);
-    if(_anyMissing){
-      _evPartCountsLoading=true;
-      _loadJamSocialParticipantCounts(_jamSocialEvts).then(()=>{
-        _evPartCountsLoading=false;
-        if(currentView==='events')renderUserEvents();
-      }).catch(()=>{_evPartCountsLoading=false;});
-    }
-  }
 
   const eventCards=evts.map(ev=>{
     const d0=ev.days[0];const dd=d0?new Date(d0.date+'T00:00:00'):null;
@@ -11704,13 +11637,11 @@ async function renderUserEvents(){
     /* Time line: startTime–endTime from first day (uses sessions if needed) */
     const _startTime=d0?.startTime||(d0?.sessions&&d0.sessions.length?d0.sessions.reduce((m,s)=>s.startTime<m?s.startTime:m,'23:59'):'');
     const _endTime=d0?.endTime||(d0?.sessions&&d0.sessions.length?d0.sessions.reduce((m,s)=>s.endTime>m?s.endTime:m,'00:00'):'');
-    /* V3.2.1: Participant count pip — per-occurrence for recurring events */
+    /* V3.2: Participant count pip — top-left of thumb/date block (Jam & Social only) */
     const _isJamOrSocial=ev.type==='jam'||ev.type==='social';
     const _partPipHtml=(()=>{
       if(!_isJamOrSocial)return '';
-      const _pipKey=_partCountKey(ev.id,ev._recDate||null);
-      // Use preloaded cache if available, otherwise fallback to store.bookings filtered by recurringDate
-      const _pCount=(_evPartCounts[_pipKey]!==undefined)?_evPartCounts[_pipKey]:store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata'&&(b.recurringDate||null)===(ev._recDate||null)).length;
+      const _pCount=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata').length;
       if(_pCount<=0)return '';
       return '<div class="participants-pip"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>'+_pCount+'</div>';
     })();
@@ -14317,20 +14248,11 @@ function showEventDetail(evId,recDate){
         <p class="text-xs mt-1" style="color:var(--txt2);line-height:1.5">${escHtml(ev.insurance.description||"Questo evento richiede un'assicurazione.")} Assicurazioni accettate: <strong>${escHtml(_insNames)}</strong>. Senza assicurazione verrà applicato un sovrapprezzo di <strong style="color:var(--warn)">€${_insPrice}</strong>.</p></div>`;
     }
   }
-  // V3.2 FIX: Compute effective dates for recurring events in Programma section
-  const _detEffDate=(dayDate)=>{
-    if(!currentBookingRecDate||!dayDate||!ev.days||!ev.days[0]||!ev.days[0].date)return dayDate;
-    const baseMs=new Date(ev.days[0].date+'T00:00:00').getTime();
-    const recMs=new Date(currentBookingRecDate+'T00:00:00').getTime();
-    const dayMs=new Date(dayDate+'T00:00:00').getTime();
-    return localDateStr(new Date(dayMs+(recMs-baseMs)));
-  };
   ev.days.forEach((day,di)=>{
     const isSingleSession=day.sessions.length<=1;
-    const _dayEffDate=_detEffDate(day.date);
     daysHtml+=`<div class="card mb-3" style="border-color:var(--brand);background:rgba(217,70,239,.03)">
       <div class="flex justify-between items-center"><div class="flex items-center gap-3"><span>📅</span><div>
-        <span class="font-medium" style="color:var(--brand-l)">${fmtDate(_dayEffDate)}</span>
+        <span class="font-medium" style="color:var(--brand-l)">${fmtDate(day.date)}</span>
         <span class="text-sm txt3" style="margin-left:8px">${day.startTime} — ${day.endTime}</span>
       </div></div></div></div>`;
 
@@ -14381,7 +14303,7 @@ function showEventDetail(evId,recDate){
         daysHtml+=`<div class="check-item mt-3 mb-2" onclick="toggleFreeDay(this,${di})" style="padding:8px 12px;cursor:pointer;background:rgba(16,185,129,.04);border:1px solid rgba(16,185,129,.2);border-radius:10px">
           <div class="checkbox"><span style="display:none;color:#fff;font-size:.6rem">✓</span></div>
           <div class="flex-1">
-            <div class="font-medium text-sm" style="color:var(--green)">📅 Giornata intera — ${fmtDate(_dayEffDate)}</div>
+            <div class="font-medium text-sm" style="color:var(--green)">📅 Giornata intera — ${fmtDate(day.date)}</div>
             <div class="text-xs txt3 mt-1">Include tutte le sessioni di questa giornata</div>
           </div>
         </div>`;
