@@ -15725,6 +15725,7 @@ function copyEventAsTemplate(id){
           level:s.level||'base',teacher:s.teacher||'',description:s.description||'',
           location:s.location||'',locationUrl:s.locationUrl||'',
           maxSpots:s.maxSpots||0,
+          minSubscribers:s.minSubscribers||0, // V3.2 FIX: Copy session-level minSubscribers from template
           tiers:s.tiers?{alto:s.tiers.alto!=null?s.tiers.alto:null,medio:s.tiers.medio!=null?s.tiers.medio:null,basso:s.tiers.basso!=null?s.tiers.basso:null}:{alto:null,medio:null,basso:null},
           earlyBird:s.earlyBird?{alto:s.earlyBird.alto!=null?s.earlyBird.alto:'',medio:s.earlyBird.medio!=null?s.earlyBird.medio:'',basso:s.earlyBird.basso!=null?s.earlyBird.basso:'',type:s.earlyBird.type||'date',deadline:'',maxCount:s.earlyBird.maxCount||''}:null
         }))
@@ -15796,6 +15797,12 @@ function copyEventAsTemplate(id){
       const advToggle=document.getElementById('ne-adv-toggle');
       if(advPanel)advPanel.classList.remove('hidden');
       if(advToggle){const arrow=advToggle.querySelector('.coll-arrow');if(arrow)arrow.textContent='▾';}
+    }
+    // === BOOKING DEADLINE (relative days-before, for recurring templates) ===
+    // V3.2 FIX: Copy bookingDeadlineDaysBefore — it's a relative setting, not a date
+    if(ev.bookingDeadlineDaysBefore!=null){
+      const bdDaysEl=document.getElementById('ne-booking-deadline-days');
+      if(bdDaysEl)bdDaysEl.value=ev.bookingDeadlineDaysBefore;
     }
     // === IMAGES (copy from source event) ===
     if(ev.imageThumb){evImages.thumb={src:ev.imageThumb.src,zoom:ev.imageThumb.zoom||100,posX:ev.imageThumb.posX||0,posY:ev.imageThumb.posY||0,maskType:ev.imageThumb.maskType||undefined};const img=document.getElementById('ne-img-thumb-img');const preview=document.getElementById('ne-img-thumb-preview');if(img){img.src=ev.imageThumb.src;img.style.width='100%';img.style.height='auto';img.style.display='block';img.style.objectFit='cover';}if(preview)preview.style.display='block';if(ev.imageThumb.maskType){selectedThumbMask=ev.imageThumb.maskType;selectThumbMask(ev.imageThumb.maskType);}}
