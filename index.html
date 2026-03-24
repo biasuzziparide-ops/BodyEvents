@@ -45,6 +45,10 @@ a{color:var(--brand-l);text-decoration:none}
 #info-fab:hover{opacity:1;transform:scale(1.08);border-color:var(--brand);background:var(--brand-bg)}
 #info-fab:active{transform:scale(.95)}
 @keyframes fab-pulse{0%{box-shadow:0 4px 16px rgba(0,0,0,.4)}50%{box-shadow:0 4px 16px rgba(0,0,0,.4),0 0 0 8px rgba(217,70,239,.15)}100%{box-shadow:0 4px 16px rgba(0,0,0,.4)}}
+@keyframes pulse-glow{0%,100%{opacity:.75}50%{opacity:1}}
+/* V3.2: Participant count pip — top-left corner of thumb/date block (Jam & Social only) */
+.participants-pip{position:absolute;top:-6px;left:-6px;min-width:22px;height:22px;padding:0 5px;border-radius:11px;background:linear-gradient(135deg,rgba(245,158,11,.7),rgba(249,115,22,.65));color:rgba(255,255,255,.9);font-size:.6rem;font-weight:700;display:flex;align-items:center;justify-content:center;gap:2px;box-shadow:0 1px 6px rgba(249,115,22,.25);z-index:2;line-height:1}
+.participants-pip svg{width:10px;height:10px;fill:rgba(255,255,255,.9);flex-shrink:0}
 #info-fab.fab-pulse{animation:fab-pulse 2.5s ease-in-out 3}
 #info-fab-tooltip{position:fixed;bottom:90px;left:68px;z-index:9991;background:var(--s100);border:1px solid var(--s300);border-radius:12px;padding:10px 14px;max-width:200px;box-shadow:0 8px 24px rgba(0,0,0,.5);animation:fab-tt-in .4s ease-out}
 #info-fab-tooltip::before{content:'';position:absolute;left:-6px;bottom:14px;width:12px;height:12px;background:var(--s100);border-left:1px solid var(--s300);border-bottom:1px solid var(--s300);transform:rotate(45deg)}
@@ -3100,6 +3104,18 @@ async function ensureUserBookingsLoaded(uid){
     if(!store.bookings.find(b=>b.id===d.id))store.bookings.push(d);
   });
   _userOwnBookingsLoaded=true;
+}
+
+// V3.2 FIX: Load all bookings for a specific event (needed for participant list on Jam/Community events)
+const _eventBookingsLoadedSet=new Set();
+async function ensureEventBookingsLoaded(eventId){
+  if(_bookingsLoaded||_eventBookingsLoadedSet.has(eventId))return;
+  const snap=await fbDb.collection('bookings').where('eventId','==',eventId).get();
+  snap.forEach(doc=>{
+    const d=doc.data();d.id=doc.id;
+    if(!store.bookings.find(b=>b.id===d.id))store.bookings.push(d);
+  });
+  _eventBookingsLoadedSet.add(eventId);
 }
 
 async function ensureAttendancesLoaded(){
@@ -10087,6 +10103,8 @@ async function bookWithSubscription(subId,eventId){
   if(hasMultipleSessions&&!hasSelections){
     showToast('Seleziona almeno una sessione o una giornata intera!','error');return;
   }
+  // V3.2 FIX: Helper to get effective date for booking items (recurring events use currentBookingRecDate)
+  const _effDate=(dayDate)=>currentBookingRecDate&&ev.days.length===1?currentBookingRecDate:dayDate;
   // Build session IDs and items from selections
   const _subSessionIds=[];
   const _subItems=[];
@@ -10096,19 +10114,19 @@ async function bookWithSubscription(subId,eventId){
       if(freeSelectedDays.has(di)){
         _subScope=_subScope==='sessione'?'misto':'giornata';
         day.sessions.forEach(s=>_subSessionIds.push(s.id));
-        _subItems.push({type:'giornata',name:'Giornata intera — '+fmtDateShort(day.date),date:fmtDateShort(day.date),time:day.startTime+' — '+day.endTime,tier:'Abbonamento',price:0});
+        _subItems.push({type:'giornata',name:'Giornata intera — '+fmtDateShort(_effDate(day.date)),date:fmtDateShort(_effDate(day.date)),time:day.startTime+' — '+day.endTime,tier:'Abbonamento',price:0});
       } else {
         (day.sessions||[]).forEach(s=>{
           if(freeSelectedSessions.has(s.id)){
             _subScope='sessione';
             _subSessionIds.push(s.id);
-            _subItems.push({type:'sessione',name:s.name,date:fmtDateShort(day.date),time:s.startTime+' — '+s.endTime,tier:'Abbonamento',price:0});
+            _subItems.push({type:'sessione',name:s.name,date:fmtDateShort(_effDate(day.date)),time:s.startTime+' — '+s.endTime,tier:'Abbonamento',price:0});
           }
         });
       }
     });
   } else {
-    _subItems.push({type:'abbonamento',name:ev.title,date:fmtDateShort(ev.days[0]?.date),time:'',tier:'Abbonamento',price:0});
+    _subItems.push({type:'abbonamento',name:ev.title,date:fmtDateShort(_effDate(ev.days[0]?.date)),time:'',tier:'Abbonamento',price:0});
     ev.days.forEach(d=>(d.sessions||[]).forEach(s=>_subSessionIds.push(s.id)));
   }
   // Collect survey responses if the event has surveys
@@ -10516,6 +10534,7 @@ function _doBookNormal(){
   const items=[];let totalAmount=0;let hasSelection=false;
   // Check session-level selections
   ev.days.forEach((day,di)=>{
+    const _dd=_effDate(day.date); // V3.2 FIX: effective date for recurring events
     if(day.sessions.length){
       day.sessions.forEach(s=>{
         const gridId='tiers-'+s.id;
@@ -10523,7 +10542,7 @@ function _doBookNormal(){
           hasSelection=true;
           const tier=selectedTiers[gridId];
           const price=s.tiers[tier]||0;
-          items.push({type:'sessione',name:s.name,date:fmtDateShort(day.date),time:s.startTime+' — '+s.endTime,tier:tierLabel(tier),price});
+          items.push({type:'sessione',name:s.name,date:fmtDateShort(_dd),time:s.startTime+' — '+s.endTime,tier:tierLabel(tier),price});
           totalAmount+=price;
         }
         // Session-level early bird
@@ -10532,7 +10551,7 @@ function _doBookNormal(){
           hasSelection=true;
           const tier=selectedTiers[sEbGridId];
           const price=s.earlyBird[tier]||0;
-          items.push({type:'early bird sessione',name:'🐦 EB — '+s.name,date:fmtDateShort(day.date),time:s.startTime+' — '+s.endTime,tier:tierLabel(tier)+' (early bird)',price});
+          items.push({type:'early bird sessione',name:'🐦 EB — '+s.name,date:fmtDateShort(_dd),time:s.startTime+' — '+s.endTime,tier:tierLabel(tier)+' (early bird)',price});
           totalAmount+=price;
         }
       });
@@ -10543,7 +10562,7 @@ function _doBookNormal(){
         hasSelection=true;
         const tier=selectedTiers[dayGridId];
         const price=dayUseTiers[tier]||0;
-        items.push({type:'giornata',name:'Giornata intera — '+fmtDateShort(day.date),date:fmtDateShort(day.date),time:day.startTime+' — '+day.endTime,tier:tierLabel(tier),price});
+        items.push({type:'giornata',name:'Giornata intera — '+fmtDateShort(_dd),date:fmtDateShort(_dd),time:day.startTime+' — '+day.endTime,tier:tierLabel(tier),price});
         totalAmount+=price;
       }
       // Day-level early bird
@@ -10552,7 +10571,7 @@ function _doBookNormal(){
         hasSelection=true;
         const tier=selectedTiers[dayEbGridId];
         const price=(resolveEB(day.earlyBird,ev.earlyBird))[tier]||0;
-        items.push({type:'early bird giornata',name:'🐦 Early Bird — '+fmtDateShort(day.date),date:fmtDateShort(day.date),time:day.startTime+' — '+day.endTime,tier:tierLabel(tier)+' (early bird)',price});
+        items.push({type:'early bird giornata',name:'🐦 Early Bird — '+fmtDateShort(_dd),date:fmtDateShort(_dd),time:day.startTime+' — '+day.endTime,tier:tierLabel(tier)+' (early bird)',price});
         totalAmount+=price;
       }
     } else {
@@ -10563,7 +10582,7 @@ function _doBookNormal(){
         const useTiers=day.tiers||ev.tiers;
         const tier=selectedTiers[dayGridId2];
         const price=useTiers[tier]||0;
-        items.push({type:'giornata',name:'Giornata — '+fmtDateShort(day.date),date:fmtDateShort(day.date),time:day.startTime+' — '+day.endTime,tier:tierLabel(tier),price});
+        items.push({type:'giornata',name:'Giornata — '+fmtDateShort(_dd),date:fmtDateShort(_dd),time:day.startTime+' — '+day.endTime,tier:tierLabel(tier),price});
         totalAmount+=price;
       }
       // Day-level early bird (no sessions)
@@ -10572,7 +10591,7 @@ function _doBookNormal(){
         hasSelection=true;
         const tier=selectedTiers[dayEbGridId2];
         const price=(resolveEB(day.earlyBird,ev.earlyBird))[tier]||0;
-        items.push({type:'early bird giornata',name:'🐦 Early Bird — '+fmtDateShort(day.date),date:fmtDateShort(day.date),time:day.startTime+' — '+day.endTime,tier:tierLabel(tier)+' (early bird)',price});
+        items.push({type:'early bird giornata',name:'🐦 Early Bird — '+fmtDateShort(_dd),date:fmtDateShort(_dd),time:day.startTime+' — '+day.endTime,tier:tierLabel(tier)+' (early bird)',price});
         totalAmount+=price;
       }
     }
@@ -11610,12 +11629,20 @@ async function renderUserEvents(){
     /* Time line: startTime–endTime from first day (uses sessions if needed) */
     const _startTime=d0?.startTime||(d0?.sessions&&d0.sessions.length?d0.sessions.reduce((m,s)=>s.startTime<m?s.startTime:m,'23:59'):'');
     const _endTime=d0?.endTime||(d0?.sessions&&d0.sessions.length?d0.sessions.reduce((m,s)=>s.endTime>m?s.endTime:m,'00:00'):'');
+    /* V3.2: Participant count pip — top-left of thumb/date block (Jam & Social only) */
+    const _isJamOrSocial=ev.type==='jam'||ev.type==='social';
+    const _partPipHtml=(()=>{
+      if(!_isJamOrSocial)return '';
+      const _pCount=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata').length;
+      if(_pCount<=0)return '';
+      return '<div class="participants-pip"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>'+_pCount+'</div>';
+    })();
     /* Badge order: Type > Level > Price > Confirm > Closed */
     return `<div class="card-hover mb-4" style="border-radius:16px;overflow:hidden;padding:0" onclick="showEventDetail('${ev.id}'${ev._recDate?`,'${ev._recDate}'`:''})">
       <div style="display:flex;align-items:stretch">
         ${_uniStrip}
         <div style="flex:1;min-width:0;padding:14px 16px;display:flex;gap:14px;align-items:flex-start">
-          ${cardThumb}
+          <div style="position:relative;flex-shrink:0">${_partPipHtml}${cardThumb}</div>
           <div class="flex-1" style="min-width:0">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
               ${_orgLogoHtml}<h3 class="font-semibold text-white" style="margin-bottom:0;font-size:.95rem;line-height:1.3;overflow-wrap:break-word;word-break:break-word;min-width:0">${escHtml(ev.title)}</h3>
@@ -11660,9 +11687,12 @@ async function renderUserEvents(){
       <div style="display:flex;align-items:stretch">
         ${_jamUniStrip}
         <div style="flex:1;min-width:0;padding:14px 16px;display:flex;gap:14px;align-items:flex-start">
-          <div style="flex-shrink:0;width:56px;height:56px;border-radius:12px;background:rgba(16,185,129,.1);display:flex;flex-direction:column;align-items:center;justify-content:center">
-            <span style="font-size:1.3rem;font-weight:700;color:var(--green)">${dayNum}</span>
-            <span style="font-size:.6rem;color:rgba(16,185,129,.5)">${monthStr}</span>
+          <div style="position:relative;flex-shrink:0">
+            ${parts>0?'<div class="participants-pip"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>'+parts+'</div>':''}
+            <div style="width:56px;height:56px;border-radius:12px;background:rgba(16,185,129,.1);display:flex;flex-direction:column;align-items:center;justify-content:center">
+              <span style="font-size:1.3rem;font-weight:700;color:var(--green)">${dayNum}</span>
+              <span style="font-size:.6rem;color:rgba(16,185,129,.5)">${monthStr}</span>
+            </div>
           </div>
           <div class="flex-1">
             <div class="flex gap-2 flex-wrap mb-1"><span class="badge ${badgeType(jam.type||'jam')}" style="${badgeTypeStyle(jam.type||'jam')}">${getJamTypeDisplay(jam.type||'jam')}</span><span class="badge" style="background:rgba(255,255,255,.04);color:var(--txt2);border:1px dashed rgba(255,255,255,.12);font-size:.6rem">🤝 Community</span>${joinedBadge}</div>
@@ -13880,26 +13910,29 @@ function collectCheckinBookingData(ev,prefix){
     return {items:[],totalAmount:0,scope:'evento',tierKey:'medio',sessions:allSessIds};
   }
   const tierLabel=t=>t==='alto'?'Sostenitore':t==='medio'?'Standard':'Ridotto';
+  // V3.2 FIX: Helper to get effective date for recurring events
+  const _effDate=(dayDate)=>currentBookingRecDate&&ev.days.length===1?currentBookingRecDate:dayDate;
   const items=[];let totalAmount=0;
   ev.days.forEach((day,di)=>{
+    const _dd=_effDate(day.date);
     if(day.sessions.length>1){
       day.sessions.forEach(s=>{
         const gid=prefix+'tiers-'+s.id;
-        if(selectedTiers[gid]){const tier=selectedTiers[gid];const price=s.tiers[tier]||0;items.push({type:'sessione',name:s.name,date:fmtDateShort(day.date),time:s.startTime+' — '+s.endTime,tier:tierLabel(tier),tierKey:tier,price,sessionId:s.id});totalAmount+=price;}
+        if(selectedTiers[gid]){const tier=selectedTiers[gid];const price=s.tiers[tier]||0;items.push({type:'sessione',name:s.name,date:fmtDateShort(_dd),time:s.startTime+' — '+s.endTime,tier:tierLabel(tier),tierKey:tier,price,sessionId:s.id});totalAmount+=price;}
         const sEb=prefix+'tier-ebs-'+s.id;
-        if(selectedTiers[sEb]&&s.earlyBird){const tier=selectedTiers[sEb];const price=s.earlyBird[tier]||0;items.push({type:'early bird sessione',name:'🐦 EB — '+s.name,date:fmtDateShort(day.date),time:s.startTime+' — '+s.endTime,tier:tierLabel(tier)+' (EB)',tierKey:tier,price,sessionId:s.id});totalAmount+=price;}
+        if(selectedTiers[sEb]&&s.earlyBird){const tier=selectedTiers[sEb];const price=s.earlyBird[tier]||0;items.push({type:'early bird sessione',name:'🐦 EB — '+s.name,date:fmtDateShort(_dd),time:s.startTime+' — '+s.endTime,tier:tierLabel(tier)+' (EB)',tierKey:tier,price,sessionId:s.id});totalAmount+=price;}
       });
       const dayGid=prefix+'tier-day-'+ev.id+'-'+di;
-      if(selectedTiers[dayGid]&&day.tiers){const tier=selectedTiers[dayGid];const price=day.tiers[tier]||0;items.push({type:'giornata',name:'Giornata — '+fmtDateShort(day.date),date:fmtDateShort(day.date),time:day.startTime+' — '+day.endTime,tier:tierLabel(tier),tierKey:tier,price});totalAmount+=price;}
+      if(selectedTiers[dayGid]&&day.tiers){const tier=selectedTiers[dayGid];const price=day.tiers[tier]||0;items.push({type:'giornata',name:'Giornata — '+fmtDateShort(_dd),date:fmtDateShort(_dd),time:day.startTime+' — '+day.endTime,tier:tierLabel(tier),tierKey:tier,price});totalAmount+=price;}
       const dayEb=prefix+'tier-ebday-'+ev.id+'-'+di;
-      if(selectedTiers[dayEb]&&(resolveEB(day.earlyBird,ev.earlyBird))){const tier=selectedTiers[dayEb];const _ebSrc=resolveEB(day.earlyBird,ev.earlyBird);const price=_ebSrc[tier]||0;items.push({type:'early bird giornata',name:'🐦 EB — '+fmtDateShort(day.date),date:fmtDateShort(day.date),time:'',tier:tierLabel(tier)+' (EB)',tierKey:tier,price});totalAmount+=price;}
+      if(selectedTiers[dayEb]&&(resolveEB(day.earlyBird,ev.earlyBird))){const tier=selectedTiers[dayEb];const _ebSrc=resolveEB(day.earlyBird,ev.earlyBird);const price=_ebSrc[tier]||0;items.push({type:'early bird giornata',name:'🐦 EB — '+fmtDateShort(_dd),date:fmtDateShort(_dd),time:'',tier:tierLabel(tier)+' (EB)',tierKey:tier,price});totalAmount+=price;}
     } else {
       const s=day.sessions[0]||null;
       const useTiers=day.tiers||(s?s.tiers:ev.tiers);
       const dayGid=prefix+'tier-day-'+ev.id+'-'+di;
-      if(selectedTiers[dayGid]){const tier=selectedTiers[dayGid];const price=useTiers[tier]||0;items.push({type:'giornata',name:'Giornata — '+fmtDateShort(day.date),date:fmtDateShort(day.date),time:day.startTime+' — '+day.endTime,tier:tierLabel(tier),tierKey:tier,price});totalAmount+=price;}
+      if(selectedTiers[dayGid]){const tier=selectedTiers[dayGid];const price=useTiers[tier]||0;items.push({type:'giornata',name:'Giornata — '+fmtDateShort(_dd),date:fmtDateShort(_dd),time:day.startTime+' — '+day.endTime,tier:tierLabel(tier),tierKey:tier,price});totalAmount+=price;}
       const dayEb=prefix+'tier-ebday-'+ev.id+'-'+di;
-      if(selectedTiers[dayEb]&&(resolveEB(day.earlyBird,ev.earlyBird))){const tier=selectedTiers[dayEb];const _ebSrc=resolveEB(day.earlyBird,ev.earlyBird);const price=_ebSrc[tier]||0;items.push({type:'early bird giornata',name:'🐦 EB — '+fmtDateShort(day.date),date:fmtDateShort(day.date),time:'',tier:tierLabel(tier)+' (EB)',tierKey:tier,price});totalAmount+=price;}
+      if(selectedTiers[dayEb]&&(resolveEB(day.earlyBird,ev.earlyBird))){const tier=selectedTiers[dayEb];const _ebSrc=resolveEB(day.earlyBird,ev.earlyBird);const price=_ebSrc[tier]||0;items.push({type:'early bird giornata',name:'🐦 EB — '+fmtDateShort(_dd),date:fmtDateShort(_dd),time:'',tier:tierLabel(tier)+' (EB)',tierKey:tier,price});totalAmount+=price;}
     }
   });
   if(ev.days.length>1){
@@ -14041,6 +14074,11 @@ function showOrgPublicProfile(managerId){
 ============================== */
 function showEventDetail(evId,recDate){
   const ev=store.events.find(e=>e.id===evId);if(!ev)return;
+  // V3.2 FIX: For Jam/Community events, ensure all event bookings are loaded (for participant list)
+  if((ev.type==='jam'||ev.type==='social')&&!_bookingsLoaded&&!_eventBookingsLoadedSet.has(evId)){
+    ensureEventBookingsLoaded(evId).then(()=>showEventDetail(evId,recDate));
+    return;
+  }
   currentBookingEventId=evId;
   // Auto-detect recurringDate for recurring events when not provided
   if(!recDate&&ev.recurrence&&ev.recurrence.active){
@@ -14406,10 +14444,18 @@ function showEventDetail(evId,recDate){
         const depLbl=myBooking.depositStatus==='ricevuto'?'<span style="color:var(--green)">✅ Ricevuto</span>':myBooking.depositStatus==='pending'?'<span style="color:var(--yellow)">⏳ In attesa</span>':'';
         // Sessions/days booked
         let sessionsHtml='';
+        // V3.2 FIX: For recurring events, override item dates with the actual recurring date
+        const _bkRecDateFmt=myBooking.recurringDate?fmtDateShort(myBooking.recurringDate):null;
         if(myBooking.items&&myBooking.items.length){
           sessionsHtml='<div class="mb-3"><div class="text-xs txt3 mb-2" style="text-transform:uppercase;letter-spacing:.5px">Dettaglio prenotazione</div>';
           myBooking.items.forEach(item=>{
-            sessionsHtml+='<div style="border-bottom:1px solid var(--s200);padding:12px 0"><div class="text-sm text-white">'+item.name+'</div>'+(item.date||item.time?'<div class="text-xs txt3" style="margin-top:2px">'+(item.date?item.date:'')+(item.date&&item.time?' · ':'')+( item.time?item.time:'')+'</div>':'')+'<div class="text-sm font-medium" style="color:var(--brand-l);margin-top:6px">'+(item.tier||'')+(item.price!=null?' · €'+item.price:'')+'</div></div>';
+            const _itemDate=(_bkRecDateFmt&&ev.days.length===1)?_bkRecDateFmt:(item.date||'');
+            // V3.2 FIX: Also fix item name if it contains old template date
+            let _itemName=item.name;
+            if(_bkRecDateFmt&&ev.days.length===1&&item.date&&item.name.includes(item.date)){
+              _itemName=item.name.replace(item.date,_bkRecDateFmt);
+            }
+            sessionsHtml+='<div style="border-bottom:1px solid var(--s200);padding:12px 0"><div class="text-sm text-white">'+_itemName+'</div>'+(_itemDate||item.time?'<div class="text-xs txt3" style="margin-top:2px">'+(_itemDate?_itemDate:'')+(_itemDate&&item.time?' · ':'')+( item.time?item.time:'')+'</div>':'')+'<div class="text-sm font-medium" style="color:var(--brand-l);margin-top:6px">'+(item.tier||'')+(item.price!=null?' · €'+item.price:'')+'</div></div>';
           });
           sessionsHtml+='</div>';
         } else {
@@ -14428,7 +14474,8 @@ function showEventDetail(evId,recDate){
               const daySessIds=(d.sessions||[]).map(s=>s.id);
               const coveredAll=daySessIds.length>0&&daySessIds.every(id=>_sIds.includes(id));
               if(coveredAll){
-                sessionsHtml+='<div class="py-2 text-sm text-white" style="border-bottom:1px solid var(--s200)">📅 Giornata '+(ev.days.length>1?(di+1):'')+(d.date?' <span class="text-xs txt3">'+fmtDateShort(d.date)+'</span>':'')+'</div>';
+                const _fallbackDate=(_bkRecDateFmt&&ev.days.length===1)?_bkRecDateFmt:(d.date?fmtDateShort(d.date):'');
+                sessionsHtml+='<div class="py-2 text-sm text-white" style="border-bottom:1px solid var(--s200)">📅 Giornata '+(ev.days.length>1?(di+1):'')+(_fallbackDate?' <span class="text-xs txt3">'+_fallbackDate+'</span>':'')+'</div>';
               } else {
                 (d.sessions||[]).forEach(s=>{
                   if(_sIds.includes(s.id)) sessionsHtml+='<div class="py-2 text-sm text-white" style="border-bottom:1px solid var(--s200)">'+s.name+' <span class="text-xs txt3">'+s.startTime+' — '+s.endTime+'</span></div>';
@@ -16150,46 +16197,116 @@ function closeAlertModal(){
 ============================== */
 let communityStatusFilter='';
 function filterCommunityEvts(s){communityStatusFilter=s;renderCommunityEvents();}
-function renderCommunityEvents(){
+async function renderCommunityEvents(){
   const c=document.getElementById('community-events-container');if(!c)return;
+  if(!_bookingsLoaded){
+    _showDeferredLoading(c);
+    await ensureBookingsLoaded();
+    if(currentView!=='admin-community-events')return;
+  }
   const u=store.currentUser;
+  const today=localDateStr(new Date());
   // Admin sees ALL events (own + all other organizers')
-  let evts=[...store.events];
-  evts.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
-  const pub=evts.filter(e=>e.status==='pubblicato').length;
-  const boz=evts.filter(e=>e.status==='bozza').length;
-  const con=evts.filter(e=>e.status==='concluso').length;
+  const allEvts=[...store.events];
+  allEvts.sort((a,b)=>{const da=a.days?.[0]?.date||'';const db=b.days?.[0]?.date||'';return da.localeCompare(db);});
 
+  // === Categorize events by status ===
+  const pubFuture=allEvts.filter(e=>{
+    if(e.status!=='pubblicato')return false;
+    if(e.alert&&e.alert.type==='cancellato')return false;
+    // Recurring events are always "future" if active
+    if(e.recurrence&&e.recurrence.active)return true;
+    const lastDay=e.days&&e.days.length?e.days[e.days.length-1].date:null;
+    return !lastDay||lastDay>=today;
+  });
+  const pubPast=allEvts.filter(e=>{
+    if(e.status!=='pubblicato')return false;
+    if(e.alert&&e.alert.type==='cancellato')return false;
+    if(e.recurrence&&e.recurrence.active)return false;
+    const lastDay=e.days&&e.days.length?e.days[e.days.length-1].date:null;
+    return lastDay&&lastDay<today;
+  });
+  const bozze=allEvts.filter(e=>e.status==='bozza');
+  const conclusi=allEvts.filter(e=>e.status==='concluso');
+  const archiviati=allEvts.filter(e=>e.status==='archiviato');
+  const cancellati=allEvts.filter(e=>e.status==='cancellato'||(e.alert&&e.alert.type==='cancellato'));
+
+  // === Stats summary ===
   const fc=document.getElementById('community-filter-counts');
-  if(fc)fc.innerHTML=`<button class="badge badge-pubblicato" style="padding:8px 14px;cursor:pointer;border:none" onclick="filterCommunityEvts('')">Tutti (${evts.length})</button>
-    <button class="badge" style="padding:8px 14px;cursor:pointer;border:none;background:var(--s200);color:var(--txt3)" onclick="filterCommunityEvts('pubblicato')">Pubblicati (${pub})</button>
-    <button class="badge" style="padding:8px 14px;cursor:pointer;border:none;background:var(--s200);color:var(--txt3)" onclick="filterCommunityEvts('bozza')">Bozze (${boz})</button>
-    <button class="badge" style="padding:8px 14px;cursor:pointer;border:none;background:var(--s200);color:var(--txt3)" onclick="filterCommunityEvts('concluso')">Conclusi (${con})</button>`;
+  if(fc)fc.innerHTML=`<div class="grid gap-3 mb-2" style="grid-template-columns:repeat(auto-fill,minmax(120px,1fr))">
+    <div class="stat-card"><div class="value" style="color:var(--green)">${pubFuture.length}</div><div class="label">In programma</div></div>
+    <div class="stat-card"><div class="value" style="color:var(--yellow)">${bozze.length}</div><div class="label">Bozze</div></div>
+    <div class="stat-card"><div class="value" style="color:var(--blue)">${pubPast.length}</div><div class="label">Pub. passati</div></div>
+    <div class="stat-card"><div class="value" style="color:var(--txt3)">${conclusi.length}</div><div class="label">Conclusi</div></div>
+    <div class="stat-card"><div class="value" style="color:#6366f1">${archiviati.length}</div><div class="label">Archiviati</div></div>
+    ${cancellati.length?'<div class="stat-card"><div class="value" style="color:var(--red)">'+cancellati.length+'</div><div class="label">Cancellati</div></div>':''}
+    <div class="stat-card"><div class="value" style="color:var(--brand-l)">${allEvts.length}</div><div class="label">Totale</div></div>
+  </div>`;
 
-  if(communityStatusFilter)evts=evts.filter(e=>e.status===communityStatusFilter);
-
-  c.innerHTML=evts.map(ev=>{
-    const dateStr=ev.days.length>1?fmtDateShort(ev.days[0]?.date)+' — '+fmtDateShort(ev.days[ev.days.length-1]?.date):fmtDate(ev.days[0]?.date);
-    const orgLabel=' · <span style="color:var(--brand-l)">'+escHtml(ev.orgName)+'</span>';
-    const opacity=ev.status==='bozza'?'opacity:.7':'';
-    return `<div class="card mb-3" style="${opacity};cursor:pointer" onclick="showAdminEventDetail('${ev.id}')">
-      <div class="flex justify-between items-center flex-wrap gap-3">
-        <div class="flex-1" style="min-width:0">
-          <div class="flex gap-2 items-center mb-1">
-            <span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>
-            <span class="badge ${badgeStatus(ev.status)}">${capitalize(ev.status)}</span>
-            ${getRecurrenceBadge(ev)}
+  // === Compact event row builder (no images) ===
+  const _ceRow=(ev)=>{
+    const d0=ev.days?.[0];
+    const dateStr=ev.days.length>1?fmtDateShort(d0?.date)+' → '+fmtDateShort(ev.days[ev.days.length-1]?.date):(d0?.date?fmtDate(d0.date):'—');
+    const timeStr=(d0?.startTime||'')+(d0?.endTime?' – '+d0.endTime:'');
+    const mgr=store.managers.find(m=>m.id===ev.managerId);
+    const orgName=mgr?mgr.orgName:(ev.orgName||'—');
+    const bkCount=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata').length;
+    const recBadge=ev.recurrence?'<span style="font-size:.68rem;color:var(--txt3);margin-left:4px">🔄 Ricorrente'+(ev.recurrence.active===false?' <span style="color:var(--yellow)">(pausa)</span>':'')+'</span>':'';
+    const partnerCount=ev.partnerIds?ev.partnerIds.length:0;
+    const partnerBadge=partnerCount?'<span class="badge" style="background:var(--purple-bg);color:var(--purple);font-size:.62rem;padding:1px 6px">🤝 '+partnerCount+' partner</span>':'';
+    const alertBadge=ev.alert?'<span class="badge" style="background:'+(ev.alert.type==='modificato'?'var(--orange-bg)':'var(--red-bg)')+';color:'+(ev.alert.type==='modificato'?'var(--orange)':'var(--red)')+';font-size:.65rem">⚠️ '+(ev.alert.type==='cancellato'?'Annullato':ev.alert.type==='rimandato'?'Rimandato':'Modificato')+'</span>':'';
+    const opacity=ev.status==='bozza'?'opacity:.7':ev.status==='cancellato'?'opacity:.55':'';
+    return `<div class="card-hover mb-3" style="border-radius:14px;padding:12px 16px;${opacity};cursor:pointer" onclick="showAdminEventDetail('${ev.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+        <div style="flex:1;min-width:0">
+          <div class="flex gap-2 items-center mb-1 flex-wrap" style="row-gap:4px">
+            <span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)};font-size:.7rem;padding:2px 8px">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>
+            ${alertBadge}${partnerBadge}${recBadge}
           </div>
-          <h3 class="font-semibold text-white">${escHtml(ev.title)}</h3>
-          <div class="text-xs txt3 mt-1">📅 ${dateStr} · 🕐 ${ev.days[0]?.startTime||''} — ${ev.days[0]?.endTime||''}${orgLabel}</div>
-          <div class="text-xs txt3">📍 ${escHtml(ev.location)}</div>
+          <h3 style="font-size:.92rem;font-weight:600;color:var(--txt1);margin:2px 0;line-height:1.3">${escHtml(ev.title)}</h3>
+          <div style="font-size:.76rem;color:var(--txt3);margin-top:4px;display:flex;flex-wrap:wrap;gap:4px 14px">
+            <span>📅 ${dateStr}</span>
+            ${timeStr?'<span>🕐 '+timeStr+'</span>':''}
+            <span>🏢 <a style="color:var(--brand-l);cursor:pointer;text-decoration:none" onclick="event.stopPropagation();showOrgPublicProfile(\'${ev.managerId}\')" onmouseover="this.style.textDecoration=\'underline\'" onmouseout="this.style.textDecoration=\'none\'">${escHtml(orgName)}</a></span>
+            ${ev.location?'<span>📍 '+escHtml(ev.location.length>35?ev.location.substring(0,35)+'…':ev.location)+'</span>':''}
+            <span>👥 ${bkCount} iscritti</span>
+          </div>
         </div>
-        <div class="flex gap-2">
-          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();showEventDetail('${ev.id}')" title="Preview utente">👁️</button>
+        <div style="display:flex;gap:6px;flex-shrink:0;align-items:center">
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();showEventDetail('${ev.id}')" title="Preview utente" style="font-size:.85rem;padding:4px 8px">👁️</button>
+          <button class="btn btn-sm" style="background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.25);font-size:.72rem;padding:4px 10px" onclick="event.stopPropagation();showAdminEventDetail('${ev.id}')">📊 Dettaglio</button>
         </div>
       </div>
     </div>`;
-  }).join('')||'<div class="card text-center txt3">Nessun evento presente sulla piattaforma.</div>';
+  };
+
+  // === Section builder ===
+  const _ceSection=(icon,title,evts,color,collapsed)=>{
+    if(!evts.length)return '';
+    const secId='ce-sec-'+title.replace(/\s/g,'-').toLowerCase();
+    return `<div style="margin-bottom:28px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:10px 16px;background:${color};border-radius:12px;cursor:pointer;user-select:none" onclick="const w=document.getElementById('${secId}');if(w){w.classList.toggle('hidden');const a=this.querySelector('.ce-sec-arrow');if(a)a.textContent=w.classList.contains('hidden')?'▸':'▾';}">
+        <span style="font-size:1.15rem">${icon}</span>
+        <span style="font-size:.92rem;font-weight:700;color:var(--txt1)">${title}</span>
+        <span style="font-size:.78rem;color:var(--txt3);margin-left:auto">${evts.length}</span>
+        <span class="ce-sec-arrow" style="font-size:.85rem;color:var(--txt3)">${collapsed?'▸':'▾'}</span>
+      </div>
+      <div id="${secId}"${collapsed?' class="hidden"':''}>
+        ${evts.map(_ceRow).join('')}
+      </div>
+    </div>`;
+  };
+
+  // === Render sections ===
+  let html='';
+  html+=_ceSection('📅','In programma',pubFuture,'rgba(16,185,129,.08)',false);
+  html+=_ceSection('📝','Bozze',bozze,'rgba(234,179,8,.08)',false);
+  html+=_ceSection('📆','Pubblicati passati',pubPast,'rgba(59,130,246,.06)',pubPast.length>5);
+  html+=_ceSection('✅','Conclusi',conclusi,'rgba(107,114,128,.08)',conclusi.length>3);
+  html+=_ceSection('📦','Archiviati',archiviati,'rgba(99,102,241,.06)',archiviati.length>3);
+  html+=_ceSection('🚫','Cancellati',cancellati,'rgba(239,68,68,.06)',true);
+
+  c.innerHTML=html||'<div class="card text-center txt3">Nessun evento presente sulla piattaforma.</div>';
 }
 
 /* ==============================
@@ -18665,8 +18782,15 @@ async function showUserDetail(userId){
   allBks.forEach(b=>{
     const ev=store.events.find(e=>e.id===b.eventId);
     if(!ev){pastBks.push(b);return;}
-    const lastDay=ev.days&&ev.days.length?ev.days[ev.days.length-1].date:null;
-    if(lastDay&&lastDay>=today)activeBks.push(b);else pastBks.push(b);
+    // V3.2 FIX: For recurring events, use b.recurringDate (the actual occurrence date)
+    // instead of ev.days which stores the template/original date
+    let effectiveDate;
+    if(b.recurringDate){
+      effectiveDate=b.recurringDate;
+    } else {
+      effectiveDate=ev.days&&ev.days.length?ev.days[ev.days.length-1].date:null;
+    }
+    if(effectiveDate&&effectiveDate>=today)activeBks.push(b);else pastBks.push(b);
   });
   const checkins=store.attendances[userId]||[];
   const roleLbl=getRoleLabelHtml(getUserEffectiveRole(u));
@@ -18681,8 +18805,11 @@ async function showUserDetail(userId){
   const allInsAssignments=[...userIns,...mgrIns];
 
   // Booking row builder
-  const bkRow=(b)=>{const ev=store.events.find(e=>e.id===b.eventId);const d0=ev&&ev.days&&ev.days[0]?fmtDate(ev.days[0].date):'—';
-    return `<tr><td class="text-sm">${ev?escHtml(ev.title):'Evento rimosso'}</td><td class="text-sm txt2">${d0}</td><td class="text-sm">${b.paymentStatus==='gratuito'?'🆓 Gratuito':b.paymentStatus==='pagato'?'✅ Pagato':'⏳ '+(b.paymentStatus||'in attesa')}</td><td class="text-sm text-right">${b.amount>0?b.amount+'€':'—'}</td></tr>`;
+  const bkRow=(b)=>{const ev=store.events.find(e=>e.id===b.eventId);
+    // V3.2 FIX: Use recurringDate for recurring events, fallback to event first day date
+    const d0=b.recurringDate?fmtDate(b.recurringDate):(ev&&ev.days&&ev.days[0]?fmtDate(ev.days[0].date):'—');
+    const recLabel=b.recurringDate&&ev&&ev.recurrence?' <span style="font-size:.68rem;color:var(--txt3)">🔄</span>':'';
+    return `<tr><td class="text-sm">${ev?escHtml(ev.title):'Evento rimosso'}${recLabel}</td><td class="text-sm txt2">${d0}</td><td class="text-sm">${b.paymentStatus==='gratuito'?'🆓 Gratuito':b.paymentStatus==='pagato'?'✅ Pagato':'⏳ '+(b.paymentStatus||'in attesa')}</td><td class="text-sm text-right">${b.amount>0?b.amount+'€':'—'}</td></tr>`;
   };
 
   // Universes section
