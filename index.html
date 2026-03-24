@@ -8523,6 +8523,18 @@ history.replaceState({view:'events',mode:'user'},'',' ');
 window.addEventListener('popstate',function(e){
   _isPopState=true;
   try{
+    // V3.2 FIX: If image editor is open, close it instead of navigating
+    const _ieOverlay=document.getElementById('img-editor-overlay');
+    if(_ieOverlay){
+      closeImageEditor(true); // true = called from popstate, don't call history.back()
+      return;
+    }
+    // V3.2 FIX: If any fullscreen overlay is open, close it instead of navigating
+    const _anyOverlay=document.querySelector('.overlay');
+    if(_anyOverlay){
+      _anyOverlay.remove();
+      return;
+    }
     const st=e.state;
     if(!st||!st.view){
       // No state → user went back beyond the app; show default view
@@ -8547,6 +8559,7 @@ window.addEventListener('popstate',function(e){
 
 let _privacyReturnView='profile';
 function go(view){
+  const _previousView=currentView; // V3.2: Track previous view before overwriting
   if(view==='privacy-policy') _privacyReturnView=currentView||'profile';
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   const el=document.getElementById('view-'+view);
@@ -8623,7 +8636,11 @@ function go(view){
   if(view==='checkin-booked') renderCheckinA();
   if(view==='checkin-walkin') renderCheckinB();
   if(view==='checkin-new') renderCheckinC();
-  if(view==='admin-new-event'&&!editingEventId){resetForm();_tsbShownThisSession=false;dismissTierBanner();restoreFormTitle();initEventDates();populateEventUniverseDropdown();populateSubTypeCheckboxes();populateInsuranceCheckboxes();prefillEventContacts();setTimeout(()=>{obShowTour('tour_new_event');setTimeout(()=>obShowInfoCard('ic_admin_new_event','admin-new-event-form'),300);},400);}
+  if(view==='admin-new-event'&&!editingEventId){
+    // V3.2 FIX: Only reset form when navigating TO this view from a DIFFERENT view,
+    // not when re-entering it (e.g. after overlay close or back button on same view)
+    if(_previousView!=='admin-new-event'){resetForm();_tsbShownThisSession=false;dismissTierBanner();restoreFormTitle();initEventDates();populateEventUniverseDropdown();populateSubTypeCheckboxes();populateInsuranceCheckboxes();prefillEventContacts();setTimeout(()=>{obShowTour('tour_new_event');setTimeout(()=>obShowInfoCard('ic_admin_new_event','admin-new-event-form'),300);},400);}
+  }
   if(view==='admin-new-event'&&editingEventId){populateEventUniverseDropdown();populateSubTypeCheckboxes();populateInsuranceCheckboxes();}
   if(view==='admin-subscriptions'){renderAdminSubscriptions();}
   if(view==='admin-registry'){renderAdminRegistry();}
@@ -8832,6 +8849,8 @@ const IE_ASPECTS={
 
 function openImageEditor(imgElement,opts){
   // opts: {preset:'avatar'|'logo'|'thumb'|'header', onConfirm:fn(base64,metadata)}
+  // V3.2 FIX: Push history state so device back button closes the editor instead of navigating away
+  history.pushState({view:currentView,mode:currentMode,_imageEditor:true},'',' ');
   const preset=IE_PRESETS[opts.preset]||IE_PRESETS.thumb;
   const imgW=imgElement.naturalWidth;
   const imgH=imgElement.naturalHeight;
@@ -8867,7 +8886,7 @@ function buildEditorUI(){
   // Header bar
   const header=document.createElement('div');
   header.style.cssText='display:flex;justify-content:space-between;align-items:center;padding:12px 20px;flex-shrink:0';
-  header.innerHTML='<div style="color:#fff;font-size:1rem;font-weight:600">'+s.preset.label+'</div><div style="display:flex;gap:8px"><button class="btn btn-secondary btn-sm" id="ie-btn-cancel" style="font-size:.8rem">Annulla</button><button class="btn btn-primary btn-sm" id="ie-btn-confirm" style="font-size:.8rem">Conferma</button></div>';
+  header.innerHTML='<div style="color:#fff;font-size:1rem;font-weight:600">'+s.preset.label+'</div><div style="display:flex;gap:8px"><button type="button" class="btn btn-secondary btn-sm" id="ie-btn-cancel" style="font-size:.8rem">Annulla</button><button type="button" class="btn btn-primary btn-sm" id="ie-btn-confirm" style="font-size:.8rem">Conferma</button></div>';
   overlay.appendChild(header);
 
   // Main area: canvas
@@ -8938,9 +8957,9 @@ function buildEditorUI(){
   controls.appendChild(resetBtn);
   overlay.appendChild(controls);
   document.body.appendChild(overlay);
-  // Wire buttons
-  document.getElementById('ie-btn-cancel').onclick=closeImageEditor;
-  document.getElementById('ie-btn-confirm').onclick=confirmImageEditor;
+  // Wire buttons — V3.2: Use addEventListener + stopPropagation for safety
+  document.getElementById('ie-btn-cancel').addEventListener('click',function(e){e.stopPropagation();e.preventDefault();closeImageEditor();});
+  document.getElementById('ie-btn-confirm').addEventListener('click',function(e){e.stopPropagation();e.preventDefault();confirmImageEditor();});
   // Wire canvas interaction
   canvas.addEventListener('mousedown',ieCanvasDown);
   window.addEventListener('mousemove',_ieMouseMove=ieCanvasMove);
@@ -9102,12 +9121,15 @@ function confirmImageEditor(){
   if(s.onConfirm)s.onConfirm(base64,metadata);
 }
 
-function closeImageEditor(){
+function closeImageEditor(fromPopState){
   const el=document.getElementById('img-editor-overlay');
   if(el)el.remove();
   if(_ieMouseMove)window.removeEventListener('mousemove',_ieMouseMove);
   if(_ieMouseUp)window.removeEventListener('mouseup',_ieMouseUp);
   _ieMouseMove=null;_ieMouseUp=null;_ieState=null;
+  // V3.2 FIX: Pop the history state we pushed when opening the editor
+  // (only if not already called from popstate handler — avoid double back)
+  if(!fromPopState){try{history.back();}catch(e){}}
 }
 
 /* --- FULLSCREEN IMAGE/QR VIEWER --- */
@@ -16996,6 +17018,21 @@ function renderFormDays(){
   const epSec=document.getElementById('ne-event-pricing-section');
   if(epSec) epSec.style.display=(!hidePricing&&formDays.length>1)?'':'none';
 }
+// V3.2: Validate session end time is after start time
+function validateSessionTimes(changedInput,di,si){
+  const startEl=document.querySelector(`.ne-s-start[data-di="${di}"][data-si="${si}"]`);
+  const endEl=document.querySelector(`.ne-s-end[data-di="${di}"][data-si="${si}"]`);
+  if(!startEl||!endEl||!startEl.value||!endEl.value)return;
+  if(endEl.value<=startEl.value){
+    showToast('L\'orario di fine deve essere successivo all\'orario di inizio','error');
+    // Auto-correct: set end time to start + 1 hour
+    const [h,m]=startEl.value.split(':').map(Number);
+    const newH=Math.min(h+1,23);
+    endEl.value=String(newH).padStart(2,'0')+':'+String(m).padStart(2,'0');
+    endEl.style.borderColor='var(--red)';endEl.style.boxShadow='0 0 0 2px rgba(239,68,68,.2)';
+    setTimeout(()=>{endEl.style.borderColor='';endEl.style.boxShadow='';},2000);
+  }
+}
 function updateDayTimesDisplay(di){
   // Read current session times from DOM for this day
   const starts=document.querySelectorAll(`.ne-s-start[data-di="${di}"]`);
@@ -17054,8 +17091,8 @@ function renderFormSession(di,si,s,hidePricing){
     </div>
     <div class="grid grid-3 gap-3 mb-2">
       <div><label class="label">Nome *</label><input class="input ne-s-name" value="${s.name||''}" data-di="${di}" data-si="${si}" placeholder="es. Intro Base"></div>
-      <div><label class="label">Inizio</label><input class="input ne-s-start" type="time" value="${s.startTime||'10:00'}" data-di="${di}" data-si="${si}" onchange="updateDayTimesDisplay(${di})"></div>
-      <div><label class="label">Fine</label><input class="input ne-s-end" type="time" value="${s.endTime||'12:30'}" data-di="${di}" data-si="${si}" onchange="updateDayTimesDisplay(${di})"></div>
+      <div><label class="label">Inizio</label><input class="input ne-s-start" type="time" value="${s.startTime||'10:00'}" data-di="${di}" data-si="${si}" onchange="validateSessionTimes(this,${di},${si});updateDayTimesDisplay(${di})"></div>
+      <div><label class="label">Fine</label><input class="input ne-s-end" type="time" value="${s.endTime||'12:30'}" data-di="${di}" data-si="${si}" onchange="validateSessionTimes(this,${di},${si});updateDayTimesDisplay(${di})"></div>
     </div>
     <div class="grid grid-3 gap-3 mb-2">
       <div><label class="label">Livello</label><select class="input ne-s-level" data-di="${di}" data-si="${si}">
@@ -17454,6 +17491,18 @@ function collectFormData(){
   const isFreeEvent=!!document.getElementById('ne-free-event')?.checked;
   const isCostsManagedByOrg=!!document.getElementById('ne-costs-managed-by-org')?.checked;
   const pricingMode=isFreeEvent?'free':isCostsManagedByOrg?'managed':'standard';
+  // V3.2: Validate session times before collecting
+  for(let di=0;di<formDays.length;di++){
+    for(let si=0;si<formDays[di].sessions.length;si++){
+      const _vStart=document.querySelector(`.ne-s-start[data-di="${di}"][data-si="${si}"]`)?.value;
+      const _vEnd=document.querySelector(`.ne-s-end[data-di="${di}"][data-si="${si}"]`)?.value;
+      if(_vStart&&_vEnd&&_vEnd<=_vStart){
+        const _sName=document.querySelector(`.ne-s-name[data-di="${di}"][data-si="${si}"]`)?.value||'Sessione '+(si+1);
+        showToast('Orario non valido nella sessione "'+_sName+'": la fine ('+_vEnd+') deve essere dopo l\'inizio ('+_vStart+')','error');
+        return null;
+      }
+    }
+  }
   const days=formDays.map((fd,di)=>{
     const dayDate=getDayDate(di);
     const sessions=fd.sessions.map((s,si)=>{
