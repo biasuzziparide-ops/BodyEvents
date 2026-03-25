@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V3.4.2</title>
+<title>BodyEvents — V3.4.3</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -409,7 +409,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.4.2</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.4.3</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2738,7 +2738,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.4.2';
+const APP_VERSION='V3.4.3';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -13413,17 +13413,27 @@ function toggleJamUnivBtn(btn){
 }
 function populateJamTypeButtons(){
   const btnsWrap=document.getElementById('jam-type-btns');if(!btnsWrap)return;
-  // Show ALL event types from ALL universes (user requirement)
-  const types=getAllEventTypes();
+  // V3.4.3: Only show event types from SELECTED universes (not all)
+  const selectedUnivIds=Array.from(document.querySelectorAll('#jam-universes-list .ne-univ-selected')).map(b=>b.dataset.univ);
+  let types=[];
+  if(selectedUnivIds.length>0){
+    const typeSet=new Set();
+    selectedUnivIds.forEach(uid=>{const univ=store.universes.find(u=>u.id===uid);if(univ)(univ.eventTypes||DEFAULT_EVENT_TYPES).forEach(t=>typeSet.add(t));});
+    types=Array.from(typeSet);
+  } else {
+    types=DEFAULT_EVENT_TYPES.slice();
+  }
   let html=types.map((t,i)=>{
     const isFirst=i===0;
     const style=isFirst?'background:var(--green-bg);color:var(--green);border:1px solid var(--green)':'border:1px solid var(--s400)';
     return '<button type="button" class="btn btn-sm jam-type-btn'+(isFirst?' jam-type-selected':'')+'" data-type="'+t+'" onclick="selectJamType(this)" style="'+style+'">'+getEventTypeIcon(t)+' '+getEventTypeLabel(t)+'</button>';
   }).join('');
-  html+='<button type="button" class="btn btn-sm jam-type-btn" data-type="custom" onclick="selectJamType(this)" style="border:1px solid var(--s400)">✏️ Altro</button>';
+  // V3.4.3: NO "Altro" button — custom types not allowed for community events
   btnsWrap.innerHTML=html;
   const ci=document.getElementById('jam-custom-type');
   if(ci)ci.classList.add('hidden');
+  // Auto-select first type
+  if(types.length>0)selectedJamType=types[0];
 }
 function updateJamMinSubsDeadline(){
   const jd=document.getElementById('jam-date')?.value;
@@ -13451,13 +13461,8 @@ function submitJam(){
   const contactPhone=(document.getElementById('jam-contact-phone')||{}).value||'';
   const contactEmail=(document.getElementById('jam-contact-email')||{}).value||'';
   let jamType=selectedJamType;
-  if(selectedJamType==='custom'){
-    const customVal=(document.getElementById('jam-custom-type')?.value||'').trim();
-    jamType=customVal?normalizeTypeName(customVal):'evento';
-    // Add custom type to selected universes catalog
-    const selUnivs=Array.from(document.querySelectorAll('#jam-universes-list .ne-univ-selected')).map(b=>b.dataset.univ);
-    if(customVal)selUnivs.forEach(uid=>addCustomEventType(uid,customVal));
-  }
+  // V3.4.3: Custom types removed — fallback to 'jam' if invalid
+  if(jamType==='custom'||!jamType)jamType='jam';
   const selectedUnivIds=Array.from(document.querySelectorAll('#jam-universes-list .ne-univ-selected')).map(btn=>btn.dataset.univ);
 
   if(!title.trim()||!date||!start||!end||!location.trim()){
@@ -13563,7 +13568,15 @@ function showJamDetail(jamId){
     contactHtml+='</div>';
   }
 
-  const partsList=parts.length?parts.map(p=>`<div class="flex items-center gap-2 py-2" style="border-bottom:1px solid var(--s300)"><span style="width:32px;height:32px;border-radius:50%;background:var(--brand-d);display:flex;align-items:center;justify-content:center;font-size:.75rem;color:var(--brand-l)">${p.userName.charAt(0)}</span><span class="text-sm text-white">${escHtml(p.userName)}</span></div>`).join(''):'<p class="text-sm txt3">Nessun partecipante ancora.</p>';
+  // V3.4.3: Show profile photo in participant list
+  const partsList=parts.length?parts.map(p=>{
+    const _pUser=store.users.find(x=>x.id===p.userId)||store.managers.find(x=>x.id===p.userId);
+    const _pLogo=_pUser?.profileLogo||null;
+    const avatarHtml=_pLogo
+      ?`<span style="width:32px;height:32px;border-radius:50%;overflow:hidden;flex-shrink:0"><img src="${_pLogo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></span>`
+      :`<span style="width:32px;height:32px;border-radius:50%;background:var(--brand-d);display:flex;align-items:center;justify-content:center;font-size:.75rem;color:var(--brand-l);flex-shrink:0">${(p.userName||'?').charAt(0)}</span>`;
+    return `<div class="flex items-center gap-2 py-2" style="border-bottom:1px solid var(--s300)">${avatarHtml}<span class="text-sm text-white">${escHtml(p.userName)}</span></div>`;
+  }).join(''):'<p class="text-sm txt3">Nessun partecipante ancora.</p>';
 
   const isOwner=jam.userId===uid;
   const ownerActions=isOwner?`<div class="flex gap-2 mt-3" style="padding-top:12px;border-top:1px solid var(--s300)">
@@ -14866,10 +14879,17 @@ function showEventDetail(evId,recDate){
         _prBookings.sort((a,b)=>(_prRoleOrder[a.role]??99)-(_prRoleOrder[b.role]??99));
         if(_prBookings.length){
           _preRegParticipants='<div class="card mb-4" style="border:1px solid var(--s300);padding:16px"><div class="text-xs txt3 mb-3" style="text-transform:uppercase;letter-spacing:.5px">👥 Già iscritti ('+_prBookings.length+')</div>';
+          // V3.4.3: Show profile photo in participant list
           _prBookings.forEach(pb=>{
             const _isMe=store.currentUser&&pb.userId===store.currentUser.id;
+            const _pbUser=store.users.find(x=>x.id===pb.userId)||store.managers.find(x=>x.id===pb.userId);
+            const _pbLogo=_pbUser?.profileLogo||null;
+            const _pbAvatar=_pbLogo
+              ?'<span style="width:28px;height:28px;border-radius:50%;overflow:hidden;flex-shrink:0"><img src="'+_pbLogo+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></span>'
+              :'<span style="width:28px;height:28px;border-radius:50%;background:var(--brand-d);display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--brand-l);flex-shrink:0">'+(pb.userName||'?').charAt(0)+'</span>';
             _preRegParticipants+='<div class="flex items-center justify-between py-2" style="border-bottom:1px solid var(--s100);gap:8px">'
-              +'<span class="text-sm'+(_isMe?' font-semibold':'')+'" style="color:'+(_isMe?'var(--brand-l)':'var(--txt1)')+'">'+escHtml(pb.userName)+(_isMe?' (tu)':'')+'</span>'
+              +'<div class="flex items-center gap-2">'+_pbAvatar
+              +'<span class="text-sm'+(_isMe?' font-semibold':'')+'" style="color:'+(_isMe?'var(--brand-l)':'var(--txt1)')+'">'+escHtml(pb.userName)+(_isMe?' (tu)':'')+'</span></div>'
               +'<span class="text-xs" style="color:var(--txt3)">'+(_prRoleLblMap[pb.role]||'—')+'</span>'
               +'</div>';
           });
