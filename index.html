@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V3.3.1</title>
+<title>BodyEvents — V3.4.0</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -80,6 +80,12 @@ a{color:var(--brand-l);text-decoration:none}
 .badge-bozza{background:rgba(107,114,128,.15);color:var(--txt2)}.badge-pubblicato{background:var(--green-bg);color:var(--green)}.badge-concluso{background:var(--blue-bg);color:var(--blue)}.badge-cancellato{background:var(--red-bg);color:var(--red)}.badge-attesa{background:rgba(234,179,8,.15);color:var(--yellow)}.badge-confermato{background:var(--green-bg);color:var(--green)}.badge-archiviato{background:rgba(99,102,241,.12);color:#6366f1}
 .badge-purple{background:var(--purple-bg);color:var(--purple)}
 .badge-yellow{background:var(--yellow-bg);color:var(--yellow)}
+
+/* Notification badge — nav (V3.4.0) */
+.notif-badge{position:absolute;top:-6px;right:-6px;min-width:22px;height:22px;border-radius:11px;background:#ef4444;color:#fff;font-size:.7rem;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 5px;line-height:1;box-shadow:0 2px 6px rgba(239,68,68,.4);z-index:10;pointer-events:none;animation:badgePop .3s ease-out}
+/* Notification badge — card inline (V3.4.0) */
+.notif-card-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(239,68,68,.15);color:#ef4444;font-size:.7rem;font-weight:700;padding:3px 10px;border-radius:10px;white-space:nowrap}
+@keyframes badgePop{0%{transform:scale(0)}60%{transform:scale(1.2)}100%{transform:scale(1)}}
 
 /* Recurring event indicator (overlaid on date block) */
 .rec-indicator{position:absolute;bottom:4px;right:-4px;width:18px;height:18px;border-radius:50%;background:var(--s50);border:1.5px solid rgba(168,85,247,.4);display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:700;color:var(--brand-l);line-height:1}
@@ -403,7 +409,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.3.1</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.4.0</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2732,7 +2738,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.3.1';
+const APP_VERSION='V3.4.0';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -2756,6 +2762,83 @@ function _obFlags(){try{return JSON.parse(localStorage.getItem(OB_KEY)||'{}');}c
 function _obSet(k){const f=_obFlags();f[k]=true;localStorage.setItem(OB_KEY,JSON.stringify(f));}
 function obSeen(k){return !!_obFlags()[k];}
 function obReset(){localStorage.removeItem(OB_KEY);}
+
+/* ==============================
+   NOTIFICATION BADGE SYSTEM (V3.4.0)
+============================== */
+const READ_ALERTS_KEY='bodyevents_read_alerts_';
+
+function _getReadAlerts(){
+  try{const uid=store.currentUser?.id;if(!uid)return {};return JSON.parse(localStorage.getItem(READ_ALERTS_KEY+uid)||'{}');}catch(e){return {};}
+}
+
+function _markEventRead(eventId){
+  const uid=store.currentUser?.id;if(!uid)return;
+  const data=_getReadAlerts();
+  const ev=store.events.find(e=>e.id===eventId);if(!ev)return;
+  if(!data[eventId])data[eventId]={};
+  if(ev.alert)data[eventId].alertSeen=ev.alert.timestamp||ev.alert.date||'';
+  if(ev.organizerNote)data[eventId].noteSeen=ev.organizerNote.updatedAt||'';
+  localStorage.setItem(READ_ALERTS_KEY+uid,JSON.stringify(data));
+  updateNotificationBadges();
+}
+
+function _isEventUnread(eventId){
+  const ev=store.events.find(e=>e.id===eventId);if(!ev)return false;
+  const data=_getReadAlerts();const seen=data[eventId]||{};
+  // Check alert (only for published events)
+  if(ev.alert&&ev.status==='pubblicato'){
+    const alertTs=ev.alert.timestamp||ev.alert.date||'';
+    if(alertTs&&alertTs!==seen.alertSeen)return true;
+  }
+  // Check organizerNote
+  if(ev.organizerNote?.text&&ev.status==='pubblicato'){
+    const noteTs=ev.organizerNote.updatedAt||'';
+    if(noteTs&&noteTs!==seen.noteSeen)return true;
+  }
+  return false;
+}
+
+function _countUnreadBookings(){
+  if(!store.currentUser)return 0;
+  const uid=store.currentUser.id;const uEmail=store.currentUser.email;
+  const myBookings=store.bookings.filter(b=>b.status!=='cancellata'&&(b.userId===uid||b.email===uEmail));
+  let count=0;
+  const counted=new Set();
+  myBookings.forEach(b=>{
+    if(!counted.has(b.eventId)&&_isEventUnread(b.eventId)){count++;counted.add(b.eventId);}
+  });
+  return count;
+}
+
+function updateNotificationBadges(){
+  const count=_countUnreadBookings();
+  const navSelectors=[
+    '.nav-link[data-view="dashboard"]',
+    '.mtn-item[data-view="dashboard"]',
+    '.mqb-item[data-view="dashboard"]',
+    '#mobileMenu .nav-link[onclick*="dashboard"]'
+  ];
+  navSelectors.forEach(sel=>{
+    document.querySelectorAll(sel).forEach(el=>{
+      const existing=el.querySelector('.notif-badge');if(existing)existing.remove();
+      if(count>0){
+        el.style.position='relative';
+        const badge=document.createElement('span');badge.className='notif-badge';
+        badge.textContent=count>99?'99+':count;el.appendChild(badge);
+      }
+    });
+  });
+}
+
+function _cleanupReadAlerts(){
+  const uid=store.currentUser?.id;if(!uid)return;
+  const data=_getReadAlerts();
+  const eventIds=new Set(store.events.map(e=>e.id));
+  let changed=false;
+  Object.keys(data).forEach(eid=>{if(!eventIds.has(eid)){delete data[eid];changed=true;}});
+  if(changed)localStorage.setItem(READ_ALERTS_KEY+uid,JSON.stringify(data));
+}
 
 // === TIER SUGGESTION BANNER ===
 const TSB_KEY='tsb_tier_suggest';
@@ -4016,7 +4099,9 @@ async function loadAllData(forceReload){
       fsSet('universes','univ_acro',acroUniv).catch(console.error);
     }
     _dataLoaded=true;
+    _cleanupReadAlerts(); // V3.4.0: Cleanup stale notification data
     console.log('[BE_INIT] loadAllData: completed. Managers:',store.managers.length,', Events:',store.events.length);
+    setTimeout(()=>updateNotificationBadges(),100); // V3.4.0: Update notification badges after data load
   }catch(e){
     console.error('[BE_INIT] loadAllData CRITICAL error:',e);
     showToast('Errore caricamento dati: '+e.message,'error');
@@ -4035,6 +4120,7 @@ async function refreshData(){
   if(typeof renderCurrentView==='function')renderCurrentView();
   else if(typeof go==='function')go(currentView);
   showToast('Dati aggiornati!');
+  updateNotificationBadges(); // V3.4.0
 }
 
 function _resetLazyFlags(){_bookingsLoaded=false;_attendancesLoaded=false;_subscriptionsLoaded=false;_usersFullyLoaded=false;_userOwnBookingsLoaded=false;_insurancesLoaded=false;}
@@ -8771,6 +8857,8 @@ function go(view){
   }
   // Show/hide FAB info button based on current view
   showInfoFab();
+  // V3.4.0: Update notification badges when navigating
+  if(view==='dashboard')updateNotificationBadges();
 }
 
 function populateProfileFields(){
@@ -12094,6 +12182,9 @@ async function renderUserDashboard(){
     const alertType=hasAlert?ev.alert.type:'';
     const borderColor=hasAlert?(alertType==='cancellato'?'var(--red)':alertType==='rimandato'?'var(--yellow)':'var(--orange)'):(b.depositStatus==='pending'?'var(--yellow)':'var(--brand)');
     const bgColor=hasAlert?(alertType==='cancellato'?'rgba(239,68,68,.04)':alertType==='rimandato'?'rgba(234,179,8,.04)':'rgba(249,115,22,.04)'):(b.depositStatus==='pending'?'rgba(234,179,8,.02)':'rgba(217,70,239,.03)');
+    // V3.4.0: Notification badge on card
+    const _isUnread=_isEventUnread(ev.id);
+    const _unreadBadge=_isUnread?'<span class="notif-card-badge" style="margin-left:auto">\u{1F4E2} Novit\u00e0</span>':'';
 
     // Alert stamp overlay
     let alertStamp='';
@@ -12437,7 +12528,7 @@ async function renderUserDashboard(){
                 ${_orgLogoHtml}<h3 style="margin:0;font-size:.95rem;font-weight:600;color:#fff;line-height:1.3;overflow-wrap:break-word;word-break:break-word;min-width:0">${escHtml(ev.title)}</h3>
               </div>
               <div style="display:flex;gap:4px;flex-wrap:wrap;row-gap:4px;margin-top:4px">
-                <span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>${_bkLevelBadges}${_statusBadge}
+                <span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>${_bkLevelBadges}${_statusBadge}${_unreadBadge}
               </div>
               <div style="margin-top:8px;font-size:.78rem;color:var(--txt2)">
                 ${_timeLineHtml} · <a style="color:var(--brand-l);cursor:pointer;text-decoration:none" onclick="event.stopPropagation();showOrgPublicProfile('${ev.managerId}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${escHtml(ev.orgName||(_mgr?_mgr.orgName:''))}</a>${_partnerHtml}
@@ -14356,6 +14447,8 @@ function showEventDetail(evId,recDate){
     }
   }
   currentBookingRecDate=recDate||null;
+  // V3.4.0: Mark event as read (dismiss notification badge)
+  _markEventRead(evId);
   // Reset tier selections for a clean booking
   Object.keys(selectedTiers).forEach(k=>delete selectedTiers[k]);
   selectedBookRole='';
