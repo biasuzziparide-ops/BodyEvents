@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V3.4.1</title>
+<title>BodyEvents — V3.4.2</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -409,7 +409,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.4.1</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.4.2</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2738,7 +2738,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.4.1';
+const APP_VERSION='V3.4.2';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -10063,6 +10063,47 @@ function selectTier(gridId,el,tier){
     el.classList.add('selected');
     selectedTiers[gridId]=tier;
   }
+  // V3.4.2: Mutual exclusion between day-level and session-level pricing
+  const ev=store.events.find(e=>e.id===currentBookingEventId);
+  if(!ev)return;
+  // Detect DAY-level tier selection (standard, early bird, or loyalty)
+  const dayMatch=gridId.match(/^tier-(?:day|ebday|lday)-[^-]+-(\d+)$/);
+  if(dayMatch&&selectedTiers[gridId]){
+    const di=parseInt(dayMatch[1]);const day=ev.days[di];
+    if(day&&day.sessions){
+      day.sessions.forEach(s=>{
+        ['tiers-'+s.id,'tier-ebs-'+s.id].forEach(sessGridId=>{
+          if(selectedTiers[sessGridId]){
+            delete selectedTiers[sessGridId];
+            const sessGrid=document.getElementById(sessGridId);
+            if(sessGrid)sessGrid.querySelectorAll('.tier-btn').forEach(b=>b.classList.remove('selected'));
+          }
+        });
+        // Collapse the session check-item (uncheck it)
+        const checkItem=document.querySelector('.check-item[onclick*="\''+s.id+'\'"]');
+        if(checkItem&&checkItem.classList.contains('selected')){
+          checkItem.classList.remove('selected');
+          const ck=checkItem.querySelector('.checkbox span');if(ck)ck.style.display='none';
+          const tg=document.getElementById('tiers-'+s.id);if(tg)tg.classList.add('hidden');
+        }
+      });
+    }
+  }
+  // Detect SESSION-level tier selection
+  const sessMatch=gridId.match(/^(?:tiers|tier-ebs)-(.+)$/);
+  if(sessMatch&&selectedTiers[gridId]){
+    const sessId=sessMatch[1];
+    const di=ev.days.findIndex(d=>(d.sessions||[]).some(s=>s.id===sessId));
+    if(di!==-1){
+      ['tier-day-'+ev.id+'-'+di,'tier-ebday-'+ev.id+'-'+di,'tier-lday-'+ev.id+'-'+di].forEach(dayGridId=>{
+        if(selectedTiers[dayGridId]){
+          delete selectedTiers[dayGridId];
+          const dayGrid=document.getElementById(dayGridId);
+          if(dayGrid)dayGrid.querySelectorAll('.tier-btn').forEach(b=>b.classList.remove('selected'));
+        }
+      });
+    }
+  }
 }
 function toggleCheck(el,tierId){
   el.classList.toggle('selected');
@@ -10083,15 +10124,46 @@ function toggleFreeSession(el,sessionId){
   el.classList.toggle('selected');
   const ck=el.querySelector('.checkbox span');
   if(ck)ck.style.display=el.classList.contains('selected')?'block':'none';
-  if(el.classList.contains('selected'))freeSelectedSessions.add(sessionId);
-  else freeSelectedSessions.delete(sessionId);
+  if(el.classList.contains('selected')){
+    freeSelectedSessions.add(sessionId);
+    // V3.4.2: Mutual exclusion — deselect "Giornata intera" of the same day
+    const ev=store.events.find(e=>e.id===currentBookingEventId);
+    if(ev){
+      const dayIdx=ev.days.findIndex(d=>(d.sessions||[]).some(s=>s.id===sessionId));
+      if(dayIdx!==-1&&freeSelectedDays.has(dayIdx)){
+        freeSelectedDays.delete(dayIdx);
+        const dayEl=document.querySelector('.check-item[onclick*="toggleFreeDay"][onclick*="'+dayIdx+'"]');
+        if(dayEl&&dayEl.classList.contains('selected')){
+          dayEl.classList.remove('selected');
+          const dck=dayEl.querySelector('.checkbox span');if(dck)dck.style.display='none';
+        }
+      }
+    }
+  } else {
+    freeSelectedSessions.delete(sessionId);
+  }
 }
 function toggleFreeDay(el,dayIdx){
   el.classList.toggle('selected');
   const ck=el.querySelector('.checkbox span');
   if(ck)ck.style.display=el.classList.contains('selected')?'block':'none';
-  if(el.classList.contains('selected'))freeSelectedDays.add(dayIdx);
-  else freeSelectedDays.delete(dayIdx);
+  if(el.classList.contains('selected')){
+    freeSelectedDays.add(dayIdx);
+    // V3.4.2: Mutual exclusion — deselect individual sessions of this day
+    const ev=store.events.find(e=>e.id===currentBookingEventId);
+    if(ev&&ev.days[dayIdx]&&ev.days[dayIdx].sessions){
+      ev.days[dayIdx].sessions.forEach(s=>{
+        freeSelectedSessions.delete(s.id);
+        const sessEl=document.querySelector('.check-item[onclick*="toggleFreeSession"][onclick*="\''+s.id+'\'"]');
+        if(sessEl&&sessEl.classList.contains('selected')){
+          sessEl.classList.remove('selected');
+          const sck=sessEl.querySelector('.checkbox span');if(sck)sck.style.display='none';
+        }
+      });
+    }
+  } else {
+    freeSelectedDays.delete(dayIdx);
+  }
 }
 function selectBookRole(el){
   document.querySelectorAll('.book-role-btn').forEach(b=>{b.style.background='';b.style.color='';b.style.borderColor='var(--s400)';});
