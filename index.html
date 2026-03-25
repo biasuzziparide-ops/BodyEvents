@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V3.4.3</title>
+<title>BodyEvents — V3.5.0</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -409,7 +409,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.4.3</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.5.0</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2738,7 +2738,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.4.3';
+const APP_VERSION='V3.5.0';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -3160,6 +3160,14 @@ const store={
 };
 
 /* ==============================
+   TTL CACHE SYSTEM (V3.5.0)
+   ============================== */
+const DATA_TTL=60000; // 60 seconds cache lifetime
+const _loadTimestamps={events:0,managers:0,communityJams:0,universes:0,bookings:0,userBookings:0,users:0,subscriptions:0,attendances:0,insurances:0};
+function _isStale(collection){return(Date.now()-(_loadTimestamps[collection]||0))>DATA_TTL;}
+function _markFresh(collection){_loadTimestamps[collection]=Date.now();}
+
+/* ==============================
    LAZY LOADING INFRASTRUCTURE (V3.1.5)
    ============================== */
 let _bookingsLoaded=false;
@@ -3175,6 +3183,7 @@ async function ensureBookingsLoaded(){
   store.bookings=[];snap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.bookings.push(d);});
   _bookingsLoaded=true;
   _userOwnBookingsLoaded=true;
+  _markFresh('bookings');_markFresh('userBookings');
   // Run booking migrations once (need all bookings)
   _migrateOrphanRecurringBookings();
   await _splitConcludedRecurringDates();
@@ -3188,6 +3197,7 @@ async function ensureUserBookingsLoaded(uid){
     if(!store.bookings.find(b=>b.id===d.id))store.bookings.push(d);
   });
   _userOwnBookingsLoaded=true;
+  _markFresh('userBookings');
 }
 
 // V3.2 FIX: Load all bookings for a specific event (needed for participant list on Jam/Community events)
@@ -3200,6 +3210,7 @@ async function ensureEventBookingsLoaded(eventId){
     if(!store.bookings.find(b=>b.id===d.id))store.bookings.push(d);
   });
   _eventBookingsLoadedSet.add(eventId);
+  _markFresh('bookings');
 }
 
 async function ensureAttendancesLoaded(){
@@ -3207,6 +3218,7 @@ async function ensureAttendancesLoaded(){
   const snap=await fbDb.collection('attendances').get();
   store.attendances={};snap.forEach(doc=>{store.attendances[doc.id]=doc.data().events||[];});
   _attendancesLoaded=true;
+  _markFresh('attendances');
 }
 
 async function ensureSubscriptionsLoaded(){
@@ -3220,6 +3232,7 @@ async function ensureSubscriptionsLoaded(){
     store.subscriptions=[];subsSnap.forEach(doc=>{store.subscriptions.push(doc.data());});
   }catch(e){console.warn('Subscriptions load skipped:',e.message);store.subscriptionTypes=[];store.subscriptions=[];}
   _subscriptionsLoaded=true;
+  _markFresh('subscriptions');
 }
 
 async function ensureUsersLoaded(){
@@ -3227,6 +3240,7 @@ async function ensureUsersLoaded(){
   const snap=await fbDb.collection('users').get();
   store.users=[];snap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.users.push(d);});
   _usersFullyLoaded=true;
+  _markFresh('users');
 }
 
 async function ensureInsurancesLoaded(){
@@ -3236,6 +3250,117 @@ async function ensureInsurancesLoaded(){
     store.insurances=[];snap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.insurances.push(d);});
   }catch(e){console.warn('Insurances load skipped:',e.message);store.insurances=[];}
   _insurancesLoaded=true;
+  _markFresh('insurances');
+}
+
+// V3.5.0: Silent background re-fetch functions for TTL system
+async function _refreshEvents(){
+  try{
+    const [evSnap,jSnap]=await Promise.all([fbDb.collection('events').get(),fbDb.collection('communityJams').get()]);
+    store.events=[];evSnap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.events.push(d);});
+    store.communityJams=[];jSnap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.communityJams.push(d);});
+    _markFresh('events');_markFresh('communityJams');
+  }catch(e){console.warn('[TTL] refreshEvents error:',e);}
+}
+async function _refreshBookings(){
+  try{
+    const snap=await fbDb.collection('bookings').get();
+    store.bookings=[];snap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.bookings.push(d);});
+    _bookingsLoaded=true;_userOwnBookingsLoaded=true;
+    _markFresh('bookings');_markFresh('userBookings');
+  }catch(e){console.warn('[TTL] refreshBookings error:',e);}
+}
+async function _refreshUserBookings(){
+  if(!store.currentUser?.id)return;
+  try{
+    const snap=await fbDb.collection('bookings').where('userId','==',store.currentUser.id).get();
+    snap.forEach(doc=>{
+      const d=doc.data();d.id=doc.id;
+      const idx=store.bookings.findIndex(b=>b.id===d.id);
+      if(idx!==-1)store.bookings[idx]=d;else store.bookings.push(d);
+    });
+    _markFresh('userBookings');
+  }catch(e){console.warn('[TTL] refreshUserBookings error:',e);}
+}
+async function _refreshUsers(){
+  try{
+    const snap=await fbDb.collection('users').get();
+    store.users=[];snap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.users.push(d);});
+    _usersFullyLoaded=true;_markFresh('users');
+  }catch(e){console.warn('[TTL] refreshUsers error:',e);}
+}
+async function _refreshManagers(){
+  try{
+    const snap=await fbDb.collection('managers').get();
+    store.managers=[];snap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.managers.push(d);});
+    _markFresh('managers');
+  }catch(e){console.warn('[TTL] refreshManagers error:',e);}
+}
+
+// V3.5.0: View → data dependencies map
+const VIEW_DATA_DEPS={
+  'events':['events','communityJams'],
+  'jams':['communityJams'],
+  'dashboard':['events','userBookings'],
+  'profile':[],
+  'admin':['events','bookings','managers'],
+  'admin-events':['events'],
+  'admin-bookings':['events','bookings'],
+  'admin-community-jams':['communityJams'],
+  'admin-checkin':['events','bookings'],
+  'admin-users':['users','managers'],
+  'admin-subscriptions':['subscriptions'],
+  'admin-registry':['bookings','users'],
+  'admin-org-profile':[]
+};
+
+// V3.5.0: Re-render a view without side-effects (no scroll, no history push)
+function _renderView(view){
+  if(view==='events'){renderUserEvents();}
+  else if(view==='jams'){renderUserJams();}
+  else if(view==='dashboard'){renderUserDashboard();}
+  else if(view==='admin-events'){renderAdminEvents();}
+  else if(view==='admin'){renderAdminDashboard();}
+  else if(view==='admin-bookings'){renderAdminBookings();}
+  else if(view==='admin-community-jams'){renderAdminCommunityJams();}
+  else if(view==='admin-users'){renderUsersTab();}
+  else if(view==='admin-checkin'){populateQRSelect();}
+  else if(view==='admin-subscriptions'){renderAdminSubscriptions();}
+  else if(view==='admin-registry'){renderAdminRegistry();}
+}
+
+// V3.5.0: TTL-based background data refresh for a view
+async function _ttlRefreshForView(view){
+  const deps=VIEW_DATA_DEPS[view];
+  if(!deps||!deps.length)return;
+  const staleCollections=deps.filter(col=>_isStale(col));
+  if(!staleCollections.length)return;
+  console.log('[TTL] View "'+view+'" has stale data:',staleCollections.join(', '));
+  const promises=[];
+  const toRefresh=new Set(staleCollections);
+  if(toRefresh.has('events')||toRefresh.has('communityJams'))promises.push(_refreshEvents());
+  if(toRefresh.has('bookings'))promises.push(_refreshBookings());
+  else if(toRefresh.has('userBookings'))promises.push(_refreshUserBookings());
+  if(toRefresh.has('users'))promises.push(_refreshUsers());
+  if(toRefresh.has('managers'))promises.push(_refreshManagers());
+  if(toRefresh.has('subscriptions')&&_subscriptionsLoaded){
+    promises.push((async()=>{
+      try{
+        const [tSnap,sSnap]=await Promise.all([fbDb.collection('subscriptionTypes').get(),fbDb.collection('subscriptions').get()]);
+        store.subscriptionTypes=[];tSnap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.subscriptionTypes.push(d);});
+        store.subscriptions=[];sSnap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.subscriptions.push(d);});
+        _markFresh('subscriptions');
+      }catch(e){console.warn('[TTL] refreshSubscriptions error:',e);}
+    })());
+  }
+  if(!promises.length)return;
+  await Promise.all(promises);
+  // Re-render ONLY if user is still on the same view
+  if(currentView===view){
+    console.log('[TTL] Re-rendering view "'+view+'" with fresh data');
+    _renderView(view);
+    updateNotificationBadges();
+  }
 }
 
 // Background loader for admin/organizer: starts loading heavy collections in parallel
@@ -4083,10 +4208,10 @@ async function loadAllData(forceReload){
       fbDb.collection('communityJams').get(),
       fbDb.collection('universes').get()
     ]);
-    store.managers=[];managersSnap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.managers.push(d);});
-    store.events=[];eventsSnap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.events.push(d);});
-    store.communityJams=[];jamsSnap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.communityJams.push(d);});
-    store.universes=[];universesSnap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.universes.push(d);});
+    store.managers=[];managersSnap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.managers.push(d);});_markFresh('managers');
+    store.events=[];eventsSnap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.events.push(d);});_markFresh('events');
+    store.communityJams=[];jamsSnap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.communityJams.push(d);});_markFresh('communityJams');
+    store.universes=[];universesSnap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.universes.push(d);});_markFresh('universes');
     // Ensure all universes have the 4 default event types + clean duplicates
     store.universes.forEach(u=>ensureUniverseHasEventTypes(u));
     // Migrate legacy custom type keys that duplicate defaults (e.g. "community event" → "social")
@@ -4125,7 +4250,7 @@ async function refreshData(){
   updateNotificationBadges(); // V3.4.0
 }
 
-function _resetLazyFlags(){_bookingsLoaded=false;_attendancesLoaded=false;_subscriptionsLoaded=false;_usersFullyLoaded=false;_userOwnBookingsLoaded=false;_insurancesLoaded=false;}
+function _resetLazyFlags(){_bookingsLoaded=false;_attendancesLoaded=false;_subscriptionsLoaded=false;_usersFullyLoaded=false;_userOwnBookingsLoaded=false;_insurancesLoaded=false;Object.keys(_loadTimestamps).forEach(k=>_loadTimestamps[k]=0);}
 function resetStoreData(){_dataLoaded=false;_resetLazyFlags();store.events=[];store.bookings=[];store.users=[];store.managers=[];store.communityJams=[];store.attendances={};store.universes=[];store.subscriptionTypes=[];store.subscriptions=[];store.insurances=[];}
 
 /* ==============================
@@ -8864,6 +8989,8 @@ function go(view){
   showInfoFab();
   // V3.4.0: Update notification badges when navigating
   if(view==='dashboard')updateNotificationBadges();
+  // V3.5.0: TTL-based background data refresh
+  _ttlRefreshForView(view);
 }
 
 function populateProfileFields(){
