@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V3.2.1</title>
+<title>BodyEvents — V3.3.0</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -403,7 +403,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.2.1</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.3.0</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -1291,7 +1291,7 @@ textarea.input{resize:none;font-family:inherit}
       <h3 class="font-semibold text-white mb-4">👤 Account</h3>
       <div class="mb-3">
         <label class="label">Username</label>
-        <input class="input" id="org-profile-username" value="" oninput="orgProfileChanged()">
+        <input class="input" id="org-profile-username" maxlength="25" value="" oninput="orgProfileChanged()">
       </div>
       <div class="mb-3">
         <label class="label">Email account</label>
@@ -2202,7 +2202,7 @@ textarea.input{resize:none;font-family:inherit}
     <h3 class="font-semibold text-white mb-4">I miei dati</h3>
     <div class="mb-3">
       <label class="label">Username</label>
-      <input class="input" id="profile-username" value="">
+      <input class="input" id="profile-username" maxlength="25" value="">
     </div>
     <div class="mb-3">
       <label class="label">Email</label>
@@ -2462,7 +2462,7 @@ textarea.input{resize:none;font-family:inherit}
 
       <div class="mb-3">
         <label class="label">Username *</label>
-        <input class="input" id="reg-username" placeholder="Il tuo nome, nickname o come vuoi essere chiamato">
+        <input class="input" id="reg-username" maxlength="25" placeholder="Il tuo nome, nickname o come vuoi essere chiamato">
       </div>
       <div class="mb-3">
         <label class="label">Email *</label>
@@ -2732,7 +2732,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.2.1';
+const APP_VERSION='V3.3.0';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -3447,7 +3447,7 @@ async function removeInsuranceFromUser(userId,insuranceId){
 }
 
 async function renewInsuranceForUser(userId,insuranceId,newExpiresAt){
-  // V3.2.1 FIX: Check both users AND managers
+  // V3.3.0 FIX: Check both users AND managers
   let user=store.users.find(u=>u.id===userId);
   let col='users';
   if(!user||!user.assignedInsurances||!user.assignedInsurances.find(x=>x.insuranceId===insuranceId)){
@@ -3715,7 +3715,7 @@ async function showAssignInsuranceModal(insId){
   store.users.forEach(u=>{if(!allUsers.has(u.id))allUsers.set(u.id,{id:u.id,name:u.username||u.name||u.email,email:u.email});});
   const now=new Date().toISOString();
   allUsers.forEach((u,uid)=>{
-    // V3.2.1 FIX: Check BOTH store.users AND store.managers for existing assignments
+    // V3.3.0 FIX: Check BOTH store.users AND store.managers for existing assignments
     const storeUser=store.users.find(x=>x.id===uid);
     const storeMgr=store.managers.find(x=>x.id===uid);
     const userAssigns=storeUser?.assignedInsurances||[];
@@ -3750,7 +3750,7 @@ function filterInsAssignList(query,insId){
 async function doAssignInsuranceToUser(userId,insId,btn){
   btn.disabled=true;btn.textContent='...';
   try{
-    // V3.2.1: Use insurance entity's validTo as authoritative expiry — no date picker
+    // V3.3.0: Use insurance entity's validTo as authoritative expiry — no date picker
     const ins=store.insurances.find(i=>i.id===insId);
     const expiresAt=ins?.validTo?new Date(ins.validTo.split('T')[0]+'T23:59:59').toISOString():null;
     await assignInsuranceToUser(userId,insId,store.currentUser.id,expiresAt,{});
@@ -3826,7 +3826,7 @@ async function doRemoveInsurance(userId,insId,btn){
 }
 
 async function doRenewInsurance(userId,insId,btn){
-  // V3.2.1: Use insurance entity's validTo as authoritative date — no manual prompt
+  // V3.3.0: Use insurance entity's validTo as authoritative date — no manual prompt
   const ins=store.insurances.find(i=>i.id===insId);
   const newExpiry=ins?.validTo?ins.validTo.split('T')[0]:null;
   if(!newExpiry){showToast('Questa assicurazione non ha una data di scadenza impostata','error');return;}
@@ -3913,7 +3913,7 @@ function showQuickAssignInsurance(userId){
   const mgr=store.managers.find(m=>m.id===store.currentUser?.id);
   if(!mgr)return;
   const affiliated=mgr.affiliatedInsurances||[];
-  // V3.2.1 FIX: Check BOTH users AND managers for existing assignments
+  // V3.3.0 FIX: Check BOTH users AND managers for existing assignments
   const user=store.users.find(u=>u.id===userId);
   const mgrRec=store.managers.find(m=>m.id===userId);
   const allAssigns=[...(user?.assignedInsurances||[]),...(mgrRec?.assignedInsurances||[])];
@@ -3929,7 +3929,7 @@ function showQuickAssignInsurance(userId){
     h+='<option value="'+ins.id+'" data-validity="'+escHtml(vLabel)+'">'+escHtml(ins.name)+'</option>';
   });
   h+='</select></div>';
-  // V3.2.1: Show validity info (read-only) instead of date picker
+  // V3.3.0: Show validity info (read-only) instead of date picker
   const firstIns=available[0];
   const firstLabel=(firstIns?.validFrom||firstIns?.validTo)?('Validità: '+(firstIns.validFrom?fmtDateShort(firstIns.validFrom.split('T')[0]):'—')+' → '+(firstIns.validTo?fmtDateShort(firstIns.validTo.split('T')[0]):'Illimitata')):'';
   if(firstLabel)h+='<div style="padding:6px 10px;background:var(--s200);border-radius:8px;margin-bottom:12px;font-size:.75rem;color:var(--txt2)" id="qa-ins-validity">'+escHtml(firstLabel)+'</div>';
@@ -3946,7 +3946,7 @@ async function doQuickAssign(userId,btn){
   btn.disabled=true;btn.textContent='...';
   try{
     const insId=document.getElementById('qa-ins-sel')?.value;
-    // V3.2.1: Use insurance entity's validTo as authoritative expiry — no date picker
+    // V3.3.0: Use insurance entity's validTo as authoritative expiry — no date picker
     const ins=store.insurances.find(i=>i.id===insId);
     const expiresAt=ins?.validTo?new Date(ins.validTo.split('T')[0]+'T23:59:59').toISOString():null;
     await assignInsuranceToUser(userId,insId,store.currentUser.id,expiresAt,{});
@@ -5223,7 +5223,7 @@ async function renderProfileInsurances(u){
   const card=document.getElementById('profile-insurances-card');
   const list=document.getElementById('profile-insurances-list');
   if(!card||!list)return;
-  // V3.2.1 FIX: Fresh fetch from BOTH users AND managers collections
+  // V3.3.0 FIX: Fresh fetch from BOTH users AND managers collections
   try{
     const freshDoc=await fbDb.collection('users').doc(u.id).get();
     if(freshDoc.exists){
@@ -7601,7 +7601,7 @@ function isRegistryCollapsed(listId){
 
 function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
-/* V3.2.1: Format euro amount with max 2 decimal places. Removes trailing zeros: 10.00→10, 10.50→10.50, 10.123→10.12 */
+/* V3.3.0: Format euro amount with max 2 decimal places. Removes trailing zeros: 10.00→10, 10.50→10.50, 10.123→10.12 */
 function fmtEuro(n){if(n==null||isNaN(n))return '0';const v=Math.round(n*100)/100;return v%1===0?v.toString():v.toFixed(2);}
 
 function updateRegistryCell(uid,colId,value){
@@ -8380,6 +8380,7 @@ async function submitUserRegistration(){
   const marketingCheck=document.getElementById('reg-marketing-check')?.checked||false;
 
   if(!username||!email||!password){showToast('Compila tutti i campi obbligatori (*)','error');return;}
+  if(username.length>25){showToast('Username troppo lungo (max 25 caratteri)','error');return;}
   if(!email.includes('@')){showToast('Email non valida','error');return;}
   if(password.length<6){showToast('La password deve avere almeno 6 caratteri','error');return;}
   if(!ageCheck){showToast('Devi confermare di avere almeno 14 anni','error');return;}
@@ -8850,6 +8851,7 @@ function disableProfileSave(){
 async function saveProfileChanges(){
   const newUsername=(document.getElementById('profile-username')?.value||'').trim();
   if(!newUsername){showToast('Inserisci un username','error');return;}
+  if(newUsername.length>25){showToast('Username troppo lungo (max 25 caratteri)','error');return;}
   const u=store.currentUser;
   u.username=newUsername;
   u.initials=newUsername.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
@@ -9642,6 +9644,7 @@ async function saveOrgProfile(){
   const contactEmailVal=(document.getElementById('org-profile-contact-email')?.value||'').trim();
   if(!nameVal){showToast('Il nome organizzazione è obbligatorio','error');return;}
   if(!usernameVal){showToast('Inserisci un username','error');return;}
+  if(usernameVal.length>25){showToast('Username troppo lungo (max 25 caratteri)','error');return;}
   // Validate at least one contact
   if(!phoneVal&&!contactEmailVal){showToast('Inserisci almeno un contatto (telefono o email)','error');return;}
   // Get org logo if uploaded
@@ -11431,7 +11434,7 @@ async function renderCheckinC(){
       </div>
       <div class="card mb-4">
         <h3 class="font-semibold text-white mb-3 text-sm">Registrazione rapida</h3>
-        <div class="mb-3"><label class="label">Username *</label><input class="input" id="ci-username" placeholder="Il tuo nome o nickname"></div>
+        <div class="mb-3"><label class="label">Username *</label><input class="input" id="ci-username" maxlength="25" placeholder="Il tuo nome o nickname"></div>
         <div class="mb-3"><label class="label">Email *</label><input class="input" type="email" id="ci-email" placeholder="mario@email.it"></div>
         <label class="flex items-center gap-2 text-sm mb-3" style="cursor:pointer;align-items:flex-start">
           <input type="checkbox" id="ci-privacy-check" style="margin-top:2px">
@@ -11482,6 +11485,7 @@ function checkinNewStep2(){
   const role='non_so';
 
   if(!username||!email){showToast('Compila tutti i campi obbligatori','error');return;}
+  if(username.length>25){showToast('Username troppo lungo (max 25 caratteri)','error');return;}
   if(!email.includes('@')){showToast('Email non valida','error');return;}
   if(!privacyCheck){showToast('Devi accettare l\'Informativa sulla Privacy','error');return;}
 
@@ -11554,7 +11558,7 @@ function confirmNewCheckin(evId){
 let _userEvSubsLoading=false;
 const _userEvPageSize=20;
 let _userEvCurrentMax=20;
-// V3.2.1: Cache for participant counts per event+recurringDate (loaded lazily for Jam/Social cards)
+// V3.3.0: Cache for participant counts per event+recurringDate (loaded lazily for Jam/Social cards)
 // Key format: "eventId" for non-recurring, "eventId_YYYY-MM-DD" for recurring occurrences
 const _evPartCounts={};
 let _evPartCountsLoading=false;
@@ -11597,7 +11601,7 @@ async function renderUserEvents(){
   populateUniverseFilters();
   populateZonaFilter();
   const evts=getFilteredEvents();
-  // V3.2.1: Preload participant counts for Jam/Social events in background (per-occurrence for recurring)
+  // V3.3.0: Preload participant counts for Jam/Social events in background (per-occurrence for recurring)
   // Skip preloading if admin already has all bookings loaded (store.bookings is complete)
   if(!_bookingsLoaded){
     const _jamSocialEvts=evts.filter(e=>e.type==='jam'||e.type==='social');
@@ -11783,7 +11787,7 @@ async function renderUserEvents(){
     /* Time line: startTime–endTime from first day (uses sessions if needed) */
     const _startTime=d0?.startTime||(d0?.sessions&&d0.sessions.length?d0.sessions.reduce((m,s)=>s.startTime<m?s.startTime:m,'23:59'):'');
     const _endTime=d0?.endTime||(d0?.sessions&&d0.sessions.length?d0.sessions.reduce((m,s)=>s.endTime>m?s.endTime:m,'00:00'):'');
-    /* V3.2.1: Participant count pip — per-occurrence for recurring events */
+    /* V3.3.0: Participant count pip — per-occurrence for recurring events */
     const _isJamOrSocial=ev.type==='jam'||ev.type==='social';
     const _partPipHtml=(()=>{
       if(!_isJamOrSocial)return '';
@@ -12012,7 +12016,7 @@ async function renderUserDashboard(){
   // Get community events user has joined
   const joinedJams=store.communityJams.filter(j=>j.status!=='cancellato'&&!(j.alert&&j.alert.type==='cancellato')&&(j.participants||[]).some(p=>p.userId===uid));
 
-  // V3.2.1: Preload participant counts for Jam/Social bookings (per-occurrence)
+  // V3.3.0: Preload participant counts for Jam/Social bookings (per-occurrence)
   if(!_bookingsLoaded){
     const _dashJamBks=active.filter(b=>{const ev=store.events.find(e=>e.id===b.eventId);return ev&&(ev.type==='jam'||ev.type==='social');});
     const _dashJamEvts=_dashJamBks.map(b=>{const ev=store.events.find(e=>e.id===b.eventId);return {id:ev.id,_recDate:b.recurringDate||null};}).filter(e=>_evPartCounts[_partCountKey(e.id,e._recDate)]===undefined);
@@ -12102,10 +12106,9 @@ async function renderUserDashboard(){
       const prev=ev.alert.previousValues;
       const diffs=[];
       if(prev.title&&prev.title!==ev.title)diffs.push({label:'📝 Titolo',old:prev.title,now:ev.title,field:'title'});
-      if(prev.description!=null&&prev.description!==ev.description)diffs.push({label:'📄 Descrizione evento',old:'modificata',now:'aggiornata',field:'description',isDesc:true});
+      if(prev.description!=null&&prev.description!==ev.description)diffs.push({label:'📄 Descrizione evento',old:'',now:'Testo descrizione evento aggiornato',field:'description',isDesc:true});
       if(prev.location&&prev.location!==ev.location)diffs.push({label:'📍 Luogo',old:prev.location,now:ev.location,field:'location'});
       if(prev.teacher&&prev.teacher!==ev.teacher)diffs.push({label:'👤 Insegnante',old:prev.teacher,now:ev.teacher,field:'teacher'});
-      if(prev.maxSpots&&prev.maxSpots!==ev.maxSpots)diffs.push({label:'👥 Capienza',old:prev.maxSpots,now:ev.maxSpots,field:'maxSpots'});
       // Event-level tier prices
       if(prev.tiers&&ev.tiers){
         ['alto','medio','basso'].forEach(tk=>{
@@ -12115,6 +12118,40 @@ async function renderUserDashboard(){
           }
         });
       }
+      // Event-level early bird
+      if(prev.earlyBird||ev.earlyBird){
+        const peb=prev.earlyBird||{};const neb=ev.earlyBird||{};
+        ['alto','medio','basso'].forEach(tk=>{
+          const pv=peb[tk]!=null?peb[tk]:null;const nv=neb[tk]!=null?neb[tk]:null;
+          if(pv!==nv&&(pv!=null||nv!=null)){
+            const tl=tk==='alto'?'Sostenitore':tk==='medio'?'Standard':'Ridotto';
+            diffs.push({label:'🏷️ Early Bird evento ('+tl+')',old:pv!=null?'€'+pv:'—',now:nv!=null?'€'+nv:'rimosso',field:'earlybird'});
+          }
+        });
+        if((peb.deadline||null)!==(neb.deadline||null))diffs.push({label:'🏷️ Scadenza Early Bird',old:peb.deadline?fmtDate(peb.deadline):'—',now:neb.deadline?fmtDate(neb.deadline):'rimossa',field:'earlybird'});
+      }
+      // Contacts
+      if(prev.contactPhone!=null&&(prev.contactPhone||'')!==(ev.contactPhone||''))diffs.push({label:'📞 Telefono contatto',old:prev.contactPhone||'—',now:ev.contactPhone||'rimosso',field:'contact'});
+      if(prev.contactEmail!=null&&(prev.contactEmail||'')!==(ev.contactEmail||''))diffs.push({label:'📧 Email contatto',old:prev.contactEmail||'—',now:ev.contactEmail||'rimossa',field:'contact'});
+      if(prev.groupLink!=null&&(prev.groupLink||'')!==(ev.groupLink||''))diffs.push({label:'🔗 Link gruppo',old:prev.groupLink?'presente':'—',now:ev.groupLink?'aggiornato':'rimosso',field:'contact'});
+      // Payment methods
+      if(prev.paymentMethods){
+        const pp=prev.paymentMethods;const np=ev.paymentMethods||{};
+        if((pp.paypal||'')!==(np.paypal||''))diffs.push({label:'💳 PayPal',old:pp.paypal||'—',now:np.paypal||'rimosso',field:'payment'});
+        if((pp.revolut||'')!==(np.revolut||''))diffs.push({label:'💳 Revolut',old:pp.revolut||'—',now:np.revolut||'rimosso',field:'payment'});
+        if(!!pp.cash!==!!np.cash)diffs.push({label:'💵 Contanti',old:pp.cash?'accettati':'non accettati',now:np.cash?'accettati':'non accettati',field:'payment'});
+      }
+      // Deposit
+      const prevDep=prev.deposit;const nowDep=ev.deposit;
+      if(prevDep&&!nowDep)diffs.push({label:'💰 Anticipo',old:'€'+(prevDep.amount||0),now:'rimosso',field:'deposit'});
+      else if(!prevDep&&nowDep&&nowDep.required)diffs.push({label:'💰 Anticipo',old:'—',now:'€'+(nowDep.amount||0),field:'deposit'});
+      else if(prevDep&&nowDep){
+        if((prevDep.amount||0)!==(nowDep.amount||0))diffs.push({label:'💰 Importo anticipo',old:'€'+(prevDep.amount||0),now:'€'+(nowDep.amount||0),field:'deposit'});
+        if((prevDep.causal||'')!==(nowDep.causal||''))diffs.push({label:'💰 Causale anticipo',old:prevDep.causal||'—',now:nowDep.causal||'rimossa',field:'deposit'});
+      }
+      // Booking deadline
+      if((prev.bookingDeadline||null)!==(ev.bookingDeadline||null))diffs.push({label:'⏰ Deadline prenotazione',old:prev.bookingDeadline?fmtDate(prev.bookingDeadline):'—',now:ev.bookingDeadline?fmtDate(ev.bookingDeadline):'rimossa',field:'deadline'});
+      if(prev.bookingDeadlineDaysBefore!=null&&prev.bookingDeadlineDaysBefore!==ev.bookingDeadlineDaysBefore)diffs.push({label:'⏰ Deadline (gg prima)',old:prev.bookingDeadlineDaysBefore!=null?prev.bookingDeadlineDaysBefore+' giorni':'—',now:ev.bookingDeadlineDaysBefore!=null?ev.bookingDeadlineDaysBefore+' giorni':'rimossa',field:'deadline'});
       // Compare days
       if(prev.days&&ev.days){
         prev.days.forEach((pd,di)=>{
@@ -12133,6 +12170,17 @@ async function renderUserDashboard(){
               }
             });
           }
+          // Day-level early bird
+          if(pd.earlyBird||nd.earlyBird){
+            const pdeb=pd.earlyBird||{};const ndeb=nd.earlyBird||{};
+            ['alto','medio','basso'].forEach(tk=>{
+              const pv=pdeb[tk]!=null?pdeb[tk]:null;const nv=ndeb[tk]!=null?ndeb[tk]:null;
+              if(pv!==nv&&(pv!=null||nv!=null)){
+                const tl=tk==='alto'?'Sostenitore':tk==='medio'?'Standard':'Ridotto';
+                diffs.push({label:'🏷️ Early Bird'+dayLabel+' ('+tl+')',old:pv!=null?'€'+pv:'—',now:nv!=null?'€'+nv:'rimosso',field:'earlybird'});
+              }
+            });
+          }
           // Compare sessions
           if(pd.sessions&&nd.sessions){
             pd.sessions.forEach((ps,si)=>{
@@ -12143,8 +12191,6 @@ async function renderUserDashboard(){
               if(ps.endTime!==ns.endTime)diffs.push({label:'🕐 Fine '+sLabel,old:ps.endTime,now:ns.endTime,field:'time',dayIndex:di,isSession:true,sessionName:ns.name,isStart:false});
               if(ps.location&&ns.location&&ps.location!==ns.location)diffs.push({label:'📍 Luogo '+sLabel,old:ps.location,now:ns.location,field:'location',isSession:true});
               if(ps.teacher&&ns.teacher&&ps.teacher!==ns.teacher)diffs.push({label:'👤 Insegnante '+sLabel,old:ps.teacher,now:ns.teacher,field:'teacher',isSession:true});
-              if(ps.maxSpots&&ns.maxSpots&&ps.maxSpots!==ns.maxSpots)diffs.push({label:'👥 Capienza '+sLabel,old:ps.maxSpots,now:ns.maxSpots,field:'maxSpots',isSession:true});
-              if(ps.description!=null&&ns.description!=null&&ps.description!==ns.description)diffs.push({label:'📄 Descrizione '+sLabel,old:'modificata',now:'aggiornata',field:'description',isSession:true,isDesc:true});
               // Session prices
               ['alto','medio','basso'].forEach(tk=>{
                 if(ps.tiers?.[tk]!=null&&ns.tiers?.[tk]!=null&&ps.tiers[tk]!==ns.tiers[tk]){
@@ -12152,6 +12198,17 @@ async function renderUserDashboard(){
                   diffs.push({label:'💰 '+tl+' '+sLabel,old:'€'+ps.tiers[tk],now:'€'+ns.tiers[tk],field:'price',isSession:true});
                 }
               });
+              // Session early bird
+              if(ps.earlyBird||ns.earlyBird){
+                const pseb=ps.earlyBird||{};const nseb=ns.earlyBird||{};
+                ['alto','medio','basso'].forEach(tk=>{
+                  const pv=pseb[tk]!=null?pseb[tk]:null;const nv=nseb[tk]!=null?nseb[tk]:null;
+                  if(pv!==nv&&(pv!=null||nv!=null)){
+                    const tl=tk==='alto'?'Sostenitore':tk==='medio'?'Standard':'Ridotto';
+                    diffs.push({label:'🏷️ Early Bird '+sLabel+' ('+tl+')',old:pv!=null?'€'+pv:'—',now:nv!=null?'€'+nv:'rimosso',field:'earlybird',isSession:true});
+                  }
+                });
+              }
             });
           }
         });
@@ -12342,7 +12399,7 @@ async function renderUserDashboard(){
     const _cancelInline=!hasAlert&&_cancelBtn?`<div style="margin-top:10px">${_cancelBtn}</div>`:'';
     const _cancelBelow=hasAlert&&_cancelBtn?`<div style="display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(168,85,247,.12)">${_cancelBtn}</div>`:'';
 
-    // V3.2.1: Participant pip for Jam/Social in bookings dashboard
+    // V3.3.0: Participant pip for Jam/Social in bookings dashboard
     const _bkIsJamSocial=ev.type==='jam'||ev.type==='social';
     const _bkPipHtml=(()=>{
       if(!_bkIsJamSocial)return '';
@@ -12417,7 +12474,7 @@ async function renderUserDashboard(){
       const _pOrgLogo=_pMgr&&_pMgr.orgLogo?`<div style="width:22px;height:22px;border-radius:50%;overflow:hidden;border:2px solid var(--s300);flex-shrink:0;opacity:.6"><img src="${_pMgr.orgLogo}" style="width:100%;height:100%;object-fit:cover" alt=""></div>`:'';
       // Universe strip (muted)
       const _pUniStrip=getUniverseStripHtml(ev);
-      // V3.2.1: Participant pip for Jam/Social in past bookings
+      // V3.3.0: Participant pip for Jam/Social in past bookings
       const _pBkIsJamSocial=ev.type==='jam'||ev.type==='social';
       const _pBkPipHtml=(()=>{
         if(!_pBkIsJamSocial)return '';
@@ -14587,6 +14644,7 @@ function showEventDetail(evId,recDate){
     ${isAdminPreview?'<div class="badge badge-yellow mb-4" style="padding:6px 12px">👁️ Preview come la vedono gli utenti</div>':''}
     ${alertBanner}
     ${ev.confirmedByOrganizer&&!isDisabledByAlert?'<div class="card mb-4" style="border:2px solid var(--green);background:rgba(16,185,129,.08);padding:16px;text-align:center"><div style="font-size:1.5rem">✅</div><h3 class="font-bold mt-1" style="color:var(--green)">EVENTO CONFERMATO</h3><p class="text-xs txt3 mt-1">L\'organizzatore ha confermato questo evento</p></div>':''}
+    ${ev.organizerNote?.text&&ev.status==='pubblicato'?'<div style="background:linear-gradient(135deg,rgba(234,179,8,.08),rgba(249,115,22,.05));border:1px solid rgba(234,179,8,.3);border-radius:14px;padding:16px 18px;margin-bottom:20px"><div style="display:flex;align-items:flex-start;gap:10px"><span style="font-size:1.2rem;flex-shrink:0;margin-top:1px">📢</span><div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:600;color:var(--yellow);margin-bottom:6px">Comunicazione dall\'organizzatore</div><div style="font-size:.85rem;color:var(--txt);line-height:1.7;word-wrap:break-word;white-space:pre-wrap">'+_linkifyText(escHtml(ev.organizerNote.text))+'</div><div style="font-size:.65rem;color:var(--txt3);margin-top:8px">Aggiornato il '+_fmtNoteDate(ev.organizerNote.updatedAt)+'</div></div></div></div>':''}
     <div class="card mb-6" ${isDisabledByAlert?'style="opacity:.5;pointer-events:none"':''}>
       ${(()=>{const hd=(ev.imageHeader||ev.image)?{src:ev.imageHeader?.src||ev.image,zoom:ev.imageHeader?.zoom||100,posX:ev.imageHeader?.posX||0,posY:ev.imageHeader?.posY||0}:null;if(!hd)return '';const s=hd.zoom/100;const denomW=420*s-420;const denomH=300*s-300;const px=denomW>0?Math.round(Math.abs(hd.posX)/denomW*100):50;const py=denomH>0?Math.round(Math.abs(hd.posY)/denomH*100):50;const op=`object-position:${isNaN(px)?50:px}% ${isNaN(py)?50:py}%`;return '<div style="margin:-20px -20px 16px;border-radius:16px 16px 0 0;overflow:hidden;cursor:zoom-in" onclick="openFullscreenImage(\''+hd.src.replace(/'/g,"\\'")+'\',\'Evento\')"><img src="'+hd.src+'" style="width:100%;max-height:300px;object-fit:cover;'+op+'" alt=""></div>';})()}
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
@@ -15429,7 +15487,7 @@ async function renderCostManagement(evId){
   html+='<p class="text-sm txt3 mb-4">'+escHtml(ev.title)+'</p>';
   if(readOnly)html+='<div class="card mb-4" style="background:rgba(99,102,241,.06);border-color:rgba(99,102,241,.2);padding:10px 14px;text-align:center"><span class="text-sm" style="color:#6366f1">📦 Modalità sola lettura</span></div>';
 
-  // ========== SECTION 0: REVENUE OVERVIEW (moved from event detail V3.2.1) ==========
+  // ========== SECTION 0: REVENUE OVERVIEW (moved from event detail V3.3.0) ==========
   if(ev.pricingMode!=='free'&&isCapo){
     const depAmount=(ev.deposit&&ev.deposit.required&&ev.deposit.amount)?ev.deposit.amount:0;
     const rvActive=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata');
@@ -16317,10 +16375,13 @@ function startAlertEdit(){
   // Save snapshot of current values BEFORE editing for change tracking
   const snapshot={
     title:ev.title,description:ev.description,location:ev.location,teacher:ev.teacher,
-    maxSpots:ev.maxSpots,
+    contactPhone:ev.contactPhone||'',contactEmail:ev.contactEmail||'',groupLink:ev.groupLink||'',
+    paymentMethods:ev.paymentMethods?{paypal:ev.paymentMethods.paypal||'',revolut:ev.paymentMethods.revolut||'',cash:!!ev.paymentMethods.cash}:null,
+    deposit:ev.deposit?{required:ev.deposit.required,amount:ev.deposit.amount||0,causal:ev.deposit.causal||''}:null,
+    bookingDeadline:ev.bookingDeadline||null,bookingDeadlineDaysBefore:ev.bookingDeadlineDaysBefore!=null?ev.bookingDeadlineDaysBefore:null,
     days:ev.days.map(d=>({date:d.date,startTime:d.startTime,endTime:d.endTime,
       sessions:(d.sessions||[]).map(s=>({name:s.name,startTime:s.startTime,endTime:s.endTime,
-        location:s.location,teacher:s.teacher,maxSpots:s.maxSpots,description:s.description,
+        location:s.location,teacher:s.teacher,
         tiers:{alto:s.tiers?.alto,medio:s.tiers?.medio,basso:s.tiers?.basso},earlyBird:s.earlyBird?{...s.earlyBird}:null})),
       tiers:d.tiers?{alto:d.tiers.alto,medio:d.tiers.medio,basso:d.tiers.basso}:null,
       earlyBird:d.earlyBird?{...d.earlyBird}:null})),
@@ -16446,6 +16507,58 @@ function closeAlertModal(){
   const o=document.getElementById('alert-modal-overlay');if(o)o.remove();
   selectedAlertAction='';
 }
+
+/* ==============================
+   ORGANIZER NOTE SYSTEM (V3.3.0)
+============================== */
+function _linkifyText(html){return html.replace(/https?:\/\/[^\s<>"']+/g,url=>'<a href="'+url+'" target="_blank" rel="noopener noreferrer" style="color:var(--brand-l);text-decoration:underline;word-break:break-all">'+url+'</a>');}
+function _fmtNoteDate(iso){if(!iso)return '';const d=new Date(iso);return d.toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});}
+
+function openOrgNoteModal(eventId){
+  const ev=store.events.find(e=>e.id===eventId);if(!ev)return;
+  const existing=ev.organizerNote?.text||'';
+  const hasNote=!!existing;
+  const o=document.createElement('div');o.className='overlay';o.id='org-note-overlay';
+  o.onclick=e=>{if(e.target===o)closeOrgNoteModal();};
+  o.innerHTML=`<div class="dialog" style="max-width:500px">
+    <h3 class="font-semibold text-white mb-2">📢 Avviso per i partecipanti</h3>
+    <p class="text-xs txt3 mb-3">Questo messaggio sarà visibile a tutti i prenotati nella scheda evento. Utile per comunicazioni logistiche, cambiamenti o info aggiuntive. I link verranno resi cliccabili automaticamente.</p>
+    <textarea class="input" id="org-note-textarea" rows="5" maxlength="1000" placeholder="Es: Il punto di ritrovo è cambiato, ci vediamo al parcheggio nord..." style="resize:vertical;min-height:100px">${escHtml(existing)}</textarea>
+    <div class="flex justify-between items-center mt-2">
+      <span class="text-xs txt3" id="org-note-charcount">${existing.length}/1000</span>
+    </div>
+    <div class="flex gap-2 mt-4" style="justify-content:flex-end">
+      ${hasNote?'<button class="btn btn-sm" style="background:var(--red-bg);color:var(--red);margin-right:auto" onclick="removeOrgNote(\''+eventId+'\')">🗑️ Rimuovi</button>':''}
+      <button class="btn btn-sm btn-secondary" onclick="closeOrgNoteModal()">Annulla</button>
+      <button class="btn btn-sm btn-primary" onclick="saveOrgNote('${eventId}')">💾 Salva</button>
+    </div>
+  </div>`;
+  document.body.appendChild(o);
+  const ta=document.getElementById('org-note-textarea');
+  if(ta)ta.oninput=()=>{const cc=document.getElementById('org-note-charcount');if(cc)cc.textContent=ta.value.length+'/1000';};
+}
+async function saveOrgNote(eventId){
+  const text=(document.getElementById('org-note-textarea')?.value||'').trim();
+  if(!text){showToast('Scrivi un messaggio prima di salvare','error');return;}
+  const note={text,updatedAt:new Date().toISOString()};
+  try{
+    await fsUpdate('events',eventId,{organizerNote:note});
+    const ev=store.events.find(e=>e.id===eventId);
+    if(ev)ev.organizerNote=note;
+    closeOrgNoteModal();showToast('Avviso salvato!');
+    showAdminEventDetail(eventId);
+  }catch(err){console.error('saveOrgNote error:',err);showToast('Errore nel salvataggio','error');}
+}
+async function removeOrgNote(eventId){
+  try{
+    await fbDb.collection('events').doc(eventId).update({organizerNote:firebase.firestore.FieldValue.delete()});
+    const ev=store.events.find(e=>e.id===eventId);
+    if(ev)delete ev.organizerNote;
+    closeOrgNoteModal();showToast('Avviso rimosso');
+    showAdminEventDetail(eventId);
+  }catch(err){console.error('removeOrgNote error:',err);showToast('Errore nella rimozione','error');}
+}
+function closeOrgNoteModal(){const o=document.getElementById('org-note-overlay');if(o)o.remove();}
 
 /* ==============================
    RENDER: COMMUNITY EVENTS (Master only)
@@ -19371,7 +19484,7 @@ function openUserForm(type,editId){
     </div>
     <div class="flex flex-col gap-3">
       <h3 class="font-semibold text-white" style="font-size:.9rem">👤 Dati personali</h3>
-      <div><label class="label">Username *</label><input class="input" id="uf-username" value="${escHtml(data.username||'')}"></div>
+      <div><label class="label">Username *</label><input class="input" id="uf-username" maxlength="25" value="${escHtml(data.username||'')}"></div>
       <div><label class="label">Email *</label><input class="input" type="email" id="uf-email" value="${escHtml(data.email||'')}"></div>
       ${type==='user'?`
       <div><label class="label">Ruolo preferito</label>
@@ -19416,6 +19529,7 @@ async function saveUserForm(type,editId){
   const email=(document.getElementById('uf-email')?.value||'').trim();
 
   if(!username||!email){showToast('Compila username ed email','error');return;}
+  if(username.length>25){showToast('Username troppo lungo (max 25 caratteri)','error');return;}
   // Check email uniqueness (null-safe: skip entries with missing email)
   const allEmails=[...store.users.map(u=>({id:u.id,email:u.email||'',type:'user'})),...store.managers.map(m=>({id:m.id,email:m.email||'',type:'org'}))];
   const dup=allEmails.find(x=>x.email&&x.email.toLowerCase()===email.toLowerCase()&&!(editId&&x.id===editId));
@@ -20416,6 +20530,10 @@ async function showAdminEventDetail(evId){
   // View toggle for multi-session events
   let viewSubtitle='';
   const _hasInsReq=ev.insurance?.enabled&&ev.insurance.requiredInsuranceIds?.length;
+  const _hasOrgNote=!!ev.organizerNote?.text;
+  const orgNoteBtn=ev.status==='pubblicato'?(_hasOrgNote
+    ?'<button class="btn btn-sm" style="background:var(--yellow-bg);color:var(--yellow);border:1px solid rgba(234,179,8,.4);font-size:.8rem" onclick="openOrgNoteModal(\''+ev.id+'\')"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--yellow);margin-right:4px"></span>📢 Avviso attivo</button>'
+    :'<button class="btn btn-sm" style="background:var(--s200);color:var(--txt2);border:1px solid var(--s400);font-size:.8rem" onclick="openOrgNoteModal(\''+ev.id+'\')">📢 Avviso partecipanti</button>'):'';
   const excelBtn='<button class="btn btn-sm" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3);font-size:.8rem;margin-left:auto" onclick="downloadExcel()">📥 Scarica Excel</button>'+(_hasInsReq?'<button class="btn btn-sm" style="background:rgba(99,102,241,.12);color:var(--brand-l);border:1px solid rgba(99,102,241,.3);font-size:.8rem" onclick="exportInsuranceSurveyExcel(\''+ev.id+'\')">🛡️ Excel Assicurazioni</button>':'');
   let viewToggleHtml='';
   if(showSessionToggle){
@@ -20432,6 +20550,7 @@ async function showAdminEventDetail(evId){
         <button class="${adminDetailView.mode==='sessione'?'active-toggle':''}" onclick="setAdminDetailMode('sessione')">📋 Per sessione</button>
       </div>
       ${dropdownHtml}
+      ${orgNoteBtn}
       ${excelBtn}
     </div>`;
     if(adminDetailView.mode==='sessione'&&adminDetailView.selectedSessionId){
@@ -20439,7 +20558,7 @@ async function showAdminEventDetail(evId){
       viewSubtitle=selOpt?' <span style="font-size:.8rem;color:var(--txt3);font-weight:400"> — '+selOpt.label+'</span>':'';
     }
   } else {
-    viewToggleHtml=`<div style="display:flex;justify-content:flex-end;margin-bottom:20px">${excelBtn}</div>`;
+    viewToggleHtml=`<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:20px">${orgNoteBtn}<div style="display:flex;gap:8px;margin-left:auto">${excelBtn}</div></div>`;
   }
 
   // Recurring date tabs HTML
@@ -20534,7 +20653,7 @@ async function showAdminEventDetail(evId){
       <div class="stat-card"><div class="value" style="color:var(--green)">${active.filter(b=>b.checkedIn).length}</div><div class="label">Presenti</div></div>
     </div>
 
-    <!-- V3.2.1: Revenue cards moved to Costi section — show compact summary + link -->
+    <!-- V3.3.0: Revenue cards moved to Costi section — show compact summary + link -->
     ${ev.pricingMode!=='free'&&isEventCapofila(ev,store.currentUser.id)?'<div class="card mb-6" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px"><div style="display:flex;gap:16px;flex-wrap:wrap;font-size:.88rem"><span style="color:var(--green);font-weight:600">€'+fmtEuro(paidRevenue)+' incassato</span><span style="color:var(--yellow)">€'+fmtEuro(unpaidRevenue)+' da incassare</span></div><button class="btn btn-sm" style="background:rgba(234,179,8,.1);color:var(--yellow);border:1px solid rgba(234,179,8,.25);font-size:.75rem" onclick="openCostManagement(\''+ev.id+'\')">💰 Dettaglio Costi →</button></div>':''}
 
     ${(()=>{
@@ -20859,6 +20978,10 @@ async function submitMasterSetup(){
 
   if(!username||!orgName||!city){
     showToast('Compila tutti i campi obbligatori (*)','error');
+    return;
+  }
+  if(username.length>25){
+    showToast('Username troppo lungo (max 25 caratteri)','error');
     return;
   }
 
@@ -21419,7 +21542,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       <!-- Username -->
       <div>
         <label class="text-sm text-white mb-1" style="display:block">Nome utente *</label>
-        <input type="text" id="ms-username" class="input" placeholder="Il tuo nome" style="width:100%;padding:10px 14px;background:var(--s200);border:1px solid var(--s300);border-radius:10px;color:#fff">
+        <input type="text" id="ms-username" class="input" maxlength="25" placeholder="Il tuo nome" style="width:100%;padding:10px 14px;background:var(--s200);border:1px solid var(--s300);border-radius:10px;color:#fff">
       </div>
 
       <!-- Email (readonly, from auth) -->
