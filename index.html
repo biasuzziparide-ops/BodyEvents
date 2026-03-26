@@ -260,12 +260,11 @@ textarea.input{resize:none;font-family:inherit}
   .tier-grid{grid-template-columns:1fr}
   .logo-text{display:none}
   .hide-mobile{display:none!important}
-  .table .td-participant,.table .th-participant{position:sticky;left:0;z-index:2;background:var(--s50);max-width:33vw;min-width:100px}
-  .table .td-participant .participant-info{max-width:calc(33vw - 24px);overflow:hidden}
+  .table .td-participant,.table .th-participant{position:sticky!important;left:0!important;z-index:2;background:var(--s50)!important;max-width:33vw!important;min-width:100px}
+  .table .td-participant .participant-info{max-width:calc(33vw - 24px)!important;overflow:hidden}
   .table .td-participant .participant-info>div:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
   .table .td-participant .participant-info>div:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;font-size:.6rem}
   .table .td-participant::after,.table .th-participant::after{content:'';position:absolute;right:-6px;top:0;bottom:0;width:6px;background:linear-gradient(to right,rgba(0,0,0,.15),transparent);pointer-events:none}
-  .table .td-participant,.table .th-participant{position:relative}
   .table{font-size:.8rem;min-width:700px;max-width:none!important;word-break:normal!important;overflow-wrap:normal!important}
   .table th,.table td{padding:6px 8px;white-space:nowrap;word-break:normal!important;overflow-wrap:normal!important;max-width:none!important}
   .table td .flex{flex-wrap:nowrap}
@@ -336,6 +335,8 @@ textarea.input{resize:none;font-family:inherit}
   .table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;min-width:700px;max-width:none!important}
   .table th,.table td{white-space:nowrap;word-break:normal!important;max-width:none!important}
   .table *{max-width:none!important}
+  .table .td-participant,.table .th-participant{position:sticky!important;left:0!important;z-index:2;background:var(--s50)!important;max-width:33vw!important;min-width:90px}
+  .table .td-participant .participant-info{max-width:calc(33vw - 16px)!important;overflow:hidden}
   .table-wrap,.card:has(>.table){overflow-x:auto!important}
 }
 
