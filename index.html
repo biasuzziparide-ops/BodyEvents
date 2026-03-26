@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V3.5.1</title>
+<title>BodyEvents — V3.6.0</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -409,7 +409,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.5.1</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.6.0</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2738,7 +2738,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.5.1';
+const APP_VERSION='V3.6.0';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -3187,6 +3187,7 @@ async function ensureBookingsLoaded(){
   // Run booking migrations once (need all bookings)
   _migrateOrphanRecurringBookings();
   await _splitConcludedRecurringDates();
+  _cleanupDuplicateRecurringInstances();
 }
 
 async function ensureUserBookingsLoaded(uid){
@@ -4481,6 +4482,37 @@ function _migrateOrphanRecurringBookings(){
     fsUpdate('bookings',b.id,{recurringDate:bestDate}).catch(e=>console.error('Failed to update booking '+b.id,e));
   });
 }
+// V3.6.0: Cleanup duplicate recurring instances (Fix D)
+function _cleanupDuplicateRecurringInstances(){
+  const instanceMap={};
+  store.events.forEach(ev=>{
+    if(!ev.parentRecurringId||!ev.recurringInstanceDate)return;
+    const key=ev.parentRecurringId+'_'+ev.recurringInstanceDate;
+    if(!instanceMap[key])instanceMap[key]=[];
+    instanceMap[key].push(ev);
+  });
+  Object.entries(instanceMap).forEach(([key,instances])=>{
+    if(instances.length<=1)return;
+    instances.sort((a,b)=>{
+      const aBks=store.bookings.filter(bk=>bk.eventId===a.id&&bk.status!=='cancellata').length;
+      const bBks=store.bookings.filter(bk=>bk.eventId===b.id&&bk.status!=='cancellata').length;
+      return bBks-aBks;
+    });
+    const keeper=instances[0];
+    const duplicates=instances.slice(1);
+    duplicates.forEach(dup=>{
+      console.warn('[Cleanup] Removing duplicate instance: '+dup.id+' (date: '+dup.recurringInstanceDate+', bookings: '+store.bookings.filter(b=>b.eventId===dup.id).length+')');
+      store.bookings.filter(b=>b.eventId===dup.id).forEach(b=>{
+        b.eventId=keeper.id;
+        fsUpdate('bookings',b.id,{eventId:keeper.id}).catch(console.error);
+      });
+      fbDb.collection('events').doc(dup.id).delete().catch(console.error);
+      store.events=store.events.filter(e=>e.id!==dup.id);
+    });
+    console.info('[Cleanup] Kept instance '+keeper.id+' for '+key);
+  });
+}
+
 async function _splitConcludedRecurringDates(){
   const today=localDateStr(new Date());
   const now=new Date();
@@ -4526,31 +4558,60 @@ async function _splitConcludedRecurringDates(){
     for(const dateStr of datesToSplit){
       console.info('Splitting recurring date '+dateStr+' from event '+ev.title);
 
+      // Fix A — Check 1: Esiste già un'istanza in-memory?
+      const existingInstance=store.events.find(e=>e.parentRecurringId===ev.id&&e.recurringInstanceDate===dateStr);
+      if(existingInstance){
+        console.info('  Skip: instance already exists for '+dateStr+' → '+existingInstance.id);
+        if(!ev.recurrence.exceptions)ev.recurrence.exceptions={};
+        if(!ev.recurrence.exceptions[dateStr]||ev.recurrence.exceptions[dateStr].type!=='split'){
+          ev.recurrence.exceptions[dateStr]={type:'split',linkedEventId:existingInstance.id,date:localDateStr(new Date())};
+          await fbDb.collection('events').doc(ev.id).update({['recurrence.exceptions.'+dateStr]:ev.recurrence.exceptions[dateStr]}).catch(console.error);
+        }
+        continue;
+      }
+      // Fix A — Check 2: Query Firestore per race condition tra tab
+      try{
+        const _fbCheck=await fbDb.collection('events').where('parentRecurringId','==',ev.id).where('recurringInstanceDate','==',dateStr).limit(1).get();
+        if(!_fbCheck.empty){
+          const existingId=_fbCheck.docs[0].id;
+          console.info('  Skip: Firestore instance exists for '+dateStr+' → '+existingId);
+          if(!ev.recurrence.exceptions)ev.recurrence.exceptions={};
+          ev.recurrence.exceptions[dateStr]={type:'split',linkedEventId:existingId,date:localDateStr(new Date())};
+          await fbDb.collection('events').doc(ev.id).update({['recurrence.exceptions.'+dateStr]:ev.recurrence.exceptions[dateStr]}).catch(console.error);
+          continue;
+        }
+      }catch(e){console.warn('Firestore dedup check failed, proceeding:',e);}
+
+      // Fix C — STEP 0: Pre-marcare la data come split (prevenzione crash-duplicato)
+      if(!ev.recurrence.exceptions)ev.recurrence.exceptions={};
+      ev.recurrence.exceptions[dateStr]={type:'split',linkedEventId:'_pending_',date:localDateStr(new Date())};
+      await fbDb.collection('events').doc(ev.id).update({['recurrence.exceptions.'+dateStr]:ev.recurrence.exceptions[dateStr]}).catch(console.error);
+
       // Get exception changes for this date (if any modifications were made)
       const dateException=(ev.recurrence.exceptions||{})[dateStr];
       const dateChanges=dateException?.changes||{};
 
-      // Build the standalone event
+      // STEP 1: Build the standalone event
       const instanceId=genId('ev');
-      // Clone all days, offsetting dates from the recurring start date
       const instanceDays=ev.days.map((d,i)=>{
         const cloned=JSON.parse(JSON.stringify(d));
-        if(i===0){
-          cloned.date=dateStr;
-        } else {
-          // Offset subsequent days relative to the first day
-          const startDate=new Date(dateStr+'T00:00:00');
-          startDate.setDate(startDate.getDate()+i);
+        if(i===0){cloned.date=dateStr;}else{
+          const startDate=new Date(dateStr+'T00:00:00');startDate.setDate(startDate.getDate()+i);
           cloned.date=localDateStr(startDate);
         }
         return cloned;
       });
-      // Apply exception overrides to the first day
       const instanceDay=instanceDays[0];
       if(dateChanges.startTime)instanceDay.startTime=dateChanges.startTime;
       if(dateChanges.endTime)instanceDay.endTime=dateChanges.endTime;
       if(dateChanges.tiers)(instanceDay.sessions||[]).forEach(s=>{if(dateChanges.tiers[s.id])s.tiers=dateChanges.tiers[s.id];});
       if(dateChanges.dayTiers)instanceDay.tiers=dateChanges.dayTiers;
+
+      // Fix E+G — Propagazione costi: priorità costi data-specific > padre > null
+      const instanceCosts=dateException?.eventCosts
+        ?JSON.parse(JSON.stringify(dateException.eventCosts))
+        :(ev.eventCosts?JSON.parse(JSON.stringify(ev.eventCosts)):null);
+      const costsInherited=!dateException?.eventCosts;
 
       const instance={
         id:instanceId,
@@ -4581,6 +4642,8 @@ async function _splitConcludedRecurringDates(){
         deposit:ev.deposit?JSON.parse(JSON.stringify(ev.deposit)):null,
         pricingMode:ev.pricingMode||'standard',
         surveys:ev.surveys?JSON.parse(JSON.stringify(ev.surveys)):[],
+        eventCosts:instanceCosts,
+        _costsInherited:costsInherited,
         status:'concluso',
         recurrence:null,
         createdAt:ev.createdAt,
@@ -4596,27 +4659,29 @@ async function _splitConcludedRecurringDates(){
         allowDayPurchase:ev.allowDayPurchase||false
       };
 
-      // Save instance to Firestore — V3.1.7 FIX: only add to local store if Firestore succeeds
       const instOk=await fsSet('events',instanceId,instance);
-      if(instOk){store.events.push(instance);}else{console.error('Failed to save recurring instance to Firestore:',instanceId);continue;}
+      if(!instOk){
+        console.error('Failed to save recurring instance for '+dateStr);
+        delete ev.recurrence.exceptions[dateStr];
+        await fbDb.collection('events').doc(ev.id).update({['recurrence.exceptions.'+dateStr]:firebase.firestore.FieldValue.delete()}).catch(console.error);
+        continue;
+      }
+      store.events.push(instance);
 
-      // Migrate bookings: change eventId from parent to instance, clear recurringDate
+      // STEP 2: Migrate bookings
       const booksToMigrate=store.bookings.filter(b=>b.eventId===ev.id&&b.recurringDate===dateStr);
       for(const b of booksToMigrate){
-        b.eventId=instanceId;
-        b.recurringDate=null;
+        b.eventId=instanceId;b.recurringDate=null;
         await fsUpdate('bookings',b.id,{eventId:instanceId,recurringDate:null}).catch(console.error);
       }
 
-      // Mark this date as split in parent's exceptions
-      if(!ev.recurrence.exceptions)ev.recurrence.exceptions={};
-      ev.recurrence.exceptions[dateStr]={type:'split',linkedEventId:instanceId,date:localDateStr(new Date())};
+      // Fix B — STEP 3: Aggiornare exception con ID finale (atomico, no fsSet intero padre)
+      ev.recurrence.exceptions[dateStr].linkedEventId=instanceId;
+      await fbDb.collection('events').doc(ev.id).update({['recurrence.exceptions.'+dateStr+'.linkedEventId']:instanceId}).catch(console.error);
 
       console.info('  Created instance '+instanceId+' with '+booksToMigrate.length+' bookings');
     }
-
-    // Save updated parent with new exceptions
-    await fsSet('events',ev.id,ev).catch(console.error);
+    // Fix B — NON più fsSet dell'intero padre: le exceptions sono già state salvate atomicamente nel loop
   }
 }
 /* === INFO PAGE — Come funziona BodyEvents (V3.0.0) === */
@@ -15790,6 +15855,9 @@ async function renderCostManagement(evId){
   const partners=ev.partnerIds||[];
   const hasPartners=partners.length>0;
 
+  // V3.6.0 Fix H: Banner costi ereditati
+  const _inheritedBanner=(ev._costsInherited&&ev.parentRecurringId)?'<div style="margin-bottom:12px;padding:8px 12px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2);border-radius:8px;color:var(--blue);font-size:.8rem">💡 Costi ereditati dall\'evento ricorrente. Le modifiche qui rimarranno solo per questa data.</div>':'';
+
   // Initialize costs if not present
   if(!ev.eventCosts)ev.eventCosts={sections:[{id:genId('cs'),title:'Costi generali',items:[{id:genId('ci'),label:'Location',unitValue:0,quantity:1,multiplier:1,splitMode:'equal',splits:{}}]}],sessions:{},revenueSharing:{}};
   const costs=ev.eventCosts;
@@ -15818,6 +15886,7 @@ async function renderCostManagement(evId){
   html+='<h1 class="page-title mb-1">💰 Gestione Costi</h1>';
   html+='<p class="text-sm txt3 mb-4">'+escHtml(ev.title)+'</p>';
   if(readOnly)html+='<div class="card mb-4" style="background:rgba(99,102,241,.06);border-color:rgba(99,102,241,.2);padding:10px 14px;text-align:center"><span class="text-sm" style="color:#6366f1">📦 Modalità sola lettura</span></div>';
+  html+=_inheritedBanner;
 
   // ========== SECTION 0: REVENUE OVERVIEW (moved from event detail V3.3.0) ==========
   if(ev.pricingMode!=='free'&&isCapo){
@@ -16186,13 +16255,45 @@ function removeCostItem(evId,secId,itemId){
   renderCostManagement(evId);
 }
 
+// V3.6.0 Fix F: Save date-specific costs in recurring parent exceptions
+function saveCostsForRecurringDate(evId,dateStr,eventCosts){
+  const ev=store.events.find(e=>e.id===evId);
+  if(!ev||!ev.recurrence)return;
+  if(!ev.recurrence.exceptions)ev.recurrence.exceptions={};
+  if(!ev.recurrence.exceptions[dateStr])ev.recurrence.exceptions[dateStr]={};
+  ev.recurrence.exceptions[dateStr].eventCosts=JSON.parse(JSON.stringify(eventCosts));
+  fbDb.collection('events').doc(evId).update({
+    ['recurrence.exceptions.'+dateStr+'.eventCosts']:ev.recurrence.exceptions[dateStr].eventCosts
+  }).catch(console.error);
+}
+
+// V3.6.0 Fix J: Mark costs as custom (break inheritance) when editing an instance
+function _markCostsAsCustom(evId){
+  const ev=store.events.find(e=>e.id===evId);
+  if(ev&&ev._costsInherited){
+    ev._costsInherited=false;
+    fsUpdate('events',evId,{_costsInherited:false}).catch(console.error);
+  }
+}
+
 // Auto-save debounce for costs
 let _costSaveTimer=null;
 function _autoSaveCosts(evId){
   if(_costSaveTimer)clearTimeout(_costSaveTimer);
-  _costSaveTimer=setTimeout(()=>{
+  // V3.6.0 Fix J: Ogni modifica costi su un'istanza rompe l'ereditarietà
+  _markCostsAsCustom(evId);
+  _costSaveTimer=setTimeout(async()=>{
     const ev=store.events.find(e=>e.id===evId);if(!ev||!ev.eventCosts)return;
-    fsUpdate('events',evId,{eventCosts:ev.eventCosts}).catch(e=>console.error('Auto-save costs error:',e));
+    await fsUpdate('events',evId,{eventCosts:ev.eventCosts}).catch(e=>console.error('Auto-save costs error:',e));
+    // V3.6.0 Fix I: Se è un evento ricorrente padre, propagare costi alle istanze ereditate
+    if(ev.recurrence&&ev.recurrence.day){
+      const inheritedInstances=store.events.filter(e=>e.parentRecurringId===evId&&e._costsInherited===true);
+      for(const inst of inheritedInstances){
+        inst.eventCosts=JSON.parse(JSON.stringify(ev.eventCosts));
+        await fsUpdate('events',inst.id,{eventCosts:inst.eventCosts}).catch(console.error);
+      }
+      if(inheritedInstances.length>0)console.info('Propagated costs to '+inheritedInstances.length+' inherited instances');
+    }
   },600);
 }
 
