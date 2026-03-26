@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V3.6.0</title>
+<title>BodyEvents — V3.6.1</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -259,6 +259,13 @@ textarea.input{resize:none;font-family:inherit}
   .sidebar{display:none}
   .tier-grid{grid-template-columns:1fr}
   .logo-text{display:none}
+  .hide-mobile{display:none!important}
+  .table .td-participant,.table .th-participant{position:sticky;left:0;z-index:2;background:var(--s50);max-width:33vw;min-width:100px}
+  .table .td-participant .participant-info{max-width:calc(33vw - 24px);overflow:hidden}
+  .table .td-participant .participant-info>div:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  .table .td-participant .participant-info>div:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;font-size:.6rem}
+  .table .td-participant::after,.table .th-participant::after{content:'';position:absolute;right:-6px;top:0;bottom:0;width:6px;background:linear-gradient(to right,rgba(0,0,0,.15),transparent);pointer-events:none}
+  .table .td-participant,.table .th-participant{position:relative}
   .table{font-size:.8rem;min-width:700px;max-width:none!important;word-break:normal!important;overflow-wrap:normal!important}
   .table th,.table td{padding:6px 8px;white-space:nowrap;word-break:normal!important;overflow-wrap:normal!important;max-width:none!important}
   .table td .flex{flex-wrap:nowrap}
@@ -409,7 +416,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.6.0</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.6.1</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -1297,7 +1304,7 @@ textarea.input{resize:none;font-family:inherit}
       <h3 class="font-semibold text-white mb-4">👤 Account</h3>
       <div class="mb-3">
         <label class="label">Username</label>
-        <input class="input" id="org-profile-username" maxlength="25" value="" oninput="orgProfileChanged()">
+        <input class="input" id="org-profile-username" maxlength="20" value="" oninput="orgProfileChanged()">
       </div>
       <div class="mb-3">
         <label class="label">Email account</label>
@@ -2208,7 +2215,8 @@ textarea.input{resize:none;font-family:inherit}
     <h3 class="font-semibold text-white mb-4">I miei dati</h3>
     <div class="mb-3">
       <label class="label">Username</label>
-      <input class="input" id="profile-username" maxlength="25" value="">
+      <input class="input" id="profile-username" maxlength="20" value="" oninput="const c=document.getElementById('username-char-count');if(c)c.textContent=this.value.length">
+      <div style="font-size:.6rem;color:var(--txt3);text-align:right;margin-top:2px"><span id="username-char-count">0</span>/20</div>
     </div>
     <div class="mb-3">
       <label class="label">Email</label>
@@ -2738,7 +2746,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.6.0';
+const APP_VERSION='V3.6.1';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -6449,7 +6457,7 @@ function openSubTypeModal(editId){
   activeUnivs.forEach(u=>{formHtml+='<option value="'+u.id+'"'+(u.id===defaultUnivId?' selected':'')+'>'+u.emoji+' '+u.name+'</option>';});
   formHtml+='</select></div>';
   formHtml+='<div class="mb-3"><label class="label">Tipologie evento compatibili</label><div class="flex gap-2 flex-wrap" id="st-compat-types"></div>';
-  formHtml+='<div class="flex gap-2 mt-2" id="st-custom-type-row"><input class="input" id="st-custom-type-input" placeholder="Nuova tipologia..." style="flex:1;font-size:.8rem"><button type="button" class="btn btn-sm" onclick="addCustomTypeFromSubForm()" style="font-size:.7rem;background:var(--green-bg);color:var(--green);border:1px solid var(--green);white-space:nowrap">+ Aggiungi</button></div>';
+  formHtml+='<div style="font-size:.65rem;color:var(--txt3);margin-top:4px;font-style:italic">Solo tipologie confermate per l\'universo selezionato</div>';
   formHtml+='<p class="text-xs txt3 mt-1">Lascia vuoto per tutti i tipi.</p></div>';
   formHtml+='<div class="mb-3"><label class="label">Note (opzionali)</label><textarea class="input" id="st-notes" rows="2" placeholder="Dettagli, condizioni...">'+(existing?.notes||'')+'</textarea></div>';
   formHtml+='</div>';
@@ -9152,7 +9160,7 @@ function disableProfileSave(){
 async function saveProfileChanges(){
   const newUsername=(document.getElementById('profile-username')?.value||'').trim();
   if(!newUsername){showToast('Inserisci un username','error');return;}
-  if(newUsername.length>25){showToast('Username troppo lungo (max 25 caratteri)','error');return;}
+  if(newUsername.length>20){showToast('⚠️ Il nome utente non può superare i 20 caratteri','error');return;}
   const u=store.currentUser;
   u.username=newUsername;
   u.initials=newUsername.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
@@ -15427,13 +15435,13 @@ async function renderAdminEvents(){
     const d0=ev.days[0];const dd=d0?new Date(d0.date+'T00:00:00'):null;
     const dayNum=dd?dd.getDate():'';const monthStr=dd?MONTHS_IT[dd.getMonth()]:'';
     const _yearStr=dd?dd.getFullYear():'';
-    const _recIndicator=ev.recurrence?'<span class="rec-indicator" title="Evento ricorrente">↻</span>':'';
+    let _recIndicator=ev.recurrence?'<span class="rec-indicator" title="Evento ricorrente">↻</span>':'';
     const _isMultiDay=ev.days.length>1;
     const _lastDay=_isMultiDay?ev.days[ev.days.length-1]:null;
     const _lastDd=_lastDay?new Date(_lastDay.date+'T00:00:00'):null;
     const _lastMonthStr=_lastDd?MONTHS_IT[_lastDd.getMonth()]:'';
     const _sameMonth=_isMultiDay&&dd&&_lastDd&&dd.getMonth()===_lastDd.getMonth()&&dd.getFullYear()===_lastDd.getFullYear();
-    const _dateBlockContent=_isMultiDay?(_sameMonth
+    let _dateBlockContent=_isMultiDay?(_sameMonth
       ?`<span style="font-size:1.4rem;font-weight:800;color:#fff;line-height:1.1">${dayNum}–${_lastDd.getDate()}</span>
             <span style="font-size:.7rem;font-weight:700;color:rgba(240,171,252,.65);text-transform:uppercase;line-height:1;letter-spacing:.5px">${monthStr}</span>
             <span style="font-size:.55rem;font-weight:500;color:rgba(240,171,252,.35);line-height:1;margin-top:2px">${_yearStr}</span>`
@@ -15444,6 +15452,15 @@ async function renderAdminEvents(){
       :`<span style="font-size:1.6rem;font-weight:800;color:#fff;line-height:1.1">${dayNum}</span>
             <span style="font-size:.7rem;font-weight:700;color:rgba(240,171,252,.65);text-transform:uppercase;line-height:1;letter-spacing:.5px">${monthStr}</span>
             <span style="font-size:.55rem;font-weight:500;color:rgba(240,171,252,.35);line-height:1;margin-top:2px">${_yearStr}</span>`;
+    // V3.6.1: Card data personalizzata per eventi ricorrenti (Opzione B)
+    if(ev.recurrence&&ev.recurrence.day){
+      const _shortDay={Monday:'LUN',Tuesday:'MAR',Wednesday:'MER',Thursday:'GIO',Friday:'VEN',Saturday:'SAB',Sunday:'DOM'};
+      const _freqLabel=ev.recurrence.freq==='monthly'?'Mensile':ev.recurrence.freq==='yearly'?'Annuale':'Settimanale';
+      _dateBlockContent='<span style="font-size:.85rem;font-weight:700;color:#fff;line-height:1;text-transform:uppercase;letter-spacing:.5px">'+(_shortDay[ev.recurrence.day]||ev.recurrence.day.slice(0,3).toUpperCase())+'</span>'+
+        '<span style="font-size:1.2rem;color:rgba(240,171,252,.65);line-height:1;margin:2px 0">↻</span>'+
+        '<span style="font-size:.5rem;color:rgba(240,171,252,.65);text-transform:uppercase;font-weight:600;letter-spacing:.5px">'+_freqLabel+'</span>';
+      _recIndicator='';
+    }
     const _aThumbData=(ev.imageThumb||ev.image)?{src:ev.imageThumb?.src||ev.image}:null;
     const _aCardThumb=_aThumbData
       ?`<div style="flex-shrink:0;display:flex;flex-direction:column;align-self:stretch;width:80px">
@@ -19344,6 +19361,9 @@ function restoreBookingCtx(bId,ctx){
   const b=store.bookings.find(x=>x.id===bId);if(!b)return;
   const ev=store.events.find(e=>e.id===b.eventId);
   if(ev&&ev.status==='archiviato')return;
+  // V3.6.1: Check anti-duplicato — esiste già una prenotazione attiva dello stesso utente?
+  const existingActive=store.bookings.find(x=>x.id!==b.id&&x.eventId===b.eventId&&x.userId===b.userId&&x.status!=='cancellata'&&(x.recurringDate||null)===(b.recurringDate||null));
+  if(existingActive){showToast('⚠️ '+escHtml(b.userName)+' ha già una prenotazione attiva per questo evento. Ripristino non possibile.','error');return;}
   showConfirm('Ripristina prenotazione','Ripristinare la prenotazione di '+escHtml(b.userName)+'?',async()=>{
     b.status='confermata';
     const updates={status:'confermata'};
@@ -21225,7 +21245,7 @@ async function showAdminEventDetail(evId){
     <h2 class="font-semibold text-white mb-3">👥 Lista Partecipanti (${active.length}${active.filter(b=>b.checkedIn).length>0?' · <span style="color:var(--green)">'+active.filter(b=>b.checkedIn).length+' presenti</span>':''})${viewSubtitle}</h2>
     ${active.length?`<div class="card table-wrap" style="padding:0;overflow:auto">
       <table class="table">
-        <thead><tr><th style="cursor:pointer" onclick="sortAdminDetail('userName')">Partecipante ${adminDetailSort.field==='userName'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('role')">Ruolo ${adminDetailSort.field==='role'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('sessions')">Sessioni ${adminDetailSort.field==='sessions'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${ev.pricingMode!=='free'?'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'tier\')">Tier '+(adminDetailSort.field==='tier'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}<th style="cursor:pointer" onclick="sortAdminDetail('checkedIn')">Presente ${adminDetailSort.field==='checkedIn'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${ev.pricingMode!=='free'?'<th style="cursor:pointer" onclick="sortAdminDetail(\'amount\')">Importo '+(adminDetailSort.field==='amount'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'paymentStatus\')">Pagato '+(adminDetailSort.field==='paymentStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'depositStatus\')">Anticipo '+(adminDetailSort.field==='depositStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'daIncassare\')">Da incassare '+(adminDetailSort.field==='daIncassare'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).length?'<th style="border-left:2px solid var(--s400);padding-left:12px;cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+(ev.surveys[0].id)+'\')">'+ev.surveys[0].question.substring(0,20)+(ev.surveys[0].question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+ev.surveys[0].id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).slice(1).map(sq=>'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+sq.id+'\')">'+sq.question.substring(0,20)+(sq.question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+sq.id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>').join('')}<th>Azioni</th></tr></thead>
+        <thead><tr><th class="th-participant" style="cursor:pointer" onclick="sortAdminDetail('userName')">Partecipante ${adminDetailSort.field==='userName'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('role')">Ruolo ${adminDetailSort.field==='role'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('sessions')">Sessioni ${adminDetailSort.field==='sessions'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${ev.pricingMode!=='free'?'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'tier\')">Tier '+(adminDetailSort.field==='tier'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}<th style="cursor:pointer" onclick="sortAdminDetail('checkedIn')">Presente ${adminDetailSort.field==='checkedIn'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${ev.pricingMode!=='free'?'<th style="cursor:pointer" onclick="sortAdminDetail(\'amount\')">Importo '+(adminDetailSort.field==='amount'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'paymentStatus\')">Pagato '+(adminDetailSort.field==='paymentStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'depositStatus\')">Anticipo '+(adminDetailSort.field==='depositStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'daIncassare\')">Da incassare '+(adminDetailSort.field==='daIncassare'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).length?'<th style="border-left:2px solid var(--s400);padding-left:12px;cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+(ev.surveys[0].id)+'\')">'+ev.surveys[0].question.substring(0,20)+(ev.surveys[0].question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+ev.surveys[0].id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).slice(1).map(sq=>'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+sq.id+'\')">'+sq.question.substring(0,20)+(sq.question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+sq.id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>').join('')}<th>Azioni</th></tr></thead>
         <tbody>${active.map(b=>{
           _sanitizeBookingState(b);
           const depositHtml=isArchived?(b.depositStatus==='ricevuto'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">✅ Ricevuto</span>':b.depositStatus==='pending'?'<span class="badge badge-yellow">⏳ Pending</span>':'<span class="text-xs txt3">—</span>')
@@ -21252,7 +21272,7 @@ async function showAdminEventDetail(evId){
           const avatarInner=_pLogo?'<img src="'+_pLogo+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':b.initials;
           const checkedInHtml=b.checkedIn?(!isArchived?'<button class="btn btn-sm" style="padding:2px 8px;font-size:.7rem;background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="event.stopPropagation();toggleAttendance(\''+b.id+'\',false)">✅ Presente'+(b.checkinTime?' '+b.checkinTime:'')+'</button>':'<span class="badge" style="background:rgba(16,185,129,.2);color:var(--green)">✅ Presente</span>'):(!isArchived?'<button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:.7rem" onclick="event.stopPropagation();toggleAttendance(\''+b.id+'\',true)">⬜ Segna presente</button>':'<span class="text-xs txt3">Assente</span>');
           return `<tr>
-            <td><div class="flex items-center gap-2"><div class="avatar ${avatarCls}" ${avatarStyle} style="${!avatarCls?'background:var(--s300);color:var(--txt3)':''}${_pLogo?';overflow:hidden':''}">${avatarInner}</div><div><div class="font-medium text-white text-sm">${escHtml(b.userName)}</div><div class="text-xs txt3">${escHtml(b.email)}</div></div></div></td>
+            <td class="td-participant"><div class="flex items-center gap-2"><div class="avatar ${avatarCls} hide-mobile" ${avatarStyle} style="${!avatarCls?'background:var(--s300);color:var(--txt3)':''}${_pLogo?';overflow:hidden':''}">${avatarInner}</div><div class="participant-info"><div class="font-medium text-white text-sm">${escHtml(b.userName)}</div><div class="text-xs txt3">${escHtml(b.email)}</div></div></div></td>
             <td><span style="color:${roleColor(b.role)}">${roleName(b.role)}</span></td>
             <td style="min-width:140px">${getSessionNames(b.sessions)}</td>
             ${ev.pricingMode!=='free'?'<td style="white-space:nowrap"><span style="font-size:.75rem;padding:2px 6px;border-radius:4px;background:'+(b.tier==='alto'?'rgba(234,179,8,.12);color:var(--yellow)':b.tier==='basso'?'rgba(59,130,246,.12);color:var(--blue)':'rgba(168,85,247,.12);color:var(--purple)')+'">'+({alto:'✦ Sost.',medio:'● Std',basso:'○ Rid.'}[b.tier]||'● Std')+'</span></td>':''}
