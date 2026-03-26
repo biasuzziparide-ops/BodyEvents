@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V3.6.1</title>
+<title>BodyEvents — V3.6.2</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -416,7 +416,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.6.1</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.6.2</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2746,7 +2746,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.6.1';
+const APP_VERSION='V3.6.2';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -12392,9 +12392,12 @@ async function renderUserDashboard(){
     _seenBk.add(key);return true;
   };
   const active=store.bookings.filter(b=>_dedupFilter(b,false));
-  const cancelled=store.bookings.filter(b=>_dedupFilter(b,true));
-  // Get community events user has joined
+  // Get community events user has joined OR created
   const joinedJams=store.communityJams.filter(j=>j.status!=='cancellato'&&!(j.alert&&j.alert.type==='cancellato')&&(j.participants||[]).some(p=>p.userId===uid));
+  const myCreatedJams=store.communityJams.filter(j=>j.userId===uid&&j.status!=='cancellato'&&!(j.alert&&j.alert.type==='cancellato'));
+  const allUserJams=[...joinedJams];
+  myCreatedJams.forEach(j=>{if(!allUserJams.some(x=>x.id===j.id))allUserJams.push(j);});
+  allUserJams.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
 
   // V3.3.0: Preload participant counts for Jam/Social bookings (per-occurrence)
   if(!_bookingsLoaded){
@@ -12433,14 +12436,41 @@ async function renderUserDashboard(){
     return evDate<today||ev.status==='concluso'||ev.status==='archiviato';
   });
 
+  // V3.6.2: Group upcoming bookings by event type
+  const bookingsByType={};
+  upcomingBookings.forEach(b=>{
+    const ev=store.events.find(e=>e.id===b.eventId);
+    if(!ev)return;
+    const type=ev.type||'jam';
+    if(!bookingsByType[type])bookingsByType[type]=[];
+    bookingsByType[type].push(b);
+  });
+  // Section order: DEFAULT_EVENT_TYPES first, then custom alphabetically
+  const sectionOrder=[...DEFAULT_EVENT_TYPES];
+  Object.keys(bookingsByType).forEach(type=>{
+    if(!sectionOrder.includes(type))sectionOrder.push(type);
+  });
+  const _defaultLen=DEFAULT_EVENT_TYPES.length;
+  const _customTypes=sectionOrder.slice(_defaultLen).sort((a,b)=>getEventTypeLabel(a).localeCompare(getEventTypeLabel(b)));
+  sectionOrder.length=_defaultLen;
+  sectionOrder.push(..._customTypes);
+
   const userSubsHtml=renderUserSubscriptions();
-  if(!active.length&&!cancelled.length&&!joinedJams.length){
+  if(!active.length&&!allUserJams.length){
     c.innerHTML=userSubsHtml+'<div class="card text-center txt3" style="padding:40px">Non hai ancora prenotazioni. <a href="#" onclick="go(\'events\');return false" style="color:var(--brand-l)">Esplora gli eventi →</a></div>';
     return;
   }
 
   let html=userSubsHtml;
-  upcomingBookings.forEach((b,i)=>{
+  let _firstCardRendered=false;
+  // V3.6.2: Render sections grouped by event type
+  sectionOrder.forEach(_secType=>{
+    const _typeBks=bookingsByType[_secType];
+    if(!_typeBks||!_typeBks.length)return;
+    const _secIcon=getEventTypeIcon(_secType);
+    const _secLabel=getEventTypeLabel(_secType);
+    html+=`<h2 class="font-semibold text-white mb-3 mt-6">${_secIcon} ${_secLabel} (${_typeBks.length})</h2>`;
+    _typeBks.forEach((b,i)=>{
     const ev=store.events.find(e=>e.id===b.eventId);
     if(!ev)return;
     const d0=ev.days[0];
@@ -12797,7 +12827,7 @@ async function renderUserDashboard(){
       <div style="display:flex;align-items:stretch;position:relative;z-index:2">
         ${_uniStrip}
         <div style="flex:1;min-width:0;padding:14px 16px;display:flex;flex-direction:column;gap:0">
-          ${i===0&&!hasAlert?'<div style="font-size:.65rem;color:var(--txt3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Prossimo evento</div>':''}
+          ${!_firstCardRendered&&!hasAlert?'<div style="font-size:.65rem;color:var(--txt3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Prossimo evento</div>':''}
           <div style="display:flex;gap:14px;align-items:flex-start">
             <div style="position:relative">${_bkPipHtml}${cardThumb}</div>
             <div style="flex:1;min-width:0">
@@ -12818,11 +12848,47 @@ async function renderUserDashboard(){
         </div>
       </div>
     </div>`;
+    _firstCardRendered=true;
   });
+  }); // end sectionOrder.forEach
 
-  // Archivio (past bookings)
+  // V3.6.2: I miei Community Event (joined + created, deduped)
+  if(allUserJams.length){
+    html+=`<h2 class="font-semibold text-white mb-3 mt-6">🎉 I miei Community Event (${allUserJams.length})</h2>`;
+    allUserJams.forEach(jam=>{
+      const dd=jam.date?new Date(jam.date+'T00:00:00'):null;
+      const dayNum=dd?dd.getDate():'';
+      const monthStr=dd?MONTHS_IT[dd.getMonth()]:'';
+      const parts=(jam.participants||[]).length;
+      const spotsText=jam.maxSpots?parts+'/'+jam.maxSpots:parts+'';
+      const univBadges=(jam.universeIds||[]).map(id=>getUniverseBadgeHtml(id)).join('');
+      const isJoined=(jam.participants||[]).some(p=>p.userId===uid);
+      const borderColor='var(--green)';
+      html+=`<div class="card mb-4 card-hover" style="border-color:${borderColor};background:rgba(16,185,129,.03);cursor:pointer" onclick="showJamDetail('${jam.id}')">
+        <div class="flex gap-4" style="align-items:flex-start">
+          <div style="flex-shrink:0;width:56px;height:56px;border-radius:12px;background:rgba(16,185,129,.1);display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <span style="font-size:1.3rem;font-weight:700;color:var(--green)">${dayNum}</span>
+            <span style="font-size:.6rem;color:rgba(16,185,129,.5)">${monthStr}</span>
+          </div>
+          <div class="flex-1">
+            <div class="flex gap-2 flex-wrap mb-1">${univBadges}<span class="badge ${badgeType(jam.type||'jam')}" style="${badgeTypeStyle(jam.type||'jam')}">${getJamTypeDisplay(jam.type||'jam')}</span>${isJoined?'<span class="badge" style="background:rgba(16,185,129,.15);color:var(--green)">✅ Iscritto</span>':jam.userId===uid?'<span class="badge" style="background:rgba(168,85,247,.15);color:var(--purple)">👤 Creatore</span>':''}</div>
+            <h3 class="font-semibold text-white">${escHtml(jam.title)}</h3>
+            <div class="flex gap-3 mt-1 text-xs txt3">
+              <span>📅 ${fmtDate(jam.date)}</span><span>🕐 ${jam.startTime} — ${jam.endTime}</span>
+            </div>
+            <div class="text-xs txt3 mt-1">📍 ${escHtml(jam.location)} · 👥 ${spotsText} partecipanti</div>
+          </div>
+        </div>
+        ${isJoined?`<div class="flex gap-2 mt-4" style="border-top:1px solid var(--s300);padding-top:12px">
+          <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();leaveJam('${jam.id}');setTimeout(renderUserDashboard,300)">✕ Annulla iscrizione</button>
+        </div>`:''}
+      </div>`;
+    });
+  }
+
+  // V3.6.2: Archivio (past bookings) — moved to end
   if(pastBookings.length){
-    html+='<h2 class="font-semibold text-white mb-3 mt-6">📦 Archivio</h2>';
+    html+=`<h2 class="font-semibold text-white mb-3 mt-6">📦 Archivio (${pastBookings.length})</h2>`;
     pastBookings.forEach((b,i)=>{
       const ev=store.events.find(e=>e.id===b.eventId);
       if(!ev)return;
@@ -12883,61 +12949,6 @@ async function renderUserDashboard(){
               </div>
             </div>
           </div>
-        </div>
-      </div>`;
-    });
-  }
-
-  // Storico
-  if(cancelled.length){
-    html+='<h2 class="font-semibold text-white mb-3 mt-6">Storico</h2>';
-    cancelled.forEach(b=>{
-      const ev=store.events.find(e=>e.id===b.eventId);
-      if(!ev)return;
-      html+=`<div class="card mb-3" style="opacity:.6">
-        <div class="flex gap-4 items-center">
-          <div style="flex-shrink:0;width:40px;height:40px;border-radius:10px;background:var(--s200);display:flex;flex-direction:column;align-items:center;justify-content:center">
-            <span style="font-size:.9rem;font-weight:700;color:var(--txt3)">${ev.days[0]?new Date(ev.days[0].date+'T00:00:00').getDate():''}</span>
-          </div>
-          <div class="flex-1">
-            <div class="font-medium text-white text-sm">${escHtml(ev.title)}</div>
-            <div class="text-xs txt3">${b.tier==='alto'?'Sostenitore':b.tier==='medio'?'Standard':'Ridotto'} — €${b.amount}</div>
-          </div>
-          <span class="badge" style="background:var(--red-bg);color:var(--red)">Cancellata</span>
-        </div>
-      </div>`;
-    });
-  }
-
-  // Community events a cui l'utente è iscritto
-  if(joinedJams.length){
-    html+='<h2 class="font-semibold text-white mb-3 mt-6">🤝 Community Events</h2>';
-    joinedJams.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
-    joinedJams.forEach(jam=>{
-      const dd=jam.date?new Date(jam.date+'T00:00:00'):null;
-      const dayNum=dd?dd.getDate():'';
-      const monthStr=dd?MONTHS_IT[dd.getMonth()]:'';
-      const parts=(jam.participants||[]).length;
-      const spotsText=jam.maxSpots?parts+'/'+jam.maxSpots:parts+'';
-      const univBadges=(jam.universeIds||[]).map(id=>getUniverseBadgeHtml(id)).join('');
-      const borderColor='var(--green)';
-      html+=`<div class="card mb-4 card-hover" style="border-color:${borderColor};background:rgba(16,185,129,.03);cursor:pointer" onclick="showJamDetail('${jam.id}')">
-        <div class="flex gap-4" style="align-items:flex-start">
-          <div style="flex-shrink:0;width:56px;height:56px;border-radius:12px;background:rgba(16,185,129,.1);display:flex;flex-direction:column;align-items:center;justify-content:center">
-            <span style="font-size:1.3rem;font-weight:700;color:var(--green)">${dayNum}</span>
-            <span style="font-size:.6rem;color:rgba(16,185,129,.5)">${monthStr}</span>
-          </div>
-          <div class="flex-1">
-            <div class="flex gap-2 flex-wrap mb-1">${univBadges}<span class="badge ${badgeType(jam.type||'jam')}" style="${badgeTypeStyle(jam.type||'jam')}">${getJamTypeDisplay(jam.type||'jam')}</span><span class="badge" style="background:rgba(16,185,129,.15);color:var(--green)">✅ Iscritto</span></div>
-            <h3 class="font-semibold text-white">${escHtml(jam.title)}</h3>
-            <div class="flex gap-3 mt-1 text-xs txt3">
-              <span>📅 ${fmtDate(jam.date)}</span><span>🕐 ${jam.startTime} — ${jam.endTime}</span>
-            </div>
-            <div class="text-xs txt3 mt-1">📍 ${escHtml(jam.location)} · 👥 ${spotsText} partecipanti</div>
-          </div>
-        </div>
-        <div class="flex gap-2 mt-4" style="border-top:1px solid var(--s300);padding-top:12px">
-          <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();leaveJam('${jam.id}');setTimeout(renderUserDashboard,300)">✕ Annulla iscrizione</button>
         </div>
       </div>`;
     });
