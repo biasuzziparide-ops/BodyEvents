@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V3.5.0</title>
+<title>BodyEvents — V3.5.1</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -409,7 +409,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.5.0</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.5.1</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2738,7 +2738,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.5.0';
+const APP_VERSION='V3.5.1';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -11560,8 +11560,8 @@ function renderAttendance(){
 function toggleAttendance(bookingId,checkedIn){
   const b=store.bookings.find(bk=>bk.id===bookingId);if(!b)return;
   b.checkedIn=checkedIn;
-  b.checkinTime=checkedIn?new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}):'';
-  fsSet('bookings',b.id,b).catch(console.error);
+  b.checkinTime=checkedIn?new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}):null;
+  fsUpdate('bookings',b.id,{checkedIn:b.checkedIn,checkinTime:b.checkinTime}).catch(console.error);
   // Refresh whichever view is active
   if(currentView==='admin-checkin')renderAttendance();
   if(currentView==='admin-event-detail'&&window._currentAdminDetailEvId){
@@ -19090,7 +19090,7 @@ async function renderAdminBookings(){
       const evType=getEvType(b.eventId);
       const badgeCls=badgeType(evType);
       const depositHtml=b.depositStatus==='pending'?'<span class="badge badge-yellow">⏳ Da verificare</span>'
-        :b.depositStatus==='ricevuto'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">✅ Ricevuto</span>'
+        :b.depositStatus==='ricevuto'?(isCancelled?'<span class="badge" style="background:var(--green-bg);color:var(--green)">✅ Ricevuto</span>':'<span class="badge" style="background:var(--green-bg);color:var(--green);cursor:pointer" onclick="event.stopPropagation();revertDepositCtx(\''+b.id+'\',\'bookings\')">✅ Ricevuto</span>')
         :isCancelled?'<span class="badge" style="background:var(--red-bg);color:var(--red)">❌ Cancellata</span>'
         :'<span class="text-xs txt3">—</span>';
       const giftBtn=!isCancelled?'<button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:.7rem;margin-left:4px" onclick="event.stopPropagation();toggleGift(\''+b.id+'\',\'bookings\')" title="'+(b.gift?'Rimuovi regalo':'Segna come regalo')+'">'+(b.gift?'↩️':'🎁')+'</button>':'';
@@ -19099,7 +19099,7 @@ async function renderAdminBookings(){
         :b.paymentStatus==='pagato'?'<span class="badge" style="background:var(--green-bg);color:var(--green);cursor:pointer" onclick="event.stopPropagation();togglePayment(\''+b.id+'\',\'bookings\')">💰 Pagato</span>'
         :b.paymentStatus==='gratuito'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🎟️ Gratuito</span>'
         :b.paymentStatus==='abbonamento'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🎟️ Abb.</span>'
-        :((b.amount||0)===0?'<span class="text-xs txt3">—</span>':'<button class="btn btn-sm" style="background:rgba(234,179,8,.12);color:var(--yellow);border:1px solid rgba(234,179,8,.3);font-size:.7rem" onclick="event.stopPropagation();togglePayment(\''+b.id+'\',\'bookings\')">💰 Segna pagato</button>');
+        :((b.amount||0)===0?'<span class="text-xs txt3">—</span>':'<button class="btn btn-sm" style="background:rgba(234,179,8,.12);color:var(--yellow);border:1px solid rgba(234,179,8,.3);font-size:.7rem" onclick="event.stopPropagation();togglePayment(\''+b.id+'\',\'bookings\')">'+(b.depositStatus==='ricevuto'?'💰 Segna saldo pagato':'💰 Segna pagato')+'</button>');
       const actionsHtml=isCancelled?''
         :b.depositStatus==='pending'?`<div class="flex gap-1">
           <button class="btn btn-primary btn-sm" onclick="confirmDepositCtx('${b.id}','bookings')">✓</button>
@@ -19120,9 +19120,37 @@ async function renderAdminBookings(){
       </tr>`;
     }).join('')}</tbody></table>`;
 }
+// V3.5.1: Booking state sanitizer — fixes inconsistencies in-memory before rendering
+function _sanitizeBookingState(b){
+  const w=[];
+  // S1: gift=true must have paymentStatus='gratuito'
+  if(b.gift){
+    if(b.paymentStatus!=='gratuito'){w.push('gift+paymentStatus='+b.paymentStatus);b.paymentStatus='gratuito';}
+    if(b.depositStatus){w.push('gift+depositStatus='+b.depositStatus);b.depositStatus=null;}
+  }
+  // S2: depositStatus='ricevuto' must have status='confermata'
+  if(b.depositStatus==='ricevuto'&&b.status==='in_attesa_anticipo'){
+    w.push('deposit ricevuto ma status in_attesa→confermata');b.status='confermata';
+    fsUpdate('bookings',b.id,{status:'confermata'}).catch(console.error);
+  }
+  // S3: paymentStatus='abbonamento' should have subscriptionId
+  if(b.paymentStatus==='abbonamento'&&!b.subscriptionId)w.push('abbonamento senza subscriptionId');
+  // S4: cancellata should not have checkedIn=true
+  if(b.status==='cancellata'&&b.checkedIn){w.push('cancellata+checkedIn→fix');b.checkedIn=false;b.checkinTime=null;}
+  // S5: paymentStatus='pagato' with status='in_attesa_anticipo' → auto-fix
+  if(b.paymentStatus==='pagato'&&b.status==='in_attesa_anticipo'){
+    w.push('pagato ma status in_attesa→confermata');b.status='confermata';
+    fsUpdate('bookings',b.id,{status:'confermata'}).catch(console.error);
+  }
+  if(w.length)console.warn('[BookingState] '+b.id+' ('+b.userName+'):',w);
+}
+
 function confirmDeposit(bId){
   showConfirm('Conferma anticipo','Confermare la ricezione dell\'anticipo?',()=>{
-    const b=store.bookings.find(x=>x.id===bId);if(b){b.depositStatus='ricevuto';fsUpdate('bookings',b.id,{depositStatus:'ricevuto'}).catch(console.error);renderAdminBookings();showToast('Anticipo confermato!');}
+    const b=store.bookings.find(x=>x.id===bId);if(!b)return;
+    b.depositStatus='ricevuto';b.status='confermata';
+    fsUpdate('bookings',b.id,{depositStatus:'ricevuto',status:'confermata'}).catch(console.error);
+    renderAdminBookings();showToast('Anticipo confermato!');
   });
 }
 function cancelBooking(bId){
@@ -19138,11 +19166,23 @@ function toggleGift(bId,ctx){
   b.gift=!b.gift;
   const updates={gift:b.gift};
   if(b.gift){
+    b._preGiftSnapshot={amount:b.amount,totalAmount:b.totalAmount,paymentStatus:b.paymentStatus,depositStatus:b.depositStatus,items:(b.items||[]).map(i=>({...i}))};
     b.depositStatus=null;b.paymentStatus='gratuito';b.amount=0;b.totalAmount=0;
+    if(b.items&&b.items.length)b.items.forEach(i=>{i.price=0;});
     updates.depositStatus=null;updates.paymentStatus='gratuito';updates.amount=0;updates.totalAmount=0;
+    if(b.items)updates.items=b.items;
     showToast('🎁 Contrassegnato come regalo');
   }else{
-    b.paymentStatus=null;updates.paymentStatus=null;
+    const snap=b._preGiftSnapshot;
+    if(snap){
+      b.amount=snap.amount;b.totalAmount=snap.totalAmount;b.paymentStatus=snap.paymentStatus;b.depositStatus=snap.depositStatus;
+      if(snap.items)b.items=snap.items;
+      updates.amount=snap.amount;updates.totalAmount=snap.totalAmount;updates.paymentStatus=snap.paymentStatus;updates.depositStatus=snap.depositStatus;
+      if(snap.items)updates.items=snap.items;
+      delete b._preGiftSnapshot;
+    }else{
+      b.paymentStatus=null;updates.paymentStatus=null;
+    }
     showToast('Rimosso contrassegno regalo');
   }
   fsUpdate('bookings',b.id,updates).catch(console.error);
@@ -19152,9 +19192,18 @@ function toggleGift(bId,ctx){
 function togglePayment(bId,ctx){
   const b=store.bookings.find(x=>x.id===bId);if(!b)return;
   if(b.paymentStatus==='gratuito'||b.paymentStatus==='abbonamento'||b.gift)return;
-  b.paymentStatus=b.paymentStatus==='pagato'?null:'pagato';
-  fsUpdate('bookings',b.id,{paymentStatus:b.paymentStatus}).catch(console.error);
-  if(b.paymentStatus==='pagato')showToast('💰 Contrassegnato come pagato');
+  const wasPaid=b.paymentStatus==='pagato';
+  b.paymentStatus=wasPaid?null:'pagato';
+  const updates={paymentStatus:b.paymentStatus};
+  if(!wasPaid&&b.status==='in_attesa_anticipo'){
+    b.status='confermata';b.depositStatus='ricevuto';
+    updates.status='confermata';updates.depositStatus='ricevuto';
+  }
+  if(wasPaid&&b.depositStatus==='pending'){
+    b.status='in_attesa_anticipo';updates.status='in_attesa_anticipo';
+  }
+  fsUpdate('bookings',b.id,updates).catch(console.error);
+  if(!wasPaid)showToast('💰 Contrassegnato come pagato');
   else showToast('Pagamento rimosso');
   if(ctx==='bookings')renderAdminBookings();
   else if(ctx==='detail'){window._adminDetailKeepScroll=true;showAdminEventDetail(b.eventId);}
@@ -19162,9 +19211,19 @@ function togglePayment(bId,ctx){
 function confirmDepositCtx(bId,ctx){
   showConfirm('Conferma anticipo','Confermare la ricezione dell\'anticipo?',()=>{
     const b=store.bookings.find(x=>x.id===bId);if(!b)return;
-    b.depositStatus='ricevuto';
-    fsUpdate('bookings',b.id,{depositStatus:'ricevuto'}).catch(console.error);
+    b.depositStatus='ricevuto';b.status='confermata';
+    fsUpdate('bookings',b.id,{depositStatus:'ricevuto',status:'confermata'}).catch(console.error);
     showToast('Anticipo confermato!');
+    if(ctx==='bookings')renderAdminBookings();
+    else if(ctx==='detail'){window._adminDetailKeepScroll=true;showAdminEventDetail(b.eventId);}
+  });
+}
+function revertDepositCtx(bId,ctx){
+  showConfirm('Annulla anticipo','Riportare lo stato anticipo a "Da verificare"?',()=>{
+    const b=store.bookings.find(x=>x.id===bId);if(!b)return;
+    b.depositStatus='pending';b.status='in_attesa_anticipo';
+    fsUpdate('bookings',b.id,{depositStatus:'pending',status:'in_attesa_anticipo'}).catch(console.error);
+    showToast('Anticipo riportato a "Da verificare"');
     if(ctx==='bookings')renderAdminBookings();
     else if(ctx==='detail'){window._adminDetailKeepScroll=true;showAdminEventDetail(b.eventId);}
   });
@@ -19172,13 +19231,37 @@ function confirmDepositCtx(bId,ctx){
 function cancelBookingCtx(bId,ctx){
   const b=store.bookings.find(x=>x.id===bId);if(!b)return;
   showConfirm('Cancella prenotazione','Cancellare la prenotazione di '+b.userName+'?',async()=>{
-    b.status='cancellata';
-    await fsUpdate('bookings',b.id,{status:'cancellata'}).catch(console.error);
+    b.status='cancellata';b.checkedIn=false;b.checkinTime=null;
+    await fsUpdate('bookings',b.id,{status:'cancellata',checkedIn:false,checkinTime:null}).catch(console.error);
     if(b.subscriptionId){const sub=store.subscriptions.find(s=>s.id===b.subscriptionId);if(sub&&sub.entriesUsed>0){const _sType=store.subscriptionTypes.find(t=>t.id===sub.typeId);if(!_sType||_sType.mode!=='discount'){sub.entriesUsed--;if(sub.status==='expired'&&sub.entriesUsed<sub.entriesTotal)sub.status='active';await fsUpdate('subscriptions',sub.id,{entriesUsed:sub.entriesUsed,status:sub.status}).catch(console.error);}}}
     showToast('Prenotazione cancellata','error');
     if(ctx==='bookings')renderAdminBookings();
     else if(ctx==='detail'){window._adminDetailKeepScroll=true;showAdminEventDetail(b.eventId);}
   },'danger');
+}
+function restoreBookingCtx(bId,ctx){
+  const b=store.bookings.find(x=>x.id===bId);if(!b)return;
+  const ev=store.events.find(e=>e.id===b.eventId);
+  if(ev&&ev.status==='archiviato')return;
+  showConfirm('Ripristina prenotazione','Ripristinare la prenotazione di '+escHtml(b.userName)+'?',async()=>{
+    b.status='confermata';
+    const updates={status:'confermata'};
+    if(b.subscriptionId){
+      const sub=store.subscriptions.find(s=>s.id===b.subscriptionId);
+      if(sub){
+        const _sType=store.subscriptionTypes.find(t=>t.id===sub.typeId);
+        if(!_sType||_sType.mode!=='discount'){
+          sub.entriesUsed++;
+          if(sub.entriesUsed>=sub.entriesTotal)sub.status='expired';
+          await fsUpdate('subscriptions',sub.id,{entriesUsed:sub.entriesUsed,status:sub.status}).catch(console.error);
+        }
+      }
+    }
+    await fsUpdate('bookings',b.id,updates).catch(console.error);
+    showToast('♻️ Prenotazione ripristinata');
+    if(ctx==='bookings')renderAdminBookings();
+    else if(ctx==='detail'){window._adminDetailKeepScroll=true;showAdminEventDetail(b.eventId);}
+  });
 }
 /* Handle pricing mode change: convert paid bookings to free and generate refund list */
 function handlePricingModeChange(evId,oldPricingMode,newPricingMode){
@@ -20379,7 +20462,7 @@ async function downloadExcel(){
 
   const roleName=r=>r==='base'?'Base':r==='flyer'?'Flyer':r==='non_so'?'Non lo so':r==='entrambi'?'Entrambi':'—';
   const getSessionLabel=(sIds)=>buildSessionBadges(sIds,ev,'text');
-  const payLabel=b=>b.gift?'Regalo':b.paymentStatus==='pagato'?'Pagato':b.paymentStatus==='gratuito'?'Gratuito':'Non pagato';
+  const payLabel=b=>b.gift?'Regalo':b.paymentStatus==='pagato'?'Pagato':b.paymentStatus==='gratuito'?'Gratuito':b.paymentStatus==='abbonamento'?'Abbonamento':'Non pagato';
   const depLabel=b=>b.depositStatus==='ricevuto'?'Ricevuto':b.depositStatus==='pending'?'Pending':'—';
 
   function buildSheet(ws,sheetTitle,bookings){
@@ -21043,9 +21126,10 @@ async function showAdminEventDetail(evId){
       <table class="table">
         <thead><tr><th style="cursor:pointer" onclick="sortAdminDetail('userName')">Partecipante ${adminDetailSort.field==='userName'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('role')">Ruolo ${adminDetailSort.field==='role'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('sessions')">Sessioni ${adminDetailSort.field==='sessions'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${ev.pricingMode!=='free'?'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'tier\')">Tier '+(adminDetailSort.field==='tier'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}<th style="cursor:pointer" onclick="sortAdminDetail('checkedIn')">Presente ${adminDetailSort.field==='checkedIn'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${ev.pricingMode!=='free'?'<th style="cursor:pointer" onclick="sortAdminDetail(\'amount\')">Importo '+(adminDetailSort.field==='amount'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'paymentStatus\')">Pagato '+(adminDetailSort.field==='paymentStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'depositStatus\')">Anticipo '+(adminDetailSort.field==='depositStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'daIncassare\')">Da incassare '+(adminDetailSort.field==='daIncassare'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).length?'<th style="border-left:2px solid var(--s400);padding-left:12px;cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+(ev.surveys[0].id)+'\')">'+ev.surveys[0].question.substring(0,20)+(ev.surveys[0].question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+ev.surveys[0].id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).slice(1).map(sq=>'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+sq.id+'\')">'+sq.question.substring(0,20)+(sq.question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+sq.id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>').join('')}<th>Azioni</th></tr></thead>
         <tbody>${active.map(b=>{
+          _sanitizeBookingState(b);
           const depositHtml=isArchived?(b.depositStatus==='ricevuto'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">✅ Ricevuto</span>':b.depositStatus==='pending'?'<span class="badge badge-yellow">⏳ Pending</span>':'<span class="text-xs txt3">—</span>')
             :(b.depositStatus==='pending'?'<span class="badge badge-yellow" style="cursor:pointer" onclick="event.stopPropagation();confirmDepositCtx(\''+b.id+'\',\'detail\')">⏳ Pending</span>'
-            :b.depositStatus==='ricevuto'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">✅ Ricevuto</span>'
+            :b.depositStatus==='ricevuto'?'<span class="badge" style="background:var(--green-bg);color:var(--green);cursor:pointer" onclick="event.stopPropagation();revertDepositCtx(\''+b.id+'\',\'detail\')">✅ Ricevuto</span>'
             :'<span class="text-xs txt3">—</span>');
           const giftBtn=isArchived?'':'<button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:.7rem;margin-left:4px" onclick="event.stopPropagation();toggleGift(\''+b.id+'\',\'detail\')" title="'+(b.gift?'Rimuovi regalo':'Segna come regalo')+'">'+(b.gift?'↩️':'🎁')+'</button>';
           const amountHtml=b.gift?'<span style="color:var(--purple)">🎁 Regalo</span>':'€'+fmtEuro(b.amount||0);
@@ -21054,7 +21138,7 @@ async function showAdminEventDetail(evId){
             :b.paymentStatus==='pagato'?'<span class="badge" style="background:var(--green-bg);color:var(--green);cursor:pointer" onclick="event.stopPropagation();togglePayment(\''+b.id+'\',\'detail\')">💰 Pagato</span>'
             :b.paymentStatus==='gratuito'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🎟️ Gratuito</span>'
             :b.paymentStatus==='abbonamento'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🎟️ Abb.</span>'
-            :((b.amount||0)===0?'<span class="text-xs txt3">—</span>':'<button class="btn btn-sm" style="background:rgba(234,179,8,.12);color:var(--yellow);border:1px solid rgba(234,179,8,.3);font-size:.7rem" onclick="event.stopPropagation();togglePayment(\''+b.id+'\',\'detail\')">💰 Segna pagato</button>'));
+            :((b.amount||0)===0?'<span class="text-xs txt3">—</span>':'<button class="btn btn-sm" style="background:rgba(234,179,8,.12);color:var(--yellow);border:1px solid rgba(234,179,8,.3);font-size:.7rem" onclick="event.stopPropagation();togglePayment(\''+b.id+'\',\'detail\')">'+(b.depositStatus==='ricevuto'?'💰 Segna saldo pagato':'💰 Segna pagato')+'</button>'));
           const _bOwed=b.gift?0:(b.amount||0);
           const _bPaid=(b.gift||b.paymentStatus==='pagato'||b.paymentStatus==='gratuito'||b.paymentStatus==='abbonamento')?_bOwed:0;
           const _bDep=(!b.gift&&b.depositStatus==='ricevuto')?depAmount:0;
@@ -21089,10 +21173,11 @@ async function showAdminEventDetail(evId){
     ${cancelled.length?`
     <h2 class="font-semibold text-white mb-3 mt-6" style="opacity:.6">❌ Cancellate (${cancelled.length})</h2>
     <div class="card table-wrap" style="padding:0;overflow:auto;opacity:.5">
-      <table class="table"><thead><tr><th>Utente</th><th>Importo</th></tr></thead>
+      <table class="table"><thead><tr><th>Utente</th><th>Importo</th>${!isArchived?'<th>Azioni</th>':''}</tr></thead>
       <tbody>${cancelled.map(b=>{const _cu=store.users.find(x=>x.id===b.userId)||store.managers.find(x=>x.id===b.userId);const _cl=_cu?.profileLogo||null;return `<tr>
         <td><div class="flex items-center gap-2"><div class="avatar" style="background:var(--s300);color:var(--txt3)${_cl?';overflow:hidden':''}">${_cl?'<img src="'+_cl+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':b.initials}</div><div class="font-medium text-white text-sm" style="text-decoration:line-through">${escHtml(b.userName)}</div></div></td>
         <td class="text-sm txt3">€${fmtEuro(b.amount)}</td>
+        ${!isArchived?'<td><button class="btn btn-sm" style="background:rgba(59,130,246,.12);color:var(--blue);border:1px solid rgba(59,130,246,.3);font-size:.7rem" onclick="event.stopPropagation();restoreBookingCtx(\''+b.id+'\',\'detail\')">♻️ Ripristina</button></td>':''}
       </tr>`}).join('')}</tbody></table>
     </div>`:''}
   </div>`;
