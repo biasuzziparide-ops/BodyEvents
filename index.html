@@ -271,7 +271,7 @@ textarea.input{resize:none;font-family:inherit}
   .table *{max-width:none!important;word-break:normal!important}
   .card{padding:16px;max-width:100%;box-sizing:border-box;overflow-wrap:break-word;word-break:break-word;overflow-x:hidden}
   .card .card{overflow-x:visible}
-  .table-wrap,.card:has(>.table){overflow-x:auto!important;overflow-y:visible!important;-webkit-overflow-scrolling:touch;word-break:normal!important;overflow-wrap:normal!important}
+  .table-wrap,.card:has(>.table){overflow-x:auto!important;overflow-y:hidden!important;-webkit-overflow-scrolling:touch;word-break:normal!important;overflow-wrap:normal!important}
   .flex.gap-3{gap:8px}
   .stat-card{padding:12px}
   .stat-card .value{font-size:1.2rem}
@@ -332,12 +332,12 @@ textarea.input{resize:none;font-family:inherit}
   [style*="grid-template-columns:repeat(3"]{grid-template-columns:1fr 1fr!important}
   .dialog{max-width:calc(100vw - 32px)!important;box-sizing:border-box}
   .qr-box{max-width:100%;width:auto;height:auto;aspect-ratio:1/1}
-  .table{min-width:700px;max-width:none!important}
+  .table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;min-width:700px;max-width:none!important}
   .table th,.table td{white-space:nowrap;word-break:normal!important;max-width:none!important}
   .table *{max-width:none!important}
   .table .td-participant,.table .th-participant{position:sticky!important;left:0!important;z-index:2;background:var(--s50)!important;max-width:33vw!important;min-width:90px}
   .table .td-participant .participant-info{max-width:calc(33vw - 16px)!important;overflow:hidden}
-  .table-wrap,.card:has(>.table){overflow-x:auto!important}
+  .table-wrap,.card:has(>.table){overflow-x:auto!important;overflow-y:hidden!important;-webkit-overflow-scrolling:touch}
 }
 
 /* === PAGE VIEWS (SPA) === */
@@ -21244,7 +21244,7 @@ async function showAdminEventDetail(evId){
 
     <!-- Participants table -->
     <h2 class="font-semibold text-white mb-3">👥 Lista Partecipanti (${active.length}${active.filter(b=>b.checkedIn).length>0?' · <span style="color:var(--green)">'+active.filter(b=>b.checkedIn).length+' presenti</span>':''})${viewSubtitle}</h2>
-    ${active.length?`<div class="card table-wrap" style="padding:0;overflow:auto">
+    ${active.length?`<div class="card table-wrap" style="padding:0">
       <table class="table">
         <thead><tr><th class="th-participant" style="cursor:pointer" onclick="sortAdminDetail('userName')">Partecipante ${adminDetailSort.field==='userName'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('role')">Ruolo ${adminDetailSort.field==='role'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('sessions')">Sessioni ${adminDetailSort.field==='sessions'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${ev.pricingMode!=='free'?'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'tier\')">Tier '+(adminDetailSort.field==='tier'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}<th style="cursor:pointer" onclick="sortAdminDetail('checkedIn')">Presente ${adminDetailSort.field==='checkedIn'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${ev.pricingMode!=='free'?'<th style="cursor:pointer" onclick="sortAdminDetail(\'amount\')">Importo '+(adminDetailSort.field==='amount'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'paymentStatus\')">Pagato '+(adminDetailSort.field==='paymentStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'depositStatus\')">Anticipo '+(adminDetailSort.field==='depositStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'daIncassare\')">Da incassare '+(adminDetailSort.field==='daIncassare'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).length?'<th style="border-left:2px solid var(--s400);padding-left:12px;cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+(ev.surveys[0].id)+'\')">'+ev.surveys[0].question.substring(0,20)+(ev.surveys[0].question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+ev.surveys[0].id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).slice(1).map(sq=>'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+sq.id+'\')">'+sq.question.substring(0,20)+(sq.question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+sq.id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>').join('')}<th>Azioni</th></tr></thead>
         <tbody>${active.map(b=>{
@@ -21294,7 +21294,7 @@ async function showAdminEventDetail(evId){
 
     ${cancelled.length?`
     <h2 class="font-semibold text-white mb-3 mt-6" style="opacity:.6">❌ Cancellate (${cancelled.length})</h2>
-    <div class="card table-wrap" style="padding:0;overflow:auto;opacity:.5">
+    <div class="card table-wrap" style="padding:0;opacity:.5">
       <table class="table"><thead><tr><th>Utente</th><th>Importo</th>${!isArchived?'<th>Azioni</th>':''}</tr></thead>
       <tbody>${cancelled.map(b=>{const _cu=store.users.find(x=>x.id===b.userId)||store.managers.find(x=>x.id===b.userId);const _cl=_cu?.profileLogo||null;return `<tr>
         <td><div class="flex items-center gap-2"><div class="avatar" style="background:var(--s300);color:var(--txt3)${_cl?';overflow:hidden':''}">${_cl?'<img src="'+_cl+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':b.initials}</div><div class="font-medium text-white text-sm" style="text-decoration:line-through">${escHtml(b.userName)}</div></div></td>
