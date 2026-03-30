@@ -199,6 +199,8 @@ textarea.input{resize:none;font-family:inherit}
 .checkbox{width:18px;height:18px;border-radius:4px;border:2px solid var(--txt3);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
 .check-item.selected .checkbox{border-color:var(--brand);background:var(--brand-d)}
 
+.session-info{display:flex;align-items:center;gap:8px;padding:12px;border-radius:12px;border:1px solid var(--s300);background:var(--s100);transition:all .25s}
+
 /* === STAT CARD === */
 .stat-card{text-align:center;padding:16px;background:var(--s200);border-radius:12px}
 .stat-card .value{font-size:1.5rem;font-weight:700;color:#fff}
@@ -210,6 +212,14 @@ textarea.input{resize:none;font-family:inherit}
 .table th[onclick]:hover{color:var(--txt1);background:var(--s200);border-radius:6px 6px 0 0}
 .table td{padding:10px 12px;border-bottom:1px solid rgba(45,45,58,.5);color:var(--txt2)}
 .table tr:hover td{background:rgba(37,37,47,.5)}
+/* V3.9.0: Sticky first column — all screen sizes */
+.table .td-participant,.table .th-participant{position:sticky;left:0;z-index:2;background:var(--s50);min-width:160px;max-width:250px}
+.table .td-participant::after,.table .th-participant::after{content:'';position:absolute;right:-6px;top:0;bottom:0;width:6px;background:linear-gradient(to right,rgba(0,0,0,.12),transparent);pointer-events:none}
+/* Table horizontal scroll container — all screen sizes */
+.card.table-wrap{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
+.card.table-wrap>.table{min-width:800px}
+/* Survey response columns — prevent overlap */
+.table td.td-survey,.table th.th-survey{min-width:120px;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* === AVATAR === */
 .avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:.8rem;flex-shrink:0}
@@ -416,7 +426,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.7.3</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.0</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -736,7 +746,7 @@ textarea.input{resize:none;font-family:inherit}
   </div>
 
   <div style="position:sticky;bottom:16px;padding-top:16px">
-    <button class="btn btn-primary w-full" style="padding:14px;font-size:1rem" id="bookBtn1" disabled onclick="doBook()">Conferma prenotazione</button>
+    <button class="btn btn-primary w-full" style="padding:14px;font-size:1rem" id="bookBtn1" disabled onclick="doBook()">Prenota</button>
   </div>
 </div>
 </div>
@@ -853,7 +863,7 @@ textarea.input{resize:none;font-family:inherit}
   </div>
 
   <div style="position:sticky;bottom:16px;padding-top:16px">
-    <button class="btn btn-primary w-full" style="padding:14px;font-size:1rem" onclick="doBook()">Conferma prenotazione</button>
+    <button class="btn btn-primary w-full" style="padding:14px;font-size:1rem" onclick="doBook()">Prenota</button>
   </div>
 </div>
 </div>
@@ -914,7 +924,7 @@ textarea.input{resize:none;font-family:inherit}
     </div>
   </div>
   <div style="position:sticky;bottom:16px;padding-top:16px">
-    <button class="btn btn-primary w-full" style="padding:14px;font-size:1rem" onclick="doBook()">Conferma prenotazione</button>
+    <button class="btn btn-primary w-full" style="padding:14px;font-size:1rem" onclick="doBook()">Prenota</button>
   </div>
 </div>
 </div>
@@ -1299,6 +1309,24 @@ textarea.input{resize:none;font-family:inherit}
       </div>
     </div>
 
+    <!-- Link di pagamento predefiniti -->
+    <div class="card mb-4">
+      <h3 class="font-semibold text-white mb-4">💳 Link di pagamento predefiniti</h3>
+      <p class="text-xs txt3 mb-3">Questi link verranno pre-compilati automaticamente quando crei un nuovo evento. Puoi sempre modificarli per ogni singolo evento.</p>
+      <div class="mb-3">
+        <label class="label">Link PayPal</label>
+        <input class="input" id="org-profile-paypal" value="" placeholder="https://paypal.me/..." oninput="orgProfileChanged()">
+      </div>
+      <div class="mb-3">
+        <label class="label">Link Revolut</label>
+        <input class="input" id="org-profile-revolut" value="" placeholder="https://revolut.me/..." oninput="orgProfileChanged()">
+      </div>
+      <div class="mb-3">
+        <label class="label">Link Satispay</label>
+        <input class="input" id="org-profile-satispay" value="" placeholder="https://tag.satispay.com/..." oninput="orgProfileChanged()">
+      </div>
+    </div>
+
     <!-- Account info -->
     <div class="card mb-4">
       <h3 class="font-semibold text-white mb-4">👤 Account</h3>
@@ -1596,28 +1624,27 @@ textarea.input{resize:none;font-family:inherit}
       <p class="text-xs txt3 mb-4">Prezzo per l'intero evento (tutte le giornate). Utile per offrire un pacchetto completo scontato rispetto alle singole giornate/sessioni.</p>
       <div class="mb-2">
         <div class="flex items-center gap-3">
-          <div style="flex:1"><label class="label">💰 Prezzo evento (Standard) €</label><input class="input" id="ne-tier-medio" type="number" value="" placeholder="Es: 10" oninput="updateEventEBTierVisibility()"></div>
+          <div style="flex:1"><label class="label">💰 Prezzo evento (Standard) €</label><input class="input" id="ne-tier-medio" type="number" value="" placeholder="Es: 10"></div>
           <div style="padding-top:18px"><button type="button" class="btn btn-sm" style="font-size:.7rem;background:var(--green-bg);color:var(--green);border:1px solid var(--green)" onclick="toggleTierExpand(this)">⚙️ Più tier</button></div>
         </div>
       </div>
       <div class="hidden mb-4">
         <div class="grid grid-2 gap-3">
-          <div><label class="label">✦ Sostenitore €</label><input class="input" id="ne-tier-alto" type="number" value="" placeholder="Es: 15" oninput="updateEventEBTierVisibility()"></div>
-          <div><label class="label">○ Ridotto €</label><input class="input" id="ne-tier-basso" type="number" value="" placeholder="Es: 5" oninput="updateEventEBTierVisibility()"></div>
+          <div><label class="label">✦ Sostenitore €</label><input class="input" id="ne-tier-alto" type="number" value="" placeholder="Es: 15"></div>
+          <div><label class="label">○ Ridotto €</label><input class="input" id="ne-tier-basso" type="number" value="" placeholder="Es: 5"></div>
         </div>
       </div>
       <!-- Early Bird -->
-      <div class="flex items-center gap-2 mb-2 mt-4" style="cursor:pointer" onclick="this.nextElementSibling.classList.toggle('hidden');this.querySelector('.toggle-arrow').textContent=this.nextElementSibling.classList.contains('hidden')?'▸':'▾';updateEventEBTierVisibility()">
+      <div class="flex items-center gap-2 mb-2 mt-4" style="cursor:pointer" onclick="this.nextElementSibling.classList.toggle('hidden');this.querySelector('.toggle-arrow').textContent=this.nextElementSibling.classList.contains('hidden')?'▸':'▾'">
         <span class="toggle-arrow text-sm" style="color:var(--yellow)">▸</span>
         <span class="text-sm font-medium" style="color:var(--yellow)">🐦 Prezzo Early Bird</span>
         <span class="text-xs txt3">(clicca per espandere)</span>
       </div>
       <div class="hidden" id="ne-earlybird-section">
-        <p class="text-xs txt3 mb-3">Prezzo scontato per chi prenota per primo. I campi disponibili dipendono dai tier base inseriti.</p>
-        <div id="ne-eb-tiers-grid" class="grid gap-3 mb-3" style="grid-template-columns:repeat(1,1fr)">
-          <div id="ne-eb-alto-wrap" style="display:none"><label class="label">✦ Early Alto €</label><input class="input" id="ne-eb-alto" type="number" placeholder="—"></div>
-          <div id="ne-eb-medio-wrap"><label class="label">● Early Standard €</label><input class="input" id="ne-eb-medio" type="number" placeholder="—"></div>
-          <div id="ne-eb-basso-wrap" style="display:none"><label class="label">○ Early Ridotto €</label><input class="input" id="ne-eb-basso" type="number" placeholder="—"></div>
+        <p class="text-xs txt3 mb-3">Prezzo scontato unico per chi prenota per primo.</p>
+        <div class="mb-3">
+          <label class="label">🐦 Prezzo Early Bird €</label>
+          <input class="input" id="ne-eb-price" type="number" placeholder="Es: 10">
         </div>
         <div class="mb-3">
           <label class="label">Scadenza Early Bird</label>
@@ -1658,6 +1685,7 @@ textarea.input{resize:none;font-family:inherit}
         <h4 class="text-sm font-semibold mb-3" style="color:var(--txt2)">💳 Metodi di pagamento</h4>
         <div class="mb-3"><label class="label">Link PayPal</label><input class="input" id="ne-paypal" placeholder="https://paypal.me/..."></div>
         <div class="mb-3"><label class="label">Link Revolut</label><input class="input" id="ne-revolut" placeholder="https://revolut.me/..."></div>
+        <div class="mb-3"><label class="label">Link Satispay</label><input class="input" id="ne-satispay" placeholder="https://tag.satispay.com/..."></div>
         <div class="flex items-center gap-3 mt-3">
           <input type="checkbox" id="ne-cash" checked style="display:none">
           <button type="button" id="ne-cash-btn" class="btn btn-sm" style="background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.4);font-size:.8rem;padding:8px 16px;border-radius:10px;transition:all .2s" onclick="const cb=document.getElementById('ne-cash');cb.checked=!cb.checked;if(cb.checked){this.style.background='rgba(16,185,129,.15)';this.style.color='var(--green)';this.style.borderColor='rgba(16,185,129,.4)';this.textContent='💵 Accetta contanti ✓';}else{this.style.background='var(--s200)';this.style.color='var(--txt2)';this.style.borderColor='var(--s400)';this.textContent='💵 Contanti';}">💵 Accetta contanti ✓</button>
@@ -1675,10 +1703,14 @@ textarea.input{resize:none;font-family:inherit}
           <button type="button" id="ne-costs-managed-btn" class="btn btn-sm" style="background:var(--s200);color:var(--txt2);border:1px solid var(--s400);font-size:.8rem;padding:8px 16px;border-radius:10px;transition:all .2s" onclick="togglePricingBtn('ne-costs-managed-by-org',this)">
             🤝 Costi gestiti dall'organizzatore
           </button>
+          <button type="button" id="ne-direct-cost-btn" class="btn btn-sm" style="background:var(--s200);color:var(--txt2);border:1px solid var(--s400);font-size:.8rem;padding:8px 16px;border-radius:10px;transition:all .2s" onclick="togglePricingBtn('ne-direct-cost',this)">
+            📞 Mi organizzo direttamente
+          </button>
         </div>
         <input type="checkbox" id="ne-free-event" style="display:none">
         <input type="checkbox" id="ne-costs-managed-by-org" style="display:none">
-        <p class="text-xs txt3 mt-2" style="line-height:1.4">Evento gratuito: nessun prezzo richiesto. Costi gestiti dall'organizzatore: i costi vengono concordati direttamente. Lascia vuoto per impostare prezzi standard per sessione/giornata.</p>
+        <input type="checkbox" id="ne-direct-cost" style="display:none">
+        <p class="text-xs txt3 mt-2" style="line-height:1.4">Evento gratuito: nessun prezzo richiesto. Costi gestiti dall'organizzatore: i costi vengono concordati direttamente, prezzi gestiti dall'organizzatore in app. Mi organizzo direttamente: nessun prezzo in app, il partecipante contatta l'organizzatore per i costi. Lascia vuoto per impostare prezzi standard per sessione/giornata.</p>
       </div>
 
       <!-- Abbonamenti — toggle buttons -->
@@ -2746,7 +2778,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.7.3';
+const APP_VERSION='V3.10.0';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -3452,8 +3484,17 @@ function isInsuranceCurrentlyValid(ins){
 }
 
 // V3.2: Helper to find a person (user or manager) by ID
+// V3.9.0: Merge assignedInsurances from both records if user exists in both collections
 function findPersonById(userId){
-  return store.users.find(u=>u.id===userId)||store.managers.find(m=>m.id===userId)||null;
+  const fromUsers=store.users.find(u=>u.id===userId);
+  const fromManagers=store.managers.find(m=>m.id===userId);
+  if(fromUsers&&fromManagers){
+    if(!fromUsers.assignedInsurances&&fromManagers.assignedInsurances){
+      fromUsers.assignedInsurances=fromManagers.assignedInsurances;
+    }
+    return fromUsers;
+  }
+  return fromUsers||fromManagers||null;
 }
 
 function getUserActiveInsurances(userId,managerAffiliatedIds){
@@ -3470,12 +3511,17 @@ function getUserActiveInsurances(userId,managerAffiliatedIds){
 function isUserInsured(userId,requiredInsuranceIds){
   if(!requiredInsuranceIds||!requiredInsuranceIds.length)return true;
   const user=findPersonById(userId);
+  console.log('[Insurance Check] userId:', userId, 'user found:', !!user, 'assignedInsurances:', user?.assignedInsurances);
+  console.log('[Insurance Check] requiredInsuranceIds:', requiredInsuranceIds);
+  console.log('[Insurance Check] store.insurances count:', store.insurances?.length, 'ids:', store.insurances?.map(i=>i.id));
   if(!user||!user.assignedInsurances)return false;
-  // V3.2: Use insurance entity validity as authoritative source
   return requiredInsuranceIds.some(reqId=>{
     const ins=store.insurances.find(i=>i.id===reqId);
+    console.log('[Insurance Check] checking reqId:', reqId, 'insurance entity found:', !!ins, 'valid:', ins ? isInsuranceCurrentlyValid(ins) : 'N/A');
     if(!isInsuranceCurrentlyValid(ins))return false;
-    return user.assignedInsurances.some(a=>a.insuranceId===reqId);
+    const hasAssignment=user.assignedInsurances.some(a=>a.insuranceId===reqId);
+    console.log('[Insurance Check] user has assignment for', reqId, ':', hasAssignment);
+    return hasAssignment;
   });
 }
 
@@ -7752,7 +7798,7 @@ function openRegistryUserDetail(uid){
     const dateStr=b.recurringDate?fmtDateShort(b.recurringDate):(ev.days&&ev.days[0]?fmtDateShort(ev.days[0].date):'');
     const recLabel=b.recurringDate&&ev.recurrence?' <span style="font-size:.68rem;color:var(--txt3)">(ricorrente)</span>':'';
     let payInfo='';
-    if(ev.pricingMode!=='free'&&!showCancel){
+    if(ev.pricingMode!=='free'&&ev.pricingMode!=='direct'&&!showCancel){
       if(b.gift)payInfo='<span style="color:var(--purple);font-size:.72rem">🎁 Regalo</span>';
       else if(b.paymentStatus==='pagato')payInfo='<span style="color:var(--green);font-size:.72rem">💰 €'+(b.amount||0)+'</span>';
       else if(b.paymentStatus==='gratuito'||b.paymentStatus==='abbonamento')payInfo='<span style="color:var(--green);font-size:.72rem">🎟️ '+(b.paymentStatus==='abbonamento'?'Abb.':'Gratis')+'</span>';
@@ -10041,6 +10087,11 @@ function populateOrgProfile(){
   const igEl=document.getElementById('org-profile-instagram');if(igEl)igEl.value=social.instagram||'';
   const fbEl=document.getElementById('org-profile-facebook');if(fbEl)fbEl.value=social.facebook||'';
   const webEl=document.getElementById('org-profile-website');if(webEl)webEl.value=social.website||'';
+  // V3.9.0: Payment links defaults
+  const payLinks=mgr.paymentLinks||{};
+  const paypalEl=document.getElementById('org-profile-paypal');if(paypalEl)paypalEl.value=payLinks.paypal||'';
+  const revolutEl=document.getElementById('org-profile-revolut');if(revolutEl)revolutEl.value=payLinks.revolut||'';
+  const satispayEl=document.getElementById('org-profile-satispay');if(satispayEl)satispayEl.value=payLinks.satispay||'';
   // Universes
   const uWrap=document.getElementById('org-profile-universes');
   if(uWrap){
@@ -10149,6 +10200,13 @@ async function saveOrgProfile(){
       website:(document.getElementById('org-profile-website')?.value||'').trim()
     };
     mgr.socialLinks=socialLinks;
+    // V3.9.0: Payment links
+    const paymentLinks={
+      paypal:(document.getElementById('org-profile-paypal')?.value||'').trim(),
+      revolut:(document.getElementById('org-profile-revolut')?.value||'').trim(),
+      satispay:(document.getElementById('org-profile-satispay')?.value||'').trim()
+    };
+    mgr.paymentLinks=paymentLinks;
     if(logoData)mgr.orgLogo=logoData;else if(logoData===false)mgr.orgLogo=null;
   }
   u.orgName=nameVal;u.orgEmoji=emojiVal;u.city=cityVal;u.description=descVal;u.username=usernameVal;
@@ -10157,7 +10215,7 @@ async function saveOrgProfile(){
   u.socialLinks=mgr?.socialLinks||{};
   if(logoData)u.orgLogo=logoData;else if(logoData===false)u.orgLogo=null;
   // Update Firestore
-  const updateData={orgName:nameVal,orgEmoji:emojiVal,city:cityVal,description:descVal,username:usernameVal,initials:u.initials,phone:phoneVal,contactEmail:contactEmailVal,socialLinks:mgr?.socialLinks||{}};
+  const updateData={orgName:nameVal,orgEmoji:emojiVal,city:cityVal,description:descVal,username:usernameVal,initials:u.initials,phone:phoneVal,contactEmail:contactEmailVal,socialLinks:mgr?.socialLinks||{},paymentLinks:mgr?.paymentLinks||{}};
   if(logoData)updateData.orgLogo=logoData;
   else if(logoData===false)updateData.orgLogo=null;
   await fsUpdate('managers',u.id,updateData).catch(console.error);
@@ -10402,7 +10460,7 @@ function getJamConfirmationStatus(jam){
 }
 function capitalize(s){return s?s.charAt(0).toUpperCase()+s.slice(1):'';}
 function minPrice(ev){
-  if(ev.pricingMode==='free'||ev.pricingMode==='managed')return 0;
+  if(ev.pricingMode==='free'||ev.pricingMode==='managed'||ev.pricingMode==='direct')return 0;
   const prices=[];
   const t=ev.tiers;
   if(t){if(t.basso!=null)prices.push(t.basso);if(t.medio!=null)prices.push(t.medio);if(t.alto!=null)prices.push(t.alto);}
@@ -10413,7 +10471,7 @@ function minPrice(ev){
   return prices.length?Math.min(...prices):0;
 }
 function maxPrice(ev){
-  if(ev.pricingMode==='free'||ev.pricingMode==='managed')return 0;
+  if(ev.pricingMode==='free'||ev.pricingMode==='managed'||ev.pricingMode==='direct')return 0;
   const prices=[];
   const t=ev.tiers;
   if(t){if(t.basso!=null)prices.push(t.basso);if(t.medio!=null)prices.push(t.medio);if(t.alto!=null)prices.push(t.alto);}
@@ -10480,6 +10538,21 @@ function selectTier(gridId,el,tier){
           if(dayGrid)dayGrid.querySelectorAll('.tier-btn').forEach(b=>b.classList.remove('selected'));
         }
       });
+    }
+  }
+  // Highlight della card sessione relativa
+  const isEB = gridId.includes('tier-eb') || tier === 'eb';
+  const sessEl = gridId.includes('tiers-') || gridId.includes('tier-ebs-')
+    ? document.querySelector(`[id$="sess-${(gridId.match(/(?:tiers|tier-ebs)-(.+)$/)||[])[1]}"]`)
+    : null;
+  if (sessEl) {
+    if (el.classList.contains('selected')) {
+      sessEl.style.borderColor = isEB ? 'var(--yellow)' : 'var(--brand)';
+      sessEl.style.background = isEB ? 'rgba(234,179,8,.05)' : 'rgba(217,70,239,.06)';
+      sessEl.style.transition = 'all .25s';
+    } else {
+      sessEl.style.borderColor = '';
+      sessEl.style.background = '';
     }
   }
 }
@@ -10878,8 +10951,9 @@ function _doBookNormal(){
 
   const evIsFree=ev.pricingMode==='free';
   const evIsManaged=ev.pricingMode==='managed';
-  // For free/managed events, skip tier selection — but collect session/day selections
-  if(evIsFree||evIsManaged){
+  const evIsDirect=ev.pricingMode==='direct';
+  // For free/managed/direct events, skip tier selection — but collect session/day selections
+  if(evIsFree||evIsManaged||evIsDirect){
     // Determine what the user selected (sessions, days, or entire event)
     const hasMultipleSessions=ev.days.some(d=>d.sessions&&d.sessions.length>1);
     const hasSelections=freeSelectedSessions.size>0||freeSelectedDays.size>0;
@@ -11186,7 +11260,7 @@ function _doBookNormal(){
   }
 
   // Collect what the user selected
-  const tierLabel=t=>t==='alto'?'Sostenitore':t==='medio'?'Standard':'Ridotto';
+  const tierLabel=t=>t==='eb'?'Early Bird':t==='alto'?'Sostenitore':t==='medio'?'Standard':'Ridotto';
   // V3.2 FIX: Helper for effective date (recurring events show recurrence date, not template date)
   const _effDate=(dayDate)=>{
     if(!currentBookingRecDate||!dayDate||!ev.days||!ev.days[0]||!ev.days[0].date)return dayDate;
@@ -11879,11 +11953,12 @@ async function renderCheckinB(){
   const typeBadge=badgeType(ev.type);const typeBadgeStyle=badgeTypeStyle(ev.type);
   const isFree=ev.pricingMode==='free';
   const isManaged=ev.pricingMode==='managed';
+  const isDirect=ev.pricingMode==='direct';
 
   // Build full pricing structure
   const pricingHtml=buildFullPricingHtml(ev,'wi_');
-  const payHtml=(!isFree&&!isManaged)?buildPaymentMethodsHtml(ev):'';
-  const depHtml=(!isFree&&!isManaged)?buildDepositHtml(ev,store.currentUser.username):'';
+  const payHtml=(!isFree&&!isManaged&&!isDirect)?buildPaymentMethodsHtml(ev):'';
+  const depHtml=(!isFree&&!isManaged&&!isDirect)?buildDepositHtml(ev,store.currentUser.username):'';
 
   c.innerHTML=`
     <div id="walkin-step1">
@@ -11933,10 +12008,10 @@ function confirmWalkinCheckin(evId){
   if(!selectedBookRole){showToast('Seleziona il tuo ruolo preferito!','error');return;}
   const surveyResponses=collectSurveyResponses(ev,'wi_');
   if(surveyResponses===null)return;
-  const isFree=ev.pricingMode==='free';const isManaged=ev.pricingMode==='managed';
+  const isFree=ev.pricingMode==='free';const isManaged=ev.pricingMode==='managed';const isDirect=ev.pricingMode==='direct';
   let items,totalAmount,scope,tierKey,sessions;
-  if(isFree||isManaged){
-    // Free/managed: book entire event, all sessions
+  if(isFree||isManaged||isDirect){
+    // Free/managed/direct: book entire event, all sessions
     const allSessIds=[];ev.days.forEach(d=>(d.sessions||[]).forEach(s=>allSessIds.push(s.id)));
     items=[];totalAmount=0;scope='evento';tierKey='medio';sessions=allSessIds;
   } else {
@@ -11975,12 +12050,12 @@ async function renderCheckinC(){
   // Reset tier selections for fresh check-in
   Object.keys(selectedTiers).forEach(k=>{if(k.startsWith('np_'))delete selectedTiers[k];});
   const d0=ev.days[0];
-  const isFree=ev.pricingMode==='free';const isManaged=ev.pricingMode==='managed';
+  const isFree=ev.pricingMode==='free';const isManaged=ev.pricingMode==='managed';const isDirect=ev.pricingMode==='direct';
   const typeBadge=badgeType(ev.type);const typeBadgeStyle=badgeTypeStyle(ev.type);
 
   // Build full pricing structure for step 2
   const pricingHtml=buildFullPricingHtml(ev,'np_');
-  const payHtml=(!isFree&&!isManaged)?buildPaymentMethodsHtml(ev):'';
+  const payHtml=(!isFree&&!isManaged&&!isDirect)?buildPaymentMethodsHtml(ev):'';
   const depHtml=(!isFree&&!isManaged)?buildDepositHtml(ev,'Nome Cognome'):'';
 
   c.innerHTML=`
@@ -12077,9 +12152,9 @@ function confirmNewCheckin(evId){
   const userRole=step2?.dataset.userRole||'non_so';
   const surveyResponses=collectSurveyResponses(ev,'np_');
   if(surveyResponses===null)return;
-  const isFree=ev.pricingMode==='free';const isManaged=ev.pricingMode==='managed';
+  const isFree=ev.pricingMode==='free';const isManaged=ev.pricingMode==='managed';const isDirect=ev.pricingMode==='direct';
   let items,totalAmount,scope,tierKey,sessions;
-  if(isFree||isManaged){
+  if(isFree||isManaged||isDirect){
     const allSessIds=[];ev.days.forEach(d=>(d.sessions||[]).forEach(s=>allSessIds.push(s.id)));
     items=[];totalAmount=0;scope='evento';tierKey='medio';sessions=allSessIds;
   } else {
@@ -12201,7 +12276,7 @@ async function renderUserEvents(){
       }
       return null;
     })();
-    const pricingBadge=ev.pricingMode==='free'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🆓 Gratuito</span>':ev.pricingMode==='managed'?'<span class="badge badge-yellow">🤝 Costi con org.</span>':(_cardSubInfo&&_cardSubInfo.type==='entry'?'<span class="badge" style="background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)">🎟️ Gratis con abb.</span>':_cardSubInfo&&_cardSubInfo.type==='discount'?'<span class="badge" style="background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)">💰 da €'+_cardSubInfo.price+' <span style="text-decoration:line-through;font-size:.6rem;opacity:.6">€'+_minP+'</span></span>':(_minP>0?'<span class="badge" style="background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)">💰 da €'+_minP+'</span>':''));
+    const pricingBadge=ev.pricingMode==='free'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🆓 Gratuito</span>':ev.pricingMode==='managed'?'<span class="badge badge-yellow">🤝 Costi con org.</span>':ev.pricingMode==='direct'?'<span class="badge" style="background:rgba(139,92,246,.1);color:var(--purple)">📞 Costo diretto</span>':(_cardSubInfo&&_cardSubInfo.type==='entry'?'<span class="badge" style="background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)">🎟️ Gratis con abb.</span>':_cardSubInfo&&_cardSubInfo.type==='discount'?'<span class="badge" style="background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)">💰 da €'+_cardSubInfo.price+' <span style="text-decoration:line-through;font-size:.6rem;opacity:.6">€'+_minP+'</span></span>':(_minP>0?'<span class="badge" style="background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)">💰 da €'+_minP+'</span>':''));
     const confirmStatus=getConfirmationStatus(ev);
     const confirmBadge=confirmStatus==='attesa'?'<span class="badge badge-attesa">⏳ Min. non raggiunto</span>':confirmStatus==='deadline_scaduta'?'<span class="badge" style="background:var(--red-bg);color:var(--red)">🚫 Deadline scaduta</span>':confirmStatus==='confermato'?'<span class="badge badge-confermato">✅ Confermato</span>':'';
     const _effBkDl=getEffectiveBookingDeadline(ev,ev._recDate||null);
@@ -14295,13 +14370,27 @@ function nativeShareEvent(eventId){
 /* ==============================
    GLOBAL TIER HELPERS
 ============================== */
+function getEBPrice(eb) {
+  if (!eb) return 0;
+  if (eb.price != null && eb.price !== '') return parseFloat(eb.price) || 0;
+  if (eb.medio) return parseFloat(eb.medio);
+  if (eb.alto) return parseFloat(eb.alto);
+  if (eb.basso) return parseFloat(eb.basso);
+  return 0;
+}
+function hasEBPrice(eb) {
+  if (!eb) return false;
+  if (eb.price != null && eb.price !== '' && parseFloat(eb.price) > 0) return true;
+  return !!(eb.alto || eb.medio || eb.basso);
+}
+
 function resolveEB(...ebLevels){
   let pricesEB=null;
   let metaEB=null;
   for(const eb of ebLevels){
     if(!eb)continue;
     if(!metaEB&&(eb.type||eb.deadline||eb.maxCount))metaEB=eb;
-    if(!pricesEB&&(eb.alto||eb.medio||eb.basso))pricesEB=eb;
+    if(!pricesEB&&hasEBPrice(eb))pricesEB=eb;
     if(pricesEB)break;
   }
   if(!pricesEB)return null;
@@ -14310,7 +14399,7 @@ function resolveEB(...ebLevels){
   return pricesEB;
 }
 function isEarlyBirdActive(eb,evId){
-  if(!eb||(!eb.alto&&!eb.medio&&!eb.basso))return false;
+  if(!eb||!hasEBPrice(eb))return false;
   if(eb.type==='date'&&eb.deadline){return localDateStr(new Date())<=eb.deadline;}
   if(eb.type==='count'&&eb.maxCount){const bookCount=store.bookings.filter(b=>b.eventId===evId&&b.status!=='cancellata').length;return bookCount<eb.maxCount;}
   return true;
@@ -14327,7 +14416,7 @@ function buildTierBtns(tiers, gridId, activeEB, evId, subDiscPct, freeWithSub){
   ];
   tierDefs.forEach(({key,icon,label})=>{
     if(tiers[key]==null||tiers[key]===''||tiers[key]===0)return;
-    if(ebActive&&activeEB[key]&&!freeWithSub)return;// skip — shown inside EB card (but when freeWithSub, show all as €0 here)
+    if(ebActive&&!freeWithSub)return; // EB attivo → nascondi TUTTI i tier standard
     const orig=parseFloat(tiers[key]);
     if(freeWithSub){
       btns+=`<div class="tier-btn" onclick="selectTier('${gridId}',this,'${key}')" style="border-color:rgba(16,185,129,.45);background:rgba(16,185,129,.06)"><span class="tier-icon">${icon}</span><span class="tier-label">${label}</span><span style="font-size:.55rem;color:var(--txt3);text-decoration:line-through">€${orig}</span><span class="tier-price" style="color:var(--green)">€0</span><span style="background:var(--green);color:#000;font-size:.45rem;padding:1px 3px;border-radius:3px;font-weight:700">🎟️ ABB</span></div>`;
@@ -14340,51 +14429,64 @@ function buildTierBtns(tiers, gridId, activeEB, evId, subDiscPct, freeWithSub){
   });
   return btns;
 }
-function renderEarlyBirdGrid(eb,gridId,evId,stdTiers,subDiscPct,freeWithSub){
-  if(!isEarlyBirdActive(eb,evId))return '';
-  if(freeWithSub){
-    // Entry-based sub: show EB tiers as €0 only if standard tiers are missing (fallback)
-    const _hasStdTiers=stdTiers&&Object.values(stdTiers).some(v=>v!=null&&v!==''&&v!==0);
-    if(_hasStdTiers)return ''; // Standard tiers already shown as €0 in buildTierBtns
-    // No standard tiers → show EB tiers as €0
-    let _fsBtns='';
-    [{key:'alto',icon:'✦',label:'Sostenitore'},{key:'medio',icon:'●',label:'Standard'},{key:'basso',icon:'○',label:'Ridotto'}].forEach(({key,icon,label})=>{
-      if(!eb[key])return;
-      const origEb=parseFloat(eb[key]);
-      _fsBtns+=`<div class="tier-btn" onclick="selectTier('${gridId}',this,'${key}')" style="border-color:rgba(16,185,129,.45);background:rgba(16,185,129,.06)"><span class="tier-icon">${icon}</span><span class="tier-label">${label}</span><span style="font-size:.55rem;color:var(--txt3);text-decoration:line-through">€${origEb}</span><span class="tier-price" style="color:var(--green)">€0</span><span style="background:var(--green);color:#000;font-size:.45rem;padding:1px 3px;border-radius:3px;font-weight:700">🎟️ ABB</span></div>`;
-    });
-    if(!_fsBtns)return '';
+function renderEarlyBirdGrid(eb, gridId, evId, stdTiers, subDiscPct, freeWithSub) {
+  if (!isEarlyBirdActive(eb, evId)) return '';
+  const ebPrice = getEBPrice(eb);
+  if (!ebPrice) return '';
+
+  if (freeWithSub) {
+    const _hasStdTiers = stdTiers && Object.values(stdTiers).some(v => v != null && v !== '' && v !== 0);
+    if (_hasStdTiers) return '';
     return `<div class="card mb-1" style="background:rgba(16,185,129,.05);border-color:var(--green);padding:3px 8px">
       <div style="font-size:.65rem;font-weight:500;margin-bottom:2px;color:var(--green)">🎟️ Prenotazione gratuita con abbonamento</div>
-      <div class="tier-grid" id="${gridId}">${_fsBtns}</div></div>`;
+      <div class="tier-grid" style="grid-template-columns:1fr" id="${gridId}">
+        <div class="tier-btn" onclick="selectTier('${gridId}',this,'eb')" style="border-color:rgba(16,185,129,.45);background:rgba(16,185,129,.06)">
+          <span class="tier-icon">🐦</span><span class="tier-label">Early Bird</span>
+          <span style="font-size:.55rem;color:var(--txt3);text-decoration:line-through">€${ebPrice}</span>
+          <span class="tier-price" style="color:var(--green)">€0</span>
+          <span style="background:var(--green);color:#000;font-size:.45rem;padding:1px 3px;border-radius:3px;font-weight:700">🎟️ ABB</span>
+        </div>
+      </div></div>`;
   }
-  const deadlineText=eb.type==='date'&&eb.deadline?`Entro il ${fmtDateShort(eb.deadline)}`
-    :eb.type==='count'&&eb.maxCount?(()=>{const _bc=store.bookings.filter(b=>b.eventId===evId&&b.status!=='cancellata').length;const _rem=Math.max(0,eb.maxCount-_bc);return _rem<=3?`⚡ Solo ${_rem} posti EB rimasti su ${eb.maxCount}!`:`${_rem} posti EB rimasti su ${eb.maxCount}`;})():'';
-  let tierBtns='';
-  const st=stdTiers||{};
-  const disc=subDiscPct>0?subDiscPct:0;
-  const tierDefs=[{key:'alto',icon:'✦',label:'Sostenitore'},{key:'medio',icon:'●',label:'Standard'},{key:'basso',icon:'○',label:'Ridotto'}];
-  tierDefs.forEach(({key,icon,label})=>{
-    if(!eb[key])return;
-    const ebPrice=parseFloat(eb[key]);
-    const origStd=st[key]?parseFloat(st[key]):0;
-    if(disc>0){
-      const scontato=Math.round(ebPrice*(1-disc/100)*100)/100;
-      tierBtns+=`<div class="tier-btn" onclick="selectTier('${gridId}',this,'${key}')" style="border-color:rgba(234,179,8,.45);background:rgba(234,179,8,.06)"><span class="tier-icon">${icon}</span><span class="tier-label">${label}</span>${origStd?'<span style="font-size:.5rem;color:var(--txt3);text-decoration:line-through">€'+origStd+'</span>':''}<span style="font-size:.55rem;color:var(--txt3);text-decoration:line-through">€${ebPrice}</span><span class="tier-price" style="color:var(--green)">€${scontato}</span><span style="background:var(--yellow);color:#000;font-size:.4rem;padding:1px 3px;border-radius:3px;font-weight:700">EB</span><span style="background:var(--green);color:#000;font-size:.4rem;padding:1px 3px;border-radius:3px;font-weight:700">-${disc}%</span></div>`;
-    } else {
-      tierBtns+=`<div class="tier-btn" onclick="selectTier('${gridId}',this,'${key}')" style="border-color:rgba(234,179,8,.45);background:rgba(234,179,8,.06)"><span class="tier-icon">${icon}</span><span class="tier-label">${label}</span>${origStd?'<span style="font-size:.55rem;color:var(--txt3);text-decoration:line-through">€'+origStd+'</span>':''}<span class="tier-price" style="color:var(--yellow)">€${ebPrice}</span><span style="background:var(--yellow);color:#000;font-size:.4rem;padding:1px 3px;border-radius:3px;font-weight:700">EB</span></div>`;
-    }
-  });
-  if(!tierBtns)return '';
+
+  const deadlineText = eb.type === 'date' && eb.deadline
+    ? `Entro il ${fmtDateShort(eb.deadline)}`
+    : eb.type === 'count' && eb.maxCount
+      ? (() => { const _bc = store.bookings.filter(b => b.eventId === evId && b.status !== 'cancellata').length; const _rem = Math.max(0, eb.maxCount - _bc); return _rem <= 3 ? `⚡ Solo ${_rem} posti EB rimasti su ${eb.maxCount}!` : `${_rem} posti EB rimasti su ${eb.maxCount}`; })()
+      : '';
+
+  const origStd = stdTiers ? parseFloat(stdTiers.medio || stdTiers.alto || stdTiers.basso || 0) : 0;
+  const disc = subDiscPct > 0 ? subDiscPct : 0;
+
+  let btnHtml;
+  if (disc > 0) {
+    const scontato = Math.round(ebPrice * (1 - disc / 100) * 100) / 100;
+    btnHtml = `<div class="tier-btn" onclick="selectTier('${gridId}',this,'eb')" style="border-color:rgba(234,179,8,.45);background:rgba(234,179,8,.06)">
+      <span class="tier-icon">🐦</span><span class="tier-label">Early Bird</span>
+      ${origStd ? '<span style="font-size:.55rem;color:var(--txt3);text-decoration:line-through">€' + origStd + '</span>' : ''}
+      <span style="font-size:.55rem;color:var(--txt3);text-decoration:line-through">€${ebPrice}</span>
+      <span class="tier-price" style="color:var(--green)">€${scontato}</span>
+      <span style="background:var(--yellow);color:#000;font-size:.4rem;padding:1px 3px;border-radius:3px;font-weight:700">EB</span>
+      <span style="background:var(--green);color:#000;font-size:.4rem;padding:1px 3px;border-radius:3px;font-weight:700">-${disc}%</span>
+    </div>`;
+  } else {
+    btnHtml = `<div class="tier-btn" onclick="selectTier('${gridId}',this,'eb')" style="border-color:rgba(234,179,8,.45);background:rgba(234,179,8,.06)">
+      <span class="tier-icon">🐦</span><span class="tier-label">Early Bird</span>
+      ${origStd ? '<span style="font-size:.55rem;color:var(--txt3);text-decoration:line-through">€' + origStd + '</span>' : ''}
+      <span class="tier-price" style="color:var(--yellow)">€${ebPrice}</span>
+    </div>`;
+  }
+
   return `<div class="card mb-1" style="background:rgba(234,179,8,.05);border-color:var(--yellow);padding:3px 8px">
-    <div style="font-size:.65rem;font-weight:500;margin-bottom:2px;color:var(--yellow)">🐦 Early Bird${deadlineText?' — '+deadlineText:''}</div>
-    <div class="tier-grid" id="${gridId}">${tierBtns}</div>
+    <div style="font-size:.65rem;font-weight:500;margin-bottom:2px;color:var(--yellow)">🐦 Early Bird${deadlineText ? ' — ' + deadlineText : ''}</div>
+    <div class="tier-grid" style="grid-template-columns:1fr" id="${gridId}">${btnHtml}</div>
   </div>`;
 }
 function buildPaymentMethodsHtml(ev){
   const links=[];
   if(ev.paymentMethods.paypal)links.push('<a href="'+ev.paymentMethods.paypal+'" target="_blank" class="btn btn-sm" style="background:rgba(59,130,246,.15);color:var(--blue);border:1px solid rgba(59,130,246,.3);font-size:.75rem">💳 PayPal ↗</a>');
   if(ev.paymentMethods.revolut)links.push('<a href="'+ev.paymentMethods.revolut+'" target="_blank" class="btn btn-sm" style="background:rgba(34,211,238,.1);color:#22d3ee;border:1px solid rgba(34,211,238,.3);font-size:.75rem">💳 Revolut ↗</a>');
+  if(ev.paymentMethods.satispay)links.push('<a href="'+ev.paymentMethods.satispay+'" target="_blank" class="btn btn-sm" style="background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.3);font-size:.75rem">💳 Satispay ↗</a>');
   if(ev.paymentMethods.cash)links.push('<span class="btn btn-sm" style="background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.3);font-size:.75rem">💵 Contanti</span>');
   if(!links.length)return '';
   return '<div class="card mb-3" style="padding:12px"><div class="text-xs txt3 mb-2" style="text-transform:uppercase;letter-spacing:.5px">Metodi di pagamento</div><div class="flex gap-2 flex-wrap">'+links.join('')+'</div></div>';
@@ -14394,6 +14496,7 @@ function buildDepositHtml(ev,userName){
   const payMethodBtns=[];
   if(ev.paymentMethods.paypal)payMethodBtns.push('<a href="'+ev.paymentMethods.paypal+'" target="_blank" class="btn btn-sm" style="background:rgba(59,130,246,.15);color:var(--blue);border:1px solid rgba(59,130,246,.3);font-size:.75rem">PayPal ↗</a>');
   if(ev.paymentMethods.revolut)payMethodBtns.push('<a href="'+ev.paymentMethods.revolut+'" target="_blank" class="btn btn-sm" style="background:rgba(34,211,238,.1);color:#22d3ee;border:1px solid rgba(34,211,238,.3);font-size:.75rem">Revolut ↗</a>');
+  if(ev.paymentMethods.satispay)payMethodBtns.push('<a href="'+ev.paymentMethods.satispay+'" target="_blank" class="btn btn-sm" style="background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.3);font-size:.75rem">Satispay ↗</a>');
   if(ev.paymentMethods.cash)payMethodBtns.push('<span class="btn btn-sm" style="background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.3);font-size:.75rem">Contanti</span>');
   const causalText=ev.deposit.causal.replace(/Nome Cognome/gi,userName).replace(/\[nome\]/gi,userName);
   return `<div class="card mb-3" style="background:rgba(234,179,8,.06);border-color:var(--yellow);padding:14px 16px">
@@ -14591,7 +14694,8 @@ function getEffectiveDiscountInfo(ev){
 function buildFullPricingHtml(ev,prefix){
   const isFree=ev.pricingMode==='free';
   const isManaged=ev.pricingMode==='managed';
-  const skipPricing=isFree||isManaged;
+  const isDirect=ev.pricingMode==='direct';
+  const skipPricing=isFree||isManaged||isDirect;
   let html='';
   if(isFree){
     html+='<div class="card mb-3 text-center" style="border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.05);padding:16px"><span style="font-size:2rem">🆓</span><h3 class="font-bold mt-2" style="color:var(--green)">Evento gratuito</h3><p class="text-sm txt3 mt-1">Nessun costo richiesto</p></div>';
@@ -14599,6 +14703,18 @@ function buildFullPricingHtml(ev,prefix){
   }
   if(isManaged){
     html+='<div class="card mb-3" style="background:rgba(234,179,8,.08);border-color:var(--yellow);padding:14px"><div class="text-sm" style="color:var(--yellow);line-height:1.6">🤝 I costi sono gestiti direttamente dall\'Organizzatore: leggi la descrizione e/o usa i contatti indicati per ottenere maggiori informazioni.</div></div>';
+    return html;
+  }
+  if(isDirect){
+    const orgMgr=store.managers.find(m=>m.id===ev.managerId);
+    const orgPhone=orgMgr?.phone||ev.contactPhone||'';
+    const orgEmail=orgMgr?.contactEmail||ev.contactEmail||'';
+    let contactHtml='';
+    if(orgPhone)contactHtml+='<div class="flex items-center gap-2 mt-2"><span>📞</span><a href="tel:'+escHtml(orgPhone)+'" class="text-sm" style="color:var(--brand-l)">'+escHtml(orgPhone)+'</a></div>';
+    if(orgEmail)contactHtml+='<div class="flex items-center gap-2 mt-1"><span>📧</span><a href="mailto:'+escHtml(orgEmail)+'" class="text-sm" style="color:var(--brand-l)">'+escHtml(orgEmail)+'</a></div>';
+    const orgWa=orgMgr?.socialLinks?.whatsapp||'';
+    if(orgWa)contactHtml+='<div class="flex items-center gap-2 mt-1"><span>💬</span><a href="'+escHtml(orgWa)+'" target="_blank" class="text-sm" style="color:var(--green)">WhatsApp</a></div>';
+    html+='<div class="card mb-3" style="background:rgba(139,92,246,.06);border-color:rgba(139,92,246,.3);padding:16px"><div style="text-align:center;margin-bottom:8px"><span style="font-size:1.8rem">📞</span></div><h3 class="font-bold text-center" style="color:var(--purple);margin-bottom:4px">Contatta l\'organizzatore per il costo</h3><p class="text-sm txt3 text-center" style="line-height:1.5">I costi per questo evento vengono gestiti direttamente con l\'organizzatore.</p>'+contactHtml+'</div>';
     return html;
   }
   // Effective discount: subscription or loyalty (non-cumulative, pick higher)
@@ -14619,23 +14735,23 @@ function buildFullPricingHtml(ev,prefix){
       <div class="flex items-center gap-2"><span>📅</span><span class="font-medium text-sm" style="color:var(--brand-l)">${fmtDate(day.date)}</span><span class="text-xs txt3">${day.startTime} — ${day.endTime}</span></div></div>`;
     if(day.sessions.length>1){
       html+='<div style="margin-left:16px;padding-left:12px;border-left:2px solid rgba(217,70,239,.2);margin-top:8px;margin-bottom:8px">';
-      html+='<p class="text-xs txt3 mb-2">Seleziona le sessioni:</p>';
+      html+='<p class="text-xs txt3 mb-2">Sessioni disponibili:</p>';
       html+='<div style="max-width:90%;margin:0 auto">';
-      day.sessions.forEach(s=>{
+      day.sessions.forEach((s,si)=>{
+        if(si>0) html+='<div style="height:14px"></div>';
         const sBtns=buildTierBtns(s.tiers,prefix+'tiers-'+s.id,s.earlyBird,ev.id,subDiscPct);
-        html+=`<div class="check-item mb-2" onclick="toggleCheck(this,'${s.id}')" style="padding:6px 8px">
-          <div class="checkbox"><span style="display:none;color:#fff;font-size:.6rem">✓</span></div>
-          <div class="flex-1"><div class="font-medium text-white" style="font-size:.82rem">${escHtml(s.name)}</div>
+        html+=`<div class="session-info mb-2" style="padding:6px 8px">
+          <div><div class="font-medium text-white" style="font-size:.82rem">${escHtml(s.name)}</div>
             <div class="flex gap-2 mt-1 items-center flex-wrap"><span class="text-xs txt3">🕐 ${s.startTime} — ${s.endTime}</span><span class="badge ${badgeLevel(s.level)}">${capitalize(s.level)}</span>${s.teacher?'<span class="text-xs txt3">👤 '+escHtml(s.teacher)+'</span>':''}</div>
           </div></div>`;
-        if(sBtns) html+=`<div class="tier-grid mb-2 hidden" id="${prefix}tiers-${s.id}">${sBtns}</div>`;
+        if(sBtns) html+=`<div class="tier-grid mb-2" id="${prefix}tiers-${s.id}">${sBtns}</div>`;
         html+=renderEarlyBirdGrid(s.earlyBird,prefix+'tier-ebs-'+s.id,ev.id,s.tiers,subDiscPct);
       });
       html+='</div>';
       html+='</div>';
       // Day pricing OUTSIDE indent — aligned with date card
       if(day.tiers){
-        html+='<p class="text-xs txt3 mt-3 mb-2">Seleziona la giornata:</p>';
+        html+='<p class="text-xs txt3 mt-3 mb-2">Oppure, giornata intera:</p>';
         const dayBtns=buildTierBtns(day.tiers,prefix+'tier-day-'+ev.id+'-'+di,resolveEB(day.earlyBird,ev.earlyBird),ev.id,subDiscPct);
         if(dayBtns) html+=`<div class="card mt-1 mb-1" style="background:rgba(16,185,129,.05);border-color:var(--green);padding:4px 10px">
           <div style="font-size:.65rem;font-weight:500;margin-bottom:2px;color:var(--green)">💰 Prezzo giornata intera (pacchetto)</div>
@@ -14645,35 +14761,53 @@ function buildFullPricingHtml(ev,prefix){
     } else {
       const s=day.sessions[0]||null;
       const useTiers=day.tiers||(s?s.tiers:ev.tiers);
-      html+='<div style="margin-left:12px;padding-left:12px;border-left:2px solid rgba(217,70,239,.2);margin-top:8px;margin-bottom:8px">';
+      const useEB=resolveEB(s?s.earlyBird:null,day.earlyBird,ev.earlyBird);
+      // Card info sessione (NON indentata, full-width)
       if(s){
-        html+=`<div class="mb-2"><div class="font-medium text-white text-sm">${escHtml(s.name)}</div>
-          <div class="flex gap-2 mt-1 items-center flex-wrap"><span class="text-xs txt3">🕐 ${s.startTime} — ${s.endTime}</span><span class="badge ${badgeLevel(s.level)}">${capitalize(s.level)}</span>${s.teacher?'<span class="text-xs txt3">👤 '+escHtml(s.teacher)+'</span>':''}</div></div>`;
+        html+=`<div style="display:flex;align-items:center;gap:8px;padding:12px;border-radius:12px;border:1px solid var(--s300);background:var(--s100);margin-bottom:8px" id="${prefix}sess-${s.id}">
+          <div style="flex:1"><div class="font-medium text-white" style="font-size:.82rem">${escHtml(s.name)}</div>
+            <div class="flex gap-2 mt-1 items-center flex-wrap"><span class="text-xs txt3">🕐 ${s.startTime} — ${s.endTime}</span><span class="badge ${badgeLevel(s.level)}">${capitalize(s.level)}</span>${s.teacher?'<span class="text-xs txt3">👤 '+escHtml(s.teacher)+'</span>':''}</div></div></div>`;
       }
-      const stdBtns=buildTierBtns(useTiers,prefix+'tier-day-'+ev.id+'-'+di,resolveEB(day.earlyBird,ev.earlyBird),ev.id,subDiscPct);
-      html+=`<p class="text-xs txt3 mb-2" style="font-style:italic">Scegli in base alle tue possibilità</p>`;
-      if(stdBtns) html+=`<div class="tier-grid mb-2" id="${prefix}tier-day-${ev.id}-${di}">${stdBtns}</div>`;
-      html+=renderEarlyBirdGrid(resolveEB(day.earlyBird,ev.earlyBird),prefix+'tier-ebday-'+ev.id+'-'+di,ev.id,useTiers,subDiscPct);
-      html+='</div>';
+      // Prezzo full-width (come se fosse prezzo giornata)
+      const stdBtns=buildTierBtns(useTiers,prefix+'tier-day-'+ev.id+'-'+di,useEB,ev.id,subDiscPct);
+      if(stdBtns){
+        const tierCount=useTiers?[useTiers.alto,useTiers.medio,useTiers.basso].filter(v=>v!=null&&v!==''&&v!==0).length:0;
+        if(tierCount>1) html+=`<p class="text-xs txt3 mb-2" style="font-style:italic">Scegli in base alle tue possibilità</p>`;
+        html+=`<div class="tier-grid mb-2" id="${prefix}tier-day-${ev.id}-${di}">${stdBtns}</div>`;
+      }
+      html+=renderEarlyBirdGrid(useEB,prefix+'tier-ebday-'+ev.id+'-'+di,ev.id,useTiers,subDiscPct);
     }
   });
   // Event-level package (multi-day)
   if(ev.days.length>1){
     const evBtns=buildTierBtns(ev.tiers,prefix+'tier-evfull-'+ev.id,ev.earlyBird,ev.id,subDiscPct);
-    if(evBtns) html+=`<div class="card mb-2" style="background:rgba(16,185,129,.05);border-color:var(--green);padding:4px 10px">
-      <div style="font-size:.65rem;font-weight:500;margin-bottom:2px;color:var(--green)">💰 Evento completo (tutte le giornate)</div>
-      <div class="tier-grid" id="${prefix}tier-evfull-${ev.id}">${evBtns}</div></div>`;
-    html+=renderEarlyBirdGrid(ev.earlyBird,prefix+'tier-ebev-'+ev.id,ev.id,ev.tiers,subDiscPct);
+    if(evBtns) {
+      const tierCount = ev.tiers ? [ev.tiers.alto, ev.tiers.medio, ev.tiers.basso].filter(v => v != null && v !== '' && v !== 0).length : 0;
+      html += `<div style="background:var(--s50);border:3px solid var(--green);border-radius:20px;padding:18px 14px;margin-top:16px;box-shadow:0 0 0 3px rgba(16,185,129,.1),0 4px 20px rgba(16,185,129,.08)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:.85rem;font-weight:700;color:var(--green)"><span style="font-size:1.2rem">🎫</span> Evento completo (tutte le giornate)</div>
+        ${tierCount > 1 ? '<p class="text-xs txt3 mb-2" style="font-style:italic">Scegli in base alle tue possibilità</p>' : ''}
+        <div class="tier-grid" id="${prefix}tier-evfull-${ev.id}" style="gap:4px">${evBtns}</div></div>`;
+    }
+    if (ev.earlyBird && isEarlyBirdActive(ev.earlyBird, ev.id)) {
+      const ebEvHtml = renderEarlyBirdGrid(ev.earlyBird, prefix + 'tier-ebev-' + ev.id, ev.id, ev.tiers, subDiscPct);
+      if (ebEvHtml) {
+        html += `<div style="background:var(--s50);border:3px solid var(--yellow);border-radius:20px;padding:18px 14px;margin-top:16px;box-shadow:0 0 0 3px rgba(234,179,8,.1),0 4px 20px rgba(234,179,8,.08)">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:.85rem;font-weight:700;color:var(--yellow)"><span style="font-size:1.2rem">🎫</span> Evento completo — Early Bird</div>
+          ${ebEvHtml}</div>`;
+      }
+    } else {
+      html += renderEarlyBirdGrid(ev.earlyBird, prefix + 'tier-ebev-' + ev.id, ev.id, ev.tiers, subDiscPct);
+    }
   }
   return html;
 }
 function collectCheckinBookingData(ev,prefix){
-  const isFree=ev.pricingMode==='free';const isManaged=ev.pricingMode==='managed';
-  if(isFree||isManaged){
+  const isFree=ev.pricingMode==='free';const isManaged=ev.pricingMode==='managed';const isDirect=ev.pricingMode==='direct';
+  if(isFree||isManaged||isDirect){
     const allSessIds=[];ev.days.forEach(d=>(d.sessions||[]).forEach(s=>allSessIds.push(s.id)));
     return {items:[],totalAmount:0,scope:'evento',tierKey:'medio',sessions:allSessIds};
   }
-  const tierLabel=t=>t==='alto'?'Sostenitore':t==='medio'?'Standard':'Ridotto';
+  const tierLabel=t=>t==='eb'?'Early Bird':t==='alto'?'Sostenitore':t==='medio'?'Standard':'Ridotto';
   // V3.2 FIX: Helper to get effective date for recurring events (offset-based for multi-day support)
   const _effDate=(dayDate)=>{
     if(!currentBookingRecDate||!dayDate||!ev.days||!ev.days[0]||!ev.days[0].date)return dayDate;
@@ -14691,26 +14825,26 @@ function collectCheckinBookingData(ev,prefix){
         const gid=prefix+'tiers-'+s.id;
         if(selectedTiers[gid]){const tier=selectedTiers[gid];const price=s.tiers[tier]||0;items.push({type:'sessione',name:s.name,date:fmtDateShort(_dd),time:s.startTime+' — '+s.endTime,tier:tierLabel(tier),tierKey:tier,price,sessionId:s.id});totalAmount+=price;}
         const sEb=prefix+'tier-ebs-'+s.id;
-        if(selectedTiers[sEb]&&s.earlyBird){const tier=selectedTiers[sEb];const price=s.earlyBird[tier]||0;items.push({type:'early bird sessione',name:'🐦 EB — '+s.name,date:fmtDateShort(_dd),time:s.startTime+' — '+s.endTime,tier:tierLabel(tier)+' (EB)',tierKey:tier,price,sessionId:s.id});totalAmount+=price;}
+        if(selectedTiers[sEb]&&s.earlyBird){const price=getEBPrice(s.earlyBird);items.push({type:'early bird sessione',name:'🐦 EB — '+s.name,date:fmtDateShort(_dd),time:s.startTime+' — '+s.endTime,tier:'Early Bird',tierKey:'eb',price,sessionId:s.id});totalAmount+=price;}
       });
       const dayGid=prefix+'tier-day-'+ev.id+'-'+di;
       if(selectedTiers[dayGid]&&day.tiers){const tier=selectedTiers[dayGid];const price=day.tiers[tier]||0;items.push({type:'giornata',name:'Giornata — '+fmtDateShort(_dd),date:fmtDateShort(_dd),time:day.startTime+' — '+day.endTime,tier:tierLabel(tier),tierKey:tier,price});totalAmount+=price;}
       const dayEb=prefix+'tier-ebday-'+ev.id+'-'+di;
-      if(selectedTiers[dayEb]&&(resolveEB(day.earlyBird,ev.earlyBird))){const tier=selectedTiers[dayEb];const _ebSrc=resolveEB(day.earlyBird,ev.earlyBird);const price=_ebSrc[tier]||0;items.push({type:'early bird giornata',name:'🐦 EB — '+fmtDateShort(_dd),date:fmtDateShort(_dd),time:'',tier:tierLabel(tier)+' (EB)',tierKey:tier,price});totalAmount+=price;}
+      if(selectedTiers[dayEb]){const _ebSrc=resolveEB(day.earlyBird,ev.earlyBird);if(_ebSrc){const price=getEBPrice(_ebSrc);items.push({type:'early bird giornata',name:'🐦 EB — '+fmtDateShort(_dd),date:fmtDateShort(_dd),time:'',tier:'Early Bird',tierKey:'eb',price});totalAmount+=price;}}
     } else {
       const s=day.sessions[0]||null;
       const useTiers=day.tiers||(s?s.tiers:ev.tiers);
       const dayGid=prefix+'tier-day-'+ev.id+'-'+di;
       if(selectedTiers[dayGid]){const tier=selectedTiers[dayGid];const price=useTiers[tier]||0;items.push({type:'giornata',name:'Giornata — '+fmtDateShort(_dd),date:fmtDateShort(_dd),time:day.startTime+' — '+day.endTime,tier:tierLabel(tier),tierKey:tier,price});totalAmount+=price;}
       const dayEb=prefix+'tier-ebday-'+ev.id+'-'+di;
-      if(selectedTiers[dayEb]&&(resolveEB(day.earlyBird,ev.earlyBird))){const tier=selectedTiers[dayEb];const _ebSrc=resolveEB(day.earlyBird,ev.earlyBird);const price=_ebSrc[tier]||0;items.push({type:'early bird giornata',name:'🐦 EB — '+fmtDateShort(_dd),date:fmtDateShort(_dd),time:'',tier:tierLabel(tier)+' (EB)',tierKey:tier,price});totalAmount+=price;}
+      if(selectedTiers[dayEb]){const _ebSrc=resolveEB(day.earlyBird,ev.earlyBird);if(_ebSrc){const price=getEBPrice(_ebSrc);items.push({type:'early bird giornata',name:'🐦 EB — '+fmtDateShort(_dd),date:fmtDateShort(_dd),time:'',tier:'Early Bird',tierKey:'eb',price});totalAmount+=price;}}
     }
   });
   if(ev.days.length>1){
     const evG=prefix+'tier-evfull-'+ev.id;
     if(selectedTiers[evG]){const tier=selectedTiers[evG];const price=ev.tiers[tier]||0;items.push({type:'pacchetto evento',name:'Evento completo',date:'',time:'',tier:tierLabel(tier),tierKey:tier,price});totalAmount+=price;}
     const evEb=prefix+'tier-ebev-'+ev.id;
-    if(selectedTiers[evEb]&&ev.earlyBird){const tier=selectedTiers[evEb];const price=ev.earlyBird[tier]||0;items.push({type:'early bird evento',name:'🐦 EB evento',date:'',time:'',tier:tierLabel(tier)+' (EB)',tierKey:tier,price});totalAmount+=price;}
+    if(selectedTiers[evEb]&&ev.earlyBird){const price=getEBPrice(ev.earlyBird);items.push({type:'early bird evento',name:'🐦 EB evento',date:'',time:'',tier:'Early Bird',tierKey:'eb',price});totalAmount+=price;}
   }
   // Apply effective discount (subscription or loyalty, non-cumulative)
   const _sdPctBook=getEffectiveDiscountPct(ev);
@@ -14877,7 +15011,8 @@ function showEventDetail(evId,recDate){
 
   const isFreeEvent=ev.pricingMode==='free';
   const isManagedByOrg=ev.pricingMode==='managed';
-  const skipPricing=isFreeEvent||isManagedByOrg;
+  const isDirectCost=ev.pricingMode==='direct';
+  const skipPricing=isFreeEvent||isManagedByOrg||isDirectCost;
 
   let daysHtml='';
   // Free event banner
@@ -15437,7 +15572,7 @@ function showEventDetail(evId,recDate){
           +(_payBtns.length?'<div class="text-xs txt3" style="margin-bottom:4px">Metodi di pagamento</div><div class="flex gap-2 flex-wrap">'+_payBtns.join('')+'</div>':'')
           +'</div>';
       })():'';
-      return _preRegParticipants+'<h2 class="font-semibold text-white mb-3">Programma</h2>'+daysHtml+eventPkgHtml+loyaltyHtml+'<div style="padding-top:16px">'+_preDepositCard+'<button class="btn btn-primary w-full" style="padding:14px;font-size:1rem" onclick="doBook()">'+(isFreeEvent?'✅ Iscriviti gratuitamente':isManagedByOrg?'📋 Iscriviti!':'Conferma prenotazione')+'</button></div>';
+      return _preRegParticipants+'<h2 class="font-semibold text-white mb-3">Programma</h2>'+daysHtml+eventPkgHtml+loyaltyHtml+'<div style="padding-top:16px">'+_preDepositCard+'<button class="btn btn-primary w-full" style="padding:14px;font-size:1rem" onclick="doBook()">'+(isFreeEvent?'✅ Iscriviti gratuitamente':isManagedByOrg?'📋 Iscriviti!':'Prenota')+'</button></div>';
     })()}
   </div>`;
   go('event-detail-dynamic');
@@ -15664,7 +15799,7 @@ async function renderAdminEvents(){
     const _aUniStrip=getUniverseStripHtml(ev);
     const levelBadges=getEventLevelBadges(ev);
     const _aMinP=ev.pricingMode==='standard'?minPrice(ev):0;
-    const _aPricingBadge=ev.pricingMode==='free'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🆓 Gratuito</span>':ev.pricingMode==='managed'?'<span class="badge badge-yellow">🤝 Costi con org.</span>':(_aMinP>0?'<span class="badge" style="background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)">💰 da €'+_aMinP+'</span>':'');
+    const _aPricingBadge=ev.pricingMode==='free'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🆓 Gratuito</span>':ev.pricingMode==='managed'?'<span class="badge badge-yellow">🤝 Costi con org.</span>':ev.pricingMode==='direct'?'<span class="badge" style="background:rgba(139,92,246,.1);color:var(--purple)">📞 Costo diretto</span>':(_aMinP>0?'<span class="badge" style="background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)">💰 da €'+_aMinP+'</span>':'');
     const confirmStatus=getConfirmationStatus(ev);
     const confirmBadge=confirmStatus==='attesa'?'<span class="badge badge-attesa">⏳ Min. non raggiunto</span>':confirmStatus==='deadline_scaduta'?'<span class="badge" style="background:var(--red-bg);color:var(--red)">🚫 Deadline scaduta</span>':confirmStatus==='confermato'?'<span class="badge badge-confermato">✅ Confermato</span>':'';
     const _aPartnerCount=ev.partnerIds?ev.partnerIds.length:0;
@@ -16091,7 +16226,7 @@ async function renderCostManagement(evId){
   html+=_inheritedBanner;
 
   // ========== SECTION 0: REVENUE OVERVIEW (moved from event detail V3.3.0) ==========
-  if(ev.pricingMode!=='free'&&isCapo){
+  if(ev.pricingMode!=='free'&&ev.pricingMode!=='direct'&&isCapo){
     const depAmount=(ev.deposit&&ev.deposit.required&&ev.deposit.amount)?ev.deposit.amount:0;
     const rvActive=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata');
     const rvGifts=rvActive.filter(b=>b.gift);
@@ -16658,6 +16793,7 @@ function copyEventAsTemplate(id){
     // === PAYMENT METHODS ===
     if(document.getElementById('ne-paypal'))document.getElementById('ne-paypal').value=(ev.paymentMethods||{}).paypal||'';
     if(document.getElementById('ne-revolut'))document.getElementById('ne-revolut').value=(ev.paymentMethods||{}).revolut||'';
+    const satispayEl=document.getElementById('ne-satispay');if(satispayEl)satispayEl.value=ev.paymentMethods?.satispay||'';
     const cashEl=document.getElementById('ne-cash');if(cashEl){cashEl.checked=!!(ev.paymentMethods||{}).cash;const cashBtn=document.getElementById('ne-cash-btn');if(cashBtn){if(cashEl.checked){cashBtn.style.background='rgba(16,185,129,.15)';cashBtn.style.color='var(--green)';cashBtn.style.borderColor='rgba(16,185,129,.4)';cashBtn.textContent='💵 Accetta contanti ✓';}else{cashBtn.style.background='var(--s200)';cashBtn.style.color='var(--txt2)';cashBtn.style.borderColor='var(--s400)';cashBtn.textContent='💵 Contanti';}}}
     // === DEPOSIT ===
     if(ev.deposit&&ev.deposit.required){
@@ -16713,7 +16849,7 @@ function copyEventAsTemplate(id){
         startTime:d.startTime||'10:00',
         endTime:d.endTime||'17:00',
         tiers:d.tiers?{alto:d.tiers.alto!=null?d.tiers.alto:'',medio:d.tiers.medio!=null?d.tiers.medio:'',basso:d.tiers.basso!=null?d.tiers.basso:''}:{},
-        earlyBird:d.earlyBird?{alto:d.earlyBird.alto!=null?d.earlyBird.alto:'',medio:d.earlyBird.medio!=null?d.earlyBird.medio:'',basso:d.earlyBird.basso!=null?d.earlyBird.basso:'',type:d.earlyBird.type||'date',deadline:'',maxCount:d.earlyBird.maxCount||''}:null,
+        earlyBird:d.earlyBird?{price:d.earlyBird.price!=null?d.earlyBird.price:'',type:d.earlyBird.type||'date',deadline:'',maxCount:d.earlyBird.maxCount||''}:null,
         sessions:d.sessions.map(s=>({
           _origId:null, // New IDs will be generated on save
           name:s.name||'',startTime:s.startTime||'10:00',endTime:s.endTime||'13:00',
@@ -16722,7 +16858,7 @@ function copyEventAsTemplate(id){
           maxSpots:s.maxSpots||0,
           minSubscribers:s.minSubscribers||0, // V3.2 FIX: Copy session-level minSubscribers from template
           tiers:s.tiers?{alto:s.tiers.alto!=null?s.tiers.alto:null,medio:s.tiers.medio!=null?s.tiers.medio:null,basso:s.tiers.basso!=null?s.tiers.basso:null}:{alto:null,medio:null,basso:null},
-          earlyBird:s.earlyBird?{alto:s.earlyBird.alto!=null?s.earlyBird.alto:'',medio:s.earlyBird.medio!=null?s.earlyBird.medio:'',basso:s.earlyBird.basso!=null?s.earlyBird.basso:'',type:s.earlyBird.type||'date',deadline:'',maxCount:s.earlyBird.maxCount||''}:null
+          earlyBird:s.earlyBird?{price:s.earlyBird.price!=null?s.earlyBird.price:'',type:s.earlyBird.type||'date',deadline:'',maxCount:s.earlyBird.maxCount||''}:null
         }))
       }));
       _skipNextSaveFormState=true;
@@ -16733,6 +16869,10 @@ function copyEventAsTemplate(id){
     const managedEl=document.getElementById('ne-costs-managed-by-org');
     if(freeEl)freeEl.checked=(ev.pricingMode==='free');
     if(managedEl)managedEl.checked=(ev.pricingMode==='managed');
+    const directEl=document.getElementById('ne-direct-cost');
+    const directBtn=document.getElementById('ne-direct-cost-btn');
+    if(directEl)directEl.checked=(ev.pricingMode==='direct');
+    if(directBtn)_setToggleBtnActive(directBtn,ev.pricingMode==='direct');
     const freeBtn=document.getElementById('ne-free-event-btn');
     const managedBtn=document.getElementById('ne-costs-managed-btn');
     if(freeBtn)_setToggleBtnActive(freeBtn,ev.pricingMode==='free');
@@ -16763,16 +16903,14 @@ function copyEventAsTemplate(id){
       }
     }
     // === EVENT-LEVEL EARLY BIRD ===
-    if(ev.earlyBird&&(ev.earlyBird.alto||ev.earlyBird.medio||ev.earlyBird.basso)){
+    if(ev.earlyBird&&hasEBPrice(ev.earlyBird)){
       const ebSec=document.getElementById('ne-earlybird-section');
       if(ebSec)ebSec.classList.remove('hidden');
       const ebToggle=ebSec?.previousElementSibling;
       if(ebToggle){const arrow=ebToggle.querySelector('.toggle-arrow');if(arrow)arrow.textContent='\u25be';}
     }
     if(ev.earlyBird){
-      const ebA=document.getElementById('ne-eb-alto');if(ebA&&ev.earlyBird.alto!=null)ebA.value=ev.earlyBird.alto;
-      const ebM=document.getElementById('ne-eb-medio');if(ebM&&ev.earlyBird.medio!=null)ebM.value=ev.earlyBird.medio;
-      const ebB=document.getElementById('ne-eb-basso');if(ebB&&ev.earlyBird.basso!=null)ebB.value=ev.earlyBird.basso;
+      const ebP=document.getElementById('ne-eb-price');if(ebP&&ev.earlyBird)ebP.value=ev.earlyBird.price||getEBPrice(ev.earlyBird)||'';
       // Clear deadline for template (user must set new one) but keep type and maxCount
       const ebTypeVal=ev.earlyBird.type||'date';
       const ebTypeRadio=document.querySelector(`input[name="ne-eb-type"][value="${ebTypeVal}"]`);
@@ -16781,7 +16919,6 @@ function copyEventAsTemplate(id){
       }
       const ebMc=document.getElementById('ne-eb-max-count');if(ebMc&&ev.earlyBird.maxCount)ebMc.value=ev.earlyBird.maxCount;
     }
-    updateEventEBTierVisibility();
     // === SURVEYS ===
     surveyQuestionCounter=0;
     const sqContainer=document.getElementById('ne-survey-questions');
@@ -16806,7 +16943,7 @@ function copyEventAsTemplate(id){
     // === AUTO-EXPAND COLLAPSIBLE SECTIONS ===
     if(ev.contactPhone||ev.contactEmail||ev.groupLink){const cc=document.getElementById('ne-contacts-collapsible');if(cc){cc.classList.remove('hidden');const arrow=cc.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
     if(ev.paymentMethods&&(ev.paymentMethods.paypal||ev.paymentMethods.revolut||ev.paymentMethods.cash)){const pc=document.getElementById('ne-payment-collapsible');if(pc){pc.classList.remove('hidden');const arrow=pc.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
-    if(ev.pricingMode==='free'||ev.pricingMode==='managed'||ev.subscriptionBookable?.enabled||ev.subscriptionDiscount?.enabled||ev.deposit?.required||ev.insurance?.enabled){const sc=document.getElementById('ne-payment-collapsible');if(sc){sc.classList.remove('hidden');const arrow=sc.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
+    if(ev.pricingMode==='free'||ev.pricingMode==='managed'||ev.pricingMode==='direct'||ev.subscriptionBookable?.enabled||ev.subscriptionDiscount?.enabled||ev.deposit?.required||ev.insurance?.enabled){const sc=document.getElementById('ne-payment-collapsible');if(sc){sc.classList.remove('hidden');const arrow=sc.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
     syncToggleBtns();
     // V3.7.2: Ensure date constraints are set for the new event from template
     initEventDates();
@@ -17923,7 +18060,7 @@ function resetForm(){
   const defRadio=document.querySelector('input[name="ne-partner-entry-policy"][value="none"]');
   if(defRadio)defRadio.checked=true;
   // Reset all toggle buttons, checkboxes, and option panels
-  ['ne-free-event','ne-costs-managed-by-org','ne-sub-bookable','ne-sub-discount','ne-loyalty-discount','ne-deposit-required'].forEach(cbId=>{
+  ['ne-free-event','ne-costs-managed-by-org','ne-direct-cost','ne-sub-bookable','ne-sub-discount','ne-loyalty-discount','ne-deposit-required'].forEach(cbId=>{
     const cb=document.getElementById(cbId);if(cb)cb.checked=false;
   });
   ['ne-sub-bookable-opts','ne-sub-discount-opts','ne-loyalty-discount-opts','ne-deposit-opts'].forEach(optsId=>{
@@ -17931,6 +18068,18 @@ function resetForm(){
   });
   syncToggleBtns();
   onPricingModeChange();
+  // V3.9.0: Pre-populate payment links from org defaults (only for new events)
+  if(!editingEventId){
+    const currentMgr=store.managers.find(m=>m.id===store.currentUser?.id);
+    if(currentMgr?.paymentLinks){
+      const paypal=document.getElementById('ne-paypal');
+      const revolut=document.getElementById('ne-revolut');
+      const satispay=document.getElementById('ne-satispay');
+      if(paypal&&!paypal.value)paypal.value=currentMgr.paymentLinks.paypal||'';
+      if(revolut&&!revolut.value)revolut.value=currentMgr.paymentLinks.revolut||'';
+      if(satispay&&!satispay.value)satispay.value=currentMgr.paymentLinks.satispay||'';
+    }
+  }
   // Reset collapsible sections to default state (V2.13.0)
   const univPartnerColl=document.getElementById('ne-univ-partner-collapsible');
   if(univPartnerColl&&!univPartnerColl.classList.contains('hidden')){univPartnerColl.classList.add('hidden');const arrow=univPartnerColl.parentElement?.querySelector('.coll-arrow');if(arrow)arrow.textContent='▸';}
@@ -17946,15 +18095,13 @@ function saveFormState(){
     const dtb=document.querySelector(`.ne-d-tb[data-di="${di}"]`);
     if(dta)day.tiers={alto:dta.value,medio:dtm?.value||'',basso:dtb?.value||''};
     // Day early bird
-    const deba=document.querySelector(`.ne-d-eba[data-di="${di}"]`);
-    const debm=document.querySelector(`.ne-d-ebm[data-di="${di}"]`);
-    const debb=document.querySelector(`.ne-d-ebb[data-di="${di}"]`);
+    const debp=document.querySelector(`.ne-d-ebp[data-di="${di}"]`);
     const debd=document.querySelector(`.ne-d-ebd[data-di="${di}"]`);
     const debc=document.querySelector(`.ne-d-ebc[data-di="${di}"]`);
     const debType=document.querySelector(`input[name="ne-deb-type-${di}"]:checked`);
-    if(deba||debm||debb){
+    if(debp?.value){
       day.earlyBird={
-        alto:deba?.value||'',medio:debm?.value||'',basso:debb?.value||'',
+        price:debp.value||'',
         type:debType?.value||'date',
         deadline:debd?.value||'',
         maxCount:debc?.value||''
@@ -17979,12 +18126,10 @@ function saveFormState(){
       const tb=document.querySelector(`.ne-s-tb[data-di="${di}"][data-si="${si}"]`);
       if(ta)s.tiers={alto:ta.value?parseFloat(ta.value):null,medio:tm?.value?parseFloat(tm.value):null,basso:tb?.value?parseFloat(tb.value):null};
       // Session early bird
-      const seba=document.querySelector(`.ne-s-eba[data-di="${di}"][data-si="${si}"]`);
-      const sebm=document.querySelector(`.ne-s-ebm[data-di="${di}"][data-si="${si}"]`);
-      const sebb=document.querySelector(`.ne-s-ebb[data-di="${di}"][data-si="${si}"]`);
-      if(seba||sebm||sebb){
+      const sebp=document.querySelector(`.ne-s-ebp[data-di="${di}"][data-si="${si}"]`);
+      if(sebp?.value){
         const sebTypeEl=document.querySelector(`input[name="ne-seb-type-${di}-${si}"]:checked`);
-        s.earlyBird={alto:seba?.value||'',medio:sebm?.value||'',basso:sebb?.value||'',type:sebTypeEl?.value||'date',deadline:document.querySelector(`.ne-s-ebd[data-di="${di}"][data-si="${si}"]`)?.value||'',maxCount:document.querySelector(`.ne-s-ebc[data-di="${di}"][data-si="${si}"]`)?.value||''};
+        s.earlyBird={price:sebp.value||'',type:sebTypeEl?.value||'date',deadline:document.querySelector(`.ne-s-ebd[data-di="${di}"][data-si="${si}"]`)?.value||'',maxCount:document.querySelector(`.ne-s-ebc[data-di="${di}"][data-si="${si}"]`)?.value||''};
       }
     });
   });
@@ -18064,7 +18209,7 @@ function syncEventDates(which){
   renderFormDays();
 }
 function isPricingHidden(){
-  return !!(document.getElementById('ne-free-event')?.checked||document.getElementById('ne-costs-managed-by-org')?.checked);
+  return !!(document.getElementById('ne-free-event')?.checked||document.getElementById('ne-costs-managed-by-org')?.checked||document.getElementById('ne-direct-cost')?.checked);
 }
 /* Toggle buttons for pricing/option sections */
 function _setToggleBtnActive(btn,active){
@@ -18076,13 +18221,17 @@ function togglePricingBtn(checkboxId,btn){
   const newState=!cb.checked;
   cb.checked=newState;
   _setToggleBtnActive(btn,newState);
-  // Mutual exclusion: deactivate the other button when activating this one
+  // V3.9.0: Mutual exclusion — deactivate ALL other pricing mode buttons when activating this one
   if(newState){
-    const otherId=checkboxId==='ne-free-event'?'ne-costs-managed-by-org':'ne-free-event';
-    const otherBtnId=checkboxId==='ne-free-event'?'ne-costs-managed-btn':'ne-free-event-btn';
-    const otherCb=document.getElementById(otherId);
-    const otherBtn=document.getElementById(otherBtnId);
-    if(otherCb?.checked){otherCb.checked=false;if(otherBtn)_setToggleBtnActive(otherBtn,false);}
+    const allModes=['ne-free-event','ne-costs-managed-by-org','ne-direct-cost'];
+    const allBtns=['ne-free-event-btn','ne-costs-managed-btn','ne-direct-cost-btn'];
+    allModes.forEach((mId,i)=>{
+      if(mId!==checkboxId){
+        const otherCb=document.getElementById(mId);
+        const otherBtn=document.getElementById(allBtns[i]);
+        if(otherCb?.checked){otherCb.checked=false;if(otherBtn)_setToggleBtnActive(otherBtn,false);}
+      }
+    });
   }
   onPricingModeChange();
 }
@@ -18097,6 +18246,7 @@ function syncToggleBtns(){
   const pairs=[
     ['ne-free-event','ne-free-event-btn'],
     ['ne-costs-managed-by-org','ne-costs-managed-btn'],
+    ['ne-direct-cost','ne-direct-cost-btn'],
     ['ne-sub-bookable','ne-sub-bookable-btn'],
     ['ne-sub-discount','ne-sub-discount-btn'],
     ['ne-loyalty-discount','ne-loyalty-discount-btn'],
@@ -18112,34 +18262,35 @@ function onPricingModeChange(){
   const hidden=isPricingHidden();
   const actuallyFree=!!document.getElementById('ne-free-event')?.checked;
   const actuallyManaged=!!document.getElementById('ne-costs-managed-by-org')?.checked;
+  const actuallyDirect=!!document.getElementById('ne-direct-cost')?.checked;
   // Hide/show event-level pricing section (tiers)
   const epSec=document.getElementById('ne-event-pricing-section');
   if(epSec)epSec.style.display=hidden?'none':(formDays.length>1?'':'none');
   // NEVER hide the entire payment card — target individual sub-sections instead
-  // Payment methods: HIDE for free, SHOW for managed and standard
+  // Payment methods: HIDE for free and direct, SHOW for managed and standard
   const payWrap=document.getElementById('ne-payment-methods-wrap');
-  if(payWrap)payWrap.style.display=actuallyFree?'none':'';
+  if(payWrap)payWrap.style.display=(actuallyFree||actuallyDirect)?'none':'';
   // Subscriptions section: different per-button visibility
   const subsWrap=document.getElementById('ne-subscriptions-wrap');
   if(subsWrap){
-    // Show the section for managed (bookable only) and standard (all), hide for free
-    subsWrap.style.display=actuallyFree?'none':'';
+    // Show the section for managed (bookable only) and standard (all), hide for free and direct
+    subsWrap.style.display=(actuallyFree||actuallyDirect)?'none':'';
     // Within subscriptions, hide discount/loyalty buttons for managed (no in-app prices to discount)
     const discBtn=document.getElementById('ne-sub-discount-btn');
     const loyaltyBtn=document.getElementById('ne-loyalty-discount-btn');
     if(discBtn)discBtn.style.display=actuallyManaged?'none':'';
     if(loyaltyBtn)loyaltyBtn.style.display=actuallyManaged?'none':'';
-    // Also hide their open option panels if managed
-    if(actuallyManaged){
+    // Also hide their open option panels if managed or direct
+    if(actuallyManaged||actuallyDirect){
       const discOpts=document.getElementById('ne-sub-discount-opts');
       const loyaltyOpts=document.getElementById('ne-loyalty-discount-opts');
       if(discOpts&&!discOpts.classList.contains('hidden'))discOpts.classList.add('hidden');
       if(loyaltyOpts&&!loyaltyOpts.classList.contains('hidden'))loyaltyOpts.classList.add('hidden');
     }
   }
-  // Deposit: HIDE for free, SHOW for managed and standard
+  // Deposit: HIDE for free and direct, SHOW for managed and standard
   const depWrap=document.getElementById('ne-deposit-wrap');
-  if(depWrap)depWrap.style.display=actuallyFree?'none':'';
+  if(depWrap)depWrap.style.display=(actuallyFree||actuallyDirect)?'none':'';
   // Re-render form days to update pricing (tier inputs) visibility
   renderFormDays();
 }
@@ -18153,13 +18304,7 @@ function renderFormDays(){
     const dayDate=getDayDate(di);
     const times=calcDayTimes(day);
     const dt=day.tiers||{};
-    // Early bird: determine which base tiers exist
-    const ebBaseTiers=day.sessions.length===1?day.sessions[0].tiers:((dt.alto!=null||dt.medio!=null||dt.basso!=null)?dt:{});
-    const ebHasAlto=ebBaseTiers?.alto!=null&&ebBaseTiers.alto>0;
-    const ebHasMedio=ebBaseTiers?.medio!=null&&ebBaseTiers.medio>0;
-    const ebHasBasso=ebBaseTiers?.basso!=null&&ebBaseTiers.basso>0;
     const ebDefaultDeadline=(()=>{if(day.earlyBird?.deadline)return day.earlyBird.deadline;const dd=dayDate||document.getElementById('ne-event-start-date')?.value;if(!dd)return '';const d=new Date(dd+'T12:00:00');d.setDate(d.getDate()-10);return localDateStr(d);})();
-    const ebColCount=(ebHasAlto?1:0)+(ebHasMedio?1:0)+(ebHasBasso?1:0)||1;
     return `
     <div class="card mb-3" style="background:var(--s100);border-color:var(--s400)">
       <div class="flex justify-between items-center mb-3">
@@ -18202,12 +18347,10 @@ function renderFormDays(){
           <span class="text-xs font-medium" style="color:var(--yellow)">🐦 Early Bird giornata</span>
           <span class="text-xs txt3">(clicca per espandere)</span>
         </div>
-        <div class="${(day.earlyBird?.alto||day.earlyBird?.medio||day.earlyBird?.basso)?'':'hidden'} mb-2">
-          <p class="text-xs txt3 mb-2">Prezzo scontato per chi prenota per primo. I campi disponibili dipendono dai tier base inseriti.</p>
-          <div class="grid gap-3 mb-2" style="grid-template-columns:repeat(${ebColCount||1},1fr)">
-            ${ebHasAlto?'<div><label class="label">✦ Early Alto €</label><input class="input ne-d-eba" type="number" data-di="'+di+'" value="'+(day.earlyBird?.alto||'')+'" placeholder="—"></div>':'<input type="hidden" class="ne-d-eba" data-di="'+di+'" value="">'}
-            ${ebHasMedio?'<div><label class="label">● Early Medio €</label><input class="input ne-d-ebm" type="number" data-di="'+di+'" value="'+(day.earlyBird?.medio||'')+'" placeholder="—"></div>':'<input type="hidden" class="ne-d-ebm" data-di="'+di+'" value="">'}
-            ${ebHasBasso?'<div><label class="label">○ Early Basso €</label><input class="input ne-d-ebb" type="number" data-di="'+di+'" value="'+(day.earlyBird?.basso||'')+'" placeholder="—"></div>':'<input type="hidden" class="ne-d-ebb" data-di="'+di+'" value="">'}
+        <div class="${day.earlyBird?.price?'':'hidden'} mb-2">
+          <p class="text-xs txt3 mb-2">Prezzo scontato per chi prenota per primo.</p>
+          <div class="grid gap-3 mb-2" style="grid-template-columns:repeat(1,1fr)">
+            <div><label class="label">💰 Prezzo Early Bird €</label><input class="input ne-d-ebp" type="number" data-di="'+di+'" value="'+(day.earlyBird?.price||'')+'" placeholder="—"></div>
           </div>
           <div class="mb-2">
             <label class="label text-xs">Scadenza Early Bird</label>
@@ -18260,19 +18403,6 @@ function updateDayTimesDisplay(di){
     const timeDisplay=dayCard.querySelector('.day-auto-time');
     if(timeDisplay)timeDisplay.textContent=earliest+' — '+latest;
   }
-}
-function updateEventEBTierVisibility(){
-  const hasAlto=!!document.getElementById('ne-tier-alto')?.value;
-  const hasMedio=!!document.getElementById('ne-tier-medio')?.value;
-  const hasBasso=!!document.getElementById('ne-tier-basso')?.value;
-  const aWrap=document.getElementById('ne-eb-alto-wrap');
-  const mWrap=document.getElementById('ne-eb-medio-wrap');
-  const bWrap=document.getElementById('ne-eb-basso-wrap');
-  if(aWrap)aWrap.style.display=hasAlto?'':'none';
-  if(mWrap)mWrap.style.display=hasMedio?'':'none';
-  if(bWrap)bWrap.style.display=hasBasso?'':'none';
-  const grid=document.getElementById('ne-eb-tiers-grid');
-  if(grid){const cols=(hasAlto?1:0)+(hasMedio?1:0)+(hasBasso?1:0)||1;grid.style.gridTemplateColumns='repeat('+cols+',1fr)';}
 }
 /* Sync EB deadline: when organizer changes the date in any EB section,
    propagate the new value to ALL other EB deadline inputs (session, day, event) */
@@ -18347,7 +18477,7 @@ function renderFormSession(di,si,s,hidePricing){
     </div>
     ${hidePricing?'':`<div class="mb-2">
       <div class="flex items-center gap-3">
-        <div style="flex:1"><label class="label">💰 Costo base (Standard) €</label><input class="input ne-s-tm" type="number" value="${s.tiers?.medio!=null?s.tiers.medio:''}" placeholder="Es: 10" data-di="${di}" data-si="${si}"></div>
+        <div style="flex:1"><label class="label">💰 Costo base (Standard) €</label><input class="input ne-s-tm" type="number" value="${s.tiers?.medio!=null?s.tiers.medio:''}" placeholder="Es: 10" data-di="${di}" data-si="${si}" onchange="renderFormDays()"></div>
         <div style="padding-top:18px"><button type="button" class="btn btn-sm" style="font-size:.7rem;background:var(--green-bg);color:var(--green);border:1px solid var(--green)" onclick="toggleTierExpand(this)">${(s.tiers?.alto!=null||s.tiers?.basso!=null)?'⚙️ Chiudi tier':'⚙️ Più tier'}</button></div>
       </div>
     </div>
@@ -18365,11 +18495,9 @@ function renderFormSession(di,si,s,hidePricing){
         <span class="text-xs font-medium" style="color:var(--yellow)">🐦 Early Bird sessione</span>
         <span class="text-xs txt3">(clicca per espandere)</span>
       </div>
-      <div class="${(s.earlyBird?.alto||s.earlyBird?.medio||s.earlyBird?.basso)?'':'hidden'} mb-2">
-        <div class="grid grid-${(()=>{let c=0;if(s.tiers?.alto!=null&&s.tiers.alto>0)c++;if(s.tiers?.medio!=null&&s.tiers.medio>0)c++;if(s.tiers?.basso!=null&&s.tiers.basso>0)c++;return c||1;})()}" style="display:grid;grid-template-columns:repeat(${(()=>{let c=0;if(s.tiers?.alto!=null&&s.tiers.alto>0)c++;if(s.tiers?.medio!=null&&s.tiers.medio>0)c++;if(s.tiers?.basso!=null&&s.tiers.basso>0)c++;return c||1;})()},1fr);gap:8px">
-          ${(s.tiers?.alto!=null&&s.tiers.alto>0)?'<div><label class="label text-xs">✦ Early Alto €</label><input class="input ne-s-eba" type="number" data-di="'+di+'" data-si="'+si+'" value="'+(s.earlyBird?.alto||'')+'" placeholder="—"></div>':'<input type="hidden" class="ne-s-eba" data-di="'+di+'" data-si="'+si+'" value="">'}
-          ${(s.tiers?.medio!=null&&s.tiers.medio>0)?'<div><label class="label text-xs">● Early Standard €</label><input class="input ne-s-ebm" type="number" data-di="'+di+'" data-si="'+si+'" value="'+(s.earlyBird?.medio||'')+'" placeholder="—"></div>':'<input type="hidden" class="ne-s-ebm" data-di="'+di+'" data-si="'+si+'" value="">'}
-          ${(s.tiers?.basso!=null&&s.tiers.basso>0)?'<div><label class="label text-xs">○ Early Ridotto €</label><input class="input ne-s-ebb" type="number" data-di="'+di+'" data-si="'+si+'" value="'+(s.earlyBird?.basso||'')+'" placeholder="—"></div>':'<input type="hidden" class="ne-s-ebb" data-di="'+di+'" data-si="'+si+'" value="">'}
+      <div class="${s.earlyBird?.price?'':'hidden'} mb-2">
+        <div class="grid grid-1" style="display:grid;grid-template-columns:repeat(1,1fr);gap:8px">
+          <div><label class="label text-xs">💰 Prezzo Early Bird €</label><input class="input ne-s-ebp" type="number" data-di="'+di+'" data-si="'+si+'" value="'+(s.earlyBird?.price||'')+'" placeholder="—"></div>
         </div>
         <div class="grid grid-2 gap-3 mt-2">
           <div class="mb-2">
@@ -18724,7 +18852,8 @@ function collectFormData(){
   if(!title){showToast('Inserisci un titolo!','error');return null;}
   const isFreeEvent=!!document.getElementById('ne-free-event')?.checked;
   const isCostsManagedByOrg=!!document.getElementById('ne-costs-managed-by-org')?.checked;
-  const pricingMode=isFreeEvent?'free':isCostsManagedByOrg?'managed':'standard';
+  const isDirectCost=!!document.getElementById('ne-direct-cost')?.checked;
+  const pricingMode=isFreeEvent?'free':isCostsManagedByOrg?'managed':isDirectCost?'direct':'standard';
   // V3.7.2: Validate event dates — only for NEW events (not edits of existing ones)
   if(!editingEventId){
     const _startVal=document.getElementById('ne-event-start-date')?.value;
@@ -18776,7 +18905,7 @@ function collectFormData(){
         maxSpots:parseInt(document.querySelector(`.ne-s-max[data-di="${di}"][data-si="${si}"]`)?.value)||0,
         minSubscribers:parseInt(document.querySelector(`.ne-s-minsub[data-di="${di}"][data-si="${si}"]`)?.value)||0,
         tiers:(()=>{const _ta=document.querySelector(`.ne-s-ta[data-di="${di}"][data-si="${si}"]`);const _tm=document.querySelector(`.ne-s-tm[data-di="${di}"][data-si="${si}"]`);const _tb=document.querySelector(`.ne-s-tb[data-di="${di}"][data-si="${si}"]`);const _tierHidden=_ta?.closest('.hidden')||_ta?.closest('div')?.classList?.contains('hidden');return{alto:(!_tierHidden&&_ta?.value)?parseFloat(_ta.value):null,medio:_tm?.value?parseFloat(_tm.value):null,basso:(!_tierHidden&&_tb?.value)?parseFloat(_tb.value):null};})(),
-        earlyBird:(()=>{const _seba=parseFloat(document.querySelector(`.ne-s-eba[data-di="${di}"][data-si="${si}"]`)?.value)||0;const _sebm=parseFloat(document.querySelector(`.ne-s-ebm[data-di="${di}"][data-si="${si}"]`)?.value)||0;const _sebb=parseFloat(document.querySelector(`.ne-s-ebb[data-di="${di}"][data-si="${si}"]`)?.value)||0;if(!_seba&&!_sebm&&!_sebb)return null;const o={};if(_seba>0)o.alto=_seba;if(_sebm>0)o.medio=_sebm;if(_sebb>0)o.basso=_sebb;if(!o.alto&&!o.medio&&!o.basso)return null;const typeEl=document.querySelector(`input[name="ne-seb-type-${di}-${si}"]:checked`);o.type=typeEl?.value||'date';o.deadline=document.querySelector(`.ne-s-ebd[data-di="${di}"][data-si="${si}"]`)?.value||null;o.maxCount=parseInt(document.querySelector(`.ne-s-ebc[data-di="${di}"][data-si="${si}"]`)?.value)||null;return o;})()
+        earlyBird:(()=>{const _sebp=parseFloat(document.querySelector(`.ne-s-ebp[data-di="${di}"][data-si="${si}"]`)?.value)||0;if(!_sebp)return null;const typeEl=document.querySelector(`input[name="ne-seb-type-${di}-${si}"]:checked`);return{price:_sebp,type:typeEl?.value||'date',deadline:document.querySelector(`.ne-s-ebd[data-di="${di}"][data-si="${si}"]`)?.value||null,maxCount:parseInt(document.querySelector(`.ne-s-ebc[data-di="${di}"][data-si="${si}"]`)?.value)||null};})()
       };
     });
     // Tier giornata (opzionali) - respect hidden state for alto/basso
@@ -18796,21 +18925,14 @@ function collectFormData(){
       dayEndTime=sessions.reduce((max,s)=>s.endTime>max?s.endTime:max,sessions[0].endTime);
     }
     // Early Bird giornata
-    const deba=parseFloat(document.querySelector(`.ne-d-eba[data-di="${di}"]`)?.value)||0;
-    const debm=parseFloat(document.querySelector(`.ne-d-ebm[data-di="${di}"]`)?.value)||0;
-    const debb=parseFloat(document.querySelector(`.ne-d-ebb[data-di="${di}"]`)?.value)||0;
+    const debp=parseFloat(document.querySelector(`.ne-d-ebp[data-di="${di}"]`)?.value)||0;
     const debTypeEl=document.querySelector(`input[name="ne-deb-type-${di}"]:checked`);
     const debd=document.querySelector(`.ne-d-ebd[data-di="${di}"]`)?.value||null;
     const debc=parseInt(document.querySelector(`.ne-d-ebc[data-di="${di}"]`)?.value)||null;
-    // Early Bird: sanitize — only keep tiers where user actually entered a price > 0
+    // Early Bird: sanitize — only keep if user actually entered a price > 0
     let dayEarlyBird=null;
-    if(deba||debm||debb){
-      const ebObj={type:debTypeEl?.value||'date',deadline:debd,maxCount:debc};
-      // Only include EB tiers that have an actual user-entered value
-      if(deba>0)ebObj.alto=deba;
-      if(debm>0)ebObj.medio=debm;
-      if(debb>0)ebObj.basso=debb;
-      if(ebObj.alto||ebObj.medio||ebObj.basso)dayEarlyBird=ebObj;
+    if(debp>0){
+      dayEarlyBird={price:debp,type:debTypeEl?.value||'date',deadline:debd,maxCount:debc};
     }
     return {date:dayDate||'',startTime:dayStartTime,endTime:dayEndTime,sessions,
       tiers:dayTiers,earlyBird:dayEarlyBird,
@@ -18822,14 +18944,10 @@ function collectFormData(){
   const loyaltyDiscountEnabled=document.getElementById('ne-loyalty-discount')?.checked;
   const loyaltyEventIds=Array.from(document.querySelectorAll('#ne-loyalty-eventi-wrap .ep-check:checked')).map(cb=>cb.value);
   const loyaltyDiscPct=parseFloat(document.getElementById('ne-loyalty-disc-pct')?.value)||15;
-  // Early Bird — sanitize: only keep tiers where user actually entered a price > 0
-  const ebAltoRaw=parseFloat(document.getElementById('ne-eb-alto')?.value)||0;
-  const ebMedioRaw=parseFloat(document.getElementById('ne-eb-medio')?.value)||0;
-  const ebBassoRaw=parseFloat(document.getElementById('ne-eb-basso')?.value)||0;
-  const earlyBird=(ebAltoRaw>0||ebMedioRaw>0||ebBassoRaw>0)?{
-    alto:ebAltoRaw>0?ebAltoRaw:null,
-    medio:ebMedioRaw>0?ebMedioRaw:null,
-    basso:ebBassoRaw>0?ebBassoRaw:null,
+  // Early Bird — sanitize: only keep if user actually entered a price > 0
+  const ebPriceRaw=parseFloat(document.getElementById('ne-eb-price')?.value)||0;
+  const earlyBird=ebPriceRaw>0?{
+    price:ebPriceRaw,
     type:document.querySelector('input[name="ne-eb-type"]:checked')?.value||'date',
     deadline:document.getElementById('ne-eb-deadline')?.value||null,
     maxCount:parseInt(document.getElementById('ne-eb-max-count')?.value)||null
@@ -18849,6 +18967,26 @@ function collectFormData(){
       const _evStartVal=document.getElementById('ne-event-start-date')?.value;
       if(_bdVal<_todayVal){showToast('La deadline prenotazioni non può essere nel passato!','error');return null;}
       if(_evStartVal&&_bdVal>_evStartVal){showToast('La deadline prenotazioni non può superare la data di inizio evento!','error');return null;}
+    }
+  }
+  // Validazione cascading EB
+  // Regola 4: EB sessioni → EB giornata OBBLIGATORIO
+  for (let di = 0; di < days.length; di++) {
+    const day = days[di];
+    if (day.sessions.length > 1) {
+      const hasSessionEB = day.sessions.some(s => s.earlyBird && s.earlyBird.price > 0);
+      if (hasSessionEB && (!day.earlyBird || !day.earlyBird.price)) {
+        showToast(`Giorno ${di + 1}: se le sessioni hanno Early Bird, anche la giornata deve avere un prezzo Early Bird`, 'error');
+        return null;
+      }
+    }
+  }
+  // Regola 5: EB giornate → EB evento OBBLIGATORIO (se 2+ giorni)
+  if (days.length > 1) {
+    const hasDayEB = days.some(d => d.earlyBird && d.earlyBird.price > 0);
+    if (hasDayEB && !earlyBird) {
+      showToast('Se le giornate hanno Early Bird, anche l\'evento deve avere un prezzo Early Bird', 'error');
+      return null;
     }
   }
   return {
@@ -18872,7 +19010,7 @@ function collectFormData(){
     contactPhone:document.getElementById('ne-contact-phone')?.value||'',
     contactEmail:document.getElementById('ne-contact-email')?.value||'',
     groupLink:document.getElementById('ne-group-link')?.value||'',
-    paymentMethods:{paypal:document.getElementById('ne-paypal').value||'',revolut:document.getElementById('ne-revolut').value||'',cash:document.getElementById('ne-cash')?.checked||false},
+    paymentMethods:{paypal:document.getElementById('ne-paypal').value||'',revolut:document.getElementById('ne-revolut').value||'',satispay:document.getElementById('ne-satispay')?.value||'',cash:document.getElementById('ne-cash')?.checked||false},
     deposit:document.getElementById('ne-deposit-required')?.checked?{required:true,amount:parseFloat(document.getElementById('ne-deposit-amount')?.value)||0,causal:document.getElementById('ne-deposit-causal')?.value||''}:null,
     pricingMode,
     minSubscribers:null, // V2.13.0: moved to session level (s.minSubscribers)
@@ -19050,6 +19188,7 @@ function editEvent(id){
   // Payment methods
   document.getElementById('ne-paypal').value=ev.paymentMethods?.paypal||'';
   document.getElementById('ne-revolut').value=ev.paymentMethods?.revolut||'';
+  const satispayEl2=document.getElementById('ne-satispay');if(satispayEl2)satispayEl2.value=ev.paymentMethods?.satispay||'';
   const cashEl=document.getElementById('ne-cash');if(cashEl){cashEl.checked=ev.paymentMethods?.cash!==false;const cashBtn=document.getElementById('ne-cash-btn');if(cashBtn){if(cashEl.checked){cashBtn.style.background='rgba(16,185,129,.15)';cashBtn.style.color='var(--green)';cashBtn.style.borderColor='rgba(16,185,129,.4)';cashBtn.textContent='💵 Accetta contanti ✓';}else{cashBtn.style.background='var(--s200)';cashBtn.style.color='var(--txt2)';cashBtn.style.borderColor='var(--s400)';cashBtn.textContent='💵 Contanti';}}}
   // Deposit
   const depEl=document.getElementById('ne-deposit-required');
@@ -19129,7 +19268,7 @@ function editEvent(id){
     startTime:d.startTime||'10:00',
     endTime:d.endTime||'17:00',
     tiers:d.tiers?{alto:d.tiers.alto!=null?d.tiers.alto:'',medio:d.tiers.medio!=null?d.tiers.medio:'',basso:d.tiers.basso!=null?d.tiers.basso:''}:{},
-    earlyBird:d.earlyBird?{alto:d.earlyBird.alto!=null?d.earlyBird.alto:'',medio:d.earlyBird.medio!=null?d.earlyBird.medio:'',basso:d.earlyBird.basso!=null?d.earlyBird.basso:'',type:d.earlyBird.type||'date',deadline:d.earlyBird.deadline||'',maxCount:d.earlyBird.maxCount||''}:null,
+    earlyBird:d.earlyBird?{price:d.earlyBird.price!=null?d.earlyBird.price:'',type:d.earlyBird.type||'date',deadline:d.earlyBird.deadline||'',maxCount:d.earlyBird.maxCount||''}:null,
     sessions:d.sessions.map(s=>({
       _origId:s.id||null,
       name:s.name||'',startTime:s.startTime||'10:00',endTime:s.endTime||'13:00',
@@ -19137,7 +19276,7 @@ function editEvent(id){
       location:s.location||'',locationUrl:s.locationUrl||'',
       maxSpots:s.maxSpots||0,
       tiers:s.tiers?{alto:s.tiers.alto!=null?s.tiers.alto:null,medio:s.tiers.medio!=null?s.tiers.medio:null,basso:s.tiers.basso!=null?s.tiers.basso:null}:{alto:null,medio:null,basso:null},
-      earlyBird:s.earlyBird?{alto:s.earlyBird.alto!=null?s.earlyBird.alto:'',medio:s.earlyBird.medio!=null?s.earlyBird.medio:'',basso:s.earlyBird.basso!=null?s.earlyBird.basso:'',type:s.earlyBird.type||'date',deadline:s.earlyBird.deadline||'',maxCount:s.earlyBird.maxCount||''}:null
+      earlyBird:s.earlyBird?{price:s.earlyBird.price!=null?s.earlyBird.price:'',type:s.earlyBird.type||'date',deadline:s.earlyBird.deadline||'',maxCount:s.earlyBird.maxCount||''}:null
     }))
   }));
   _skipNextSaveFormState=true;
@@ -19147,6 +19286,10 @@ function editEvent(id){
   const managedEl=document.getElementById('ne-costs-managed-by-org');
   if(freeEl)freeEl.checked=(ev.pricingMode==='free');
   if(managedEl)managedEl.checked=(ev.pricingMode==='managed');
+  const directEl=document.getElementById('ne-direct-cost');
+  const directBtn=document.getElementById('ne-direct-cost-btn');
+  if(directEl)directEl.checked=(ev.pricingMode==='direct');
+  if(directBtn)_setToggleBtnActive(directBtn,ev.pricingMode==='direct');
   // Sync button visual states
   const freeBtn=document.getElementById('ne-free-event-btn');
   const managedBtn=document.getElementById('ne-costs-managed-btn');
@@ -19189,7 +19332,7 @@ function editEvent(id){
     }
   }
   // Restore event-level early bird section visibility
-  if(ev.earlyBird&&(ev.earlyBird.alto||ev.earlyBird.medio||ev.earlyBird.basso)){
+  if(ev.earlyBird&&hasEBPrice(ev.earlyBird)){
     const ebSec=document.getElementById('ne-earlybird-section');
     if(ebSec)ebSec.classList.remove('hidden');
     const ebToggle=ebSec?.previousElementSibling;
@@ -19197,9 +19340,7 @@ function editEvent(id){
   }
   // Restore event-level early bird
   if(ev.earlyBird){
-    const ebA=document.getElementById('ne-eb-alto');if(ebA&&ev.earlyBird.alto!=null)ebA.value=ev.earlyBird.alto;
-    const ebM=document.getElementById('ne-eb-medio');if(ebM&&ev.earlyBird.medio!=null)ebM.value=ev.earlyBird.medio;
-    const ebB=document.getElementById('ne-eb-basso');if(ebB&&ev.earlyBird.basso!=null)ebB.value=ev.earlyBird.basso;
+    const ebP=document.getElementById('ne-eb-price');if(ebP&&ev.earlyBird)ebP.value=ev.earlyBird.price||getEBPrice(ev.earlyBird)||'';
     const ebDl=document.getElementById('ne-eb-deadline');if(ebDl&&ev.earlyBird.deadline)ebDl.value=ev.earlyBird.deadline;
     const ebMc=document.getElementById('ne-eb-max-count');if(ebMc&&ev.earlyBird.maxCount)ebMc.value=ev.earlyBird.maxCount;
     const ebTypeVal=ev.earlyBird.type||'date';
@@ -19208,7 +19349,6 @@ function editEvent(id){
       if(ebTypeVal==='count'){document.getElementById('ne-eb-date-wrap').style.display='none';document.getElementById('ne-eb-count-wrap').style.display='';}
     }
   }
-  updateEventEBTierVisibility();
   // minSubscribers: now at session level (V2.13.0) — restored via renderFormSession()
   // Restore booking deadline (date mode for single, days-before for recurring)
   const bdEl=document.getElementById('ne-booking-deadline');
@@ -19258,7 +19398,7 @@ function editEvent(id){
   // Auto-expand collapsible sections that have content
   if(ev.contactPhone||ev.contactEmail||ev.groupLink){const cc=document.getElementById('ne-contacts-collapsible');if(cc){cc.classList.remove('hidden');const arrow=cc.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
   if(ev.paymentMethods&&(ev.paymentMethods.paypal||ev.paymentMethods.revolut||ev.paymentMethods.cash)){const pc=document.getElementById('ne-payment-collapsible');if(pc){pc.classList.remove('hidden');const arrow=pc.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
-  if(ev.pricingMode==='free'||ev.pricingMode==='managed'||ev.subscriptionBookable?.enabled||ev.subscriptionDiscount?.enabled||ev.deposit?.required||ev.insurance?.enabled){const sc=document.getElementById('ne-payment-collapsible');if(sc){sc.classList.remove('hidden');const arrow=sc.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
+  if(ev.pricingMode==='free'||ev.pricingMode==='managed'||ev.pricingMode==='direct'||ev.subscriptionBookable?.enabled||ev.subscriptionDiscount?.enabled||ev.deposit?.required||ev.insurance?.enabled){const sc=document.getElementById('ne-payment-collapsible');if(sc){sc.classList.remove('hidden');const arrow=sc.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
   // Sync toggle button states with restored checkbox states
   syncToggleBtns();
   // Restore surveys
@@ -21521,7 +21661,7 @@ async function showAdminEventDetail(evId){
     </div>
 
     <!-- V3.3.0: Revenue cards moved to Costi section — show compact summary + link -->
-    ${ev.pricingMode!=='free'&&isEventCapofila(ev,store.currentUser.id)?'<div class="card mb-6" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px"><div style="display:flex;gap:16px;flex-wrap:wrap;font-size:.88rem"><span style="color:var(--green);font-weight:600">€'+fmtEuro(paidRevenue)+' incassato</span><span style="color:var(--yellow)">€'+fmtEuro(unpaidRevenue)+' da incassare</span></div><button class="btn btn-sm" style="background:rgba(234,179,8,.1);color:var(--yellow);border:1px solid rgba(234,179,8,.25);font-size:.75rem" onclick="openCostManagement(\''+ev.id+'\')">💰 Dettaglio Costi →</button></div>':''}
+    ${ev.pricingMode!=='free'&&ev.pricingMode!=='direct'&&isEventCapofila(ev,store.currentUser.id)?'<div class="card mb-6" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px"><div style="display:flex;gap:16px;flex-wrap:wrap;font-size:.88rem"><span style="color:var(--green);font-weight:600">€'+fmtEuro(paidRevenue)+' incassato</span><span style="color:var(--yellow)">€'+fmtEuro(unpaidRevenue)+' da incassare</span></div><button class="btn btn-sm" style="background:rgba(234,179,8,.1);color:var(--yellow);border:1px solid rgba(234,179,8,.25);font-size:.75rem" onclick="openCostManagement(\''+ev.id+'\')">💰 Dettaglio Costi →</button></div>':''}
 
     ${(()=>{
       if(!ev.refunds||!ev.refunds.length)return '';
@@ -21576,7 +21716,7 @@ async function showAdminEventDetail(evId){
     <h2 class="font-semibold text-white mb-3">👥 Lista Partecipanti (${active.length}${active.filter(b=>b.checkedIn).length>0?' · <span style="color:var(--green)">'+active.filter(b=>b.checkedIn).length+' presenti</span>':''})${viewSubtitle}</h2>
     ${active.length?`<div class="card table-wrap" style="padding:0">
       <table class="table">
-        <thead><tr><th class="th-participant" style="cursor:pointer" onclick="sortAdminDetail('userName')">Partecipante ${adminDetailSort.field==='userName'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('role')">Ruolo ${adminDetailSort.field==='role'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('sessions')">Sessioni ${adminDetailSort.field==='sessions'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${ev.pricingMode!=='free'?'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'tier\')">Tier '+(adminDetailSort.field==='tier'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}<th style="cursor:pointer" onclick="sortAdminDetail('checkedIn')">Presente ${adminDetailSort.field==='checkedIn'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${ev.pricingMode!=='free'?'<th style="cursor:pointer" onclick="sortAdminDetail(\'amount\')">Importo '+(adminDetailSort.field==='amount'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'paymentStatus\')">Pagato '+(adminDetailSort.field==='paymentStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'depositStatus\')">Anticipo '+(adminDetailSort.field==='depositStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'daIncassare\')">Da incassare '+(adminDetailSort.field==='daIncassare'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).length?'<th style="border-left:2px solid var(--s400);padding-left:12px;cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+(ev.surveys[0].id)+'\')">'+ev.surveys[0].question.substring(0,20)+(ev.surveys[0].question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+ev.surveys[0].id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).slice(1).map(sq=>'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+sq.id+'\')">'+sq.question.substring(0,20)+(sq.question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+sq.id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>').join('')}<th>Azioni</th></tr></thead>
+        <thead><tr><th class="th-participant" style="cursor:pointer" onclick="sortAdminDetail('userName')">Partecipante ${adminDetailSort.field==='userName'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('role')">Ruolo ${adminDetailSort.field==='role'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('sessions')">Sessioni ${adminDetailSort.field==='sessions'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${ev.pricingMode!=='free'&&ev.pricingMode!=='direct'?'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'tier\')">Tier '+(adminDetailSort.field==='tier'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}<th style="cursor:pointer" onclick="sortAdminDetail('checkedIn')">Presente ${adminDetailSort.field==='checkedIn'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${ev.pricingMode!=='free'&&ev.pricingMode!=='direct'?'<th style="cursor:pointer" onclick="sortAdminDetail(\'amount\')">Importo '+(adminDetailSort.field==='amount'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'paymentStatus\')">Pagato '+(adminDetailSort.field==='paymentStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'depositStatus\')">Anticipo '+(adminDetailSort.field==='depositStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'daIncassare\')">Da incassare '+(adminDetailSort.field==='daIncassare'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).length?'<th class="th-survey" style="border-left:2px solid var(--s400);padding-left:12px;cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+(ev.surveys[0].id)+'\')">'+ev.surveys[0].question.substring(0,20)+(ev.surveys[0].question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+ev.surveys[0].id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).slice(1).map(sq=>'<th class="th-survey" style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+sq.id+'\')">'+sq.question.substring(0,20)+(sq.question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+sq.id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>').join('')}<th>Azioni</th></tr></thead>
         <tbody>${active.map(b=>{
           _sanitizeBookingState(b);
           const depositHtml=isArchived?(b.depositStatus==='ricevuto'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">✅ Ricevuto</span>':b.depositStatus==='pending'?'<span class="badge badge-yellow">⏳ Pending</span>':'<span class="text-xs txt3">—</span>')
@@ -21607,15 +21747,15 @@ async function showAdminEventDetail(evId){
             <td class="td-participant"><div class="flex items-center gap-2"><div class="avatar ${avatarCls} hide-mobile" ${avatarStyle} style="${!avatarCls?'background:var(--s300);color:var(--txt3)':''}${_pLogo?';overflow:hidden':''}">${avatarInner}</div><div class="participant-info"><div class="font-medium text-white text-sm">${escHtml(resolveUserName(b.userId,b.userName))}</div><div class="text-xs txt3">${escHtml(b.email)}</div></div></div></td>
             <td><span style="color:${roleColor(b.role)}">${roleName(b.role)}</span></td>
             <td style="min-width:140px">${getSessionNames(b.sessions)}</td>
-            ${ev.pricingMode!=='free'?'<td style="white-space:nowrap"><span style="font-size:.75rem;padding:2px 6px;border-radius:4px;background:'+(b.tier==='alto'?'rgba(234,179,8,.12);color:var(--yellow)':b.tier==='basso'?'rgba(59,130,246,.12);color:var(--blue)':'rgba(168,85,247,.12);color:var(--purple)')+'">'+({alto:'✦ Sost.',medio:'● Std',basso:'○ Rid.'}[b.tier]||'● Std')+'</span></td>':''}
+            ${ev.pricingMode!=='free'&&ev.pricingMode!=='direct'?'<td style="white-space:nowrap"><span style="font-size:.75rem;padding:2px 6px;border-radius:4px;background:'+(b.tier==='alto'?'rgba(234,179,8,.12);color:var(--yellow)':b.tier==='basso'?'rgba(59,130,246,.12);color:var(--blue)':'rgba(168,85,247,.12);color:var(--purple)')+'">'+({alto:'✦ Sost.',medio:'● Std',basso:'○ Rid.'}[b.tier]||'● Std')+'</span></td>':''}
             <td>${checkedInHtml}</td>
-            ${ev.pricingMode!=='free'?'<td class="font-medium">'+amountHtml+' '+giftBtn+'</td><td>'+payHtml+'</td><td>'+depositHtml+'</td><td>'+daIncHtml+'</td>':''}
-            ${(ev.surveys||[]).length?'<td class="text-sm" style="border-left:2px solid var(--s400);padding-left:12px" title="'+(((arr)=>{const r=(b.surveyResponses||{})[arr[0]?.id];return Array.isArray(r)?r.join(', '):r||'—';})(ev.surveys))+'">'+(((arr)=>{const r=(b.surveyResponses||{})[arr[0]?.id];const d=Array.isArray(r)?r.join(', '):r||'—';return d.length>25?d.substring(0,23)+'…':d;})(ev.surveys))+'</td>':''}
+            ${ev.pricingMode!=='free'&&ev.pricingMode!=='direct'?'<td class="font-medium">'+amountHtml+' '+giftBtn+'</td><td>'+payHtml+'</td><td>'+depositHtml+'</td><td>'+daIncHtml+'</td>':''}
+            ${(ev.surveys||[]).length?'<td class="text-sm td-survey" style="border-left:2px solid var(--s400);padding-left:12px" title="'+(((arr)=>{const r=(b.surveyResponses||{})[arr[0]?.id];return Array.isArray(r)?r.join(', '):r||'—';})(ev.surveys))+'">'+(((arr)=>{const r=(b.surveyResponses||{})[arr[0]?.id];const d=Array.isArray(r)?r.join(', '):r||'—';return d.length>25?d.substring(0,23)+'…':d;})(ev.surveys))+'</td>':''}
             ${(ev.surveys||[]).slice(1).map(sq=>{
               const r=(b.surveyResponses||{})[sq.id];
               const display=Array.isArray(r)?r.join(', '):r||'—';
               const truncated=display.length>25?display.substring(0,23)+'…':display;
-              return '<td class="text-sm" title="'+display+'">'+truncated+'</td>';
+              return '<td class="text-sm td-survey" title="'+display+'">'+truncated+'</td>';
             }).join('')}
             <td>${isArchived?'<span class="text-xs txt3">—</span>':'<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();cancelBookingCtx(\''+b.id+'\',\'detail\')">✕</button>'}</td>
           </tr>`;
