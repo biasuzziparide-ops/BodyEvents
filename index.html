@@ -426,7 +426,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.2</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.3</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2775,7 +2775,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.2';
+const APP_VERSION='V3.10.3';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -18382,7 +18382,7 @@ function renderFormDays(){
         <div class="${hasEBPrice(day.earlyBird)?'':'hidden'} mb-2">
           <p class="text-xs txt3 mb-2">Prezzo scontato per chi prenota per primo.</p>
           <div class="grid gap-3 mb-2" style="grid-template-columns:repeat(1,1fr)">
-            <div><label class="label">💰 Prezzo Early Bird €</label><input class="input ne-d-ebp" type="number" data-di="'+di+'" value="'+(day.earlyBird?.price||'')+'" placeholder="—"></div>
+            <div><label class="label">💰 Prezzo Early Bird €</label><input class="input ne-d-ebp" type="number" data-di="${di}" value="${day.earlyBird?.price||''}" placeholder="—"></div>
           </div>
           <div class="mb-2">
             <label class="label text-xs">Scadenza Early Bird</label>
@@ -18529,7 +18529,7 @@ function renderFormSession(di,si,s,hidePricing){
       </div>
       <div class="${hasEBPrice(s.earlyBird)?'':'hidden'} mb-2">
         <div class="grid grid-1" style="display:grid;grid-template-columns:repeat(1,1fr);gap:8px">
-          <div><label class="label text-xs">💰 Prezzo Early Bird €</label><input class="input ne-s-ebp" type="number" data-di="'+di+'" data-si="'+si+'" value="'+(s.earlyBird?.price||'')+'" placeholder="—"></div>
+          <div><label class="label text-xs">💰 Prezzo Early Bird €</label><input class="input ne-s-ebp" type="number" data-di="${di}" data-si="${si}" value="${s.earlyBird?.price||''}" placeholder="—"></div>
         </div>
         <div class="grid grid-2 gap-3 mt-2">
           <div class="mb-2">
@@ -18990,6 +18990,7 @@ function collectFormData(){
   const eventType=document.getElementById('ne-type').value||'jam';
   // V3.1.7: Custom type creation disabled — fallback to 'jam' if somehow __custom__ is selected
   const finalType=(eventType==='__custom__'||eventType==='custom')?'jam':eventType;
+  console.log('[collectFormData] Event type from dropdown:', eventType, '→ finalType:', finalType);
   // Validate booking deadline
   const recChkPre=document.getElementById('ne-recurrence')?.checked;
   if(!recChkPre){
@@ -19209,6 +19210,7 @@ function editEvent(id){
   const editUnivIdsForType=ev.universeIds||[ev.universeId||'univ_acro'];
   populateEventTypeDropdown(editUnivIdsForType,ev.type||'jam');
   onEventTypeChange();
+  console.log('[editEvent] Type from Firestore:', ev.type, '→ Dropdown value:', document.getElementById('ne-type')?.value);
   // ne-level removed V2.13.0 — level is auto-computed from sessions
   document.getElementById('ne-teacher').value=ev.teacher||'';
   document.getElementById('ne-location').value=ev.location||'';
