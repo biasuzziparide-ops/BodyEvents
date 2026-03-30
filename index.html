@@ -416,7 +416,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.6.2</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.7.1</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2746,7 +2746,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.6.2';
+const APP_VERSION='V3.7.1';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -2787,6 +2787,13 @@ function _markEventRead(eventId){
   if(!data[eventId])data[eventId]={};
   if(ev.alert)data[eventId].alertSeen=ev.alert.timestamp||ev.alert.date||'';
   if(ev.organizerNote)data[eventId].noteSeen=ev.organizerNote.updatedAt||'';
+  // V3.7.1: Mark date-keyed notes as read
+  if(ev.organizerNotes){
+    Object.keys(ev.organizerNotes).forEach(dk=>{
+      const dn=ev.organizerNotes[dk];
+      if(dn?.text) data[eventId]['noteSeen_'+dk]=dn.updatedAt||'';
+    });
+  }
   localStorage.setItem(READ_ALERTS_KEY+uid,JSON.stringify(data));
   updateNotificationBadges();
 }
@@ -2799,10 +2806,20 @@ function _isEventUnread(eventId){
     const alertTs=ev.alert.timestamp||ev.alert.date||'';
     if(alertTs&&alertTs!==seen.alertSeen)return true;
   }
-  // Check organizerNote
+  // Check organizerNote (global)
   if(ev.organizerNote?.text&&ev.status==='pubblicato'){
     const noteTs=ev.organizerNote.updatedAt||'';
     if(noteTs&&noteTs!==seen.noteSeen)return true;
+  }
+  // V3.7.1: Check organizerNotes (date-keyed, from V3.6.3)
+  if(ev.organizerNotes&&ev.status==='pubblicato'){
+    for(const dk of Object.keys(ev.organizerNotes)){
+      const dn=ev.organizerNotes[dk];
+      if(dn?.text){
+        const dnTs=dn.updatedAt||'';
+        if(dnTs&&dnTs!==seen['noteSeen_'+dk])return true;
+      }
+    }
   }
   return false;
 }
@@ -3681,13 +3698,27 @@ async function assignInsuranceToUser(userId,insuranceId,assignedBy,expiresAt,sur
 }
 
 async function removeInsuranceFromUser(userId,insuranceId){
-  // V3.2: Check both users and managers
-  let user=store.users.find(u=>u.id===userId);
-  let col='users';
-  if(!user){user=store.managers.find(m=>m.id===userId);col='managers';}
-  if(!user||!user.assignedInsurances)return;
-  user.assignedInsurances=user.assignedInsurances.filter(a=>a.insuranceId!==insuranceId);
-  await fsUpdate(col,userId,{assignedInsurances:user.assignedInsurances});
+  // V3.7.1: Remove from BOTH user AND manager records if they exist
+  let removed=false;
+  const user=store.users.find(u=>u.id===userId);
+  if(user&&user.assignedInsurances){
+    const before=user.assignedInsurances.length;
+    user.assignedInsurances=user.assignedInsurances.filter(a=>a.insuranceId!==insuranceId);
+    if(user.assignedInsurances.length<before){
+      await fsUpdate('users',user.id,{assignedInsurances:user.assignedInsurances});
+      removed=true;
+    }
+  }
+  const mgr=store.managers.find(m=>m.id===userId);
+  if(mgr&&mgr.assignedInsurances){
+    const before=mgr.assignedInsurances.length;
+    mgr.assignedInsurances=mgr.assignedInsurances.filter(a=>a.insuranceId!==insuranceId);
+    if(mgr.assignedInsurances.length<before){
+      await fsUpdate('managers',mgr.id,{assignedInsurances:mgr.assignedInsurances});
+      removed=true;
+    }
+  }
+  if(!removed)console.warn('removeInsuranceFromUser: insurance not found on user or manager',userId,insuranceId);
 }
 
 async function renewInsuranceForUser(userId,insuranceId,newExpiresAt){
@@ -3787,12 +3818,19 @@ async function renderAdminInsurances(){
       h+='<div style="font-size:.68rem;color:var(--txt3)">assicurati</div>';
       h+='</div>';
       h+='</div>';
-      // Action buttons
+      // Action buttons — V3.7.1: distinguish owned vs affiliated
+      const _isOwned=ins.createdBy===store.currentUser?.id;
       h+='<div style="display:flex;gap:6px;margin-top:12px;border-top:1px solid var(--s300);padding-top:10px;flex-wrap:wrap">';
       h+='<button class="btn btn-sm" style="font-size:.72rem;background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="showAssignInsuranceModal(\''+ins.id+'\')">👤 Assegna utente</button>';
       h+='<button class="btn btn-sm" style="font-size:.72rem;background:rgba(99,102,241,.08);color:var(--brand-l);border:1px solid rgba(99,102,241,.2)" onclick="showInsuranceUsersModal(\''+ins.id+'\')">📋 Vedi assicurati ('+count+')</button>';
       h+='<button class="btn btn-sm" style="font-size:.72rem;background:rgba(245,158,11,.08);color:var(--warn);border:1px solid rgba(245,158,11,.2)" onclick="showEditInsuranceModal(\''+ins.id+'\')">✏️ Modifica</button>';
-      h+='<button class="btn btn-sm" style="font-size:.72rem;background:rgba(239,68,68,.08);color:var(--red);border:1px solid rgba(239,68,68,.2)" onclick="confirmUnaffiliateInsurance(\''+ins.id+'\')">🔗 Scollega</button>';
+      if(_isOwned){
+        // Owner: can delete the insurance they created
+        h+='<button class="btn btn-sm" style="font-size:.72rem;background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.3);font-weight:600" onclick="confirmDeleteInsurance(\''+ins.id+'\','+count+')">🗑️ Elimina</button>';
+      } else {
+        // Affiliated only: can disconnect but not delete
+        h+='<button class="btn btn-sm" style="font-size:.72rem;background:rgba(239,68,68,.08);color:var(--red);border:1px solid rgba(239,68,68,.2)" onclick="confirmUnaffiliateInsurance(\''+ins.id+'\')">🔗 Scollega</button>';
+      }
       h+='</div>';
       h+='</div>';
     });
@@ -3929,6 +3967,74 @@ async function confirmUnaffiliateInsurance(insId){
   renderAdminInsurances();
 }
 
+// V3.7.1: Delete insurance (owner only) with double confirmation
+async function confirmDeleteInsurance(insId, assignedCount){
+  const ins=store.insurances.find(i=>i.id===insId);
+  if(!ins)return;
+
+  // Build confirmation message
+  let confirmMsg='Eliminare l\'assicurazione <strong>'+escHtml(ins.name)+'</strong>?';
+  if(assignedCount>0){
+    confirmMsg+='<br><br>⚠️ Questa assicurazione ha <strong>'+assignedCount+'</strong> utenti assicurati. '+
+      'Eliminandola, verrà rimossa anche dalla scheda di ogni utente assegnato.';
+  }
+  confirmMsg+='<br><br>Questa azione è <strong>irreversibile</strong>.';
+
+  showConfirm('🗑️ Elimina assicurazione', confirmMsg, async ()=>{
+    // Double confirm for safety if there are assigned users
+    if(assignedCount>0){
+      if(!confirm('Conferma finale: eliminare "'+ins.name+'" e rimuoverla da '+assignedCount+' utenti?'))return;
+    }
+
+    try{
+      // 1. Remove insurance assignment from ALL users
+      const removePromises=[];
+      store.users.forEach(u=>{
+        if(!u.assignedInsurances)return;
+        const before=u.assignedInsurances.length;
+        u.assignedInsurances=u.assignedInsurances.filter(a=>a.insuranceId!==insId);
+        if(u.assignedInsurances.length<before){
+          removePromises.push(fsUpdate('users',u.id,{assignedInsurances:u.assignedInsurances}));
+        }
+      });
+      // 2. Remove from ALL managers
+      store.managers.forEach(m=>{
+        if(!m.assignedInsurances)return;
+        const before=m.assignedInsurances.length;
+        m.assignedInsurances=m.assignedInsurances.filter(a=>a.insuranceId!==insId);
+        if(m.assignedInsurances.length<before){
+          removePromises.push(fsUpdate('managers',m.id,{assignedInsurances:m.assignedInsurances}));
+        }
+      });
+      await Promise.all(removePromises);
+
+      // 3. Remove from ALL managers' affiliatedInsurances
+      const affiliatePromises=[];
+      store.managers.forEach(m=>{
+        if(!m.affiliatedInsurances)return;
+        const before=m.affiliatedInsurances.length;
+        m.affiliatedInsurances=m.affiliatedInsurances.filter(id=>id!==insId);
+        if(m.affiliatedInsurances.length<before){
+          affiliatePromises.push(fsUpdate('managers',m.id,{affiliatedInsurances:m.affiliatedInsurances}));
+        }
+      });
+      await Promise.all(affiliatePromises);
+
+      // 4. Delete the insurance document from Firestore
+      await fbDb.collection('insurances').doc(insId).delete();
+
+      // 5. Remove from local store
+      store.insurances=store.insurances.filter(i=>i.id!==insId);
+
+      showToast('🗑️ Assicurazione "'+ins.name+'" eliminata');
+      renderAdminInsurances();
+    }catch(e){
+      console.error('confirmDeleteInsurance error:',e);
+      showToast('Errore durante l\'eliminazione: '+e.message,'error');
+    }
+  }, 'danger');
+}
+
 // === ASSIGN INSURANCE TO USER MODAL ===
 async function showAssignInsuranceModal(insId){
   const ins=store.insurances.find(i=>i.id===insId);
@@ -3955,9 +4061,11 @@ async function showAssignInsuranceModal(insId){
     const storeUser=store.users.find(u=>u.id===e.uid)||store.users.find(u=>u.email===(e.email||e.uid));
     if(!storeUser&&isUserDeleted(e.uid))return;
     const resolvedId=storeUser?storeUser.id:e.uid;
-    allUsers.set(resolvedId,{id:resolvedId,name:storeUser?.username||e.name,email:storeUser?.email||e.email||e.uid});
+    allUsers.set(resolvedId,{id:resolvedId,name:storeUser?.username||e.name||storeUser?.email||e.email||'Utente sconosciuto',email:storeUser?.email||e.email||e.uid});
   });
-  store.users.forEach(u=>{if(!allUsers.has(u.id))allUsers.set(u.id,{id:u.id,name:u.username||u.email,email:u.email});});
+  store.users.forEach(u=>{if(!allUsers.has(u.id))allUsers.set(u.id,{id:u.id,name:u.username||u.email||u.id,email:u.email});});
+  // V3.7.1: Include managers (organizers) in assignment list
+  store.managers.forEach(m=>{if(!allUsers.has(m.id))allUsers.set(m.id,{id:m.id,name:m.username||m.email||m.id,email:m.email});});
   const now=new Date().toISOString();
   allUsers.forEach((u,uid)=>{
     // V3.3.0 FIX: Check BOTH store.users AND store.managers for existing assignments
@@ -3967,7 +4075,7 @@ async function showAssignInsuranceModal(insId){
     const mgrAssigns=storeMgr?.assignedInsurances||[];
     const already=[...userAssigns,...mgrAssigns].some(a=>a.insuranceId===insId);
     h+='<div class="ins-assign-row" data-name="'+(u.name||'').toLowerCase()+'" data-email="'+(u.email||'').toLowerCase()+'" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--s300);'+(already?'opacity:.5':'')+'">';
-    h+='<div style="flex:1;min-width:0"><div style="font-size:.84rem;font-weight:500;color:var(--txt1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escHtml(u.name||uid)+'</div>';
+    h+='<div style="flex:1;min-width:0"><div style="font-size:.84rem;font-weight:500;color:var(--txt1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escHtml(u.name||u.email||'Utente sconosciuto')+'</div>';
     h+='<div style="font-size:.72rem;color:var(--txt3)">'+escHtml(u.email||'')+'</div></div>';
     if(already){
       h+='<span style="font-size:.7rem;color:var(--green);font-weight:600">✓ Assicurato</span>';
@@ -4017,18 +4125,24 @@ function showInsuranceUsersModal(insId){
   if(!ins)return;
   const now=new Date().toISOString();
   const insuredUsers=[];
-  // V3.2: Search both users AND managers
+  const _seenIds=new Set();
+  // V3.7.1: Search both users AND managers, merge assignments from both records
   store.users.forEach(u=>{
     if(!u.assignedInsurances)return;
     const assignment=u.assignedInsurances.find(a=>a.insuranceId===insId);
-    if(assignment)insuredUsers.push({user:u,assignment});
+    if(assignment){insuredUsers.push({user:u,assignment,collection:'users'});_seenIds.add(u.id);}
   });
   store.managers.forEach(m=>{
     if(!m.assignedInsurances)return;
-    // Skip if already found as user (avoid duplicates)
-    if(insuredUsers.some(x=>x.user.id===m.id))return;
     const assignment=m.assignedInsurances.find(a=>a.insuranceId===insId);
-    if(assignment)insuredUsers.push({user:m,assignment});
+    if(!assignment)return;
+    if(_seenIds.has(m.id)){
+      // User already found — but maybe the assignment on user record is different.
+      // Keep the user record entry (already added above), skip duplicate.
+      return;
+    }
+    // Manager-only: not in store.users
+    insuredUsers.push({user:m,assignment,collection:'managers'});_seenIds.add(m.id);
   });
   const overlay=document.createElement('div');overlay.className='overlay';
   let h='<div class="dialog" style="max-width:520px;width:92%;max-height:85vh;overflow-y:auto">';
@@ -4037,13 +4151,16 @@ function showInsuranceUsersModal(insId){
   if(!insuredUsers.length){
     h+='<div style="text-align:center;color:var(--txt3);padding:24px;font-size:.88rem">Nessun utente assicurato</div>';
   } else {
-    insuredUsers.forEach(({user:u,assignment:a})=>{
-      const name=u.username||u.name||u.email;
+    insuredUsers.forEach(({user:u,assignment:a,collection:col})=>{
+      const name=resolveUserName(u.id,u.username||u.name||u.email);
       const _effExp2=getEffectiveInsuranceExpiry(a);
       const isExpired=_effExp2&&_effExp2<now;
       const statusBadge=getInsuranceStatusBadge(a);
+      // V3.7.1: Show role tag for organizers
+      const isOrg=store.managers.some(m=>m.id===u.id);
+      const orgTag=isOrg?' <span style="font-size:.6rem;padding:1px 4px;border-radius:3px;background:rgba(99,102,241,.12);color:var(--brand-l);font-weight:600;margin-left:4px">ORG</span>':'';
       h+='<div style="display:flex;align-items:center;gap:10px;padding:10px;border-bottom:1px solid var(--s300);'+(isExpired?'opacity:.6':'')+'">';
-      h+='<div style="flex:1;min-width:0"><div style="font-size:.84rem;font-weight:500;color:var(--txt1)">'+escHtml(name)+'</div>';
+      h+='<div style="flex:1;min-width:0"><div style="font-size:.84rem;font-weight:500;color:var(--txt1)">'+escHtml(name)+orgTag+'</div>';
       h+='<div style="font-size:.72rem;color:var(--txt3)">'+escHtml(u.email||'')+' · Scade: '+(_effExp2?fmtDateShort(_effExp2.split('T')[0]):'Mai')+'</div></div>';
       h+=statusBadge;
       h+='<div style="display:flex;gap:4px;flex-shrink:0">';
@@ -15025,12 +15142,11 @@ function showEventDetail(evId,recDate){
     }
     if(ev.alert.type==='modificato'){
       if(currentMode==='admin')return {type:ev.alert.type,message:ev.alert.message,date:ev.alert.date};
+      // V3.7.1: Show banner to ALL users with a booking, not just pre-alert bookings.
+      // This prevents the confusing case where the badge is visible but no banner appears.
       const uid=store.currentUser?.id;const uEmail=store.currentUser?.email;
       const myBk=store.bookings.find(bk=>bk.eventId===ev.id&&bk.status!=='cancellata'&&(bk.userId===uid||bk.email===uEmail));
-      if(!myBk)return false;
-      const bkTs=myBk.createdAt||myBk.bookedAt||'';
-      const alertTs=ev.alert.timestamp||ev.alert.date||'';
-      if(bkTs&&alertTs&&bkTs<alertTs)return {type:ev.alert.type,message:ev.alert.message,date:ev.alert.date};
+      if(myBk)return {type:ev.alert.type,message:ev.alert.message,date:ev.alert.date};
     }
     return false;
   })();
@@ -20354,7 +20470,7 @@ async function confirmPromoteToOrg(userId){
     // Add to local store
     store.managers.push(mgrData);
     closeModal();
-    showToast('✅ '+u.username+' è ora organizzatore'+(autoApprove?' (approvato)':' (in attesa di approvazione)'));
+    showToast('✅ '+resolveUserName(u.id,u.username)+' è ora organizzatore'+(autoApprove?' (approvato)':' (in attesa di approvazione)'));
     renderUsersTab();
   }catch(e){
     showToast('Errore durante la promozione: '+e.message,'error');
@@ -20366,11 +20482,11 @@ function toggleUserStatus(userId){
   if(u.status==='attivo'){
     u.status='sospeso';
     fsUpdate('users',u.id,{status:'sospeso'}).catch(console.error);
-    showToast('⏸️ Utente '+u.username+' sospeso');
+    showToast('⏸️ Utente '+resolveUserName(u.id,u.username)+' sospeso');
   } else {
     u.status='attivo';
     fsUpdate('users',u.id,{status:'attivo'}).catch(console.error);
-    showToast('▶️ Utente '+u.username+' riattivato');
+    showToast('▶️ Utente '+resolveUserName(u.id,u.username)+' riattivato');
   }
   renderUsersTab();
 }
@@ -20988,7 +21104,11 @@ async function exportInsuranceSurveyExcel(eventId){
     if(user?.assignedInsurances){
       const now=new Date().toISOString();
       const match=user.assignedInsurances.find(a=>reqIds.includes(a.insuranceId)&&getInsuranceStatusForUser(b.userId,a.insuranceId).status!=='expired');
-      if(match){insName=getInsuranceName(match.insuranceId);insExpiry=match.expiresAt?match.expiresAt.split('T')[0]:'Illimitata';}
+      if(match){
+  insName=getInsuranceName(match.insuranceId);
+  const _effExpXl=getEffectiveInsuranceExpiry(match);
+  insExpiry=_effExpXl?_effExpXl.split('T')[0]:'Illimitata';
+}
     }
     const surcharge=_isIns?0:(ev.insurance.price||0);
 
@@ -20999,9 +21119,12 @@ async function exportInsuranceSurveyExcel(eventId){
     ws.getCell(row,5).value=insExpiry;ws.getCell(row,5).font=dataFont;ws.getCell(row,5).border=thinBorder;
     ws.getCell(row,6).value=surcharge;ws.getCell(row,6).font=dataFont;ws.getCell(row,6).border=thinBorder;ws.getCell(row,6).numFmt='€ #,##0.00';
 
-    // Survey answers
+    // V3.7.1: Survey answers — check booking responses first (filled during booking),
+    // then fallback to assignment surveyAnswers (filled during manual assignment)
     surveyQs.forEach((sq,si)=>{
-      const answers=user?.assignedInsurances?.find(a=>reqIds.includes(a.insuranceId))?.surveyAnswers||{};
+      const bookingAnswers=b.insuranceSurveyResponses||b.surveyResponses||{};
+      const assignmentAnswers=user?.assignedInsurances?.find(a=>reqIds.includes(a.insuranceId))?.surveyAnswers||{};
+      const answers=Object.keys(bookingAnswers).length>0?bookingAnswers:assignmentAnswers;
       const val=answers[sq.id]||'—';
       const cell=ws.getCell(row,7+si);cell.value=Array.isArray(val)?val.join(', '):val;cell.font=dataFont;cell.border=thinBorder;
     });
