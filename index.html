@@ -426,7 +426,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.1</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.2</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -1700,9 +1700,6 @@ textarea.input{resize:none;font-family:inherit}
           <button type="button" id="ne-free-event-btn" class="btn btn-sm" style="background:var(--s200);color:var(--txt2);border:1px solid var(--s400);font-size:.8rem;padding:8px 16px;border-radius:10px;transition:all .2s" onclick="togglePricingBtn('ne-free-event',this)">
             🆓 Evento gratuito
           </button>
-          <button type="button" id="ne-costs-managed-btn" class="btn btn-sm" style="background:var(--s200);color:var(--txt2);border:1px solid var(--s400);font-size:.8rem;padding:8px 16px;border-radius:10px;transition:all .2s" onclick="togglePricingBtn('ne-costs-managed-by-org',this)">
-            🤝 Costi gestiti dall'organizzatore
-          </button>
           <button type="button" id="ne-direct-cost-btn" class="btn btn-sm" style="background:var(--s200);color:var(--txt2);border:1px solid var(--s400);font-size:.8rem;padding:8px 16px;border-radius:10px;transition:all .2s" onclick="togglePricingBtn('ne-direct-cost',this)">
             📞 Mi organizzo direttamente
           </button>
@@ -1710,7 +1707,7 @@ textarea.input{resize:none;font-family:inherit}
         <input type="checkbox" id="ne-free-event" style="display:none">
         <input type="checkbox" id="ne-costs-managed-by-org" style="display:none">
         <input type="checkbox" id="ne-direct-cost" style="display:none">
-        <p class="text-xs txt3 mt-2" style="line-height:1.4">Evento gratuito: nessun prezzo richiesto. Costi gestiti dall'organizzatore: i costi vengono concordati direttamente, prezzi gestiti dall'organizzatore in app. Mi organizzo direttamente: nessun prezzo in app, il partecipante contatta l'organizzatore per i costi. Lascia vuoto per impostare prezzi standard per sessione/giornata.</p>
+        <p class="text-xs txt3 mt-2" style="line-height:1.4">Evento gratuito: nessun costo per i partecipanti. Mi organizzo direttamente: i partecipanti ti contattano per concordare il costo.</p>
       </div>
 
       <!-- Abbonamenti — toggle buttons -->
@@ -2778,7 +2775,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.1';
+const APP_VERSION='V3.10.2';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -18258,8 +18255,8 @@ function togglePricingBtn(checkboxId,btn){
   _setToggleBtnActive(btn,newState);
   // V3.9.0: Mutual exclusion — deactivate ALL other pricing mode buttons when activating this one
   if(newState){
-    const allModes=['ne-free-event','ne-costs-managed-by-org','ne-direct-cost'];
-    const allBtns=['ne-free-event-btn','ne-costs-managed-btn','ne-direct-cost-btn'];
+    const allModes=['ne-free-event','ne-direct-cost'];
+    const allBtns=['ne-free-event-btn','ne-direct-cost-btn'];
     allModes.forEach((mId,i)=>{
       if(mId!==checkboxId){
         const otherCb=document.getElementById(mId);
@@ -18378,11 +18375,11 @@ function renderFormDays(){
         `}
         <!-- Early Bird giornata -->
         <div class="flex items-center gap-2 mb-2" style="cursor:pointer" onclick="this.nextElementSibling.classList.toggle('hidden');this.querySelector('.toggle-arrow').textContent=this.nextElementSibling.classList.contains('hidden')?'▸':'▾'">
-          <span class="toggle-arrow text-xs" style="color:var(--yellow)">${(day.earlyBird?.alto||day.earlyBird?.medio||day.earlyBird?.basso)?'▾':'▸'}</span>
+          <span class="toggle-arrow text-xs" style="color:var(--yellow)">${hasEBPrice(day.earlyBird)?'▾':'▸'}</span>
           <span class="text-xs font-medium" style="color:var(--yellow)">🐦 Early Bird giornata</span>
           <span class="text-xs txt3">(clicca per espandere)</span>
         </div>
-        <div class="${day.earlyBird?.price?'':'hidden'} mb-2">
+        <div class="${hasEBPrice(day.earlyBird)?'':'hidden'} mb-2">
           <p class="text-xs txt3 mb-2">Prezzo scontato per chi prenota per primo.</p>
           <div class="grid gap-3 mb-2" style="grid-template-columns:repeat(1,1fr)">
             <div><label class="label">💰 Prezzo Early Bird €</label><input class="input ne-d-ebp" type="number" data-di="'+di+'" value="'+(day.earlyBird?.price||'')+'" placeholder="—"></div>
@@ -18526,11 +18523,11 @@ function renderFormSession(di,si,s,hidePricing){
     <!-- Early Bird sessione -->
     <div class="mt-2" style="border-top:1px solid var(--s400);padding-top:8px">
       <div class="flex items-center gap-2 mb-2" style="cursor:pointer" onclick="this.nextElementSibling.classList.toggle('hidden');this.querySelector('.toggle-arrow').textContent=this.nextElementSibling.classList.contains('hidden')?'▸':'▾'">
-        <span class="toggle-arrow text-xs" style="color:var(--yellow)">${(s.earlyBird?.alto||s.earlyBird?.medio||s.earlyBird?.basso)?'▾':'▸'}</span>
+        <span class="toggle-arrow text-xs" style="color:var(--yellow)">${hasEBPrice(s.earlyBird)?'▾':'▸'}</span>
         <span class="text-xs font-medium" style="color:var(--yellow)">🐦 Early Bird sessione</span>
         <span class="text-xs txt3">(clicca per espandere)</span>
       </div>
-      <div class="${s.earlyBird?.price?'':'hidden'} mb-2">
+      <div class="${hasEBPrice(s.earlyBird)?'':'hidden'} mb-2">
         <div class="grid grid-1" style="display:grid;grid-template-columns:repeat(1,1fr);gap:8px">
           <div><label class="label text-xs">💰 Prezzo Early Bird €</label><input class="input ne-s-ebp" type="number" data-di="'+di+'" data-si="'+si+'" value="'+(s.earlyBird?.price||'')+'" placeholder="—"></div>
         </div>
@@ -19956,18 +19953,18 @@ function syncBookingPrices(evId,snapshot){
       const newS=sessionLookup['name:'+sName]||sessionLookup[arguments[3]];
       if(!oldS||!newS)return true;
       const oe=oldS.earlyBird||{},ne=newS.earlyBird||{};
-      return oe.alto!==ne.alto||oe.medio!==ne.medio||oe.basso!==ne.basso;
+      return getEBPrice(oe)!==getEBPrice(ne);
     }
     if(scope==='giornata'){
       const oldD=snapshot.days&&snapshot.days[idx];
       const newD=ev.days&&ev.days[idx];
       if(!oldD||!newD)return true;
       const oe=oldD.earlyBird||{},ne=newD.earlyBird||{};
-      return oe.alto!==ne.alto||oe.medio!==ne.medio||oe.basso!==ne.basso;
+      return getEBPrice(oe)!==getEBPrice(ne);
     }
     if(scope==='evento'){
       const oe=snapshot.earlyBird||{},ne=ev.earlyBird||{};
-      return oe.alto!==ne.alto||oe.medio!==ne.medio||oe.basso!==ne.basso;
+      return getEBPrice(oe)!==getEBPrice(ne);
     }
     return true;
   }
