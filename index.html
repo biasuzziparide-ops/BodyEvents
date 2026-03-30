@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BodyEvents — V3.6.2</title>
+<title>BodyEvents</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d946ef' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='8' r='3'/><path d='M12 11c-4 0-6 2.5-6 5v1h12v-1c0-2.5-2-5-6-5z'/><path d='M9 5.5C7.5 4 5 4.5 5 6.5s3 4 7 7c4-3 7-5 7-7s-2.5-2.5-4-1L12 8'/></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -14038,7 +14038,7 @@ function openShareModal(eventId){
   overlay.id='share-modal-overlay';
   const _imgSrc=ev.imageThumb?.src||ev.imageHeader?.src||ev.image||null;
   const imageHtml=_imgSrc?`<img src="${_imgSrc}" style="width:100%;height:120px;object-fit:cover;border-radius:8px;margin-bottom:12px">`:'';
-  const dateStr=ev.days&&ev.days.length?fmtDate(ev.days[0].date)+(ev.days.length>1?' — '+fmtDate(ev.days[ev.days.length-1].date):''):'';
+  const dateStr=currentBookingRecDate?fmtDate(currentBookingRecDate):(ev.days&&ev.days.length?fmtDate(ev.days[0].date)+(ev.days.length>1?' — '+fmtDate(ev.days[ev.days.length-1].date):''):'');
   const waText=encodeURIComponent('*'+ev.title+'*\n📅 '+dateStr+'\n📍 '+(ev.location||'')+'\n\nIscriviti qui 👇\n'+shareUrl);
   const hasNativeShare=!!navigator.share;
   overlay.innerHTML=`
@@ -14110,7 +14110,7 @@ function nativeShareEvent(eventId){
   const ev=store.events.find(e=>e.id===eventId);if(!ev)return;
   let shareUrl=window.location.origin+window.location.pathname+'?event='+eventId;
   if(currentBookingRecDate)shareUrl+='&recDate='+currentBookingRecDate;
-  const dateStr=ev.days&&ev.days.length?fmtDate(ev.days[0].date):'';
+  const dateStr=currentBookingRecDate?fmtDate(currentBookingRecDate):(ev.days&&ev.days.length?fmtDate(ev.days[0].date):'');
   navigator.share({title:ev.title,text:ev.title+' — '+dateStr+' — '+(ev.location||''),url:shareUrl}).catch(()=>{});
 }
 
@@ -14941,26 +14941,37 @@ function showEventDetail(evId,recDate){
 
   const backView=currentView==='dashboard'?'dashboard':currentMode==='admin'?'admin-events':'events';
   const isAdminPreview=currentMode==='admin'&&backView==='admin-events';
-  // Alert banner — only show 'modificato' alerts to users who booked BEFORE modification
+  // Alert banner — check date-specific exceptions first, then global ev.alert
   let alertBanner='';
   const _detShowAlert=(()=>{
+    // 1) For recurring events: check date-specific exception alert
+    const _recExc=(ev.recurrence&&currentBookingRecDate&&ev.recurrence.exceptions)?ev.recurrence.exceptions[currentBookingRecDate]:null;
+    if(_recExc&&_recExc.type!=='skip'&&_recExc.type!=='split'){
+      const excAlert=_recExc.changes?.alert||{type:_recExc.type,message:_recExc.message||''};
+      return {type:excAlert.type||_recExc.type,message:excAlert.message||_recExc.message||'',date:_recExc.date||''};
+    }
+    // 2) Global ev.alert — only show if NO date-specific exception exists for this date
     if(!ev.alert)return false;
-    if(isAdminPreview)return true; // admin preview always shows alerts
-    if(ev.alert.type==='cancellato'||ev.alert.type==='rimandato')return true; // cancellation/postponement always visible
-    // For 'modificato': only if coming from dashboard with a booking made before the alert
+    if(ev.recurrence&&currentBookingRecDate&&_recExc)return false;
+    if(isAdminPreview)return {type:ev.alert.type,message:ev.alert.message,date:ev.alert.date};
+    if(ev.alert.type==='cancellato'||ev.alert.type==='rimandato'){
+      return {type:ev.alert.type,message:ev.alert.message,date:ev.alert.date};
+    }
     if(ev.alert.type==='modificato'){
-      if(currentMode==='admin')return true;
+      if(currentMode==='admin')return {type:ev.alert.type,message:ev.alert.message,date:ev.alert.date};
       const uid=store.currentUser?.id;const uEmail=store.currentUser?.email;
       const myBk=store.bookings.find(bk=>bk.eventId===ev.id&&bk.status!=='cancellata'&&(bk.userId===uid||bk.email===uEmail));
-      if(!myBk)return false; // not booked = no alert
+      if(!myBk)return false;
       const bkTs=myBk.createdAt||myBk.bookedAt||'';
       const alertTs=ev.alert.timestamp||ev.alert.date||'';
-      return bkTs&&alertTs&&bkTs<alertTs; // booked before modification
+      if(bkTs&&alertTs&&bkTs<alertTs)return {type:ev.alert.type,message:ev.alert.message,date:ev.alert.date};
     }
     return false;
   })();
-  if(_detShowAlert){
-    const alertType=ev.alert.type;
+  if(_detShowAlert&&typeof _detShowAlert==='object'){
+    const alertType=_detShowAlert.type;
+    const alertMessage=_detShowAlert.message||'';
+    const alertDate=_detShowAlert.date||'';
     const stampText=alertType==='cancellato'?'ANNULLATO':alertType==='rimandato'?'RIMANDATO':'MODIFICATO';
     const stampColor=alertType==='cancellato'?'var(--red)':alertType==='rimandato'?'var(--yellow)':'var(--orange)';
     const stampBg=alertType==='cancellato'?'var(--red-bg)':alertType==='rimandato'?'var(--yellow-bg)':'var(--orange-bg)';
@@ -14968,8 +14979,8 @@ function showEventDetail(evId,recDate){
       <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-20deg);font-size:3rem;font-weight:900;color:${stampColor};opacity:.15;white-space:nowrap;pointer-events:none;letter-spacing:8px">${stampText}</div>
       <div style="position:relative;z-index:1">
         <div class="flex items-center gap-2 mb-2"><span style="font-size:1.2rem">${alertType==='cancellato'?'🚫':alertType==='rimandato'?'⏰':'📝'}</span><span class="font-bold" style="color:${stampColor};text-transform:uppercase;letter-spacing:1px">${stampText}</span></div>
-        <p class="text-sm" style="color:var(--txt)">${ev.alert.message}</p>
-        <p class="text-xs txt3 mt-2">Aggiornato il ${ev.alert.date||''}</p>
+        <p class="text-sm" style="color:var(--txt)">${alertMessage}</p>
+        <p class="text-xs txt3 mt-2">Aggiornato il ${alertDate}</p>
       </div>
     </div>`;
   }
@@ -14981,7 +14992,7 @@ function showEventDetail(evId,recDate){
   if(ev.groupLink)contactItems.push('<a href="'+ev.groupLink+'" target="_blank" class="btn btn-sm" style="background:rgba(37,211,102,.12);color:#25d366;border:1px solid rgba(37,211,102,.3)">💬 Unisciti al gruppo</a>');
   if(contactItems.length) contactHtml='<div class="flex gap-3 mt-3 flex-wrap items-center" style="padding-top:12px;border-top:1px solid var(--s300)">'+contactItems.join('')+'</div>';
 
-  const isDisabledByAlert=ev.alert&&ev.alert.type==='cancellato';
+  const isDisabledByAlert=(_detShowAlert&&_detShowAlert.type==='cancellato')||(ev.alert&&ev.alert.type==='cancellato');
   c.innerHTML=`<div class="container" style="padding-top:32px;padding-bottom:48px;max-width:700px">
     <div class="text-sm txt3 mb-6" style="cursor:pointer" onclick="go('${backView}')">← Torna agli eventi</div>
     ${isAdminPreview?'<div class="badge badge-yellow mb-4" style="padding:6px 12px">👁️ Preview come la vedono gli utenti</div>':''}
