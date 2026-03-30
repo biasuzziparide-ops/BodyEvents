@@ -14039,7 +14039,7 @@ function openShareModal(eventId){
   const _imgSrc=ev.imageThumb?.src||ev.imageHeader?.src||ev.image||null;
   const imageHtml=_imgSrc?`<img src="${_imgSrc}" style="width:100%;height:120px;object-fit:cover;border-radius:8px;margin-bottom:12px">`:'';
   const dateStr=currentBookingRecDate?fmtDate(currentBookingRecDate):(ev.days&&ev.days.length?fmtDate(ev.days[0].date)+(ev.days.length>1?' — '+fmtDate(ev.days[ev.days.length-1].date):''):'');
-  const waText=encodeURIComponent('*'+ev.title+'*\n📅 '+dateStr+'\n📍 '+(ev.location||'')+'\n\nIscriviti qui 👇\n'+shareUrl);
+  const waText=encodeURIComponent('*'+ev.title+'*\n📅 '+dateStr+'\n\nIscriviti qui 👇\n'+shareUrl);
   const hasNativeShare=!!navigator.share;
   overlay.innerHTML=`
     <div class="dialog" style="max-width:450px">
@@ -14050,7 +14050,7 @@ function openShareModal(eventId){
         <div style="background:var(--s200);border:1px solid var(--s400);border-radius:12px;padding:12px">
           ${imageHtml}
           <h3 class="font-semibold text-white text-sm mb-1">${escHtml(ev.title)}</h3>
-          <p class="text-xs txt3 mb-1">📅 ${dateStr} · 📍 ${escHtml(ev.location||'')}</p>
+          <p class="text-xs txt3 mb-1">📅 ${dateStr}</p>
           <p class="text-xs txt3 mb-2">${escHtml((ev.description||'').substring(0,80))}${(ev.description||'').length>80?'...':''}</p>
           <a href="${shareUrl}" style="color:var(--brand-l);font-size:.75rem;word-break:break-all">${shareUrl}</a>
         </div>
@@ -14111,7 +14111,7 @@ function nativeShareEvent(eventId){
   let shareUrl=window.location.origin+window.location.pathname+'?event='+eventId;
   if(currentBookingRecDate)shareUrl+='&recDate='+currentBookingRecDate;
   const dateStr=currentBookingRecDate?fmtDate(currentBookingRecDate):(ev.days&&ev.days.length?fmtDate(ev.days[0].date):'');
-  navigator.share({title:ev.title,text:ev.title+' — '+dateStr+' — '+(ev.location||''),url:shareUrl}).catch(()=>{});
+  navigator.share({title:ev.title,text:ev.title+' — '+dateStr,url:shareUrl}).catch(()=>{});
 }
 
 /* ==============================
@@ -14951,8 +14951,13 @@ function showEventDetail(evId,recDate){
       return {type:excAlert.type||_recExc.type,message:excAlert.message||_recExc.message||'',date:_recExc.date||''};
     }
     // 2) Global ev.alert — only show if NO date-specific exception exists for this date
+    //    For recurring instances: only show global 'cancellato' (kills entire event)
+    //    Other global alerts (rimandato, modificato) should not spill onto all instances
     if(!ev.alert)return false;
-    if(ev.recurrence&&currentBookingRecDate&&_recExc)return false;
+    if(ev.recurrence&&currentBookingRecDate){
+      if(_recExc)return false;
+      if(ev.alert.type!=='cancellato')return false;
+    }
     if(isAdminPreview)return {type:ev.alert.type,message:ev.alert.message,date:ev.alert.date};
     if(ev.alert.type==='cancellato'||ev.alert.type==='rimandato'){
       return {type:ev.alert.type,message:ev.alert.message,date:ev.alert.date};
@@ -14998,7 +15003,19 @@ function showEventDetail(evId,recDate){
     ${isAdminPreview?'<div class="badge badge-yellow mb-4" style="padding:6px 12px">👁️ Preview come la vedono gli utenti</div>':''}
     ${alertBanner}
     ${ev.confirmedByOrganizer&&!isDisabledByAlert?'<div class="card mb-4" style="border:2px solid var(--green);background:rgba(16,185,129,.08);padding:16px;text-align:center"><div style="font-size:1.5rem">✅</div><h3 class="font-bold mt-1" style="color:var(--green)">EVENTO CONFERMATO</h3><p class="text-xs txt3 mt-1">L\'organizzatore ha confermato questo evento</p></div>':''}
-    ${ev.organizerNote?.text&&ev.status==='pubblicato'?'<div style="background:linear-gradient(135deg,rgba(234,179,8,.08),rgba(249,115,22,.05));border:1px solid rgba(234,179,8,.3);border-radius:14px;padding:16px 18px;margin-bottom:20px"><div style="display:flex;align-items:flex-start;gap:10px"><span style="font-size:1.2rem;flex-shrink:0;margin-top:1px">📢</span><div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:600;color:var(--yellow);margin-bottom:6px">Comunicazione dall\'organizzatore</div><div style="font-size:.85rem;color:var(--txt);line-height:1.7;word-wrap:break-word;white-space:pre-wrap">'+_linkifyText(escHtml(ev.organizerNote.text))+'</div><div style="font-size:.65rem;color:var(--txt3);margin-top:8px">Aggiornato il '+_fmtNoteDate(ev.organizerNote.updatedAt)+'</div></div></div></div>':''}
+    ${(()=>{
+      if(ev.status!=='pubblicato')return '';
+      let _noteText='',_noteDate='';
+      if(ev.recurrence&&currentBookingRecDate&&ev.organizerNotes?.[currentBookingRecDate]){
+        _noteText=ev.organizerNotes[currentBookingRecDate].text;
+        _noteDate=ev.organizerNotes[currentBookingRecDate].updatedAt;
+      }else if(ev.organizerNote?.text){
+        _noteText=ev.organizerNote.text;
+        _noteDate=ev.organizerNote.updatedAt;
+      }
+      if(!_noteText)return '';
+      return '<div style="background:linear-gradient(135deg,rgba(234,179,8,.08),rgba(249,115,22,.05));border:1px solid rgba(234,179,8,.3);border-radius:14px;padding:16px 18px;margin-bottom:20px"><div style="display:flex;align-items:flex-start;gap:10px"><span style="font-size:1.2rem;flex-shrink:0;margin-top:1px">📢</span><div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:600;color:var(--yellow);margin-bottom:6px">Comunicazione dall\'organizzatore</div><div style="font-size:.85rem;color:var(--txt);line-height:1.7;word-wrap:break-word;white-space:pre-wrap">'+_linkifyText(escHtml(_noteText))+'</div><div style="font-size:.65rem;color:var(--txt3);margin-top:8px">Aggiornato il '+_fmtNoteDate(_noteDate)+'</div></div></div></div>';
+    })()}
     <div class="card mb-6" ${isDisabledByAlert?'style="opacity:.5;pointer-events:none"':''}>
       ${(()=>{const hd=(ev.imageHeader||ev.image)?{src:ev.imageHeader?.src||ev.image,zoom:ev.imageHeader?.zoom||100,posX:ev.imageHeader?.posX||0,posY:ev.imageHeader?.posY||0}:null;if(!hd)return '';const s=hd.zoom/100;const denomW=420*s-420;const denomH=300*s-300;const px=denomW>0?Math.round(Math.abs(hd.posX)/denomW*100):50;const py=denomH>0?Math.round(Math.abs(hd.posY)/denomH*100):50;const op=`object-position:${isNaN(px)?50:px}% ${isNaN(py)?50:py}%`;return '<div style="margin:-20px -20px 16px;border-radius:16px 16px 0 0;overflow:hidden;cursor:zoom-in" onclick="openFullscreenImage(\''+hd.src.replace(/'/g,"\\'")+'\',\'Evento\')"><img src="'+hd.src+'" style="width:100%;max-height:300px;object-fit:cover;'+op+'" alt=""></div>';})()}
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
@@ -16876,14 +16893,26 @@ function confirmAlertEdit(){
     }
     // Preserve bookings array reference if it existed on old event
     if(oldEv.bookings)formEv.bookings=oldEv.bookings;
-    // Set alert with type modificato and snapshot
-    formEv.alert={
-      type:'modificato',
-      message:'Evento modificato dall\'organizzatore',
-      date:localDateStr(new Date()),
-      timestamp:new Date().toISOString(),
-      previousValues:snapshot
-    };
+    // Set alert — per-date for recurring events, global otherwise
+    const _isRecEdit=!!(formEv.recurrence&&alertModalRecDate&&alertModalRecDate!=='all');
+    if(_isRecEdit){
+      if(!formEv.recurrence.exceptions)formEv.recurrence.exceptions={};
+      formEv.recurrence.exceptions[alertModalRecDate]={
+        ...(formEv.recurrence.exceptions[alertModalRecDate]||{}),
+        type:'modificato',
+        message:'Evento modificato dall\'organizzatore',
+        date:localDateStr(new Date()),
+        changes:{alert:{type:'modificato',message:'Evento modificato dall\'organizzatore'},previousValues:snapshot}
+      };
+    }else{
+      formEv.alert={
+        type:'modificato',
+        message:'Evento modificato dall\'organizzatore',
+        date:localDateStr(new Date()),
+        timestamp:new Date().toISOString(),
+        previousValues:snapshot
+      };
+    }
     store.events[idx]=formEv;
     fsSet('events',formEv.id,formEv).catch(err=>{console.error('confirmAlertEdit fsSet failed:',err);showToast('⚠️ Modificato localmente ma sync cloud fallito','error');});
     const rl=handlePricingModeChange(editingEventId,oldPM,formEv.pricingMode);
@@ -16920,46 +16949,90 @@ function closeAlertModal(){
 function _linkifyText(html){return html.replace(/https?:\/\/[^\s<>"']+/g,url=>'<a href="'+url+'" target="_blank" rel="noopener noreferrer" style="color:var(--brand-l);text-decoration:underline;word-break:break-all">'+url+'</a>');}
 function _fmtNoteDate(iso){if(!iso)return '';const d=new Date(iso);return d.toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});}
 
+let orgNoteRecDate='';
 function openOrgNoteModal(eventId){
   const ev=store.events.find(e=>e.id===eventId);if(!ev)return;
-  const existing=ev.organizerNote?.text||'';
-  const hasNote=!!existing;
+  const isRecurring=!!(ev.recurrence&&ev.recurrence.day);
+  orgNoteRecDate='';
+  let recDatePicker='';
+  if(isRecurring){
+    const futureDates=getNextRecurringDates(ev,4);
+    orgNoteRecDate=currentBookingRecDate||'';
+    recDatePicker=`<div class="card mb-3" style="background:rgba(234,179,8,.06);border-color:var(--yellow);padding:12px">
+      <p class="text-xs font-semibold mb-2" style="color:var(--yellow)">🔄 Per quale data è l'avviso?</p>
+      <div class="flex gap-2 flex-wrap">
+        ${futureDates.map(d=>'<button class="btn btn-sm org-note-date-btn" data-date="'+d+'" onclick="selectOrgNoteDate(this)" style="border:1px solid '+(d===orgNoteRecDate?'var(--yellow)':'var(--s400)')+';background:'+(d===orgNoteRecDate?'rgba(234,179,8,.08)':'transparent')+'">📅 '+fmtDate(d)+'</button>').join('')}
+        <button class="btn btn-sm org-note-date-btn" data-date="all" onclick="selectOrgNoteDate(this)" style="border:1px solid ${'all'===orgNoteRecDate?'var(--yellow)':'var(--s400)'};background:${'all'===orgNoteRecDate?'rgba(234,179,8,.08)':'transparent'}">🔄 Tutte le date</button>
+      </div>
+    </div>`;
+  }
+  const existingForDate=isRecurring&&orgNoteRecDate&&orgNoteRecDate!=='all'
+    ?(ev.organizerNotes?.[orgNoteRecDate]?.text||'')
+    :(ev.organizerNote?.text||'');
+  const hasNoteForDate=!!existingForDate;
   const o=document.createElement('div');o.className='overlay';o.id='org-note-overlay';
   o.onclick=e=>{if(e.target===o)closeOrgNoteModal();};
   o.innerHTML=`<div class="dialog" style="max-width:500px">
     <h3 class="font-semibold text-white mb-2">📢 Avviso per i partecipanti</h3>
     <p class="text-xs txt3 mb-3">Questo messaggio sarà visibile a tutti i prenotati nella scheda evento. Utile per comunicazioni logistiche, cambiamenti o info aggiuntive. I link verranno resi cliccabili automaticamente.</p>
-    <textarea class="input" id="org-note-textarea" rows="5" maxlength="1000" placeholder="Es: Il punto di ritrovo è cambiato, ci vediamo al parcheggio nord..." style="resize:vertical;min-height:100px">${escHtml(existing)}</textarea>
+    ${recDatePicker}
+    <textarea class="input" id="org-note-textarea" rows="5" maxlength="1000" placeholder="Es: Il punto di ritrovo è cambiato, ci vediamo al parcheggio nord..." style="resize:vertical;min-height:100px">${escHtml(existingForDate)}</textarea>
     <div class="flex justify-between items-center mt-2">
-      <span class="text-xs txt3" id="org-note-charcount">${existing.length}/1000</span>
+      <span class="text-xs txt3" id="org-note-charcount">${existingForDate.length}/1000</span>
     </div>
     <div class="flex gap-2 mt-4" style="justify-content:flex-end">
-      ${hasNote?'<button class="btn btn-sm" style="background:var(--red-bg);color:var(--red);margin-right:auto" onclick="removeOrgNote(\''+eventId+'\')">🗑️ Rimuovi</button>':''}
+      ${hasNoteForDate?'<button class="btn btn-sm" style="background:var(--red-bg);color:var(--red);margin-right:auto" onclick="removeOrgNote(\''+eventId+'\')">🗑️ Rimuovi</button>':''}
       <button class="btn btn-sm btn-secondary" onclick="closeOrgNoteModal()">Annulla</button>
-      <button class="btn btn-sm btn-primary" onclick="saveOrgNote('${eventId}')">💾 Salva</button>
+      <button class="btn btn-sm btn-primary" onclick="saveOrgNote(\''+eventId+'\')">💾 Salva</button>
     </div>
   </div>`;
   document.body.appendChild(o);
   const ta=document.getElementById('org-note-textarea');
   if(ta)ta.oninput=()=>{const cc=document.getElementById('org-note-charcount');if(cc)cc.textContent=ta.value.length+'/1000';};
 }
+function selectOrgNoteDate(btn){
+  document.querySelectorAll('.org-note-date-btn').forEach(b=>{b.style.borderColor='var(--s400)';b.style.background='transparent';});
+  btn.style.borderColor='var(--yellow)';btn.style.background='rgba(234,179,8,.08)';
+  orgNoteRecDate=btn.dataset.date;
+  const evId=document.querySelector('[onclick*="saveOrgNote"]')?.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+  const ev=evId?store.events.find(e=>e.id===evId):null;
+  if(!ev)return;
+  const text=orgNoteRecDate&&orgNoteRecDate!=='all'
+    ?(ev.organizerNotes?.[orgNoteRecDate]?.text||'')
+    :(ev.organizerNote?.text||'');
+  const ta=document.getElementById('org-note-textarea');
+  if(ta){ta.value=text;const cc=document.getElementById('org-note-charcount');if(cc)cc.textContent=text.length+'/1000';}
+}
 async function saveOrgNote(eventId){
   const text=(document.getElementById('org-note-textarea')?.value||'').trim();
   if(!text){showToast('Scrivi un messaggio prima di salvare','error');return;}
   const note={text,updatedAt:new Date().toISOString()};
+  const ev=store.events.find(e=>e.id===eventId);if(!ev)return;
+  const isRecurring=!!(ev.recurrence&&ev.recurrence.day);
   try{
-    await fsUpdate('events',eventId,{organizerNote:note});
-    const ev=store.events.find(e=>e.id===eventId);
-    if(ev)ev.organizerNote=note;
+    if(isRecurring&&orgNoteRecDate&&orgNoteRecDate!=='all'){
+      if(!ev.organizerNotes)ev.organizerNotes={};
+      ev.organizerNotes[orgNoteRecDate]=note;
+      await fsUpdate('events',eventId,{['organizerNotes.'+orgNoteRecDate]:note});
+    }else{
+      ev.organizerNote=note;
+      await fsUpdate('events',eventId,{organizerNote:note});
+    }
     closeOrgNoteModal();showToast('Avviso salvato!');
     showAdminEventDetail(eventId);
   }catch(err){console.error('saveOrgNote error:',err);showToast('Errore nel salvataggio','error');}
 }
 async function removeOrgNote(eventId){
+  const ev=store.events.find(e=>e.id===eventId);if(!ev)return;
+  const isRecurring=!!(ev.recurrence&&ev.recurrence.day);
   try{
-    await fbDb.collection('events').doc(eventId).update({organizerNote:firebase.firestore.FieldValue.delete()});
-    const ev=store.events.find(e=>e.id===eventId);
-    if(ev)delete ev.organizerNote;
+    if(isRecurring&&orgNoteRecDate&&orgNoteRecDate!=='all'){
+      if(ev.organizerNotes)delete ev.organizerNotes[orgNoteRecDate];
+      await fbDb.collection('events').doc(eventId).update({['organizerNotes.'+orgNoteRecDate]:firebase.firestore.FieldValue.delete()});
+    }else{
+      delete ev.organizerNote;
+      await fbDb.collection('events').doc(eventId).update({organizerNote:firebase.firestore.FieldValue.delete()});
+    }
     closeOrgNoteModal();showToast('Avviso rimosso');
     showAdminEventDetail(eventId);
   }catch(err){console.error('removeOrgNote error:',err);showToast('Errore nella rimozione','error');}
@@ -21022,7 +21095,7 @@ async function showAdminEventDetail(evId){
   // View toggle for multi-session events
   let viewSubtitle='';
   const _hasInsReq=ev.insurance?.enabled&&ev.insurance.requiredInsuranceIds?.length;
-  const _hasOrgNote=!!ev.organizerNote?.text;
+  const _hasOrgNote=!!ev.organizerNote?.text||(ev.organizerNotes&&Object.values(ev.organizerNotes).some(n=>!!n?.text));
   const orgNoteBtn=ev.status==='pubblicato'?(_hasOrgNote
     ?'<button class="btn btn-sm" style="background:var(--yellow-bg);color:var(--yellow);border:1px solid rgba(234,179,8,.4);font-size:.8rem" onclick="openOrgNoteModal(\''+ev.id+'\')"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--yellow);margin-right:4px"></span>📢 Avviso attivo</button>'
     :'<button class="btn btn-sm" style="background:var(--s200);color:var(--txt2);border:1px solid var(--s400);font-size:.8rem" onclick="openOrgNoteModal(\''+ev.id+'\')">📢 Avviso partecipanti</button>'):'';
