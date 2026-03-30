@@ -17902,8 +17902,8 @@ function resetForm(){
   const today=getDefaultDate();
   const sd=document.getElementById('ne-event-start-date');
   const ed=document.getElementById('ne-event-end-date');
-  if(sd)sd.value=today;
-  if(ed)ed.value=today;
+  if(sd){sd.value=today;sd.min=today;} // V3.7.2: Prevent past dates in creation
+  if(ed){ed.value=today;ed.min=today;}
   // Reset booking deadline
   const bdEl=document.getElementById('ne-booking-deadline');
   if(bdEl){bdEl.value='';bdEl._userEdited=false;}
@@ -18027,8 +18027,38 @@ function syncEventDates(which){
   const sd=document.getElementById('ne-event-start-date');
   const ed=document.getElementById('ne-event-end-date');
   if(!sd||!ed)return;
-  if(which==='start'&&ed.value<sd.value)ed.value=sd.value;
-  if(which==='end'&&sd.value>ed.value)sd.value=ed.value;
+  if(which==='start'){
+    // Start changed: ensure end >= start
+    if(ed.value<sd.value)ed.value=sd.value;
+    // V3.7.2: If multiple days, ensure end accommodates all days
+    if(formDays.length>1){
+      const minEnd=getDayDate(formDays.length-1);
+      if(ed.value<minEnd)ed.value=minEnd;
+    }
+    // V3.7.2: Update min on end date field
+    if(formDays.length>1){
+      ed.min=getDayDate(formDays.length-1);
+    } else {
+      ed.min=sd.value;
+    }
+    // V3.7.2: Update min on start date (keep today's constraint if creating)
+    const today=getDefaultDate();
+    if(sd.min&&sd.value>=today){
+      // Creating: keep today as min
+    }
+  }
+  if(which==='end'){
+    // End changed: ensure start <= end
+    if(sd.value>ed.value)sd.value=ed.value;
+    // V3.7.2: Ensure end date doesn't conflict with existing days
+    if(formDays.length>1&&sd.value){
+      const minEnd=getDayDate(formDays.length-1);
+      if(ed.value<minEnd){
+        ed.value=minEnd;
+        showToast('La data fine non può essere prima della giornata '+formDays.length+' ('+fmtDateShort(minEnd)+')','error');
+      }
+    }
+  }
   renderFormDays();
 }
 function isPricingHidden(){
@@ -18674,6 +18704,29 @@ function collectFormData(){
   const isFreeEvent=!!document.getElementById('ne-free-event')?.checked;
   const isCostsManagedByOrg=!!document.getElementById('ne-costs-managed-by-org')?.checked;
   const pricingMode=isFreeEvent?'free':isCostsManagedByOrg?'managed':'standard';
+  // V3.7.2: Validate event dates — only for NEW events (not edits of existing ones)
+  if(!editingEventId){
+    const _startVal=document.getElementById('ne-event-start-date')?.value;
+    const _todayStr=localDateStr(new Date());
+    if(_startVal&&_startVal<_todayStr){
+      showToast('La data di inizio evento non può essere nel passato!','error');
+      return null;
+    }
+  }
+
+  // V3.7.2: Validate end date vs number of days
+  if(formDays.length>1){
+    const _endVal=document.getElementById('ne-event-end-date')?.value;
+    const _startVal=document.getElementById('ne-event-start-date')?.value;
+    if(_startVal&&_endVal){
+      const _lastDay=getDayDate(formDays.length-1);
+      if(_endVal<_lastDay){
+        showToast('La data di fine evento ('+fmtDateShort(_endVal)+') è prima della giornata '+formDays.length+' ('+fmtDateShort(_lastDay)+'). Correggi le date!','error');
+        return null;
+      }
+    }
+  }
+
   // V3.2: Validate session times before collecting
   for(let di=0;di<formDays.length;di++){
     for(let si=0;si<formDays[di].sessions.length;si++){
@@ -19045,6 +19098,9 @@ function editEvent(id){
     const ed=document.getElementById('ne-event-end-date');
     if(sd)sd.value=ev.days[0].date||getDefaultDate();
     if(ed)ed.value=ev.days[ev.days.length-1].date||getDefaultDate();
+    // V3.7.2: Allow editing existing events with past dates — remove min constraint
+    if(sd)sd.removeAttribute('min');
+    if(ed)ed.removeAttribute('min');
   }
   // Days & sessions
   formDays=ev.days.map(d=>({
