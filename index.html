@@ -426,7 +426,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.0</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.1</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2778,7 +2778,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.0';
+const APP_VERSION='V3.10.1';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -3489,8 +3489,17 @@ function findPersonById(userId){
   const fromUsers=store.users.find(u=>u.id===userId);
   const fromManagers=store.managers.find(m=>m.id===userId);
   if(fromUsers&&fromManagers){
-    if(!fromUsers.assignedInsurances&&fromManagers.assignedInsurances){
-      fromUsers.assignedInsurances=fromManagers.assignedInsurances;
+    if(fromManagers.assignedInsurances){
+      if(!fromUsers.assignedInsurances){
+        fromUsers.assignedInsurances=fromManagers.assignedInsurances;
+      } else {
+        // Merge: add manager insurances not already present in user
+        fromManagers.assignedInsurances.forEach(mIns=>{
+          if(!fromUsers.assignedInsurances.some(uIns=>uIns.insuranceId===mIns.insuranceId)){
+            fromUsers.assignedInsurances.push(mIns);
+          }
+        });
+      }
     }
     return fromUsers;
   }
@@ -14977,7 +14986,7 @@ function showOrgPublicProfile(managerId){
 /* ==============================
    RENDER: DYNAMIC EVENT DETAIL
 ============================== */
-function showEventDetail(evId,recDate){
+async function showEventDetail(evId,recDate){
   const ev=store.events.find(e=>e.id===evId);if(!ev)return;
   // V3.2 FIX: For Jam/Community events, ensure all event bookings are loaded (for participant list)
   if((ev.type==='jam'||ev.type==='social')&&!_bookingsLoaded&&!_eventBookingsLoadedSet.has(evId)){
@@ -14994,6 +15003,8 @@ function showEventDetail(evId,recDate){
     }
   }
   currentBookingRecDate=recDate||null;
+  // Ensure insurances are loaded before rendering (fix: users couldn't see their valid insurance)
+  if(!_insurancesLoaded) await ensureInsurancesLoaded();
   // V3.4.0: Mark event as read (dismiss notification badge)
   _markEventRead(evId);
   // Reset tier selections for a clean booking
@@ -15160,23 +15171,26 @@ function showEventDetail(evId,recDate){
 
     if(day.sessions.length>1){
       daysHtml+=`<div style="margin-left:16px;padding-left:16px;border-left:2px solid rgba(217,70,239,.2);margin-top:12px">`;
-      daysHtml+=`<p class="text-sm txt3 mb-3">Seleziona le sessioni${skipPricing?'' :' e il prezzo'}:</p>`;
+      daysHtml+=`<p class="text-sm txt3 mb-3">${skipPricing?'Seleziona le sessioni:':'Sessioni disponibili:'}</p>`;
       daysHtml+=`<div style="max-width:90%;margin:0 auto">`;
-      day.sessions.forEach(s=>{
+      day.sessions.forEach((s,si)=>{
         const sLoc=s.location?`<div class="text-xs txt3 mt-1">${s.locationUrl?'<a href="'+s.locationUrl+'" target="_blank" style="color:var(--brand-l)">📍 '+escHtml(s.location)+' ↗</a>':'📍 '+escHtml(s.location)}</div>`:'';
         if(!skipPricing){
-          const sBtns=buildTierBtns(s.tiers,'tiers-'+s.id,s.earlyBird,ev.id,_sdPct,_userHasEntrySub);
-          daysHtml+=`<div class="check-item mb-2" onclick="toggleCheck(this,'${s.id}')" style="padding:8px 10px">
-            <div class="checkbox"><span style="display:none;color:#fff;font-size:.6rem">✓</span></div>
+          if(si>0) daysHtml+='<div style="height:14px"></div>';
+          // Card informativa sessione (NON cliccabile)
+          daysHtml+=`<div class="session-info mb-2" id="sess-${s.id}" style="padding:8px 10px">
             <div class="flex-1">
               <div class="font-medium text-white" style="font-size:.82rem">${escHtml(s.name)}</div>
               <div class="flex gap-2 mt-1 items-center flex-wrap"><span class="text-xs txt3">🕐 ${s.startTime} — ${s.endTime}</span><span class="badge ${badgeLevel(s.level)}">${capitalize(s.level)}</span>${s.teacher?'<span class="text-xs txt3">👤 '+escHtml(s.teacher)+'</span>':''}${s.maxSpots?'<span class="text-xs txt3">👥 Max '+s.maxSpots+'</span>':''}</div>
               ${s.description?'<div class="text-xs txt3 mt-1" style="line-height:1.3">'+escHtml(s.description)+'</div>':''}${sLoc}
             </div></div>`;
-          if(sBtns) daysHtml+=`<div class="tier-grid mb-2 hidden" id="tiers-${s.id}">${sBtns}</div>`;
+          // Tier standard (NON hidden — visibili direttamente, nascosti solo se EB attivo tramite buildTierBtns)
+          const sBtns=buildTierBtns(s.tiers,'tiers-'+s.id,s.earlyBird,ev.id,_sdPct,_userHasEntrySub);
+          if(sBtns) daysHtml+=`<div class="tier-grid mb-2" id="tiers-${s.id}">${sBtns}</div>`;
+          // EB sessione
           daysHtml+=renderEarlyBirdGrid(s.earlyBird,'tier-ebs-'+s.id,ev.id,s.tiers,_sdPct,_userHasEntrySub);
         } else {
-          // Free/managed: show selectable check-items for sessions
+          // Free/managed/direct: show selectable check-items for sessions
           daysHtml+=`<div class="check-item mb-2" onclick="toggleFreeSession(this,'${s.id}')" style="padding:8px 10px;cursor:pointer">
             <div class="checkbox"><span style="display:none;color:#fff;font-size:.6rem">✓</span></div>
             <div class="flex-1">
@@ -15192,7 +15206,7 @@ function showEventDetail(evId,recDate){
       // Day pricing OUTSIDE indent — aligned with date card
       if(!skipPricing){
         if(day.tiers){
-          daysHtml+=`<p class="text-sm txt3 mt-4 mb-2">Seleziona la giornata:</p>`;
+          daysHtml+=`<p class="text-sm txt3 mt-4 mb-2">Oppure, giornata intera:</p>`;
           const dayBtns=buildTierBtns(day.tiers,'tier-day-'+ev.id+'-'+di,resolveEB(day.earlyBird,ev.earlyBird),ev.id,_sdPct,_userHasEntrySub);
           if(dayBtns) daysHtml+=`<div class="card mt-1 mb-2" style="background:rgba(16,185,129,.05);border-color:var(--green);padding:4px 10px">
             <div style="font-size:.65rem;font-weight:500;margin-bottom:2px;color:var(--green)">💰 Prezzo giornata intera (pacchetto)</div>
@@ -15214,42 +15228,63 @@ function showEventDetail(evId,recDate){
     } else if(isSingleSession){
       const s=day.sessions[0]||null;
       const useTiers=day.tiers||(s?s.tiers:ev.tiers);
+      const useEB=resolveEB(s?s.earlyBird:null,day.earlyBird,ev.earlyBird);
       const sLoc=s&&s.location?`<div class="text-xs txt3 mt-1">${s.locationUrl?'<a href="'+s.locationUrl+'" target="_blank" style="color:var(--brand-l)">📍 '+escHtml(s.location)+' ↗</a>':'📍 '+escHtml(s.location)}</div>`:'';
-      daysHtml+=`<div style="margin-left:16px;padding-left:16px;border-left:2px solid rgba(217,70,239,.2);margin-top:12px">
-        ${s?`<div class="mb-3">
-          <div class="font-medium text-white text-sm">${escHtml(s.name)}</div>
-          <div class="flex gap-2 mt-1 items-center"><span class="text-xs txt3">🕐 ${s.startTime} — ${s.endTime}</span><span class="badge ${badgeLevel(s.level)}">${capitalize(s.level)}</span>${s.teacher?'<span class="text-xs txt3">👤 '+escHtml(s.teacher)+'</span>':''}${s.maxSpots?'<span class="text-xs txt3">👥 Max '+s.maxSpots+'</span>':''}</div>
-          ${s.description?'<div class="text-xs txt3 mt-1">'+escHtml(s.description)+'</div>':''}${sLoc}
-        </div>`:''}`;
-      if(!skipPricing){
-        const stdBtns=buildTierBtns(useTiers,'tier-day-'+ev.id+'-'+di,resolveEB(day.earlyBird,ev.earlyBird),ev.id,_sdPct,_userHasEntrySub);
-        daysHtml+=`<p class="text-xs txt3 mb-2" style="font-style:italic">Scegli in base alle tue possibilità</p>`;
-        if(stdBtns) daysHtml+=`<div class="tier-grid mb-3" id="tier-day-${ev.id}-${di}">${stdBtns}</div>`;
-        daysHtml+=renderEarlyBirdGrid(resolveEB(day.earlyBird,ev.earlyBird),'tier-ebday-'+ev.id+'-'+di,ev.id,useTiers,_sdPct,_userHasEntrySub);
+      // Card info sessione (NON indentata, full-width)
+      if(s){
+        daysHtml+=`<div class="session-info mb-2" id="sess-${s.id}" style="padding:8px 12px;margin-top:8px">
+          <div class="flex-1"><div class="font-medium text-white" style="font-size:.82rem">${escHtml(s.name)}</div>
+            <div class="flex gap-2 mt-1 items-center flex-wrap"><span class="text-xs txt3">🕐 ${s.startTime} — ${s.endTime}</span><span class="badge ${badgeLevel(s.level)}">${capitalize(s.level)}</span>${s.teacher?'<span class="text-xs txt3">👤 '+escHtml(s.teacher)+'</span>':''}${s.maxSpots?'<span class="text-xs txt3">👥 Max '+s.maxSpots+'</span>':''}</div>
+            ${s.description?'<div class="text-xs txt3 mt-1" style="line-height:1.3">'+escHtml(s.description)+'</div>':''}${sLoc}
+          </div></div>`;
       }
-      daysHtml+='</div>';
+      // Prezzo full-width (come se fosse prezzo giornata, NO indent)
+      if(!skipPricing){
+        const stdBtns=buildTierBtns(useTiers,'tier-day-'+ev.id+'-'+di,useEB,ev.id,_sdPct,_userHasEntrySub);
+        if(stdBtns){
+          const tierCount=useTiers?[useTiers.alto,useTiers.medio,useTiers.basso].filter(v=>v!=null&&v!==''&&v!==0).length:0;
+          if(tierCount>1) daysHtml+=`<p class="text-xs txt3 mb-2" style="font-style:italic">Scegli in base alle tue possibilità</p>`;
+          daysHtml+=`<div class="tier-grid mb-3" id="tier-day-${ev.id}-${di}">${stdBtns}</div>`;
+        }
+        daysHtml+=renderEarlyBirdGrid(useEB,'tier-ebday-'+ev.id+'-'+di,ev.id,useTiers,_sdPct,_userHasEntrySub);
+      }
 
     } else {
       const useTiers=day.tiers||ev.tiers;
-      daysHtml+=`<div style="margin-left:16px;padding-left:16px;border-left:2px solid rgba(217,70,239,.2);margin-top:12px">`;
       if(!skipPricing){
-        const stdBtns2=buildTierBtns(useTiers,'tier-day-'+ev.id+'-'+di,resolveEB(day.earlyBird,ev.earlyBird),ev.id,_sdPct,_userHasEntrySub);
-        daysHtml+=`<p class="text-xs txt3 mb-3" style="font-style:italic">Scegli in base alle tue possibilità</p>`;
-        if(stdBtns2) daysHtml+=`<div class="tier-grid" id="tier-day-${ev.id}-${di}">${stdBtns2}</div>`;
-        daysHtml+=renderEarlyBirdGrid(resolveEB(day.earlyBird,ev.earlyBird),'tier-ebday-'+ev.id+'-'+di,ev.id,useTiers,_sdPct,_userHasEntrySub);
+        const useEB=resolveEB(day.earlyBird,ev.earlyBird);
+        const stdBtns2=buildTierBtns(useTiers,'tier-day-'+ev.id+'-'+di,useEB,ev.id,_sdPct,_userHasEntrySub);
+        if(stdBtns2){
+          const tierCount=useTiers?[useTiers.alto,useTiers.medio,useTiers.basso].filter(v=>v!=null&&v!==''&&v!==0).length:0;
+          if(tierCount>1) daysHtml+=`<p class="text-xs txt3 mb-3" style="font-style:italic">Scegli in base alle tue possibilità</p>`;
+          daysHtml+=`<div class="tier-grid" id="tier-day-${ev.id}-${di}">${stdBtns2}</div>`;
+        }
+        daysHtml+=renderEarlyBirdGrid(useEB,'tier-ebday-'+ev.id+'-'+di,ev.id,useTiers,_sdPct,_userHasEntrySub);
       }
-      daysHtml+='</div>';
     }
   });
   const loyaltyHtml=''; // Loyalty is now percentage-based, applied via effective discount banner
   let eventPkgHtml='';
   if(ev.days.length>1&&!skipPricing){
     const evPkgBtns=buildTierBtns(ev.tiers,'tier-evfull-'+ev.id,ev.earlyBird,ev.id,_sdPct,_userHasEntrySub);
-    if(evPkgBtns) eventPkgHtml+=`<div class="card mb-4" style="background:rgba(16,185,129,.05);border-color:var(--green);padding:4px 10px">
-      <div style="font-size:.65rem;font-weight:500;margin-bottom:2px;color:var(--green)">💰 Prezzo evento completo (tutte le giornate)</div>
-      <div class="tier-grid" id="tier-evfull-${ev.id}">${evPkgBtns}</div>
-    </div>`;
-    eventPkgHtml+=renderEarlyBirdGrid(ev.earlyBird,'tier-ebev-'+ev.id,ev.id,ev.tiers,_sdPct,_userHasEntrySub);
+    if(evPkgBtns){
+      const tierCount=ev.tiers?[ev.tiers.alto,ev.tiers.medio,ev.tiers.basso].filter(v=>v!=null&&v!==''&&v!==0).length:0;
+      eventPkgHtml+=`<div style="background:var(--s50);border:3px solid var(--green);border-radius:20px;padding:18px 14px;margin-top:16px;box-shadow:0 0 0 3px rgba(16,185,129,.1),0 4px 20px rgba(16,185,129,.08)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:.85rem;font-weight:700;color:var(--green)"><span style="font-size:1.2rem">🎫</span> Evento completo (tutte le giornate)</div>
+        ${tierCount>1?'<p class="text-xs txt3 mb-2" style="font-style:italic">Scegli in base alle tue possibilità</p>':''}
+        <div class="tier-grid" id="tier-evfull-${ev.id}" style="gap:4px">${evPkgBtns}</div></div>`;
+    }
+    // EB evento
+    if(ev.earlyBird&&isEarlyBirdActive(ev.earlyBird,ev.id)){
+      const ebEvHtml=renderEarlyBirdGrid(ev.earlyBird,'tier-ebev-'+ev.id,ev.id,ev.tiers,_sdPct,_userHasEntrySub);
+      if(ebEvHtml){
+        eventPkgHtml+=`<div style="background:var(--s50);border:3px solid var(--yellow);border-radius:20px;padding:18px 14px;margin-top:16px;box-shadow:0 0 0 3px rgba(234,179,8,.1),0 4px 20px rgba(234,179,8,.08)">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:.85rem;font-weight:700;color:var(--yellow)"><span style="font-size:1.2rem">🎫</span> Evento completo — Early Bird</div>
+          ${ebEvHtml}</div>`;
+      }
+    } else {
+      eventPkgHtml+=renderEarlyBirdGrid(ev.earlyBird,'tier-ebev-'+ev.id,ev.id,ev.tiers,_sdPct,_userHasEntrySub);
+    }
   }
 
   const backView=currentView==='dashboard'?'dashboard':currentMode==='admin'?'admin-events':'events';
