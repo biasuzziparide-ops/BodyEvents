@@ -416,7 +416,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.7.1</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.7.3</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2746,7 +2746,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.7.1';
+const APP_VERSION='V3.7.3';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -16808,6 +16808,8 @@ function copyEventAsTemplate(id){
     if(ev.paymentMethods&&(ev.paymentMethods.paypal||ev.paymentMethods.revolut||ev.paymentMethods.cash)){const pc=document.getElementById('ne-payment-collapsible');if(pc){pc.classList.remove('hidden');const arrow=pc.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
     if(ev.pricingMode==='free'||ev.pricingMode==='managed'||ev.subscriptionBookable?.enabled||ev.subscriptionDiscount?.enabled||ev.deposit?.required||ev.insurance?.enabled){const sc=document.getElementById('ne-payment-collapsible');if(sc){sc.classList.remove('hidden');const arrow=sc.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
     syncToggleBtns();
+    // V3.7.2: Ensure date constraints are set for the new event from template
+    initEventDates();
     showToast('Template caricato! Imposta le nuove date e salva come bozza.');
   },200);
 }
@@ -17169,12 +17171,12 @@ function openOrgNoteModal(eventId){
   let recDatePicker='';
   if(isRecurring){
     const futureDates=getNextRecurringDates(ev,4);
-    orgNoteRecDate=currentBookingRecDate||'';
+    orgNoteRecDate=currentBookingRecDate||(futureDates.length?futureDates[0]:'');
     recDatePicker=`<div class="card mb-3" style="background:rgba(234,179,8,.06);border-color:var(--yellow);padding:12px">
       <p class="text-xs font-semibold mb-2" style="color:var(--yellow)">🔄 Per quale data è l'avviso?</p>
       <div class="flex gap-2 flex-wrap">
-        ${futureDates.map(d=>'<button class="btn btn-sm org-note-date-btn" data-date="'+d+'" onclick="selectOrgNoteDate(this)" style="border:1px solid '+(d===orgNoteRecDate?'var(--yellow)':'var(--s400)')+';background:'+(d===orgNoteRecDate?'rgba(234,179,8,.08)':'transparent')+'">📅 '+fmtDate(d)+'</button>').join('')}
-        <button class="btn btn-sm org-note-date-btn" data-date="all" onclick="selectOrgNoteDate(this)" style="border:1px solid ${'all'===orgNoteRecDate?'var(--yellow)':'var(--s400)'};background:${'all'===orgNoteRecDate?'rgba(234,179,8,.08)':'transparent'}">🔄 Tutte le date</button>
+        ${futureDates.map(d=>'<button class="btn btn-sm org-note-date-btn" data-date="'+d+'" onclick="selectOrgNoteDate(this)" style="color:var(--txt1);border:1px solid '+(d===orgNoteRecDate?'var(--yellow)':'var(--s400)')+';background:'+(d===orgNoteRecDate?'rgba(234,179,8,.08)':'transparent')+'">📅 '+fmtDate(d)+'</button>').join('')}
+        <button class="btn btn-sm org-note-date-btn" data-date="all" onclick="selectOrgNoteDate(this)" style="color:var(--txt1);border:1px solid ${'all'===orgNoteRecDate?'var(--yellow)':'var(--s400)'};background:${'all'===orgNoteRecDate?'rgba(234,179,8,.08)':'transparent'}">🔄 Tutte le date</button>
       </div>
     </div>`;
   }
@@ -17195,7 +17197,7 @@ function openOrgNoteModal(eventId){
     <div class="flex gap-2 mt-4" style="justify-content:flex-end">
       ${hasNoteForDate?'<button class="btn btn-sm" style="background:var(--red-bg);color:var(--red);margin-right:auto" onclick="removeOrgNote(\''+eventId+'\')">🗑️ Rimuovi</button>':''}
       <button class="btn btn-sm btn-secondary" onclick="closeOrgNoteModal()">Annulla</button>
-      <button class="btn btn-sm btn-primary" onclick="saveOrgNote(\''+eventId+'\')">💾 Salva</button>
+      <button class="btn btn-sm btn-primary" onclick="saveOrgNote('${eventId}')">💾 Salva</button>
     </div>
   </div>`;
   document.body.appendChild(o);
@@ -18277,6 +18279,22 @@ function updateEventEBTierVisibility(){
    propagate the new value to ALL other EB deadline inputs (session, day, event) */
 function syncEBDeadline(sourceEl){
   const val=sourceEl.value;if(!val)return;
+  // V3.7.2: Validate early bird deadline is before event start date
+  const evStart=document.getElementById('ne-event-start-date')?.value;
+  if(evStart&&val>evStart){
+    showToast('La scadenza early bird non può essere dopo la data di inizio evento','error');
+    sourceEl.value=evStart;
+    return;
+  }
+  // V3.7.2: Validate early bird deadline is not in the past (only for new events)
+  if(!editingEventId){
+    const today=getDefaultDate();
+    if(val<today){
+      showToast('La scadenza early bird non può essere nel passato','error');
+      sourceEl.value='';
+      return;
+    }
+  }
   // Session-level deadlines
   document.querySelectorAll('.ne-s-ebd').forEach(el=>{if(el!==sourceEl)el.value=val;});
   // Day-level deadlines
@@ -18514,7 +18532,9 @@ function addFormDay(){
   if(ed&&sd&&sd.value){
     const d=new Date(sd.value);
     d.setDate(d.getDate()+formDays.length-1);
-    ed.value=localDateStr(d);
+    const minEnd=localDateStr(d);
+    ed.value=minEnd;
+    ed.min=minEnd; // V3.7.2: Prevent end date from going before last day
   }
   renderFormDays();
   showToast('Giornata aggiunta');
@@ -18527,9 +18547,11 @@ function removeFormDay(di){
   if(ed&&sd&&sd.value){
     const d=new Date(sd.value);
     d.setDate(d.getDate()+formDays.length-1);
-    ed.value=localDateStr(d);
+    const minEnd=localDateStr(d);
+    ed.value=minEnd;
+    ed.min=minEnd; // V3.7.2: Update min constraint
   }
-  if(formDays.length===1&&sd&&ed)ed.value=sd.value;
+  if(formDays.length===1&&sd&&ed){ed.value=sd.value;ed.min=sd.value;}
   renderFormDays();
 }
 function addFormSession(di){formDays[di].sessions.push({name:'',startTime:'10:00',endTime:'12:30',level:'base',teacher:'',description:'',location:'',locationUrl:'',maxSpots:0,tiers:{alto:null,medio:null,basso:null}});renderFormDays();showToast('Sessione aggiunta');}
@@ -19387,6 +19409,9 @@ function initEventDates(){
   const ed=document.getElementById('ne-event-end-date');
   if(sd&&!sd.value)sd.value=today;
   if(ed&&!ed.value)ed.value=today;
+  // V3.7.2: Set min constraints for new events
+  if(sd)sd.min=today;
+  if(ed)ed.min=today;
   updateBookingDeadlineDefault();
 }
 // Booking deadline default: 3 days before event start date
