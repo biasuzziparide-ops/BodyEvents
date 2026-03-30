@@ -3493,6 +3493,33 @@ function getInsuranceStatusBadge(assignment){
   return '<span style="font-size:.68rem;padding:2px 6px;border-radius:4px;background:rgba(16,185,129,.12);color:var(--green);font-weight:600">Attiva</span>';
 }
 
+function getInsuranceStatusForUser(userId,insuranceId){
+  const ins=store.insurances.find(i=>i.id===insuranceId);
+  if(!ins)return {status:'unknown',label:'Sconosciuta',color:'var(--txt3)',bg:'transparent'};
+  if(!isInsuranceCurrentlyValid(ins)){
+    return {status:'entity_invalid',label:'Assicurazione non attiva',color:'var(--txt3)',bg:'transparent'};
+  }
+  const person=findPersonById(userId);
+  if(!person||!person.assignedInsurances){
+    return {status:'not_assigned',label:'Non assicurato',color:'var(--red)',bg:'rgba(239,68,68,.12)'};
+  }
+  const assignment=person.assignedInsurances.find(a=>a.insuranceId===insuranceId);
+  if(!assignment){
+    return {status:'not_assigned',label:'Non assicurato',color:'var(--red)',bg:'rgba(239,68,68,.12)'};
+  }
+  const effExp=getEffectiveInsuranceExpiry(assignment);
+  const now=new Date().toISOString();
+  if(effExp&&effExp<now){
+    return {status:'expired',label:'Scaduta',color:'var(--red)',bg:'rgba(239,68,68,.12)'};
+  }
+  const in30=new Date(Date.now()+30*24*60*60*1000).toISOString();
+  if(effExp&&effExp<=in30){
+    const days=Math.ceil((new Date(effExp)-new Date())/(86400000));
+    return {status:'expiring',label:'Scade tra '+days+'gg',color:'var(--warn)',bg:'rgba(245,158,11,.12)'};
+  }
+  return {status:'active',label:'Attiva',color:'var(--green)',bg:'rgba(16,185,129,.12)'};
+}
+
 async function createInsurance(name,description,provider,createdBy,validFrom,validTo){
   const ins={id:genId('ins'),name,description:description||'',provider:provider||'',createdBy,validFrom:validFrom||null,validTo:validTo||null,createdAt:new Date().toISOString(),status:'active'};
   store.insurances.push(ins);
@@ -3926,10 +3953,11 @@ async function showAssignInsuranceModal(insId){
   const allUsers=new Map();
   regEntries.forEach(e=>{
     const storeUser=store.users.find(u=>u.id===e.uid)||store.users.find(u=>u.email===(e.email||e.uid));
+    if(!storeUser&&isUserDeleted(e.uid))return;
     const resolvedId=storeUser?storeUser.id:e.uid;
     allUsers.set(resolvedId,{id:resolvedId,name:storeUser?.username||e.name,email:storeUser?.email||e.email||e.uid});
   });
-  store.users.forEach(u=>{if(!allUsers.has(u.id))allUsers.set(u.id,{id:u.id,name:u.username||u.name||u.email,email:u.email});});
+  store.users.forEach(u=>{if(!allUsers.has(u.id))allUsers.set(u.id,{id:u.id,name:u.username||u.email,email:u.email});});
   const now=new Date().toISOString();
   allUsers.forEach((u,uid)=>{
     // V3.3.0 FIX: Check BOTH store.users AND store.managers for existing assignments
@@ -7328,6 +7356,16 @@ function buildRegistryFromBookings(){
       if(resolvedName&&resolvedName!==exists.name&&resolvedName!=='N/D'){exists.name=resolvedName;changed=true;}
     }
   });
+  reg.entries.forEach(e=>{
+    if(!e.uid)return;
+    const deleted=isUserDeleted(e.uid);
+    if(deleted&&!e._removed){e._removed=true;changed=true;}
+    else if(!deleted&&e._removed){delete e._removed;changed=true;}
+    if(!deleted){
+      const liveName=resolveUserName(e.uid,e.name);
+      if(liveName&&liveName!==e.name&&liveName!=='N/D'){e.name=liveName;changed=true;}
+    }
+  });
   if(changed)saveRegistry();
 }
 
@@ -7422,6 +7460,7 @@ function renderRegistryTable(reg,entries,theadId,tbodyId,listId){
   if(!sorted.length){tbody.innerHTML='<tr><td colspan="'+(3+cols.length+(_mgrAffIns.length>0?1:0))+'" style="padding:24px;text-align:center;color:var(--txt3)">Nessun partecipante.</td></tr>';return;}
   let bh='';
   sorted.forEach(entry=>{
+    if(entry._removed)return;
     bh+='<tr data-uid="'+entry.uid+'" style="border-top:1px solid var(--s300)">';
     const _rusr=store.users.find(x=>x.id===entry.uid)||store.managers.find(x=>x.id===entry.uid);
     const _rlogo=_rusr?.profileLogo||null;
@@ -7432,20 +7471,16 @@ function renderRegistryTable(reg,entries,theadId,tbodyId,listId){
     bh+='<td style="padding:8px 10px;white-space:nowrap;color:var(--txt2);font-size:.78rem">'+escHtml(entry.email)+'</td>';
     // V3.1.7: Insurance badges column
     if(_mgrAffIns.length>0){
-      const _iUsr=store.users.find(x=>x.id===entry.uid);
-      const _iAssigned=(_iUsr?.assignedInsurances||[]).filter(a=>_mgrAffIns.includes(a.insuranceId));
-      const _iNow=new Date().toISOString();
+      const _iPerson=findPersonById(entry.uid)||(entry.uid?.includes('@')?store.users.find(u=>u.email===entry.uid):null);
+      const _iAssigned=(_iPerson?.assignedInsurances||[]).filter(a=>_mgrAffIns.includes(a.insuranceId));
       if(_iAssigned.length===0){
         bh+='<td style="padding:6px 10px;text-align:center"><span style="font-size:.68rem;color:var(--txt3)">—</span></td>';
-      } else {
+      }else{
         bh+='<td style="padding:6px 6px;text-align:center"><div style="display:flex;gap:3px;flex-wrap:wrap;justify-content:center">';
         _iAssigned.forEach(a=>{
           const _iName=getInsuranceName(a.insuranceId);
-          const _iExp=a.expiresAt&&a.expiresAt<_iNow;
-          const _iWarn=a.expiresAt&&!_iExp&&a.expiresAt<=new Date(Date.now()+30*24*60*60*1000).toISOString();
-          const _iBg=_iExp?'rgba(239,68,68,.12)':_iWarn?'rgba(245,158,11,.12)':'rgba(16,185,129,.12)';
-          const _iCol=_iExp?'var(--red)':_iWarn?'var(--warn)':'var(--green)';
-          bh+='<span title="'+escHtml(_iName)+(_iExp?' (scaduta)':'')+'" style="font-size:.62rem;padding:2px 5px;border-radius:4px;background:'+_iBg+';color:'+_iCol+';font-weight:600;white-space:nowrap;cursor:default">🛡️'+(_iAssigned.length>1?' '+escHtml(_iName.substring(0,8)):'')+'</span>';
+          const _iSt=getInsuranceStatusForUser(_iPerson.id,a.insuranceId);
+          bh+='<span title="'+escHtml(_iName)+(_iSt.status==='expired'?' (scaduta)':_iSt.status==='expiring'?' ('+_iSt.label+')':'')+'" style="font-size:.62rem;padding:2px 5px;border-radius:4px;background:'+_iSt.bg+';color:'+_iSt.color+';font-weight:600;white-space:nowrap;cursor:default">🛡️'+(_iAssigned.length>1?' '+escHtml(_iName.substring(0,8)):'')+'</span>';
         });
         bh+='</div></td>';
       }
@@ -7896,11 +7931,37 @@ function resolveUserName(userId,fallback){
   if(user?.username)return user.username;
   const mgr=store.managers.find(m=>m.id===userId);
   if(mgr?.username)return mgr.username;
+  if(userId.includes('@')){
+    const byEmail=store.users.find(u=>u.email===userId)||store.managers.find(m=>m.email===userId);
+    if(byEmail?.username)return byEmail.username;
+  }
+  const removedBk=store.bookings.find(b=>b.userId===userId&&b.userRemoved);
+  if(removedBk)return fallback?fallback+' ⚠️':'[Utente rimosso]';
   return fallback||'N/D';
 }
 function resolveUserInitials(userId,fallback){
   const name=resolveUserName(userId,fallback);
   return name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase()||'?';
+}
+function isUserDeleted(userId){
+  if(!userId)return false;
+  if(store.users.some(u=>u.id===userId))return false;
+  if(store.managers.some(m=>m.id===userId))return false;
+  if(userId.includes('@')){
+    if(store.users.some(u=>u.email===userId))return false;
+    if(store.managers.some(m=>m.email===userId))return false;
+  }
+  return true;
+}
+function resolveUserAvatar(userId,fallbackInitials,fallbackColor){
+  const user=store.users.find(u=>u.id===userId)||store.managers.find(m=>m.id===userId);
+  if(user){
+    const logo=user.profileLogo||null;
+    const initials=resolveUserInitials(userId,fallbackInitials);
+    const color=user.color||fallbackColor||'';
+    return {logo,initials,color};
+  }
+  return {logo:null,initials:fallbackInitials||'?',color:fallbackColor||''};
 }
 
 /* V3.3.0: Format euro amount with max 2 decimal places. Removes trailing zeros: 10.00→10, 10.50→10.50, 10.123→10.12 */
@@ -11498,7 +11559,7 @@ function _maybeAutoCheckin(booking){
       <div class="flex gap-2 mb-2"><span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span><span class="badge" style="background:var(--green-bg);color:var(--green)">✅ Check-in OK</span></div>
       <h3 class="font-semibold text-white">${escHtml(ev.title)}</h3>
       <div class="text-xs txt3 mt-2">📅 ${_d0?fmtDate(_d0.date)+' · '+_d0.startTime+' — '+_d0.endTime:''}</div>
-      <div class="text-xs txt3 mt-1">👤 ${escHtml(booking.userName)}</div>
+      <div class="text-xs txt3 mt-1">👤 ${escHtml(resolveUserName(booking.userId,booking.userName))}</div>
       <div class="text-xs txt3 mt-1">💳 Pagamento: ${_pay}</div>
       <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(16,185,129,.2)">
         <div class="text-xs font-medium" style="color:var(--green)">Presenze registrate:</div>
@@ -11616,7 +11677,7 @@ function renderAttendance(){
     const avatarClass=isNew?'avatar-brand':isWalkin?'avatar-brand':isChecked?(b.color||'avatar-green'):'';
     const avatarStyle=!isChecked&&!isWalkin?'background:var(--s300);color:var(--txt3)':'';
     rows+=`<tr style="${rowBg}">
-      <td><div class="flex items-center gap-2"><div class="avatar ${avatarClass}" ${avatarStyle?'style="'+avatarStyle+'"':''}>${isNew?'🆕':b.initials||'?'}</div><div><div class="font-medium text-white text-sm">${escHtml(b.userName)}</div><div class="text-xs txt3">${sessionsLabel(b)}</div></div></div></td>
+      <td><div class="flex items-center gap-2"><div class="avatar ${avatarClass}" ${avatarStyle?'style="'+avatarStyle+'"':''}>${isNew?'🆕':b.initials||'?'}</div><div><div class="font-medium text-white text-sm">${escHtml(resolveUserName(b.userId,b.userName))}</div><div class="text-xs txt3">${sessionsLabel(b)}</div></div></div></td>
       <td>${attendBtn}</td>
       <td><span class="badge ${typeBadge}">${typeLabel}</span></td>
       <td>${payBtn}</td>
@@ -11641,7 +11702,7 @@ function toggleAttendance(bookingId,checkedIn){
     window._adminDetailKeepScroll=true;
     showAdminEventDetail(window._currentAdminDetailEvId);
   }
-  showToast(checkedIn?'✅ Presenza registrata per '+b.userName:'Presenza rimossa per '+b.userName);
+  showToast(checkedIn?'✅ Presenza registrata per '+resolveUserName(b.userId,b.userName):'Presenza rimossa per '+resolveUserName(b.userId,b.userName));
 }
 // Set booking payment status (only capofila)
 function setBookingPayment(bookingId,status){
@@ -11650,7 +11711,7 @@ function setBookingPayment(bookingId,status){
   else{b.paymentStatus=status;}
   fsSet('bookings',b.id,b).catch(console.error);
   renderAttendance();
-  showToast('Stato pagamento aggiornato per '+b.userName);
+  showToast('Stato pagamento aggiornato per '+resolveUserName(b.userId,b.userName));
 }
 
 async function renderCheckinA(){
@@ -12241,7 +12302,7 @@ async function renderUserEvents(){
               <span>📅 ${fmtDate(jam.date)}</span><span>🕐 ${jam.startTime} — ${jam.endTime}</span>
             </div>
             <div class="flex gap-2 mt-1 text-xs txt3"><span>📍 ${escHtml(jam.location)}</span></div>
-            <div class="text-xs txt3 mt-1">proposta da ${escHtml(jam.userName)} · 👥 ${spotsText} partecipanti</div>
+            <div class="text-xs txt3 mt-1">proposta da ${escHtml(resolveUserName(jam.userId,jam.userName))} · 👥 ${spotsText} partecipanti</div>
           </div>
         </div>
       </div>
@@ -13720,7 +13781,7 @@ function showJamDetail(jamId){
     const avatarHtml=_pLogo
       ?`<span style="width:32px;height:32px;border-radius:50%;overflow:hidden;flex-shrink:0"><img src="${_pLogo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></span>`
       :`<span style="width:32px;height:32px;border-radius:50%;background:var(--brand-d);display:flex;align-items:center;justify-content:center;font-size:.75rem;color:var(--brand-l);flex-shrink:0">${(p.userName||'?').charAt(0)}</span>`;
-    return `<div class="flex items-center gap-2 py-2" style="border-bottom:1px solid var(--s300)">${avatarHtml}<span class="text-sm text-white">${escHtml(p.userName)}</span></div>`;
+    return `<div class="flex items-center gap-2 py-2" style="border-bottom:1px solid var(--s300)">${avatarHtml}<span class="text-sm text-white">${escHtml(resolveUserName(p.userId,p.userName))}</span></div>`;
   }).join(''):'<p class="text-sm txt3">Nessun partecipante ancora.</p>';
 
   const isOwner=jam.userId===uid;
@@ -13749,7 +13810,7 @@ function showJamDetail(jamId){
       </div>
       <h1 class="text-2xl font-bold text-white">${escHtml(jam.title)}</h1>
       <p class="txt3 mt-2">${escHtml(jam.description)}</p>
-      <div class="flex items-center gap-2 mt-3 text-sm txt3">👤 proposta da ${escHtml(jam.userName)}</div>
+      <div class="flex items-center gap-2 mt-3 text-sm txt3">👤 proposta da ${escHtml(resolveUserName(jam.userId,jam.userName))}</div>
       ${ownerActions}
     </div>
 
@@ -13888,7 +13949,7 @@ function renderJamCard(jam,uid,isMine){
         </div>
         <div class="flex gap-2 mt-1 text-xs txt3"><span>\ud83d\udccd ${escHtml(jam.location)}</span></div>
         <div class="flex justify-between items-center mt-2">
-          <span class="text-xs txt3">proposta da ${escHtml(jam.userName)}</span>
+          <span class="text-xs txt3">proposta da ${escHtml(resolveUserName(jam.userId,jam.userName))}</span>
           <span class="text-xs" style="color:${spotsColor}">\ud83d\udc65 ${spotsLabel}</span>
         </div>
       </div>
@@ -15062,7 +15123,7 @@ function showEventDetail(evId,recDate){
               :'<span style="width:28px;height:28px;border-radius:50%;background:var(--brand-d);display:flex;align-items:center;justify-content:center;font-size:.7rem;color:var(--brand-l);flex-shrink:0">'+(pb.userName||'?').charAt(0)+'</span>';
             _preRegParticipants+='<div class="flex items-center justify-between py-2" style="border-bottom:1px solid var(--s100);gap:8px">'
               +'<div class="flex items-center gap-2">'+_pbAvatar
-              +'<span class="text-sm'+(_isMe?' font-semibold':'')+'" style="color:'+(_isMe?'var(--brand-l)':'var(--txt1)')+'">'+escHtml(pb.userName)+(_isMe?' (tu)':'')+'</span></div>'
+              +'<span class="text-sm'+(_isMe?' font-semibold':'')+'" style="color:'+(_isMe?'var(--brand-l)':'var(--txt1)')+'">'+escHtml(resolveUserName(pb.userId,pb.userName))+(_isMe?' (tu)':'')+'</span></div>'
               +'<span class="text-xs" style="color:var(--txt3)">'+(_prRoleLblMap[pb.role]||'—')+'</span>'
               +'</div>';
           });
@@ -15164,7 +15225,7 @@ function showEventDetail(evId,recDate){
             _pBookings.forEach(pb=>{
               const isMe=pb.userId===store.currentUser.id;
               participantsHtml+='<div class="flex items-center justify-between py-2" style="border-bottom:1px solid var(--s100);gap:8px">'
-                +'<span class="text-sm'+(isMe?' font-semibold':'')+'" style="color:'+(isMe?'var(--brand-l)':'var(--txt1)')+'">'+escHtml(pb.userName)+(isMe?' (tu)':'')+'</span>'
+                +'<span class="text-sm'+(isMe?' font-semibold':'')+'" style="color:'+(isMe?'var(--brand-l)':'var(--txt1)')+'">'+escHtml(resolveUserName(pb.userId,pb.userName))+(isMe?' (tu)':'')+'</span>'
                 +'<span class="text-xs" style="color:var(--txt3)">'+(_roleLblMap[pb.role]||'—')+'</span>'
                 +'</div>';
             });
@@ -15298,6 +15359,40 @@ function _getCancelledDaysLeft(ev){
   return Math.max(0,10-diffDays);
 }
 
+// V3.7.0: One-time data cleanup for organizer session
+let _dataCleanupDone=false;
+async function runDataCleanup(){
+  if(_dataCleanupDone)return;
+  if(!_usersFullyLoaded||!_subscriptionsLoaded){
+    await Promise.all([ensureUsersLoaded(),ensureSubscriptionsLoaded()]);
+  }
+  _dataCleanupDone=true;
+  const mgr=store.managers.find(m=>m.id===store.currentUser?.id);
+  if(!mgr)return;
+  if(mgr.registry?.entries){
+    let changed=false;
+    mgr.registry.entries.forEach(e=>{
+      if(!e.uid)return;
+      const deleted=isUserDeleted(e.uid);
+      if(deleted&&!e._removed){e._removed=true;changed=true;}
+      if(!deleted){
+        if(e._removed){delete e._removed;changed=true;}
+        const liveName=resolveUserName(e.uid,e.name);
+        if(liveName&&liveName!==e.name&&liveName!=='N/D'){e.name=liveName;changed=true;}
+      }
+    });
+    if(changed)saveRegistry();
+  }
+  const beforeCount=store.subscriptions.length;
+  store.subscriptions=store.subscriptions.filter(s=>{
+    if(!s.userId)return true;
+    return !isUserDeleted(s.userId);
+  });
+  if(store.subscriptions.length<beforeCount){
+    console.info('V3.7.0 cleanup: filtered',(beforeCount-store.subscriptions.length),'orphaned subscriptions');
+  }
+}
+
 /* ==============================
    RENDER: ADMIN EVENTS LIST
 ============================== */
@@ -15311,6 +15406,7 @@ async function renderAdminEvents(){
   const u=store.currentUser;
   // Auto-purge cancelled events older than 10 days
   _autoPurgeCancelledEvents(u.id);
+  runDataCleanup(); // V3.7.0: One-time cleanup
   let evts=store.events.filter(e=>isEventVisibleToManager(e,u.id));
   evts.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
   const pub=evts.filter(e=>e.status==='pubblicato').length;
@@ -17193,7 +17289,7 @@ function renderAdminCommunityJams(){
           <p class="text-sm txt3">${escHtml(jam.description)}</p>
           <div class="text-xs txt3 mt-2">📅 ${fmtDate(jam.date)} · 🕐 ${jam.startTime} — ${jam.endTime}</div>
           <div class="text-xs txt3">📍 ${escHtml(jam.location)}</div>
-          <div class="text-xs txt3 mt-1">proposta da <span style="color:var(--brand-l)">${escHtml(jam.userName)}</span> · 👥 ${(jam.participants||[]).length}${jam.maxSpots?'/'+jam.maxSpots:''} partecipanti</div>
+          <div class="text-xs txt3 mt-1">proposta da <span style="color:var(--brand-l)">${escHtml(resolveUserName(jam.userId,jam.userName))}</span> · 👥 ${(jam.participants||[]).length}${jam.maxSpots?'/'+jam.maxSpots:''} partecipanti</div>
           ${(()=>{
             const jcs=getJamConfirmationStatus(jam);
             if(!jcs)return '';
@@ -19202,7 +19298,7 @@ async function renderAdminBookings(){
     else if(fStatus==='regalo') bks=bks.filter(b=>b.gift);
     else bks=bks.filter(b=>b.status===fStatus);
   }
-  if(fSearch) bks=bks.filter(b=>b.userName.toLowerCase().includes(fSearch)||b.email.toLowerCase().includes(fSearch));
+  if(fSearch){const _q=fSearch.toLowerCase();bks=bks.filter(b=>resolveUserName(b.userId,b.userName).toLowerCase().includes(_q)||b.userName.toLowerCase().includes(_q)||b.email.toLowerCase().includes(_q));}
   // Stats (on all unfiltered bookings for this user)
   const allBks=store.bookings.filter(b=>myEvtIds.has(b.eventId));
   const totale=allBks.length;
@@ -19256,7 +19352,7 @@ async function renderAdminBookings(){
       const avatarCls=b.color||'';
       const avatarStyle=!avatarCls?'style="background:var(--s300);color:var(--txt3)"':'';
       return `<tr style="${rowStyle}">
-        <td><div class="flex items-center gap-2"><div class="avatar ${avatarCls}" ${avatarStyle}>${b.initials}</div><div><div class="font-medium text-white text-sm" style="${nameStyle}">${escHtml(b.userName)}</div><div class="text-xs txt3">${escHtml(b.email)}</div></div></div></td>
+        <td><div class="flex items-center gap-2"><div class="avatar ${avatarCls}" ${avatarStyle}>${b.initials}</div><div><div class="font-medium text-white text-sm" style="${nameStyle}">${escHtml(resolveUserName(b.userId,b.userName))}</div><div class="text-xs txt3">${escHtml(b.email)}</div></div></div></td>
         <td class="text-sm">${getEvTitle(b.eventId)}</td>
         <td class="text-sm">${getSessionNames(b.eventId,b.sessions)}</td>
         <td style="white-space:nowrap"><span style="font-size:.72rem;padding:2px 5px;border-radius:4px;background:${b.tier==='alto'?'rgba(234,179,8,.12);color:var(--yellow)':b.tier==='basso'?'rgba(59,130,246,.12);color:var(--blue)':'rgba(168,85,247,.12);color:var(--purple)'}">  ${({alto:'✦ Sost.',medio:'● Std',basso:'○ Rid.'})[b.tier]||'● Std'}</span></td>
@@ -19302,7 +19398,7 @@ function confirmDeposit(bId){
 }
 function cancelBooking(bId){
   const b=store.bookings.find(x=>x.id===bId);if(!b)return;
-  showConfirm('Cancella prenotazione','Cancellare la prenotazione di '+b.userName+'?',async()=>{
+  showConfirm('Cancella prenotazione','Cancellare la prenotazione di '+resolveUserName(b.userId,b.userName)+'?',async()=>{
     b.status='cancellata';await fsUpdate('bookings',b.id,{status:'cancellata'}).catch(console.error);
     if(b.subscriptionId){const sub=store.subscriptions.find(s=>s.id===b.subscriptionId);if(sub&&sub.entriesUsed>0){const _sType=store.subscriptionTypes.find(t=>t.id===sub.typeId);if(!_sType||_sType.mode!=='discount'){sub.entriesUsed--;if(sub.status==='expired'&&sub.entriesUsed<sub.entriesTotal)sub.status='active';await fsUpdate('subscriptions',sub.id,{entriesUsed:sub.entriesUsed,status:sub.status}).catch(console.error);}}}
     renderAdminBookings();showToast('Prenotazione cancellata','error');
@@ -19377,7 +19473,7 @@ function revertDepositCtx(bId,ctx){
 }
 function cancelBookingCtx(bId,ctx){
   const b=store.bookings.find(x=>x.id===bId);if(!b)return;
-  showConfirm('Cancella prenotazione','Cancellare la prenotazione di '+b.userName+'?',async()=>{
+  showConfirm('Cancella prenotazione','Cancellare la prenotazione di '+resolveUserName(b.userId,b.userName)+'?',async()=>{
     b.status='cancellata';b.checkedIn=false;b.checkinTime=null;
     await fsUpdate('bookings',b.id,{status:'cancellata',checkedIn:false,checkinTime:null}).catch(console.error);
     if(b.subscriptionId){const sub=store.subscriptions.find(s=>s.id===b.subscriptionId);if(sub&&sub.entriesUsed>0){const _sType=store.subscriptionTypes.find(t=>t.id===sub.typeId);if(!_sType||_sType.mode!=='discount'){sub.entriesUsed--;if(sub.status==='expired'&&sub.entriesUsed<sub.entriesTotal)sub.status='active';await fsUpdate('subscriptions',sub.id,{entriesUsed:sub.entriesUsed,status:sub.status}).catch(console.error);}}}
@@ -19392,8 +19488,8 @@ function restoreBookingCtx(bId,ctx){
   if(ev&&ev.status==='archiviato')return;
   // V3.6.1: Check anti-duplicato — esiste già una prenotazione attiva dello stesso utente?
   const existingActive=store.bookings.find(x=>x.id!==b.id&&x.eventId===b.eventId&&x.userId===b.userId&&x.status!=='cancellata'&&(x.recurringDate||null)===(b.recurringDate||null));
-  if(existingActive){showToast('⚠️ '+escHtml(b.userName)+' ha già una prenotazione attiva per questo evento. Ripristino non possibile.','error');return;}
-  showConfirm('Ripristina prenotazione','Ripristinare la prenotazione di '+escHtml(b.userName)+'?',async()=>{
+  if(existingActive){showToast('⚠️ '+escHtml(resolveUserName(b.userId,b.userName))+' ha già una prenotazione attiva per questo evento. Ripristino non possibile.','error');return;}
+  showConfirm('Ripristina prenotazione','Ripristinare la prenotazione di '+escHtml(resolveUserName(b.userId,b.userName))+'?',async()=>{
     b.status='confermata';
     const updates={status:'confermata'};
     if(b.subscriptionId){
@@ -19428,7 +19524,7 @@ function handlePricingModeChange(evId,oldPricingMode,newPricingMode){
     const needsRefund=(b.paymentStatus==='pagato'&&b.amount>0)||(b.depositStatus==='ricevuto'&&b.deposit>0);
     if(needsRefund){
       refundList.push({
-        bookingId:b.id,userId:b.userId,userName:b.userName,email:b.email,
+        bookingId:b.id,userId:b.userId,userName:resolveUserName(b.userId,b.userName),email:b.email,
         paidAmount:b.paymentStatus==='pagato'?b.amount:0,
         depositAmount:b.depositStatus==='ricevuto'?(b.deposit||0):0,
         totalRefund:(b.paymentStatus==='pagato'?b.amount:0)+(b.depositStatus==='ricevuto'?(b.deposit||0):0),
@@ -20735,7 +20831,7 @@ async function downloadExcel(){
       const tierName=b.tier==='alto'?'Sostenitore':b.tier==='basso'?'Ridotto':'Standard';
       // V3.1.7: Insurance status
       const _bInsVal=_evHasInsC?[isUserInsured(b.userId,ev.insurance.requiredInsuranceIds)?'✓ Assicurato':'✗ Non assicurato']:[];
-      const vals=[b.userName,b.email,roleName(b.role),getSessionLabel(b.sessions),tierName,..._bInsVal,...surveyVals];
+      const vals=[resolveUserName(b.userId,b.userName),b.email,roleName(b.role),getSessionLabel(b.sessions),tierName,..._bInsVal,...surveyVals];
       vals.forEach((v,ci)=>{
         const c=ws.getCell(row,ci+1);c.value=v;c.font=dataFont;c.border=thinBorder;c.alignment={vertical:'middle'};
       });
@@ -20765,7 +20861,7 @@ async function downloadExcel(){
       });
       row++;
       cancelled.forEach(b=>{
-        ws.getCell(row,1).value=b.userName;ws.getCell(row,1).font={name:'Arial',size:10,color:{argb:'FF9CA3AF'}};ws.getCell(row,1).border=thinBorder;
+        ws.getCell(row,1).value=resolveUserName(b.userId,b.userName);ws.getCell(row,1).font={name:'Arial',size:10,color:{argb:'FF9CA3AF'}};ws.getCell(row,1).border=thinBorder;
         ws.getCell(row,2).value=b.email;ws.getCell(row,2).font={name:'Arial',size:10,color:{argb:'FF9CA3AF'}};ws.getCell(row,2).border=thinBorder;
         ws.getCell(row,3).value=b.amount||0;ws.getCell(row,3).font={name:'Arial',size:10,color:{argb:'FF9CA3AF'}};ws.getCell(row,3).border=thinBorder;ws.getCell(row,3).numFmt=euroFmt;
         row++;
@@ -20891,12 +20987,12 @@ async function exportInsuranceSurveyExcel(eventId){
     let insName='—',insExpiry='—';
     if(user?.assignedInsurances){
       const now=new Date().toISOString();
-      const match=user.assignedInsurances.find(a=>reqIds.includes(a.insuranceId)&&(!a.expiresAt||a.expiresAt>=now));
+      const match=user.assignedInsurances.find(a=>reqIds.includes(a.insuranceId)&&getInsuranceStatusForUser(b.userId,a.insuranceId).status!=='expired');
       if(match){insName=getInsuranceName(match.insuranceId);insExpiry=match.expiresAt?match.expiresAt.split('T')[0]:'Illimitata';}
     }
     const surcharge=_isIns?0:(ev.insurance.price||0);
 
-    ws.getCell(row,1).value=b.userName||'';ws.getCell(row,1).font=dataFont;ws.getCell(row,1).border=thinBorder;
+    ws.getCell(row,1).value=resolveUserName(b.userId,b.userName)||'';ws.getCell(row,1).font=dataFont;ws.getCell(row,1).border=thinBorder;
     ws.getCell(row,2).value=b.email||'';ws.getCell(row,2).font=dataFont;ws.getCell(row,2).border=thinBorder;
     const statusCell=ws.getCell(row,3);statusCell.value=_isIns?'✓ Assicurato':'✗ Non assicurato';statusCell.font={name:'Arial',size:10,bold:true,color:{argb:_isIns?'FF059669':'FFEF4444'}};statusCell.fill=_isIns?greenFill:redFill;statusCell.border=thinBorder;statusCell.alignment={horizontal:'center'};
     ws.getCell(row,4).value=insName;ws.getCell(row,4).font=dataFont;ws.getCell(row,4).border=thinBorder;
@@ -21048,6 +21144,9 @@ async function showAdminEventDetail(evId){
         vb=(b.surveyResponses||{})[sqId]||'';
         if(Array.isArray(va))va=va.join(', ');
         if(Array.isArray(vb))vb=vb.join(', ');
+      } else if(adminDetailSort.field==='userName'){
+        va=resolveUserName(a.userId,a.userName).toLowerCase();
+        vb=resolveUserName(b.userId,b.userName).toLowerCase();
       } else {
         va=a[adminDetailSort.field]||'';
         vb=b[adminDetailSort.field]||'';
@@ -21249,7 +21348,7 @@ async function showAdminEventDetail(evId){
             ?'<button class="btn btn-ghost btn-sm" style="font-size:.7rem" onclick="event.stopPropagation();markRefund(\''+evId+'\',\''+r.bookingId+'\')">↩️ Riapri</button>'
             :'<button class="btn btn-sm" style="background:var(--green-bg);color:var(--green);border:1px solid rgba(16,185,129,.3);font-size:.7rem" onclick="event.stopPropagation();markRefund(\''+evId+'\',\''+r.bookingId+'\')">✅ Segna rimborsato</button>';
           return '<tr style="'+rowStyle+'">'
-            +'<td class="font-medium text-white text-sm">'+escHtml(r.userName)+'</td>'
+            +'<td class="font-medium text-white text-sm">'+escHtml(resolveUserName(r.userId||'',r.userName))+'</td>'
             +'<td class="text-xs txt3">'+escHtml(r.email)+'</td>'
             +'<td class="text-sm">'+(r.paidAmount?'€'+fmtEuro(r.paidAmount):'—')+'</td>'
             +'<td class="text-sm">'+(r.depositAmount?'€'+fmtEuro(r.depositAmount):'—')+'</td>'
@@ -21294,14 +21393,15 @@ async function showAdminEventDetail(evId){
           const _bDep=(!b.gift&&b.depositStatus==='ricevuto')?depAmount:0;
           const _bDaInc=Math.max(0,_bOwed-_bPaid-_bDep);
           const daIncHtml=b.gift?'<span class="text-xs txt3">—</span>':(_bDaInc>0?'<span style="color:var(--yellow);font-weight:600">€'+fmtEuro(_bDaInc)+'</span>':'<span style="color:var(--green)">€0</span>');
-          const avatarCls=b.color||'';
+          const _av=resolveUserAvatar(b.userId,b.initials,b.color);
+          const avatarCls=_av.color;
           const avatarStyle=!avatarCls?'style="background:var(--s300);color:var(--txt3)"':'';
           const _pUser=store.users.find(x=>x.id===b.userId)||store.managers.find(x=>x.id===b.userId);
-          const _pLogo=_pUser?.profileLogo||null;
-          const avatarInner=_pLogo?'<img src="'+_pLogo+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':b.initials;
+          const _pLogo=_av.logo||(_pUser?.profileLogo||null);
+          const avatarInner=_pLogo?'<img src="'+_pLogo+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':_av.initials;
           const checkedInHtml=b.checkedIn?(!isArchived?'<button class="btn btn-sm" style="padding:2px 8px;font-size:.7rem;background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="event.stopPropagation();toggleAttendance(\''+b.id+'\',false)">✅ Presente'+(b.checkinTime?' '+b.checkinTime:'')+'</button>':'<span class="badge" style="background:rgba(16,185,129,.2);color:var(--green)">✅ Presente</span>'):(!isArchived?'<button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:.7rem" onclick="event.stopPropagation();toggleAttendance(\''+b.id+'\',true)">⬜ Segna presente</button>':'<span class="text-xs txt3">Assente</span>');
           return `<tr>
-            <td class="td-participant"><div class="flex items-center gap-2"><div class="avatar ${avatarCls} hide-mobile" ${avatarStyle} style="${!avatarCls?'background:var(--s300);color:var(--txt3)':''}${_pLogo?';overflow:hidden':''}">${avatarInner}</div><div class="participant-info"><div class="font-medium text-white text-sm">${escHtml(b.userName)}</div><div class="text-xs txt3">${escHtml(b.email)}</div></div></div></td>
+            <td class="td-participant"><div class="flex items-center gap-2"><div class="avatar ${avatarCls} hide-mobile" ${avatarStyle} style="${!avatarCls?'background:var(--s300);color:var(--txt3)':''}${_pLogo?';overflow:hidden':''}">${avatarInner}</div><div class="participant-info"><div class="font-medium text-white text-sm">${escHtml(resolveUserName(b.userId,b.userName))}</div><div class="text-xs txt3">${escHtml(b.email)}</div></div></div></td>
             <td><span style="color:${roleColor(b.role)}">${roleName(b.role)}</span></td>
             <td style="min-width:140px">${getSessionNames(b.sessions)}</td>
             ${ev.pricingMode!=='free'?'<td style="white-space:nowrap"><span style="font-size:.75rem;padding:2px 6px;border-radius:4px;background:'+(b.tier==='alto'?'rgba(234,179,8,.12);color:var(--yellow)':b.tier==='basso'?'rgba(59,130,246,.12);color:var(--blue)':'rgba(168,85,247,.12);color:var(--purple)')+'">'+({alto:'✦ Sost.',medio:'● Std',basso:'○ Rid.'}[b.tier]||'● Std')+'</span></td>':''}
@@ -21325,7 +21425,7 @@ async function showAdminEventDetail(evId){
     <div class="card table-wrap" style="padding:0;opacity:.5">
       <table class="table"><thead><tr><th>Utente</th><th>Importo</th>${!isArchived?'<th>Azioni</th>':''}</tr></thead>
       <tbody>${cancelled.map(b=>{const _cu=store.users.find(x=>x.id===b.userId)||store.managers.find(x=>x.id===b.userId);const _cl=_cu?.profileLogo||null;return `<tr>
-        <td><div class="flex items-center gap-2"><div class="avatar" style="background:var(--s300);color:var(--txt3)${_cl?';overflow:hidden':''}">${_cl?'<img src="'+_cl+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':b.initials}</div><div class="font-medium text-white text-sm" style="text-decoration:line-through">${escHtml(b.userName)}</div></div></td>
+        <td><div class="flex items-center gap-2"><div class="avatar" style="background:var(--s300);color:var(--txt3)${_cl?';overflow:hidden':''}">${_cl?'<img src="'+_cl+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':b.initials}</div><div class="font-medium text-white text-sm" style="text-decoration:line-through">${escHtml(resolveUserName(b.userId,b.userName))}</div></div></td>
         <td class="text-sm txt3">€${fmtEuro(b.amount)}</td>
         ${!isArchived?'<td><button class="btn btn-sm" style="background:rgba(59,130,246,.12);color:var(--blue);border:1px solid rgba(59,130,246,.3);font-size:.7rem" onclick="event.stopPropagation();restoreBookingCtx(\''+b.id+'\',\'detail\')">♻️ Ripristina</button></td>':''}
       </tr>`}).join('')}</tbody></table>
@@ -21770,7 +21870,7 @@ async function handleDeepLink(){
               <div class="flex gap-2 mb-2"><span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span><span class="badge" style="background:var(--green-bg);color:var(--green)">✅ Check-in OK</span></div>
               <h3 class="font-semibold text-white">${escHtml(ev.title)}</h3>
               <div class="text-xs txt3 mt-2">📅 ${_ciD0?fmtDate(_ciD0.date)+' · '+_ciD0.startTime+' — '+_ciD0.endTime:''}</div>
-              <div class="text-xs txt3 mt-1">👤 ${escHtml(_ciBooking.userName)}</div>
+              <div class="text-xs txt3 mt-1">👤 ${escHtml(resolveUserName(_ciBooking.userId,_ciBooking.userName))}</div>
               <div class="text-xs txt3 mt-1">💳 Pagamento: ${_ciPay}</div>
               <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(16,185,129,.2)">
                 <div class="text-xs font-medium" style="color:var(--green)">Presenze registrate:</div>
