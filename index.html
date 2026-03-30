@@ -16716,7 +16716,7 @@ function copyEventAsTemplate(id){
         earlyBird:d.earlyBird?{alto:d.earlyBird.alto!=null?d.earlyBird.alto:'',medio:d.earlyBird.medio!=null?d.earlyBird.medio:'',basso:d.earlyBird.basso!=null?d.earlyBird.basso:'',type:d.earlyBird.type||'date',deadline:'',maxCount:d.earlyBird.maxCount||''}:null,
         sessions:d.sessions.map(s=>({
           _origId:null, // New IDs will be generated on save
-          name:s.name||'',startTime:s.startTime||'10:00',endTime:s.endTime||'12:30',
+          name:s.name||'',startTime:s.startTime||'10:00',endTime:s.endTime||'13:00',
           level:s.level||'base',teacher:s.teacher||'',description:s.description||'',
           location:s.location||'',locationUrl:s.locationUrl||'',
           maxSpots:s.maxSpots||0,
@@ -17890,10 +17890,10 @@ function toggleChartSeries(checkbox){
 /* ==============================
    EVENT CREATION FORM
 ============================== */
-let formDays=[{sessions:[{name:'',startTime:'10:00',endTime:'12:30',level:'base',teacher:'',description:'',location:'',locationUrl:'',maxSpots:0,tiers:{alto:null,medio:null,basso:null}}]}];
+let formDays=[{sessions:[{name:'',startTime:'10:00',endTime:'13:00',level:'base',teacher:'',description:'',location:'',locationUrl:'',maxSpots:0,tiers:{alto:null,medio:null,basso:null}}]}];
 
 function resetForm(){
-  formDays=[{sessions:[{name:'',startTime:'10:00',endTime:'12:30',level:'base',teacher:'',description:'',location:'',locationUrl:'',maxSpots:0,tiers:{alto:null,medio:null,basso:null}}]}];
+  formDays=[{sessions:[{name:'',startTime:'10:00',endTime:'13:00',level:'base',teacher:'',description:'',location:'',locationUrl:'',maxSpots:0,tiers:{alto:null,medio:null,basso:null}}]}];
   evImages.thumb=null;evImages.header=null;
   const f=document.getElementById('ne-form');if(f)f.reset();
   ['thumb','header'].forEach(k=>{
@@ -18233,19 +18233,18 @@ function renderFormDays(){
   const epSec=document.getElementById('ne-event-pricing-section');
   if(epSec) epSec.style.display=(!hidePricing&&formDays.length>1)?'':'none';
 }
-// V3.2: Validate session end time is after start time
+// V3.7.3: Validate session end time — warn only, no auto-correct (submit validation catches it)
 function validateSessionTimes(changedInput,di,si){
   const startEl=document.querySelector(`.ne-s-start[data-di="${di}"][data-si="${si}"]`);
   const endEl=document.querySelector(`.ne-s-end[data-di="${di}"][data-si="${si}"]`);
   if(!startEl||!endEl||!startEl.value||!endEl.value)return;
   if(endEl.value<=startEl.value){
     showToast('L\'orario di fine deve essere successivo all\'orario di inizio','error');
-    // Auto-correct: set end time to start + 1 hour
-    const [h,m]=startEl.value.split(':').map(Number);
-    const newH=Math.min(h+1,23);
-    endEl.value=String(newH).padStart(2,'0')+':'+String(m).padStart(2,'0');
     endEl.style.borderColor='var(--red)';endEl.style.boxShadow='0 0 0 2px rgba(239,68,68,.2)';
-    setTimeout(()=>{endEl.style.borderColor='';endEl.style.boxShadow='';},2000);
+    setTimeout(()=>{endEl.style.borderColor='';endEl.style.boxShadow='';},3000);
+  } else {
+    // Clear any previous error styling when valid
+    endEl.style.borderColor='';endEl.style.boxShadow='';
   }
 }
 function updateDayTimesDisplay(di){
@@ -18323,7 +18322,7 @@ function renderFormSession(di,si,s,hidePricing){
     <div class="grid grid-3 gap-3 mb-2">
       <div><label class="label">Nome *</label><input class="input ne-s-name" value="${s.name||''}" data-di="${di}" data-si="${si}" placeholder="es. Intro Base"></div>
       <div><label class="label">Inizio</label><input class="input ne-s-start" type="time" value="${s.startTime||'10:00'}" data-di="${di}" data-si="${si}" onchange="validateSessionTimes(this,${di},${si});updateDayTimesDisplay(${di})"></div>
-      <div><label class="label">Fine</label><input class="input ne-s-end" type="time" value="${s.endTime||'12:30'}" data-di="${di}" data-si="${si}" onchange="validateSessionTimes(this,${di},${si});updateDayTimesDisplay(${di})"></div>
+      <div><label class="label">Fine</label><input class="input ne-s-end" type="time" value="${s.endTime||'13:00'}" data-di="${di}" data-si="${si}" onchange="validateSessionTimes(this,${di},${si});updateDayTimesDisplay(${di})"></div>
     </div>
     <div class="grid grid-3 gap-3 mb-2">
       <div><label class="label">Livello</label><select class="input ne-s-level" data-di="${di}" data-si="${si}">
@@ -18525,7 +18524,7 @@ function getPickerSelected(wrapEl){
   return Array.from(wrapEl.querySelectorAll('.ep-check:checked')).map(cb=>cb.value);
 }
 function addFormDay(){
-  formDays.push({sessions:[{name:'',startTime:'10:00',endTime:'12:30',level:'base',teacher:'',description:'',location:'',locationUrl:'',maxSpots:0,tiers:{alto:null,medio:null,basso:null}}]});
+  formDays.push({sessions:[{name:'',startTime:'10:00',endTime:'13:00',level:'base',teacher:'',description:'',location:'',locationUrl:'',maxSpots:0,tiers:{alto:null,medio:null,basso:null}}]});
   // Auto-update event end date
   const ed=document.getElementById('ne-event-end-date');
   const sd=document.getElementById('ne-event-start-date');
@@ -18554,7 +18553,7 @@ function removeFormDay(di){
   if(formDays.length===1&&sd&&ed){ed.value=sd.value;ed.min=sd.value;}
   renderFormDays();
 }
-function addFormSession(di){formDays[di].sessions.push({name:'',startTime:'10:00',endTime:'12:30',level:'base',teacher:'',description:'',location:'',locationUrl:'',maxSpots:0,tiers:{alto:null,medio:null,basso:null}});renderFormDays();showToast('Sessione aggiunta');}
+function addFormSession(di){formDays[di].sessions.push({name:'',startTime:'10:00',endTime:'13:00',level:'base',teacher:'',description:'',location:'',locationUrl:'',maxSpots:0,tiers:{alto:null,medio:null,basso:null}});renderFormDays();showToast('Sessione aggiunta');}
 function autoFillMaxSpots(inputEl){
   const val=inputEl.value;if(!val)return;
   document.querySelectorAll('.ne-s-max').forEach(el=>{
@@ -18768,7 +18767,7 @@ function collectFormData(){
         id:s._origId||genId('s'),
         name:document.querySelector(`.ne-s-name[data-di="${di}"][data-si="${si}"]`)?.value||'Sessione',
         startTime:document.querySelector(`.ne-s-start[data-di="${di}"][data-si="${si}"]`)?.value||'10:00',
-        endTime:document.querySelector(`.ne-s-end[data-di="${di}"][data-si="${si}"]`)?.value||'12:30',
+        endTime:document.querySelector(`.ne-s-end[data-di="${di}"][data-si="${si}"]`)?.value||'13:00',
         level:document.querySelector(`.ne-s-level[data-di="${di}"][data-si="${si}"]`)?.value||'base',
         description:document.querySelector(`.ne-s-desc[data-di="${di}"][data-si="${si}"]`)?.value||'',
         teacher:document.querySelector(`.ne-s-teacher[data-di="${di}"][data-si="${si}"]`)?.value||'',
@@ -19133,7 +19132,7 @@ function editEvent(id){
     earlyBird:d.earlyBird?{alto:d.earlyBird.alto!=null?d.earlyBird.alto:'',medio:d.earlyBird.medio!=null?d.earlyBird.medio:'',basso:d.earlyBird.basso!=null?d.earlyBird.basso:'',type:d.earlyBird.type||'date',deadline:d.earlyBird.deadline||'',maxCount:d.earlyBird.maxCount||''}:null,
     sessions:d.sessions.map(s=>({
       _origId:s.id||null,
-      name:s.name||'',startTime:s.startTime||'10:00',endTime:s.endTime||'12:30',
+      name:s.name||'',startTime:s.startTime||'10:00',endTime:s.endTime||'13:00',
       level:s.level||'base',teacher:s.teacher||'',description:s.description||'',
       location:s.location||'',locationUrl:s.locationUrl||'',
       maxSpots:s.maxSpots||0,
