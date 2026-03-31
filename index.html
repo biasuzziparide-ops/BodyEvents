@@ -426,7 +426,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.5</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.6</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2775,7 +2775,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.5';
+const APP_VERSION='V3.10.6';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -3468,7 +3468,7 @@ async function fsDelete(col,id){
    ============================== */
 // Insurance entity: {id, name, description, provider, createdBy, validFrom, validTo, createdAt, status:'active'|'archived'}
 // Manager affiliation: manager.affiliatedInsurances = ['ins_abc','ins_xyz']
-// Manager survey template: manager.insuranceSurvey = [{id,question,type:'text'|'select'|'boolean',options:[],required:bool}]
+// Manager survey template: manager.insuranceSurvey = [{id,question,type:'text'|'select'|'boolean'|'date',options:[],required:bool}]
 // User assignment: user.assignedInsurances = [{insuranceId, assignedBy, assignedAt, expiresAt, surveyAnswers:{}}]
 // Event requirement: ev.insurance = {enabled:bool, requiredInsuranceIds:[], price:number, description:'', surveyEnabled:bool}
 
@@ -4287,7 +4287,7 @@ function _renderSurveyItem(q,i){
   h+='<button style="position:absolute;top:6px;right:8px;background:none;border:none;color:var(--red);cursor:pointer;font-size:.7rem" onclick="this.closest(\'.ins-survey-q\').remove()">✕</button>';
   h+='<div class="mb-2"><input type="text" class="input sq-question" value="'+escHtml(q.question||'')+'" placeholder="Domanda..." style="font-size:.82rem"></div>';
   h+='<div style="display:flex;gap:6px;align-items:center">';
-  h+='<select class="input sq-type" style="width:auto;font-size:.75rem"><option value="text"'+(q.type==='text'?' selected':'')+'>Testo</option><option value="select"'+(q.type==='select'?' selected':'')+'>Scelta</option><option value="boolean"'+(q.type==='boolean'?' selected':'')+'>Sì/No</option></select>';
+  h+='<select class="input sq-type" style="width:auto;font-size:.75rem"><option value="text"'+(q.type==='text'?' selected':'')+'>Testo</option><option value="date"'+(q.type==='date'?' selected':'')+'>Data</option><option value="select"'+(q.type==='select'?' selected':'')+'>Scelta</option><option value="boolean"'+(q.type==='boolean'?' selected':'')+'>Sì/No</option></select>';
   h+='<label style="font-size:.72rem;color:var(--txt3);display:flex;align-items:center;gap:4px"><input type="checkbox" class="sq-required"'+(q.required?' checked':'')+'>Obbligatoria</label>';
   h+='</div>';
   if(q.type==='select')h+='<div class="mt-2"><input type="text" class="input sq-options" value="'+escHtml((q.options||[]).join(', '))+'" placeholder="Opzioni separate da virgola" style="font-size:.75rem"></div>';
@@ -11293,9 +11293,8 @@ function _doBookNormal(){
         const sEbGridId='tier-ebs-'+s.id;
         if(selectedTiers[sEbGridId]&&s.earlyBird){
           hasSelection=true;
-          const tier=selectedTiers[sEbGridId];
-          const price=s.earlyBird[tier]||0;
-          items.push({type:'early bird sessione',name:'🐦 EB — '+s.name,date:fmtDateShort(_dd),time:s.startTime+' — '+s.endTime,tier:tierLabel(tier)+' (early bird)',price});
+          const price=getEBPrice(s.earlyBird);
+          items.push({type:'early bird sessione',name:'🐦 EB — '+s.name,date:fmtDateShort(_dd),time:s.startTime+' — '+s.endTime,tier:'Early Bird',price});
           totalAmount+=price;
         }
       });
@@ -11311,12 +11310,14 @@ function _doBookNormal(){
       }
       // Day-level early bird
       const dayEbGridId='tier-ebday-'+ev.id+'-'+di;
-      if(selectedTiers[dayEbGridId]&&(resolveEB(day.earlyBird,ev.earlyBird))){
-        hasSelection=true;
-        const tier=selectedTiers[dayEbGridId];
-        const price=(resolveEB(day.earlyBird,ev.earlyBird))[tier]||0;
-        items.push({type:'early bird giornata',name:'🐦 Early Bird — '+fmtDateShort(_dd),date:fmtDateShort(_dd),time:day.startTime+' — '+day.endTime,tier:tierLabel(tier)+' (early bird)',price});
-        totalAmount+=price;
+      if(selectedTiers[dayEbGridId]){
+        const _dayEB=resolveEB(day.earlyBird,ev.earlyBird);
+        if(_dayEB){
+          hasSelection=true;
+          const price=getEBPrice(_dayEB);
+          items.push({type:'early bird giornata',name:'🐦 Early Bird — '+fmtDateShort(_dd),date:fmtDateShort(_dd),time:day.startTime+' — '+day.endTime,tier:'Early Bird',price});
+          totalAmount+=price;
+        }
       }
     } else {
       // No sessions — day-level tiers shown inline
@@ -11331,12 +11332,14 @@ function _doBookNormal(){
       }
       // Day-level early bird (no sessions)
       const dayEbGridId2='tier-ebday-'+ev.id+'-'+di;
-      if(selectedTiers[dayEbGridId2]&&(resolveEB(day.earlyBird,ev.earlyBird))){
-        hasSelection=true;
-        const tier=selectedTiers[dayEbGridId2];
-        const price=(resolveEB(day.earlyBird,ev.earlyBird))[tier]||0;
-        items.push({type:'early bird giornata',name:'🐦 Early Bird — '+fmtDateShort(_dd),date:fmtDateShort(_dd),time:day.startTime+' — '+day.endTime,tier:tierLabel(tier)+' (early bird)',price});
-        totalAmount+=price;
+      if(selectedTiers[dayEbGridId2]){
+        const _dayEB2=resolveEB(day.earlyBird,ev.earlyBird);
+        if(_dayEB2){
+          hasSelection=true;
+          const price=getEBPrice(_dayEB2);
+          items.push({type:'early bird giornata',name:'🐦 Early Bird — '+fmtDateShort(_dd),date:fmtDateShort(_dd),time:day.startTime+' — '+day.endTime,tier:'Early Bird',price});
+          totalAmount+=price;
+        }
       }
     }
   });
@@ -11353,9 +11356,8 @@ function _doBookNormal(){
   const evEbId='tier-ebev-'+ev.id;
   if(selectedTiers[evEbId]&&ev.earlyBird){
     hasSelection=true;
-    const tier=selectedTiers[evEbId];
-    const price=ev.earlyBird[tier]||0;
-    items.push({type:'early bird evento',name:'🐦 Early Bird evento — '+ev.title,date:'',time:'',tier:tierLabel(tier)+' (early bird)',price});
+    const price=getEBPrice(ev.earlyBird);
+    items.push({type:'early bird evento',name:'🐦 Early Bird evento — '+ev.title,date:'',time:'',tier:'Early Bird',price});
     totalAmount+=price;
   }
   // Apply effective discount (subscription or loyalty, non-cumulative) — V2.13.0
@@ -14610,6 +14612,8 @@ function renderInsuranceSurveyForBooking(ev,prefix){
       html+='<label class="flex items-center gap-1 text-sm text-white" style="cursor:pointer;padding:4px 10px;border:1px solid var(--s300);border-radius:8px"><input type="radio" name="'+fid+'" value="Sì" style="accent-color:var(--warn)"> Sì</label>';
       html+='<label class="flex items-center gap-1 text-sm text-white" style="cursor:pointer;padding:4px 10px;border:1px solid var(--s300);border-radius:8px"><input type="radio" name="'+fid+'" value="No" style="accent-color:var(--warn)"> No</label>';
       html+='</div>';
+    } else if(sq.type==='date'){
+      html+='<input type="date" class="input" id="'+fid+'" style="max-width:220px;color-scheme:dark">';
     }
     html+='</div>';
   });
@@ -14629,6 +14633,8 @@ function collectInsuranceSurveyResponses(ev,prefix){
     const fid=prefix+'inssq_'+sq.id;
     let val=null;
     if(sq.type==='text'){
+      val=(document.getElementById(fid)?.value||'').trim();
+    } else if(sq.type==='date'){
       val=(document.getElementById(fid)?.value||'').trim();
     } else if(sq.type==='select'||sq.type==='boolean'){
       const checked=document.querySelector('input[name="'+fid+'"]:checked');
