@@ -426,7 +426,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.4</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.5</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2775,7 +2775,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.4';
+const APP_VERSION='V3.10.5';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -6120,7 +6120,7 @@ async function addEventTypeFromUnivAdmin(univId){
 }
 
 // Populate universe dropdown for event creation form (toggle buttons)
-function populateEventUniverseDropdown(){
+function populateEventUniverseDropdown(currentType){
   const c=document.getElementById('ne-universes-list');
   if(!c)return;
   const mgrUnivs=store.currentUser.universes||['univ_acro'];
@@ -6132,9 +6132,9 @@ function populateEventUniverseDropdown(){
     const sel=(u.id===defaultUnivId);
     return '<button type="button" class="ne-univ-btn'+(sel?' ne-univ-selected':'')+'" data-univ="'+u.id+'" onclick="toggleUnivBtn(this)" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:12px;border:2px solid '+(sel?u.color:u.color+'40')+';background:'+(sel?u.color+'25':'transparent')+';color:'+(sel?u.color:'var(--txt2)')+';font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s ease;outline:none"><span style="font-size:1.1rem">'+u.emoji+'</span>'+u.name+'</button>';
   }).join('');
-  // Initialize event type dropdown with pre-selected universe
+  // Initialize event type dropdown with pre-selected universe, preserving current type if provided
   const autoSelectedIds=defaultUnivId?[defaultUnivId]:[];
-  populateEventTypeDropdown(autoSelectedIds);
+  populateEventTypeDropdown(autoSelectedIds, currentType||undefined);
 }
 function toggleUnivBtn(btn){
   const isSelected=btn.classList.contains('ne-univ-selected');
@@ -16808,8 +16808,8 @@ function copyEventAsTemplate(id){
   resetForm();
   go('admin-new-event');
   setTimeout(()=>{
-    // === UNIVERSE ===
-    populateEventUniverseDropdown();
+    // === UNIVERSE === B2: pass event type to preserve during rebuild
+    populateEventUniverseDropdown(ev.type||'jam');
     const editUnivIds=ev.universeIds||[ev.universeId||'univ_acro'];
     document.querySelectorAll('.ne-univ-btn').forEach(btn=>{if(editUnivIds.includes(btn.dataset.univ)){btn.classList.add('ne-univ-selected');const u=store.universes.find(x=>x.id===btn.dataset.univ);const c=u?.color||'#10b981';btn.style.border='2px solid '+c;btn.style.background=c+'25';btn.style.color=c;}});
     // === TYPE ===
@@ -17874,7 +17874,11 @@ async function renderAdminDashboard(){
     });
     // Count insurance surcharge revenue from bookings
     myBookings.forEach(b=>{if(b.insuranceSurcharge>0)_dashInsSurchargeRev+=b.insuranceSurcharge;});
+    // A1: Remove any previously inserted insurance card to prevent duplication
+    const oldInsCard=document.getElementById('admin-dash-insurance-card');
+    if(oldInsCard)oldInsCard.remove();
     const insEl=document.createElement('div');
+    insEl.id='admin-dash-insurance-card';
     insEl.className='card mb-4';
     insEl.style.cssText='padding:16px;cursor:pointer;transition:border-color .15s';
     insEl.onclick=()=>go('admin-insurances');
@@ -17890,6 +17894,10 @@ async function renderAdminDashboard(){
       ${_dashInsSurchargeRev>0?'<div style="text-align:center;flex:1;min-width:70px"><div style="font-size:1.4rem;font-weight:800;color:var(--brand-l)">€'+_dashInsSurchargeRev+'</div><div style="font-size:.68rem;color:var(--txt3)">Da sovrapprezzi</div></div>':''}
     </div>`;
     fc?.parentElement?.insertBefore(insEl,fc.nextSibling);
+  } else {
+    // No affiliated insurances — ensure no stale card remains
+    const oldInsCard=document.getElementById('admin-dash-insurance-card');
+    if(oldInsCard)oldInsCard.remove();
   }
 
   // === CUMULATIVE REVENUE CHART ===
@@ -18104,7 +18112,9 @@ function resetForm(){
     const el=document.getElementById(optsId);if(el&&!el.classList.contains('hidden'))el.classList.add('hidden');
   });
   syncToggleBtns();
-  onPricingModeChange();
+  // B5: Only trigger pricing mode change on new events, not during edit setup
+  // (editEvent will call onPricingModeChange itself after setting pricing checkboxes)
+  if(!editingEventId)onPricingModeChange();
   // V3.9.0: Pre-populate payment links from org defaults (only for new events)
   if(!editingEventId){
     const currentMgr=store.managers.find(m=>m.id===store.currentUser?.id);
@@ -19017,6 +19027,13 @@ function collectFormData(){
   // V3.1.7: Custom type creation disabled — fallback to 'jam' if somehow __custom__ is selected
   const finalType=(eventType==='__custom__'||eventType==='custom')?'jam':eventType;
   console.log('[collectFormData] Event type from dropdown:', eventType, '→ finalType:', finalType);
+  // B4: Diagnostic — warn if type is 'jam' while editing an existing event that had a different type
+  if(editingEventId){
+    const _origEv=store.events.find(e=>e.id===editingEventId);
+    if(_origEv&&_origEv.type&&_origEv.type!=='jam'&&finalType==='jam'){
+      console.error('[collectFormData] B4 WARNING: Type changed from',_origEv.type,'to jam! Dropdown value:',document.getElementById('ne-type')?.value,'Options:',Array.from(document.getElementById('ne-type')?.options||[]).map(o=>o.value));
+    }
+  }
   // Validate booking deadline
   const recChkPre=document.getElementById('ne-recurrence')?.checked;
   if(!recChkPre){
@@ -19224,8 +19241,8 @@ function editEvent(id){
   if(ev.managerId!==store.currentUser.id){showToast('Solo l\'organizzatore capofila può modificare questo evento','error');return;}
   editingEventId=id;
   resetForm();
-  // Populate universe
-  populateEventUniverseDropdown();
+  // Populate universe — B2: pass event type to preserve it during dropdown rebuild
+  populateEventUniverseDropdown(ev.type||'jam');
   // Pre-check universes for edit
   const editUnivIds=ev.universeIds||[ev.universeId||'univ_acro'];
   document.querySelectorAll('.ne-univ-btn').forEach(btn=>{if(editUnivIds.includes(btn.dataset.univ)){btn.classList.add('ne-univ-selected');const u=store.universes.find(x=>x.id===btn.dataset.univ);const c=u?.color||'#10b981';btn.style.border='2px solid '+c;btn.style.background=c+'25';btn.style.color=c;}});
@@ -19482,6 +19499,18 @@ function editEvent(id){
   if(ev.surveys&&ev.surveys.length){
     ev.surveys.forEach(sq=>addSurveyQuestion(sq));
   }
+  // B3: Final defensive type verification — ensure type matches Firestore value
+  const _finalTypeVal=document.getElementById('ne-type')?.value;
+  if(_finalTypeVal!==(ev.type||'jam')){
+    console.warn('[editEvent] B3: Final type mismatch!','expected:',ev.type,'got:',_finalTypeVal,'— force restoring');
+    const _typeEl=document.getElementById('ne-type');
+    if(_typeEl){
+      const _types=getAllEventTypes();
+      if(!_types.includes(ev.type)){_typeEl.insertAdjacentHTML('beforeend','<option value="'+ev.type+'">'+getEventTypeLabel(ev.type)+'</option>');}
+      _typeEl.value=ev.type;
+    }
+  }
+  console.log('[editEvent] B3: Final type check — expected:',ev.type,'actual:',document.getElementById('ne-type')?.value);
   go('admin-new-event');
 }
 async function ensureEventCoords(ev){
