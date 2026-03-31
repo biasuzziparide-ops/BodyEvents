@@ -426,7 +426,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.7</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.8</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2775,7 +2775,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.7';
+const APP_VERSION='V3.10.8';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -10546,6 +10546,189 @@ function selectTier(gridId,el,tier){
       });
     }
   }
+  // V3.10.8: Event-level → auto-deselect ALL day-level and session-level
+  const evMatch=gridId.match(/^tier-(?:evfull|ebev|lev)-(.+)$/);
+  if(evMatch&&selectedTiers[gridId]){
+    ev.days.forEach((d,di)=>{
+      ['tier-day-'+ev.id+'-'+di,'tier-ebday-'+ev.id+'-'+di,'tier-lday-'+ev.id+'-'+di].forEach(did=>{
+        if(selectedTiers[did]){
+          delete selectedTiers[did];
+          const g=document.getElementById(did);
+          if(g)g.querySelectorAll('.tier-btn').forEach(b=>b.classList.remove('selected'));
+        }
+      });
+      (d.sessions||[]).forEach(s=>{
+        ['tiers-'+s.id,'tier-ebs-'+s.id].forEach(sid=>{
+          if(selectedTiers[sid]){
+            delete selectedTiers[sid];
+            const g=document.getElementById(sid);
+            if(g)g.querySelectorAll('.tier-btn').forEach(b=>b.classList.remove('selected'));
+          }
+        });
+        const ci=document.querySelector('.check-item[onclick*="\''+s.id+'\'"]');
+        if(ci&&ci.classList.contains('selected')){
+          ci.classList.remove('selected');
+          const ck=ci.querySelector('.checkbox span');if(ck)ck.style.display='none';
+          const tg=document.getElementById('tiers-'+s.id);if(tg)tg.classList.add('hidden');
+        }
+        const se=document.querySelector('[id$="sess-'+s.id+'"]');
+        if(se){se.style.borderColor='';se.style.background='';}
+      });
+    });
+  }
+  // V3.10.8: Day-level → also deselect event-level
+  if(dayMatch&&selectedTiers[gridId]){
+    ['tier-evfull-'+ev.id,'tier-ebev-'+ev.id,'tier-lev-'+ev.id].forEach(eid=>{
+      if(selectedTiers[eid]){
+        delete selectedTiers[eid];
+        const g=document.getElementById(eid);
+        if(g)g.querySelectorAll('.tier-btn').forEach(b=>b.classList.remove('selected'));
+      }
+    });
+  }
+  // === V3.10.8: AUTO-UPGRADE — Sessions → Day ===
+  if(sessMatch&&selectedTiers[gridId]){
+    const _auSessId=sessMatch[1];
+    const _auDi=ev.days.findIndex(d=>(d.sessions||[]).some(s=>s.id===_auSessId));
+    if(_auDi!==-1){
+      const _auDay=ev.days[_auDi];
+      const _auSessions=_auDay.sessions||[];
+      if(_auSessions.length>1){
+        const _allSessSelected=_auSessions.every(s=>
+          !!selectedTiers['tiers-'+s.id]||!!selectedTiers['tier-ebs-'+s.id]
+        );
+        if(_allSessSelected){
+          const _dayTiersExist=_auDay.tiers&&Object.values(_auDay.tiers).some(v=>v!=null&&v!==''&&v!==0);
+          const _evTiersExist=ev.tiers&&Object.values(ev.tiers).some(v=>v!=null&&v!==''&&v!==0);
+          const _dayHasPricing=_dayTiersExist||_evTiersExist;
+          const _dayEB=resolveEB(_auDay.earlyBird,ev.earlyBird);
+          const _dayHasEB=_dayEB&&hasEBPrice(_dayEB)&&isEarlyBirdActive(_dayEB,ev.id);
+          const _allSessAreEB=_auSessions.every(s=>!!selectedTiers['tier-ebs-'+s.id]);
+          if(_allSessAreEB&&_dayHasEB){
+            _auSessions.forEach(s=>{
+              ['tiers-'+s.id,'tier-ebs-'+s.id].forEach(sid=>{
+                delete selectedTiers[sid];
+                const g=document.getElementById(sid);
+                if(g)g.querySelectorAll('.tier-btn').forEach(b=>b.classList.remove('selected'));
+              });
+              const ci=document.querySelector('.check-item[onclick*="\''+s.id+'\'"]');
+              if(ci&&ci.classList.contains('selected')){
+                ci.classList.remove('selected');
+                const ck=ci.querySelector('.checkbox span');if(ck)ck.style.display='none';
+                const tg=document.getElementById('tiers-'+s.id);if(tg)tg.classList.add('hidden');
+              }
+              const se=document.querySelector('[id$="sess-'+s.id+'"]');
+              if(se){se.style.borderColor='';se.style.background='';}
+            });
+            const _dayEBGridId='tier-ebday-'+ev.id+'-'+_auDi;
+            const _dayEBGrid=document.getElementById(_dayEBGridId);
+            if(_dayEBGrid){
+              const _dayEBBtn=_dayEBGrid.querySelector('.tier-btn');
+              if(_dayEBBtn){
+                _dayEBGrid.querySelectorAll('.tier-btn').forEach(b=>b.classList.remove('selected'));
+                _dayEBBtn.classList.add('selected');
+                selectedTiers[_dayEBGridId]='eb';
+              }
+            }
+            showToast('Tutte le sessioni selezionate → Early Bird giornata intera! 🐦','success');
+          } else if(_dayHasPricing&&!_allSessAreEB){
+            const _sessTiers=_auSessions.map(s=>selectedTiers['tiers-'+s.id]).filter(Boolean);
+            const _tierCounts={};
+            _sessTiers.forEach(t=>{_tierCounts[t]=(_tierCounts[t]||0)+1;});
+            const _bestTier=Object.entries(_tierCounts).sort((a,b)=>b[1]-a[1])[0]?.[0]||'medio';
+            _auSessions.forEach(s=>{
+              ['tiers-'+s.id,'tier-ebs-'+s.id].forEach(sid=>{
+                delete selectedTiers[sid];
+                const g=document.getElementById(sid);
+                if(g)g.querySelectorAll('.tier-btn').forEach(b=>b.classList.remove('selected'));
+              });
+              const ci=document.querySelector('.check-item[onclick*="\''+s.id+'\'"]');
+              if(ci&&ci.classList.contains('selected')){
+                ci.classList.remove('selected');
+                const ck=ci.querySelector('.checkbox span');if(ck)ck.style.display='none';
+                const tg=document.getElementById('tiers-'+s.id);if(tg)tg.classList.add('hidden');
+              }
+              const se=document.querySelector('[id$="sess-'+s.id+'"]');
+              if(se){se.style.borderColor='';se.style.background='';}
+            });
+            const _dayGridId='tier-day-'+ev.id+'-'+_auDi;
+            const _dayGrid=document.getElementById(_dayGridId);
+            if(_dayGrid){
+              const _targetBtn=_dayGrid.querySelector('.tier-btn[onclick*="\''+_bestTier+'\'"]')
+                ||_dayGrid.querySelector('.tier-btn');
+              if(_targetBtn){
+                _dayGrid.querySelectorAll('.tier-btn').forEach(b=>b.classList.remove('selected'));
+                _targetBtn.classList.add('selected');
+                const _tm=_targetBtn.getAttribute('onclick')?.match(/selectTier\([^,]+,[^,]+,'([^']+)'\)/);
+                selectedTiers[_dayGridId]=_tm?_tm[1]:_bestTier;
+              }
+            }
+            showToast('Tutte le sessioni selezionate → pacchetto giornata intera (più conveniente!)','success');
+          }
+        }
+      }
+    }
+  }
+  // === V3.10.8: AUTO-UPGRADE — Days → Event ===
+  if(dayMatch&&selectedTiers[gridId]&&ev.days.length>1){
+    const _allDaysSelected=ev.days.every((d,di)=>
+      !!selectedTiers['tier-day-'+ev.id+'-'+di]||
+      !!selectedTiers['tier-ebday-'+ev.id+'-'+di]||
+      !!selectedTiers['tier-lday-'+ev.id+'-'+di]
+    );
+    if(_allDaysSelected){
+      const _evTiersExist=ev.tiers&&Object.values(ev.tiers).some(v=>v!=null&&v!==''&&v!==0);
+      const _evHasEB=ev.earlyBird&&hasEBPrice(ev.earlyBird)&&isEarlyBirdActive(ev.earlyBird,ev.id);
+      const _allDaysAreEB=ev.days.every((d,di)=>!!selectedTiers['tier-ebday-'+ev.id+'-'+di]);
+      if(_allDaysAreEB&&_evHasEB){
+        ev.days.forEach((d,di)=>{
+          ['tier-day-'+ev.id+'-'+di,'tier-ebday-'+ev.id+'-'+di,'tier-lday-'+ev.id+'-'+di].forEach(did=>{
+            delete selectedTiers[did];
+            const g=document.getElementById(did);
+            if(g)g.querySelectorAll('.tier-btn').forEach(b=>b.classList.remove('selected'));
+          });
+        });
+        const _evEBGridId='tier-ebev-'+ev.id;
+        const _evEBGrid=document.getElementById(_evEBGridId);
+        if(_evEBGrid){
+          const _evEBBtn=_evEBGrid.querySelector('.tier-btn');
+          if(_evEBBtn){
+            _evEBGrid.querySelectorAll('.tier-btn').forEach(b=>b.classList.remove('selected'));
+            _evEBBtn.classList.add('selected');
+            selectedTiers[_evEBGridId]='eb';
+          }
+        }
+        showToast('Tutte le giornate selezionate → Early Bird evento intero! 🐦','success');
+      } else if(_evTiersExist&&!_allDaysAreEB){
+        const _dayTiers=ev.days.map((d,di)=>
+          selectedTiers['tier-day-'+ev.id+'-'+di]||selectedTiers['tier-lday-'+ev.id+'-'+di]
+        ).filter(Boolean);
+        const _tierCounts2={};
+        _dayTiers.forEach(t=>{_tierCounts2[t]=(_tierCounts2[t]||0)+1;});
+        const _bestTier2=Object.entries(_tierCounts2).sort((a,b)=>b[1]-a[1])[0]?.[0]||'medio';
+        ev.days.forEach((d,di)=>{
+          ['tier-day-'+ev.id+'-'+di,'tier-ebday-'+ev.id+'-'+di,'tier-lday-'+ev.id+'-'+di].forEach(did=>{
+            delete selectedTiers[did];
+            const g=document.getElementById(did);
+            if(g)g.querySelectorAll('.tier-btn').forEach(b=>b.classList.remove('selected'));
+          });
+        });
+        const _evGridId='tier-evfull-'+ev.id;
+        const _evGrid=document.getElementById(_evGridId);
+        if(_evGrid){
+          const _targetBtn2=_evGrid.querySelector('.tier-btn[onclick*="\''+_bestTier2+'\'"]')
+            ||_evGrid.querySelector('.tier-btn');
+          if(_targetBtn2){
+            _evGrid.querySelectorAll('.tier-btn').forEach(b=>b.classList.remove('selected'));
+            _targetBtn2.classList.add('selected');
+            const _tm2=_targetBtn2.getAttribute('onclick')?.match(/selectTier\([^,]+,[^,]+,'([^']+)'\)/);
+            selectedTiers[_evGridId]=_tm2?_tm2[1]:_bestTier2;
+          }
+        }
+        showToast('Tutte le giornate selezionate → pacchetto evento intero (più conveniente!)','success');
+      }
+    }
+  }
   // Highlight della card sessione relativa
   const isEB = gridId.includes('tier-eb') || tier === 'eb';
   const sessEl = gridId.includes('tiers-') || gridId.includes('tier-ebs-')
@@ -15597,22 +15780,9 @@ async function showEventDetail(evId,recDate){
           return true;
         });
       })();
-      const _preDepositCard=(ev.deposit&&ev.deposit.required&&ev.deposit.amount>0&&!isFreeEvent&&!isManagedByOrg&&!_userCanBookWithSub)?(()=>{
-        const _payBtns=[];
-        if(ev.paymentMethods&&ev.paymentMethods.paypal)_payBtns.push('<a href="'+ev.paymentMethods.paypal+'" target="_blank" class="btn btn-sm" style="background:rgba(59,130,246,.15);color:var(--blue);border:1px solid rgba(59,130,246,.3);font-size:.7rem">PayPal ↗</a>');
-        if(ev.paymentMethods&&ev.paymentMethods.revolut)_payBtns.push('<a href="'+ev.paymentMethods.revolut+'" target="_blank" class="btn btn-sm" style="background:rgba(34,211,238,.1);color:#22d3ee;border:1px solid rgba(34,211,238,.3);font-size:.7rem">Revolut ↗</a>');
-        if(ev.paymentMethods&&ev.paymentMethods.cash)_payBtns.push('<span class="btn btn-sm" style="background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.3);font-size:.7rem">Contanti</span>');
-        const _uName=store.currentUser?store.currentUser.username:'';
-        const _causal=ev.deposit.causal?(ev.deposit.causal.replace(/Nome Cognome/gi,_uName).replace(/\\[nome\\]/gi,_uName)):'';
-        return '<div style="margin-bottom:12px;padding:12px 14px;background:rgba(234,179,8,.06);border:1px solid var(--yellow);border-radius:12px">'
-          +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><span style="font-size:.85rem">⚠️</span><span style="font-size:.8rem;font-weight:600;color:var(--yellow)">Anticipo richiesto</span></div>'
-          +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">'
-          +'<div><div class="text-xs txt3" style="margin-bottom:2px">Importo</div><div style="background:var(--s100);border:1px solid var(--s400);border-radius:6px;padding:6px 10px;font-weight:700;color:#fff;font-size:.9rem">€'+ev.deposit.amount+',00</div></div>'
-          +(_causal?'<div><div class="text-xs txt3" style="margin-bottom:2px">Causale</div><div style="background:var(--s100);border:1px solid var(--s400);border-radius:6px;padding:6px 10px;font-size:.7rem;color:var(--brand-l);font-family:monospace;word-break:break-all">'+_causal+'</div></div>':'')
-          +'</div>'
-          +(_payBtns.length?'<div class="text-xs txt3" style="margin-bottom:4px">Metodi di pagamento</div><div class="flex gap-2 flex-wrap">'+_payBtns.join('')+'</div>':'')
-          +'</div>';
-      })():'';
+      const _preDepositCard=(ev.deposit&&ev.deposit.required&&ev.deposit.amount>0&&!isFreeEvent&&!isManagedByOrg&&!_userCanBookWithSub)
+        ?'<div style="margin-bottom:12px;padding:8px 14px;background:rgba(234,179,8,.04);border:1px solid rgba(234,179,8,.25);border-radius:10px;display:flex;align-items:center;gap:8px"><span style="font-size:.8rem">⚠️</span><span style="font-size:.78rem;color:var(--yellow)">Per confermare la prenotazione è richiesto un anticipo di <strong>€'+ev.deposit.amount+'</strong>. I dettagli saranno visibili nel riepilogo.</span></div>'
+        :'';
       return _preRegParticipants+'<h2 class="font-semibold text-white mb-3">Programma</h2>'+daysHtml+eventPkgHtml+loyaltyHtml+'<div style="padding-top:16px">'+_preDepositCard+'<button class="btn btn-primary w-full" style="padding:14px;font-size:1rem" onclick="doBook()">'+(isFreeEvent?'✅ Iscriviti gratuitamente':isManagedByOrg?'📋 Iscriviti!':'Prenota')+'</button></div>';
     })()}
   </div>`;
