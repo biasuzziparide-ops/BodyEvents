@@ -15508,17 +15508,28 @@ async function showEventDetail(evId,recDate){
     const alertType=_detShowAlert.type;
     const alertMessage=_detShowAlert.message||'';
     const alertDate=_detShowAlert.date||'';
-    const stampText=alertType==='cancellato'?'ANNULLATO':alertType==='rimandato'?'RIMANDATO':'MODIFICATO';
-    const stampColor=alertType==='cancellato'?'var(--red)':alertType==='rimandato'?'var(--yellow)':'var(--orange)';
-    const stampBg=alertType==='cancellato'?'var(--red-bg)':alertType==='rimandato'?'var(--yellow-bg)':'var(--orange-bg)';
-    alertBanner=`<div class="card mb-4" style="border:2px solid ${stampColor};background:${stampBg};position:relative;overflow:hidden">
-      <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-20deg);font-size:3rem;font-weight:900;color:${stampColor};opacity:.15;white-space:nowrap;pointer-events:none;letter-spacing:8px">${stampText}</div>
-      <div style="position:relative;z-index:1">
-        <div class="flex items-center gap-2 mb-2"><span style="font-size:1.2rem">${alertType==='cancellato'?'🚫':alertType==='rimandato'?'⏰':'📝'}</span><span class="font-bold" style="color:${stampColor};text-transform:uppercase;letter-spacing:1px">${stampText}</span></div>
-        <p class="text-sm" style="color:var(--txt)">${alertMessage}</p>
-        <p class="text-xs txt3 mt-2">Aggiornato il ${alertDate}</p>
-      </div>
-    </div>`;
+    // V3.10.9: For modificato, suppress banner if no actual diffs exist
+    const _hasModDiffs=(()=>{
+      if(alertType!=='modificato')return true;
+      // Check pre-computed diffs from card view
+      if(Array.isArray(ev._modDiffs))return ev._modDiffs.length>0;
+      // Fallback: if previousValues missing, no diffs possible → suppress
+      if(!ev.alert||!ev.alert.previousValues)return false;
+      return true;
+    })();
+    if(_hasModDiffs){
+      const stampText=alertType==='cancellato'?'ANNULLATO':alertType==='rimandato'?'RIMANDATO':'MODIFICATO';
+      const stampColor=alertType==='cancellato'?'var(--red)':alertType==='rimandato'?'var(--yellow)':'var(--orange)';
+      const stampBg=alertType==='cancellato'?'var(--red-bg)':alertType==='rimandato'?'var(--yellow-bg)':'var(--orange-bg)';
+      alertBanner=`<div class="card mb-4" style="border:2px solid ${stampColor};background:${stampBg};position:relative;overflow:hidden">
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-20deg);font-size:3rem;font-weight:900;color:${stampColor};opacity:.15;white-space:nowrap;pointer-events:none;letter-spacing:8px">${stampText}</div>
+        <div style="position:relative;z-index:1">
+          <div class="flex items-center gap-2 mb-2"><span style="font-size:1.2rem">${alertType==='cancellato'?'🚫':alertType==='rimandato'?'⏰':'📝'}</span><span class="font-bold" style="color:${stampColor};text-transform:uppercase;letter-spacing:1px">${stampText}</span></div>
+          <p class="text-sm" style="color:var(--txt)">${alertMessage}</p>
+          <p class="text-xs txt3 mt-2">Aggiornato il ${alertDate}</p>
+        </div>
+      </div>`;
+    }
   }
   // Contact & Group section
   let contactHtml='';
