@@ -426,7 +426,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.3</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.4</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2775,7 +2775,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.3';
+const APP_VERSION='V3.10.4';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -15021,6 +15021,9 @@ async function showEventDetail(evId,recDate){
   const isManagedByOrg=ev.pricingMode==='managed';
   const isDirectCost=ev.pricingMode==='direct';
   const skipPricing=isFreeEvent||isManagedByOrg||isDirectCost;
+  console.log('[showEventDetail] ev.type:', ev.type, 'pricingMode:', ev.pricingMode, 'skipPricing:', skipPricing, 'isFree:', isFreeEvent, 'isManaged:', isManagedByOrg, 'isDirect:', isDirectCost);
+  console.log('[showEventDetail] Event-level EB:', ev.earlyBird);
+  ev.days.forEach((d,i)=>{console.log(`[showEventDetail] Day ${i} EB:`, d.earlyBird);d.sessions.forEach((s,j)=>{console.log(`[showEventDetail] Session ${i}-${j} EB:`, s.earlyBird);});});
 
   let daysHtml='';
   // Free event banner
@@ -16897,6 +16900,8 @@ function copyEventAsTemplate(id){
       renderFormDays();
     }
     // === PRICING MODE ===
+    // D1: migrate legacy 'managed' pricingMode → 'standard'
+    if(ev.pricingMode==='managed'){console.log('[editEvent-template] D1: migrating managed→standard');ev.pricingMode='standard';}
     const freeEl=document.getElementById('ne-free-event');
     const managedEl=document.getElementById('ne-costs-managed-by-org');
     if(freeEl)freeEl.checked=(ev.pricingMode==='free');
@@ -18128,6 +18133,7 @@ function saveFormState(){
     if(dta)day.tiers={alto:dta.value,medio:dtm?.value||'',basso:dtb?.value||''};
     // Day early bird
     const debp=document.querySelector(`.ne-d-ebp[data-di="${di}"]`);
+    if(!debp)console.warn(`[saveFormState] Day ${di} EB input .ne-d-ebp NOT found in DOM. formDays[${di}].earlyBird:`, day.earlyBird);
     const debd=document.querySelector(`.ne-d-ebd[data-di="${di}"]`);
     const debc=document.querySelector(`.ne-d-ebc[data-di="${di}"]`);
     const debType=document.querySelector(`input[name="ne-deb-type-${di}"]:checked`);
@@ -18159,6 +18165,7 @@ function saveFormState(){
       if(ta)s.tiers={alto:ta.value?parseFloat(ta.value):null,medio:tm?.value?parseFloat(tm.value):null,basso:tb?.value?parseFloat(tb.value):null};
       // Session early bird
       const sebp=document.querySelector(`.ne-s-ebp[data-di="${di}"][data-si="${si}"]`);
+      if(!sebp)console.warn(`[saveFormState] Session ${di}-${si} EB input .ne-s-ebp NOT found in DOM. formDays sess EB:`, s.earlyBird);
       if(sebp?.value){
         const sebTypeEl=document.querySelector(`input[name="ne-seb-type-${di}-${si}"]:checked`);
         s.earlyBird={price:sebp.value||'',type:sebTypeEl?.value||'date',deadline:document.querySelector(`.ne-s-ebd[data-di="${di}"][data-si="${si}"]`)?.value||'',maxCount:document.querySelector(`.ne-s-ebc[data-di="${di}"][data-si="${si}"]`)?.value||''};
@@ -18241,7 +18248,8 @@ function syncEventDates(which){
   renderFormDays();
 }
 function isPricingHidden(){
-  return !!(document.getElementById('ne-free-event')?.checked||document.getElementById('ne-costs-managed-by-org')?.checked||document.getElementById('ne-direct-cost')?.checked);
+  // D2: removed 'ne-costs-managed-by-org' — managed mode no longer hides pricing (legacy compat)
+  return !!(document.getElementById('ne-free-event')?.checked||document.getElementById('ne-direct-cost')?.checked);
 }
 /* Toggle buttons for pricing/option sections */
 function _setToggleBtnActive(btn,active){
@@ -18332,6 +18340,7 @@ function renderFormDays(){
   // Save current state before re-rendering (skip if just loaded from editEvent)
   if(_skipNextSaveFormState){_skipNextSaveFormState=false;}else{saveFormState();}
   const hidePricing=isPricingHidden();
+  console.log('[renderFormDays] hidePricing:', hidePricing, 'free:', document.getElementById('ne-free-event')?.checked, 'direct:', document.getElementById('ne-direct-cost')?.checked);
   c.innerHTML=formDays.map((day,di)=>{
     const dayDate=getDayDate(di);
     const times=calcDayTimes(day);
@@ -18733,6 +18742,7 @@ function onEventTypeChange(){
 }
 function populateEventTypeDropdown(selectedUnivIds,currentValue){
   const sel=document.getElementById('ne-type');if(!sel)return;
+  console.log('[populateEventTypeDropdown] called. currentValue:', currentValue, 'sel.value before:', sel.value);
   // Always show ALL event types from ALL universes (user requirement)
   const types=getAllEventTypes();
   let html='';
@@ -18748,6 +18758,7 @@ function populateEventTypeDropdown(selectedUnivIds,currentValue){
     }
   }
   onEventTypeChange();
+  console.log('[populateEventTypeDropdown] done. sel.value after:', sel.value);
 }
 async function saveCustomEventTypeFromForm(){
   const input=document.getElementById('ne-custom-type');
@@ -18937,7 +18948,7 @@ function collectFormData(){
         maxSpots:parseInt(document.querySelector(`.ne-s-max[data-di="${di}"][data-si="${si}"]`)?.value)||0,
         minSubscribers:parseInt(document.querySelector(`.ne-s-minsub[data-di="${di}"][data-si="${si}"]`)?.value)||0,
         tiers:(()=>{const _ta=document.querySelector(`.ne-s-ta[data-di="${di}"][data-si="${si}"]`);const _tm=document.querySelector(`.ne-s-tm[data-di="${di}"][data-si="${si}"]`);const _tb=document.querySelector(`.ne-s-tb[data-di="${di}"][data-si="${si}"]`);const _tierHidden=_ta?.closest('.hidden')||_ta?.closest('div')?.classList?.contains('hidden');return{alto:(!_tierHidden&&_ta?.value)?parseFloat(_ta.value):null,medio:_tm?.value?parseFloat(_tm.value):null,basso:(!_tierHidden&&_tb?.value)?parseFloat(_tb.value):null};})(),
-        earlyBird:(()=>{const _sebp=parseFloat(document.querySelector(`.ne-s-ebp[data-di="${di}"][data-si="${si}"]`)?.value)||0;if(!_sebp)return null;const typeEl=document.querySelector(`input[name="ne-seb-type-${di}-${si}"]:checked`);return{price:_sebp,type:typeEl?.value||'date',deadline:document.querySelector(`.ne-s-ebd[data-di="${di}"][data-si="${si}"]`)?.value||null,maxCount:parseInt(document.querySelector(`.ne-s-ebc[data-di="${di}"][data-si="${si}"]`)?.value)||null};})()
+        earlyBird:(()=>{const _sebpEl=document.querySelector(`.ne-s-ebp[data-di="${di}"][data-si="${si}"]`);const _sebp=parseFloat(_sebpEl?.value)||0;console.log(`[collectFormData] Session ${di}-${si} EB: element found=${!!_sebpEl}, rawValue="${_sebpEl?.value}", parsed=${_sebp}, formDays.eb=`,s.earlyBird);if(_sebp>0){const typeEl=document.querySelector(`input[name="ne-seb-type-${di}-${si}"]:checked`);return{price:_sebp,type:typeEl?.value||'date',deadline:document.querySelector(`.ne-s-ebd[data-di="${di}"][data-si="${si}"]`)?.value||null,maxCount:parseInt(document.querySelector(`.ne-s-ebc[data-di="${di}"][data-si="${si}"]`)?.value)||null};}if(!_sebpEl&&s.earlyBird&&s.earlyBird.price>0){console.log(`[collectFormData] Session ${di}-${si} EB: PRESERVED from formDays`,s.earlyBird);return s.earlyBird;}return null;})()
       };
     });
     // Tier giornata (opzionali) - respect hidden state for alto/basso
@@ -18957,14 +18968,21 @@ function collectFormData(){
       dayEndTime=sessions.reduce((max,s)=>s.endTime>max?s.endTime:max,sessions[0].endTime);
     }
     // Early Bird giornata
-    const debp=parseFloat(document.querySelector(`.ne-d-ebp[data-di="${di}"]`)?.value)||0;
+    const _debpEl=document.querySelector(`.ne-d-ebp[data-di="${di}"]`);
+    const debp=parseFloat(_debpEl?.value)||0;
     const debTypeEl=document.querySelector(`input[name="ne-deb-type-${di}"]:checked`);
     const debd=document.querySelector(`.ne-d-ebd[data-di="${di}"]`)?.value||null;
     const debc=parseInt(document.querySelector(`.ne-d-ebc[data-di="${di}"]`)?.value)||null;
+    console.log(`[collectFormData] Day ${di} EB: element found=${!!_debpEl}, rawValue="${_debpEl?.value}", parsed=${debp}, deadline=${debd}, formDays.earlyBird=`, fd.earlyBird);
     // Early Bird: sanitize — only keep if user actually entered a price > 0
+    // DEFENSIVE: if DOM element not found (pricing hidden), preserve formDays value
     let dayEarlyBird=null;
     if(debp>0){
       dayEarlyBird={price:debp,type:debTypeEl?.value||'date',deadline:debd,maxCount:debc};
+    } else if(!_debpEl && fd.earlyBird && fd.earlyBird.price>0){
+      // EB input not in DOM (pricing section hidden) but formDays has EB data — preserve it
+      dayEarlyBird=fd.earlyBird;
+      console.log(`[collectFormData] Day ${di} EB: PRESERVED from formDays (input not in DOM)`, dayEarlyBird);
     }
     return {date:dayDate||'',startTime:dayStartTime,endTime:dayEndTime,sessions,
       tiers:dayTiers,earlyBird:dayEarlyBird,
@@ -18978,12 +18996,20 @@ function collectFormData(){
   const loyaltyDiscPct=parseFloat(document.getElementById('ne-loyalty-disc-pct')?.value)||15;
   // Early Bird — sanitize: only keep if user actually entered a price > 0
   const ebPriceRaw=parseFloat(document.getElementById('ne-eb-price')?.value)||0;
-  const earlyBird=ebPriceRaw>0?{
+  let earlyBird=ebPriceRaw>0?{
     price:ebPriceRaw,
     type:document.querySelector('input[name="ne-eb-type"]:checked')?.value||'date',
     deadline:document.getElementById('ne-eb-deadline')?.value||null,
     maxCount:parseInt(document.getElementById('ne-eb-max-count')?.value)||null
   }:null;
+  // B1 defensive: if editing and pricing section hidden, preserve existing event-level EB
+  if(!earlyBird&&editingEventId&&isPricingHidden()){
+    const existEv=store.events.find(e=>e.id===editingEventId);
+    if(existEv&&existEv.earlyBird&&hasEBPrice(existEv.earlyBird)){
+      earlyBird=existEv.earlyBird;
+      console.log('[collectFormData] B1 defensive: preserved event-level EB from existing event:', earlyBird);
+    }
+  }
   const universeIds=Array.from(document.querySelectorAll('.ne-univ-btn.ne-univ-selected')).map(btn=>btn.dataset.univ);
   if(!universeIds.length){showToast('Seleziona almeno un universo!','error');return null;}
   const universeId=universeIds[0]; // Primary universe for backward compat
@@ -19315,7 +19341,14 @@ function editEvent(id){
   }));
   _skipNextSaveFormState=true;
   renderFormDays();
+  console.log('[editEvent] formDays after mapping:');
+  formDays.forEach((d,i)=>{console.log(`[editEvent] formDay ${i} EB:`, d.earlyBird);d.sessions.forEach((s,j)=>{console.log(`[editEvent] formDay ${i} sess ${j} EB:`, s.earlyBird);});});
   // Pricing mode toggles
+  // D1: migrate legacy 'managed' pricingMode → 'standard' so pricing section is visible
+  if(ev.pricingMode==='managed'){
+    console.log('[editEvent] D1: migrating pricingMode managed→standard for event', ev.id);
+    ev.pricingMode='standard';
+  }
   const freeEl=document.getElementById('ne-free-event');
   const managedEl=document.getElementById('ne-costs-managed-by-org');
   if(freeEl)freeEl.checked=(ev.pricingMode==='free');
@@ -19331,6 +19364,13 @@ function editEvent(id){
   if(managedBtn)_setToggleBtnActive(managedBtn,ev.pricingMode==='managed');
   // Trigger visibility updates
   onPricingModeChange();
+  // C1 defensive: re-verify event type wasn't reset by onPricingModeChange
+  const _typeAfterPM=document.getElementById('ne-type')?.value;
+  if(_typeAfterPM!==ev.type){
+    console.warn('[editEvent] C1: event type changed after onPricingModeChange!', ev.type, '→', _typeAfterPM, '— restoring');
+    const _typeEl=document.getElementById('ne-type');
+    if(_typeEl)_typeEl.value=ev.type;
+  }
   // Event-level pricing
   if(ev.days.length>1){
     const epSec=document.getElementById('ne-event-pricing-section');
@@ -19476,6 +19516,9 @@ function saveAsDraft(){
           if(oldEv.recurrence){if(ev.recurrence){ev.recurrence.exceptions=oldEv.recurrence.exceptions||{};ev.recurrence.active=oldEv.recurrence.active;ev.recurrence.pausedUntil=oldEv.recurrence.pausedUntil||null;}else{ev.recurrence=oldEv.recurrence;}}
           if(oldEv.bookings)ev.bookings=oldEv.bookings;
           // V3.1.7 FIX: Write to Firestore FIRST, then update local store
+          console.log('[saveAsDraft] SAVING event. type:', ev.type, 'pricingMode:', ev.pricingMode);
+          console.log('[saveAsDraft] Event-level EB:', ev.earlyBird);
+          ev.days.forEach((d,i)=>{console.log(`[saveAsDraft] Day ${i} EB:`, d.earlyBird);d.sessions.forEach((s,j)=>{console.log(`[saveAsDraft] Session ${i}-${j} EB:`, s.earlyBird);});});
           const ok=await fsSet('events',ev.id,ev);
           if(!ok){showToast('❌ Salvataggio su cloud fallito — le modifiche NON sono state salvate. Riprova.','error');return;}
           store.events[idx]=ev;
@@ -19483,6 +19526,9 @@ function saveAsDraft(){
         } else {
           // Safety: event not found in store — write to Firestore first
           ev.id=editingEventId;ev.status='bozza';
+          console.log('[saveAsDraft-safety] SAVING event. type:', ev.type, 'pricingMode:', ev.pricingMode);
+          console.log('[saveAsDraft-safety] Event-level EB:', ev.earlyBird);
+          ev.days.forEach((d,i)=>{console.log(`[saveAsDraft-safety] Day ${i} EB:`, d.earlyBird);d.sessions.forEach((s,j)=>{console.log(`[saveAsDraft-safety] Session ${i}-${j} EB:`, s.earlyBird);});});
           const ok=await fsSet('events',ev.id,ev);
           if(!ok){showToast('❌ Salvataggio su cloud fallito — bozza NON salvata. Riprova.','error');return;}
           store.events.push(ev);
@@ -19501,6 +19547,9 @@ function saveAsDraft(){
     showConfirm('Salva bozza','Salvare come bozza?',async()=>{
       try{
         ev.id=genId('ev');
+        console.log('[saveAsDraft-new] SAVING event. type:', ev.type, 'pricingMode:', ev.pricingMode);
+        console.log('[saveAsDraft-new] Event-level EB:', ev.earlyBird);
+        ev.days.forEach((d,i)=>{console.log(`[saveAsDraft-new] Day ${i} EB:`, d.earlyBird);d.sessions.forEach((s,j)=>{console.log(`[saveAsDraft-new] Session ${i}-${j} EB:`, s.earlyBird);});});
         // V3.1.7 FIX: Write to Firestore FIRST, then add to local store
         const ok=await fsSet('events',ev.id,ev);
         if(!ok){showToast('❌ Salvataggio su cloud fallito — bozza NON creata. Riprova.','error');return;}
@@ -19526,6 +19575,9 @@ function publishNewEvent(){
           // Preserve recurrence metadata
           if(oldEv2.recurrence){if(ev.recurrence){ev.recurrence.exceptions=oldEv2.recurrence.exceptions||{};ev.recurrence.active=oldEv2.recurrence.active;ev.recurrence.pausedUntil=oldEv2.recurrence.pausedUntil||null;}else{ev.recurrence=oldEv2.recurrence;}}
           if(oldEv2.bookings)ev.bookings=oldEv2.bookings;
+          console.log('[publishNewEvent] SAVING event. type:', ev.type, 'pricingMode:', ev.pricingMode);
+          console.log('[publishNewEvent] Event-level EB:', ev.earlyBird);
+          ev.days.forEach((d,i)=>{console.log(`[publishNewEvent] Day ${i} EB:`, d.earlyBird);d.sessions.forEach((s,j)=>{console.log(`[publishNewEvent] Session ${i}-${j} EB:`, s.earlyBird);});});
           // V3.1.7 FIX: Write to Firestore FIRST, then update local store
           const ok=await fsSet('events',ev.id,ev);
           if(!ok){showToast('❌ Pubblicazione su cloud fallita — le modifiche NON sono state salvate. Riprova.','error');return;}
@@ -19535,6 +19587,9 @@ function publishNewEvent(){
         } else {
           // Safety: event not found in store — write to Firestore first
           ev.id=editingEventId;ev.status='pubblicato';
+          console.log('[publishNewEvent-safety] SAVING event. type:', ev.type, 'pricingMode:', ev.pricingMode);
+          console.log('[publishNewEvent-safety] Event-level EB:', ev.earlyBird);
+          ev.days.forEach((d,i)=>{console.log(`[publishNewEvent-safety] Day ${i} EB:`, d.earlyBird);d.sessions.forEach((s,j)=>{console.log(`[publishNewEvent-safety] Session ${i}-${j} EB:`, s.earlyBird);});});
           const ok=await fsSet('events',ev.id,ev);
           if(!ok){showToast('❌ Pubblicazione su cloud fallita — evento NON salvato. Riprova.','error');return;}
           store.events.push(ev);
@@ -19554,6 +19609,9 @@ function publishNewEvent(){
       try{
         ev.id=genId('ev');
         ev.status='pubblicato';
+        console.log('[publishNewEvent-new] SAVING event. type:', ev.type, 'pricingMode:', ev.pricingMode);
+        console.log('[publishNewEvent-new] Event-level EB:', ev.earlyBird);
+        ev.days.forEach((d,i)=>{console.log(`[publishNewEvent-new] Day ${i} EB:`, d.earlyBird);d.sessions.forEach((s,j)=>{console.log(`[publishNewEvent-new] Session ${i}-${j} EB:`, s.earlyBird);});});
         // V3.1.7 FIX: Write to Firestore FIRST, then add to local store
         const ok=await fsSet('events',ev.id,ev);
         if(!ok){showToast('❌ Pubblicazione su cloud fallita — evento NON creato. Riprova.','error');return;}
