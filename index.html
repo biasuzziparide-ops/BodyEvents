@@ -426,7 +426,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.8</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.9</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2775,7 +2775,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.8';
+const APP_VERSION='V3.10.9';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -12932,8 +12932,8 @@ async function renderUserDashboard(){
     const _alertTs=_alertRaw?(_alertRaw.timestamp||_alertRaw.date||''):'';
     const _bookedBeforeAlert=_alertRaw&&_bookTs&&_alertTs&&_bookTs<_alertTs;
     // For cancellato/rimandato always show (affects everyone); for modificato only if booked before
-    const hasAlert=_alertRaw&&(_alertRaw.type!=='modificato'||_bookedBeforeAlert);
-    const alertType=hasAlert?ev.alert.type:'';
+    let hasAlert=_alertRaw&&(_alertRaw.type!=='modificato'||_bookedBeforeAlert);
+    let alertType=hasAlert?ev.alert.type:'';
     const borderColor=hasAlert&&alertType!=='modificato'?(alertType==='cancellato'?'var(--red)':'var(--yellow)'):(b.depositStatus==='pending'?'var(--yellow)':'var(--brand)');
     const bgColor=hasAlert&&alertType!=='modificato'?(alertType==='cancellato'?'rgba(239,68,68,.04)':'rgba(234,179,8,.04)'):(b.depositStatus==='pending'?'rgba(234,179,8,.02)':'rgba(217,70,239,.03)');
     // V3.4.0: Notification badge on card
@@ -12975,16 +12975,13 @@ async function renderUserDashboard(){
           }
         });
       }
-      // Event-level early bird
+      // Event-level early bird (B1: uses getEBPrice for single-price model)
       if(prev.earlyBird||ev.earlyBird){
         const peb=prev.earlyBird||{};const neb=ev.earlyBird||{};
-        ['alto','medio','basso'].forEach(tk=>{
-          const pv=peb[tk]!=null?peb[tk]:null;const nv=neb[tk]!=null?neb[tk]:null;
-          if(pv!==nv&&(pv!=null||nv!=null)){
-            const tl=tk==='alto'?'Sostenitore':tk==='medio'?'Standard':'Ridotto';
-            diffs.push({label:'🏷️ Early Bird evento ('+tl+')',old:pv!=null?'€'+pv:'—',now:nv!=null?'€'+nv:'rimosso',field:'earlybird'});
-          }
-        });
+        const _prevEBPr=getEBPrice(peb);const _nowEBPr=getEBPrice(neb);
+        if(_prevEBPr!==_nowEBPr){
+          diffs.push({label:'🏷️ Early Bird evento',old:_prevEBPr?'€'+_prevEBPr:'—',now:_nowEBPr?'€'+_nowEBPr:'rimosso',field:'earlybird'});
+        }
         if((peb.deadline||null)!==(neb.deadline||null))diffs.push({label:'🏷️ Scadenza Early Bird',old:peb.deadline?fmtDate(peb.deadline):'—',now:neb.deadline?fmtDate(neb.deadline):'rimossa',field:'earlybird'});
       }
       // Contacts
@@ -13027,16 +13024,14 @@ async function renderUserDashboard(){
               }
             });
           }
-          // Day-level early bird
+          // Day-level early bird (B2: uses getEBPrice for single-price model)
           if(pd.earlyBird||nd.earlyBird){
             const pdeb=pd.earlyBird||{};const ndeb=nd.earlyBird||{};
-            ['alto','medio','basso'].forEach(tk=>{
-              const pv=pdeb[tk]!=null?pdeb[tk]:null;const nv=ndeb[tk]!=null?ndeb[tk]:null;
-              if(pv!==nv&&(pv!=null||nv!=null)){
-                const tl=tk==='alto'?'Sostenitore':tk==='medio'?'Standard':'Ridotto';
-                diffs.push({label:'🏷️ Early Bird'+dayLabel+' ('+tl+')',old:pv!=null?'€'+pv:'—',now:nv!=null?'€'+nv:'rimosso',field:'earlybird'});
-              }
-            });
+            const _prevDayEBPr=getEBPrice(pdeb);const _nowDayEBPr=getEBPrice(ndeb);
+            if(_prevDayEBPr!==_nowDayEBPr){
+              diffs.push({label:'🏷️ Early Bird'+dayLabel,old:_prevDayEBPr?'€'+_prevDayEBPr:'—',now:_nowDayEBPr?'€'+_nowDayEBPr:'rimosso',field:'earlybird'});
+            }
+            if((pdeb.deadline||null)!==(ndeb.deadline||null))diffs.push({label:'🏷️ Scadenza Early Bird'+dayLabel,old:pdeb.deadline?fmtDate(pdeb.deadline):'—',now:ndeb.deadline?fmtDate(ndeb.deadline):'rimossa',field:'earlybird'});
           }
           // Compare sessions
           if(pd.sessions&&nd.sessions){
@@ -13055,16 +13050,14 @@ async function renderUserDashboard(){
                   diffs.push({label:'💰 '+tl+' '+sLabel,old:'€'+ps.tiers[tk],now:'€'+ns.tiers[tk],field:'price',isSession:true});
                 }
               });
-              // Session early bird
+              // Session early bird (B3: uses getEBPrice for single-price model)
               if(ps.earlyBird||ns.earlyBird){
                 const pseb=ps.earlyBird||{};const nseb=ns.earlyBird||{};
-                ['alto','medio','basso'].forEach(tk=>{
-                  const pv=pseb[tk]!=null?pseb[tk]:null;const nv=nseb[tk]!=null?nseb[tk]:null;
-                  if(pv!==nv&&(pv!=null||nv!=null)){
-                    const tl=tk==='alto'?'Sostenitore':tk==='medio'?'Standard':'Ridotto';
-                    diffs.push({label:'🏷️ Early Bird '+sLabel+' ('+tl+')',old:pv!=null?'€'+pv:'—',now:nv!=null?'€'+nv:'rimosso',field:'earlybird',isSession:true});
-                  }
-                });
+                const _prevSessEBPr=getEBPrice(pseb);const _nowSessEBPr=getEBPrice(nseb);
+                if(_prevSessEBPr!==_nowSessEBPr){
+                  diffs.push({label:'🏷️ Early Bird '+sLabel,old:_prevSessEBPr?'€'+_prevSessEBPr:'—',now:_nowSessEBPr?'€'+_nowSessEBPr:'rimosso',field:'earlybird',isSession:true});
+                }
+                if((pseb.deadline||null)!==(nseb.deadline||null))diffs.push({label:'🏷️ Scadenza Early Bird '+sLabel,old:pseb.deadline?fmtDate(pseb.deadline):'—',now:nseb.deadline?fmtDate(nseb.deadline):'rimossa',field:'earlybird',isSession:true});
               }
             });
           }
@@ -13073,6 +13066,12 @@ async function renderUserDashboard(){
 
       changeDiffs=diffs;
       ev._modDiffs=diffs;
+
+      // A2: If modificato but no actual diffs detected, suppress the alert entirely
+      if(alertType==='modificato'&&changeDiffs.length===0){
+        hasAlert=false;
+        alertType='';
+      }
     }
 
     // === Build alert banner (Option C for modificato, standard for other types) ===
@@ -13098,12 +13097,8 @@ async function renderUserDashboard(){
         bc+='</div>';
         alertBanner=`<div class="mt-3" style="background:${alertBgColor};border:2px solid var(--orange);border-radius:12px;padding:10px 14px">${bc}</div>`;
       }else if(alertType==='modificato'){
-        // Modificato without previousValues (fallback)
-        alertBanner=`<div class="mt-3" style="background:${alertBgColor};border:2px solid ${alertColor};border-radius:12px;padding:12px 16px">
-          <div class="flex items-center gap-2 mb-1"><span>${alertIcon}</span><span class="font-bold text-sm" style="color:${alertColor};letter-spacing:1px">${alertLabelText}</span></div>
-          <p class="text-sm" style="color:var(--txt)">${ev.alert.message}</p>
-          <p class="text-xs txt3 mt-2">Aggiornato il ${ev.alert.date||''}</p>
-        </div>`;
+        // R6: Modificato without specific diffs — do NOT show any banner
+        alertBanner='';
       }else{
         // cancellato / rimandato: standard banner
         alertBanner=`<div class="mt-3" style="background:${alertBgColor};border:2px solid ${alertColor};border-radius:12px;padding:12px 16px">
