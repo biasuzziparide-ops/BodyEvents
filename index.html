@@ -426,7 +426,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.9</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.10</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2775,7 +2775,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.9';
+const APP_VERSION='V3.10.10';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -11714,6 +11714,7 @@ function _doBookNormal(){
       paymentStatus:null,
       gift:false,
       insuranceSurcharge:_insuranceSurcharge||0,
+      insurancePaid:_insuranceSurcharge>0?false:null,
       surveyResponses:surveyResponses,
       insuranceSurveyResponses:insSurveyResponses,
       bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
@@ -15720,12 +15721,22 @@ async function showEventDetail(evId,recDate){
           +'<div><div class="text-xs txt3">Tariffa</div><div class="text-sm text-white mt-1">'+tierLbl+' — <strong>€'+myBooking.amount+'</strong></div>'
           +(function(){
             let extra='';
+            // Insurance surcharge line (only if user owes insurance)
+            if(myBooking.insuranceSurcharge>0){
+              const _insPaidStatus=myBooking.insurancePaid;
+              if(_insPaidStatus){
+                extra+='<div class="text-xs mt-2" style="color:var(--green)">🛡️ Assicurazione: <strong>€'+myBooking.insuranceSurcharge+'</strong> — ✅ Pagata</div>';
+              } else {
+                extra+='<div class="text-xs mt-2" style="color:var(--orange)">🛡️ Assicurazione: <strong>€'+myBooking.insuranceSurcharge+'</strong> — da pagare</div>';
+              }
+            }
             if(ev.deposit&&ev.deposit.required){
               if(myBooking.depositStatus==='pending')extra+='<div class="text-xs mt-2" style="color:var(--yellow)">⏳ Anticipo richiesto: <strong>€'+ev.deposit.amount+'</strong></div>';
               else if(myBooking.depositStatus==='ricevuto')extra+='<div class="text-xs mt-2" style="color:var(--green)">✅ Anticipo versato: <strong>€'+ev.deposit.amount+'</strong></div>';
             }
             if(myBooking.paymentStatus!=='pagato'&&myBooking.paymentStatus!=='gratuito'&&!myBooking.gift){
-              const rem=(myBooking.amount||0)-(ev.deposit&&ev.deposit.required&&myBooking.depositStatus==='ricevuto'?ev.deposit.amount:0);
+              const _insAlreadyPaid=(myBooking.insurancePaid&&myBooking.insuranceSurcharge>0)?myBooking.insuranceSurcharge:0;
+              const rem=(myBooking.amount||0)-(ev.deposit&&ev.deposit.required&&myBooking.depositStatus==='ricevuto'?ev.deposit.amount:0)-_insAlreadyPaid;
               if(rem>0){
                 extra+='<div class="text-xs mt-2" style="color:var(--txt2)">💳 Saldo dovuto: <strong>€'+rem+'</strong></div>';
               }
@@ -16684,6 +16695,21 @@ function _buildCostSummary(ev,costs,isCapo,hasPartners,allParticipants,getPartne
     h+='<div class="stat-card"><div class="value" style="color:var(--red)">€'+fmtEuro(totalCosts)+'</div><div class="label">Costi totali</div></div>';
     h+='<div class="stat-card" style="border:1px solid '+(profit>=0?'rgba(16,185,129,.3)':'rgba(239,68,68,.3)')+'"><div class="value" style="color:'+(profit>=0?'var(--green)':'var(--red)')+'">€'+fmtEuro(profit)+'</div><div class="label">'+(profit>=0?'📈 Profitto':'📉 Perdita')+'</div></div>';
     h+='</div>';
+    // Insurance revenue breakdown (if event has insurance)
+    if(ev.insurance?.enabled&&ev.insurance.requiredInsuranceIds?.length){
+      const _insBks=evBks.filter(b=>b.insuranceSurcharge>0);
+      const _insTotalRev=_insBks.reduce((s,b)=>s+(b.insuranceSurcharge||0),0);
+      const _insPaidRev=_insBks.filter(b=>b.insurancePaid).reduce((s,b)=>s+(b.insuranceSurcharge||0),0);
+      const _insUnpaidRev=_insTotalRev-_insPaidRev;
+      if(_insTotalRev>0){
+        h+='<div style="display:flex;gap:16px;flex-wrap:wrap;font-size:.82rem;margin-top:8px;padding:8px 12px;background:rgba(249,115,22,.05);border:1px solid rgba(249,115,22,.15);border-radius:8px">';
+        h+='<span style="color:var(--orange);font-weight:600">🛡️ Assicurazioni:</span>';
+        h+='<span style="color:var(--txt2)">Totale: <strong style="color:var(--txt1)">€'+fmtEuro(_insTotalRev)+'</strong></span>';
+        h+='<span style="color:var(--green)">Incassato: <strong>€'+fmtEuro(_insPaidRev)+'</strong></span>';
+        if(_insUnpaidRev>0)h+='<span style="color:var(--yellow)">Da incassare: <strong>€'+fmtEuro(_insUnpaidRev)+'</strong></span>';
+        h+='</div>';
+      }
+    }
 
     // Cost breakdown
     if(generalTotal>0||sessionTotal>0){
@@ -19976,7 +20002,8 @@ async function renderAdminBookings(){
         :isCancelled?'<span class="badge" style="background:var(--red-bg);color:var(--red)">❌ Cancellata</span>'
         :'<span class="text-xs txt3">—</span>';
       const giftBtn=!isCancelled?'<button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:.7rem;margin-left:4px" onclick="event.stopPropagation();toggleGift(\''+b.id+'\',\'bookings\')" title="'+(b.gift?'Rimuovi regalo':'Segna come regalo')+'">'+(b.gift?'↩️':'🎁')+'</button>':'';
-      const amountHtml=!isCancelled&&b.gift?'<span style="color:var(--purple)">🎁 Regalo</span>':'€'+b.amount;
+      const _insTag=(!isCancelled&&!b.gift&&b.insuranceSurcharge>0)?('<span style="font-size:.65rem;margin-left:4px;padding:1px 5px;border-radius:4px;'+(b.insurancePaid?'background:var(--green-bg);color:var(--green)':'background:var(--orange-bg);color:var(--orange)')+'">🛡️'+(b.insurancePaid?'✓':'')+'</span>'):'';
+      const amountHtml=!isCancelled&&b.gift?'<span style="color:var(--purple)">🎁 Regalo</span>':'€'+b.amount+_insTag;
       const payHtml=isCancelled||b.gift?'<span class="text-xs txt3">—</span>'
         :b.paymentStatus==='pagato'?'<span class="badge" style="background:var(--green-bg);color:var(--green);cursor:pointer" onclick="event.stopPropagation();togglePayment(\''+b.id+'\',\'bookings\')">💰 Pagato</span>'
         :b.paymentStatus==='gratuito'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🎟️ Gratuito</span>'
@@ -20048,18 +20075,20 @@ function toggleGift(bId,ctx){
   b.gift=!b.gift;
   const updates={gift:b.gift};
   if(b.gift){
-    b._preGiftSnapshot={amount:b.amount,totalAmount:b.totalAmount,paymentStatus:b.paymentStatus,depositStatus:b.depositStatus,items:(b.items||[]).map(i=>({...i}))};
-    b.depositStatus=null;b.paymentStatus='gratuito';b.amount=0;b.totalAmount=0;
+    b._preGiftSnapshot={amount:b.amount,totalAmount:b.totalAmount,paymentStatus:b.paymentStatus,depositStatus:b.depositStatus,insurancePaid:b.insurancePaid,insuranceSurcharge:b.insuranceSurcharge,items:(b.items||[]).map(i=>({...i}))};
+    b.depositStatus=null;b.paymentStatus='gratuito';b.amount=0;b.totalAmount=0;b.insurancePaid=null;b.insuranceSurcharge=0;
     if(b.items&&b.items.length)b.items.forEach(i=>{i.price=0;});
-    updates.depositStatus=null;updates.paymentStatus='gratuito';updates.amount=0;updates.totalAmount=0;
+    updates.depositStatus=null;updates.paymentStatus='gratuito';updates.amount=0;updates.totalAmount=0;updates.insurancePaid=null;updates.insuranceSurcharge=0;
     if(b.items)updates.items=b.items;
     showToast('🎁 Contrassegnato come regalo');
   }else{
     const snap=b._preGiftSnapshot;
     if(snap){
       b.amount=snap.amount;b.totalAmount=snap.totalAmount;b.paymentStatus=snap.paymentStatus;b.depositStatus=snap.depositStatus;
+      b.insurancePaid=snap.insurancePaid!=null?snap.insurancePaid:b.insurancePaid;b.insuranceSurcharge=snap.insuranceSurcharge!=null?snap.insuranceSurcharge:b.insuranceSurcharge;
       if(snap.items)b.items=snap.items;
       updates.amount=snap.amount;updates.totalAmount=snap.totalAmount;updates.paymentStatus=snap.paymentStatus;updates.depositStatus=snap.depositStatus;
+      updates.insurancePaid=b.insurancePaid;updates.insuranceSurcharge=b.insuranceSurcharge;
       if(snap.items)updates.items=snap.items;
       delete b._preGiftSnapshot;
     }else{
@@ -20077,6 +20106,11 @@ function togglePayment(bId,ctx){
   const wasPaid=b.paymentStatus==='pagato';
   b.paymentStatus=wasPaid?null:'pagato';
   const updates={paymentStatus:b.paymentStatus};
+  // Auto-sync insurance payment with full payment status
+  if(b.insuranceSurcharge>0){
+    b.insurancePaid=!wasPaid;
+    updates.insurancePaid=b.insurancePaid;
+  }
   if(!wasPaid&&b.status==='in_attesa_anticipo'){
     b.status='confermata';b.depositStatus='ricevuto';
     updates.status='confermata';updates.depositStatus='ricevuto';
@@ -20087,6 +20121,17 @@ function togglePayment(bId,ctx){
   fsUpdate('bookings',b.id,updates).catch(console.error);
   if(!wasPaid)showToast('💰 Contrassegnato come pagato');
   else showToast('Pagamento rimosso');
+  if(ctx==='bookings')renderAdminBookings();
+  else if(ctx==='detail'){window._adminDetailKeepScroll=true;showAdminEventDetail(b.eventId);}
+}
+function toggleInsurancePaid(bId,ctx){
+  const b=store.bookings.find(x=>x.id===bId);if(!b||!b.insuranceSurcharge)return;
+  if(b.gift||b.paymentStatus==='gratuito'||b.paymentStatus==='abbonamento')return;
+  b.insurancePaid=!b.insurancePaid;
+  const updates={insurancePaid:b.insurancePaid};
+  fsUpdate('bookings',b.id,updates).catch(console.error);
+  if(b.insurancePaid)showToast('🛡️ Assicurazione segnata come pagata');
+  else showToast('Pagamento assicurazione rimosso');
   if(ctx==='bookings')renderAdminBookings();
   else if(ctx==='detail'){window._adminDetailKeepScroll=true;showAdminEventDetail(b.eventId);}
 }
@@ -21799,6 +21844,9 @@ async function showAdminEventDetail(evId){
       } else if(adminDetailSort.field==='userName'){
         va=resolveUserName(a.userId,a.userName).toLowerCase();
         vb=resolveUserName(b.userId,b.userName).toLowerCase();
+      } else if(adminDetailSort.field==='insurancePaid'){
+        va=(!a.insuranceSurcharge)?-1:a.insurancePaid?1:0;
+        vb=(!b.insuranceSurcharge)?-1:b.insurancePaid?1:0;
       } else {
         va=a[adminDetailSort.field]||'';
         vb=b[adminDetailSort.field]||'';
@@ -21827,7 +21875,8 @@ async function showAdminEventDetail(evId){
     const owed=b.amount||0;
     const paid=(b.paymentStatus==='pagato')?owed:0;
     const depReceived=(b.depositStatus==='ricevuto')?depAmount:0;
-    return s+(owed-paid-depReceived);
+    const insPaid=(b.insurancePaid&&b.insuranceSurcharge>0&&b.paymentStatus!=='pagato')?b.insuranceSurcharge:0;
+    return s+(owed-paid-depReceived-insPaid);
   },0);
   // Roles
   const _isConcludedOrArchived=ev.status==='concluso'||ev.status==='archiviato';
@@ -21969,10 +22018,21 @@ async function showAdminEventDetail(evId){
       <div class="stat-card"><div class="value" style="color:var(--yellow)">${pendingDep.length}</div><div class="label">Anticipo pending</div></div>
       <div class="stat-card"><div class="value" style="color:var(--red)">${cancelled.length}</div><div class="label">Cancellate</div></div>
       <div class="stat-card"><div class="value" style="color:var(--green)">${active.filter(b=>b.checkedIn).length}</div><div class="label">Presenti</div></div>
+      ${_hasInsReq&&_isCapo?(()=>{
+        const _insTotal=active.filter(b=>!b.gift&&b.insuranceSurcharge>0).length;
+        const _insPaid=active.filter(b=>!b.gift&&b.insuranceSurcharge>0&&b.insurancePaid).length;
+        const _insRevenue=active.filter(b=>!b.gift&&b.insuranceSurcharge>0&&b.insurancePaid).reduce((s,b)=>s+(b.insuranceSurcharge||0),0);
+        return '<div class="stat-card"><div class="value" style="color:var(--orange)">'+_insPaid+'/'+_insTotal+'</div><div class="label">🛡️ Assic. pagate</div></div>'
+          +'<div class="stat-card"><div class="value" style="color:var(--orange)">€'+fmtEuro(_insRevenue)+'</div><div class="label">🛡️ Incasso assic.</div></div>';
+      })():''}
     </div>
 
     <!-- V3.3.0: Revenue cards moved to Costi section — show compact summary + link -->
-    ${ev.pricingMode!=='free'&&ev.pricingMode!=='direct'&&isEventCapofila(ev,store.currentUser.id)?'<div class="card mb-6" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px"><div style="display:flex;gap:16px;flex-wrap:wrap;font-size:.88rem"><span style="color:var(--green);font-weight:600">€'+fmtEuro(paidRevenue)+' incassato</span><span style="color:var(--yellow)">€'+fmtEuro(unpaidRevenue)+' da incassare</span></div><button class="btn btn-sm" style="background:rgba(234,179,8,.1);color:var(--yellow);border:1px solid rgba(234,179,8,.25);font-size:.75rem" onclick="openCostManagement(\''+ev.id+'\')">💰 Dettaglio Costi →</button></div>':''}
+    ${ev.pricingMode!=='free'&&ev.pricingMode!=='direct'&&isEventCapofila(ev,store.currentUser.id)?(()=>{
+      const _insRevBar=_hasInsReq?active.filter(b=>!b.gift&&b.insuranceSurcharge>0&&b.insurancePaid).reduce((s,b)=>s+(b.insuranceSurcharge||0),0):0;
+      const _insUnpaidBar=_hasInsReq?active.filter(b=>!b.gift&&b.insuranceSurcharge>0&&!b.insurancePaid).reduce((s,b)=>s+(b.insuranceSurcharge||0),0):0;
+      return '<div class="card mb-6" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px"><div style="display:flex;gap:16px;flex-wrap:wrap;font-size:.88rem"><span style="color:var(--green);font-weight:600">€'+fmtEuro(paidRevenue)+' incassato</span><span style="color:var(--yellow)">€'+fmtEuro(unpaidRevenue)+' da incassare</span>'+(_hasInsReq&&(_insRevBar>0||_insUnpaidBar>0)?'<span style="color:var(--orange)">🛡️ €'+fmtEuro(_insRevBar)+' assic. incassata'+(_insUnpaidBar>0?' · €'+fmtEuro(_insUnpaidBar)+' da incassare':'')+'</span>':'')+'</div><button class="btn btn-sm" style="background:rgba(234,179,8,.1);color:var(--yellow);border:1px solid rgba(234,179,8,.25);font-size:.75rem" onclick="openCostManagement(\''+ev.id+'\')">💰 Dettaglio Costi →</button></div>';
+    })():''}
 
     ${(()=>{
       if(!_isCapo)return '';
@@ -22028,7 +22088,7 @@ async function showAdminEventDetail(evId){
     <h2 class="font-semibold text-white mb-3">👥 Lista Partecipanti (${active.length}${active.filter(b=>b.checkedIn).length>0?' · <span style="color:var(--green)">'+active.filter(b=>b.checkedIn).length+' presenti</span>':''})${viewSubtitle}</h2>
     ${active.length?`<div class="card table-wrap" style="padding:0">
       <table class="table">
-        <thead><tr><th class="th-participant" style="cursor:pointer" onclick="sortAdminDetail('userName')">Partecipante ${adminDetailSort.field==='userName'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('role')">Ruolo ${adminDetailSort.field==='role'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('sessions')">Sessioni ${adminDetailSort.field==='sessions'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${_isCapo&&ev.pricingMode!=='free'&&ev.pricingMode!=='direct'?'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'tier\')">Tier '+(adminDetailSort.field==='tier'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}<th style="cursor:pointer" onclick="sortAdminDetail('checkedIn')">Presente ${adminDetailSort.field==='checkedIn'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${_isCapo&&ev.pricingMode!=='free'&&ev.pricingMode!=='direct'?'<th style="cursor:pointer" onclick="sortAdminDetail(\'amount\')">Importo '+(adminDetailSort.field==='amount'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'paymentStatus\')">Pagato '+(adminDetailSort.field==='paymentStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'depositStatus\')">Anticipo '+(adminDetailSort.field==='depositStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'daIncassare\')">Da incassare '+(adminDetailSort.field==='daIncassare'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).length?'<th class="th-survey" style="border-left:2px solid var(--s400);padding-left:12px;cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+(ev.surveys[0].id)+'\')">'+ev.surveys[0].question.substring(0,20)+(ev.surveys[0].question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+ev.surveys[0].id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).slice(1).map(sq=>'<th class="th-survey" style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+sq.id+'\')">'+sq.question.substring(0,20)+(sq.question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+sq.id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>').join('')}<th>Azioni</th></tr></thead>
+        <thead><tr><th class="th-participant" style="cursor:pointer" onclick="sortAdminDetail('userName')">Partecipante ${adminDetailSort.field==='userName'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('role')">Ruolo ${adminDetailSort.field==='role'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('sessions')">Sessioni ${adminDetailSort.field==='sessions'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${_isCapo&&ev.pricingMode!=='free'&&ev.pricingMode!=='direct'?'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'tier\')">Tier '+(adminDetailSort.field==='tier'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}<th style="cursor:pointer" onclick="sortAdminDetail('checkedIn')">Presente ${adminDetailSort.field==='checkedIn'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${_isCapo&&ev.pricingMode!=='free'&&ev.pricingMode!=='direct'?'<th style="cursor:pointer" onclick="sortAdminDetail(\'amount\')">Importo '+(adminDetailSort.field==='amount'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'paymentStatus\')">Pagato '+(adminDetailSort.field==='paymentStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'depositStatus\')">Anticipo '+(adminDetailSort.field==='depositStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'daIncassare\')">Da incassare '+(adminDetailSort.field==='daIncassare'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${_isCapo&&_hasInsReq?'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'insurancePaid\')">🛡️ Assic. '+(adminDetailSort.field==='insurancePaid'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).length?'<th class="th-survey" style="border-left:2px solid var(--s400);padding-left:12px;cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+(ev.surveys[0].id)+'\')">'+ev.surveys[0].question.substring(0,20)+(ev.surveys[0].question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+ev.surveys[0].id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).slice(1).map(sq=>'<th class="th-survey" style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+sq.id+'\')">'+sq.question.substring(0,20)+(sq.question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+sq.id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>').join('')}<th>Azioni</th></tr></thead>
         <tbody>${active.map(b=>{
           _sanitizeBookingState(b);
           const depositHtml=isArchived?(b.depositStatus==='ricevuto'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">✅ Ricevuto</span>':b.depositStatus==='pending'?'<span class="badge badge-yellow">⏳ Pending</span>':'<span class="text-xs txt3">—</span>')
@@ -22046,7 +22106,8 @@ async function showAdminEventDetail(evId){
           const _bOwed=b.gift?0:(b.amount||0);
           const _bPaid=(b.gift||b.paymentStatus==='pagato'||b.paymentStatus==='gratuito'||b.paymentStatus==='abbonamento')?_bOwed:0;
           const _bDep=(!b.gift&&b.depositStatus==='ricevuto')?depAmount:0;
-          const _bDaInc=Math.max(0,_bOwed-_bPaid-_bDep);
+          const _bInsPaid=(!b.gift&&b.insurancePaid&&b.insuranceSurcharge>0&&b.paymentStatus!=='pagato')?b.insuranceSurcharge:0;
+          const _bDaInc=Math.max(0,_bOwed-_bPaid-_bDep-_bInsPaid);
           const daIncHtml=b.gift?'<span class="text-xs txt3">—</span>':(_bDaInc>0?'<span style="color:var(--yellow);font-weight:600">€'+fmtEuro(_bDaInc)+'</span>':'<span style="color:var(--green)">€0</span>');
           const _av=resolveUserAvatar(b.userId,b.initials,b.color);
           const avatarCls=_av.color;
@@ -22061,7 +22122,13 @@ async function showAdminEventDetail(evId){
             <td style="min-width:140px">${getSessionNames(b.sessions)}</td>
             ${_isCapo&&ev.pricingMode!=='free'&&ev.pricingMode!=='direct'?'<td style="white-space:nowrap"><span style="font-size:.75rem;padding:2px 6px;border-radius:4px;background:'+(b.tier==='alto'?'rgba(234,179,8,.12);color:var(--yellow)':b.tier==='basso'?'rgba(59,130,246,.12);color:var(--blue)':'rgba(168,85,247,.12);color:var(--purple)')+'">'+({alto:'✦ Sost.',medio:'● Std',basso:'○ Rid.'}[b.tier]||'● Std')+'</span></td>':''}
             <td>${checkedInHtml}</td>
-            ${_isCapo&&ev.pricingMode!=='free'&&ev.pricingMode!=='direct'?'<td class="font-medium">'+amountHtml+' '+giftBtn+'</td><td>'+payHtml+'</td><td>'+depositHtml+'</td><td>'+daIncHtml+'</td>':''}
+            ${_isCapo&&ev.pricingMode!=='free'&&ev.pricingMode!=='direct'?'<td class="font-medium">'+amountHtml+' '+giftBtn+'</td><td>'+payHtml+'</td><td>'+depositHtml+'</td><td>'+daIncHtml+'</td>':''}${_isCapo&&_hasInsReq?(()=>{
+              if(b.gift||!b.insuranceSurcharge)return '<td><span class="text-xs txt3">—</span></td>';
+              const _isInsUserInsured=isUserInsured(b.userId,ev.insurance.requiredInsuranceIds);
+              if(_isInsUserInsured)return '<td><span class="badge" style="background:var(--green-bg);color:var(--green);font-size:.7rem">✅ Assicurato</span></td>';
+              if(b.insurancePaid)return '<td><span class="badge" style="background:var(--green-bg);color:var(--green);cursor:pointer;font-size:.7rem" onclick="event.stopPropagation();toggleInsurancePaid(\''+b.id+'\',\'detail\')">🛡️ €'+b.insuranceSurcharge+' Pagata</span></td>';
+              return '<td><button class="btn btn-sm" style="background:rgba(249,115,22,.12);color:var(--orange);border:1px solid rgba(249,115,22,.3);font-size:.7rem" onclick="event.stopPropagation();toggleInsurancePaid(\''+b.id+'\',\'detail\')">🛡️ €'+b.insuranceSurcharge+' Segna pagata</button></td>';
+            })():''}
             ${(ev.surveys||[]).length?'<td class="text-sm td-survey" style="border-left:2px solid var(--s400);padding-left:12px" title="'+(((arr)=>{const r=(b.surveyResponses||{})[arr[0]?.id];return Array.isArray(r)?r.join(', '):r||'—';})(ev.surveys))+'">'+(((arr)=>{const r=(b.surveyResponses||{})[arr[0]?.id];const d=Array.isArray(r)?r.join(', '):r||'—';return d.length>25?d.substring(0,23)+'…':d;})(ev.surveys))+'</td>':''}
             ${(ev.surveys||[]).slice(1).map(sq=>{
               const r=(b.surveyResponses||{})[sq.id];
