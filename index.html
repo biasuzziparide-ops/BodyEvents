@@ -427,7 +427,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.19</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.20</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2817,7 +2817,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.19';
+const APP_VERSION='V3.10.20';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -8702,7 +8702,7 @@ async function _exportRegistryXLSX(title,entries,cols){
     cols.forEach((c,ci)=>{
       if(c.type==='number'){
         const sum=entries.reduce((s,e)=>s+(parseFloat(e.customData?.[c.id])||0),0);
-        const cell=totRow.getCell(3+ci);
+        const cell=totRow.getCell(3+(_xHasIns?1:0)+ci);
         cell.value=sum;
         cell.font={name:'Calibri',size:11,bold:true,color:{argb:'FF10B981'}};
         cell.alignment={horizontal:'center'};
@@ -8718,7 +8718,8 @@ async function _exportRegistryXLSX(title,entries,cols){
   // --- Column widths ---
   ws.getColumn(1).width=28;
   ws.getColumn(2).width=32;
-  cols.forEach((c,i)=>{ws.getColumn(3+i).width=c.type==='number'?14:c.type==='boolean'?12:20;});
+  if(_xHasIns){ws.getColumn(3).width=24;}
+  cols.forEach((c,i)=>{ws.getColumn(3+(_xHasIns?1:0)+i).width=c.type==='number'?14:c.type==='boolean'?12:20;});
 
   // --- Auto-filter on header row ---
   ws.autoFilter={from:{row:4,column:1},to:{row:4,column:totalCols}};
@@ -21589,7 +21590,8 @@ async function downloadExcel(){
 
     // Column layout (1-based): Partecipante(1) Email(2) Ruolo(3) Sessioni(4) Tier(5) [Insurance?] [surveys...] Importo Pagamento Anticipo€ StatoAnticipo
     const _evHasInsC=ev.insurance?.enabled&&ev.insurance.requiredInsuranceIds?.length?1:0;
-    const cTier=5,cIns=_evHasInsC?6:0,cImp=6+_evHasInsC+nS,cPag=7+_evHasInsC+nS,cAntE=8+_evHasInsC+nS,cAntS=9+_evHasInsC+nS,totC=9+_evHasInsC+nS;
+    const _insBlockSize=_evHasInsC?3:0;
+    const cPres=6,cOra=7,cBkDate=8+_insBlockSize+nS,cImp=9+_insBlockSize+nS,cPag=10+_insBlockSize+nS,cAntE=11+_insBlockSize+nS,cAntS=12+_insBlockSize+nS,totC=12+_insBlockSize+nS;
     const cl=n=>{let s='';while(n>0){n--;s=String.fromCharCode(65+(n%26))+s;n=Math.floor(n/26);}return s;};
     const euroFmt='€ #,##0.00';
 
@@ -21683,8 +21685,8 @@ async function downloadExcel(){
 
     // V3.1.7: Insurance column
     const _evHasIns=ev.insurance?.enabled&&ev.insurance.requiredInsuranceIds?.length;
-    const _insCol=_evHasIns?['Assicurazione']:[];
-    const headers=['Partecipante','Email','Ruolo','Sessioni','Tier',..._insCol,...surveyCols,'Importo','Pagamento','Anticipo €','Stato Anticipo'];
+    const _insCol=_evHasIns?['Assicurazione','Ass. Pagata','Sovrapprezzo €']:[];
+    const headers=['Partecipante','Email','Ruolo','Sessioni','Tier','Presente','Orario Check-in',..._insCol,...surveyCols,'Data Prenotazione','Importo','Pagamento','Anticipo €','Stato Anticipo'];
     headers.forEach((h,ci)=>{
       const c=ws.getCell(row,ci+1);
       c.value=h;c.font=headerFont;c.fill=brandFill;c.alignment={horizontal:'center',vertical:'middle'};c.border=thinBorder;
@@ -21699,18 +21701,20 @@ async function downloadExcel(){
         return Array.isArray(r)?r.join(', '):r||'—';
       });
       const tierName=b.tier==='alto'?'Sostenitore':b.tier==='basso'?'Ridotto':'Standard';
-      // V3.1.7: Insurance status
-      const _bInsVal=_evHasInsC?[isUserInsured(b.userId,ev.insurance.requiredInsuranceIds)?'✓ Assicurato':'✗ Non assicurato']:[];
-      const vals=[resolveUserName(b.userId,b.userName),b.email,roleName(b.role),getSessionLabel(b.sessions),tierName,..._bInsVal,...surveyVals];
+      // V3.10.20: Insurance columns expanded (Assicurazione + Ass. Pagata + Sovrapprezzo)
+      const _bInsVal=_evHasInsC?[isUserInsured(b.userId,ev.insurance.requiredInsuranceIds)?'✓ Assicurato':'✗ Non assicurato',b.insurancePaid?'Pagato':'Non pagato',b.insuranceSurcharge||0]:[];
+      const vals=[resolveUserName(b.userId,b.userName),b.email,roleName(b.role),getSessionLabel(b.sessions),tierName,b.checkedIn?'Sì':'No',b.checkinTime||'—',..._bInsVal,...surveyVals,b.bookedAt||'—'];
       vals.forEach((v,ci)=>{
         const c=ws.getCell(row,ci+1);c.value=v;c.font=dataFont;c.border=thinBorder;c.alignment={vertical:'middle'};
       });
+      // Sovrapprezzo € (apply euro format on insurance surcharge cell)
+      if(_evHasInsC){ws.getCell(row,10).numFmt=euroFmt;}
       // Importo (numeric)
       const impCell=ws.getCell(row,cImp);impCell.value=b.amount||0;impCell.font=dataFont;impCell.border=thinBorder;impCell.numFmt=euroFmt;impCell.alignment={vertical:'middle'};
       // Pagamento (text)
       const pagCell=ws.getCell(row,cPag);pagCell.value=payLabel(b);pagCell.font=dataFont;pagCell.border=thinBorder;pagCell.alignment={vertical:'middle'};
-      // Anticipo € (numeric)
-      const antECell=ws.getCell(row,cAntE);antECell.value=b.deposit||0;antECell.font=dataFont;antECell.border=thinBorder;antECell.numFmt=euroFmt;antECell.alignment={vertical:'middle'};
+      // Anticipo € (numeric — uses event deposit config, NOT booking field)
+      const antECell=ws.getCell(row,cAntE);antECell.value=(b.depositStatus?ev.deposit?.amount||0:0);antECell.font=dataFont;antECell.border=thinBorder;antECell.numFmt=euroFmt;antECell.alignment={vertical:'middle'};
       // Stato Anticipo (text)
       const antSCell=ws.getCell(row,cAntS);antSCell.value=depLabel(b);antSCell.font=dataFont;antSCell.border=thinBorder;antSCell.alignment={vertical:'middle'};
       // Alternating row fill
@@ -21739,8 +21743,8 @@ async function downloadExcel(){
     }
 
     // Column widths
-    ws.getColumn(1).width=22;ws.getColumn(2).width=26;ws.getColumn(3).width=14;ws.getColumn(4).width=30;
-    for(let i=5;i<=totC;i++){ws.getColumn(i).width=16;}
+    ws.getColumn(1).width=22;ws.getColumn(2).width=26;ws.getColumn(3).width=14;ws.getColumn(4).width=30;ws.getColumn(5).width=14;ws.getColumn(6).width=10;ws.getColumn(7).width=16;
+    for(let i=8;i<=totC;i++){ws.getColumn(i).width=16;}
   }
 
   // Build sheets based on current view mode
@@ -21819,7 +21823,7 @@ async function exportInsuranceSurveyExcel(eventId){
   const thinBorder={top:{style:'thin',color:{argb:'FFE5E7EB'}},bottom:{style:'thin',color:{argb:'FFE5E7EB'}},left:{style:'thin',color:{argb:'FFE5E7EB'}},right:{style:'thin',color:{argb:'FFE5E7EB'}}};
 
   const surveyHeaders=surveyQs.map(q=>q.question.length>25?q.question.substring(0,23)+'…':q.question);
-  const allHeaders=['Partecipante','Email','Stato Assicurazione','Assicurazione','Scadenza','Sovrapprezzo €',...surveyHeaders];
+  const allHeaders=['Partecipante','Email','Stato Assicurazione','Assicurazione','Scadenza','Sovrapprezzo €','Pagamento Ass.',...surveyHeaders];
   const totalCols=allHeaders.length;
 
   // Title row
@@ -21874,6 +21878,8 @@ async function exportInsuranceSurveyExcel(eventId){
     ws.getCell(row,4).value=insName;ws.getCell(row,4).font=dataFont;ws.getCell(row,4).border=thinBorder;
     ws.getCell(row,5).value=insExpiry;ws.getCell(row,5).font=dataFont;ws.getCell(row,5).border=thinBorder;
     ws.getCell(row,6).value=surcharge;ws.getCell(row,6).font=dataFont;ws.getCell(row,6).border=thinBorder;ws.getCell(row,6).numFmt='€ #,##0.00';
+    // V3.10.20: Pagamento assicurazione
+    const insPaidCell=ws.getCell(row,7);insPaidCell.value=b.insurancePaid?'Pagato':'Non pagato';insPaidCell.font={name:'Arial',size:10,bold:true,color:{argb:b.insurancePaid?'FF059669':'FFF59E0B'}};insPaidCell.fill=b.insurancePaid?greenFill:yellowFill;insPaidCell.border=thinBorder;insPaidCell.alignment={horizontal:'center'};
 
     // V3.7.1: Survey answers — check booking responses first (filled during booking),
     // then fallback to assignment surveyAnswers (filled during manual assignment)
@@ -21882,7 +21888,7 @@ async function exportInsuranceSurveyExcel(eventId){
       const assignmentAnswers=user?.assignedInsurances?.find(a=>reqIds.includes(a.insuranceId))?.surveyAnswers||{};
       const answers=Object.keys(bookingAnswers).length>0?bookingAnswers:assignmentAnswers;
       const val=answers[sq.id]||'—';
-      const cell=ws.getCell(row,7+si);cell.value=Array.isArray(val)?val.join(', '):val;cell.font=dataFont;cell.border=thinBorder;
+      const cell=ws.getCell(row,8+si);cell.value=Array.isArray(val)?val.join(', '):val;cell.font=dataFont;cell.border=thinBorder;
     });
 
     // Zebra striping
@@ -21894,8 +21900,8 @@ async function exportInsuranceSurveyExcel(eventId){
   });
 
   // Column widths
-  ws.getColumn(1).width=22;ws.getColumn(2).width=26;ws.getColumn(3).width=20;ws.getColumn(4).width=24;ws.getColumn(5).width=14;ws.getColumn(6).width=16;
-  for(let i=7;i<=totalCols;i++){ws.getColumn(i).width=20;}
+  ws.getColumn(1).width=22;ws.getColumn(2).width=26;ws.getColumn(3).width=20;ws.getColumn(4).width=24;ws.getColumn(5).width=14;ws.getColumn(6).width=16;ws.getColumn(7).width=16;
+  for(let i=8;i<=totalCols;i++){ws.getColumn(i).width=20;}
 
   // Download
   const buf=await wb.xlsx.writeBuffer();
