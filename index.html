@@ -426,7 +426,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.12</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.13</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2775,7 +2775,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.12';
+const APP_VERSION='V3.10.13';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -9360,7 +9360,7 @@ function go(view){
     // not when re-entering it (e.g. after overlay close or back button on same view)
     if(_previousView!=='admin-new-event'){resetForm();_tsbShownThisSession=false;dismissTierBanner();restoreFormTitle();initEventDates();populateEventUniverseDropdown();populateSubTypeCheckboxes();populateInsuranceCheckboxes();prefillEventContacts();setTimeout(()=>{obShowTour('tour_new_event');setTimeout(()=>obShowInfoCard('ic_admin_new_event','admin-new-event-form'),300);},400);}
   }
-  if(view==='admin-new-event'&&editingEventId){populateEventUniverseDropdown();populateSubTypeCheckboxes();populateInsuranceCheckboxes();}
+  if(view==='admin-new-event'&&editingEventId){const _editEv=store.events.find(e=>e.id===editingEventId);populateEventUniverseDropdown(_editEv?.type||document.getElementById('ne-type')?.value||'jam');populateSubTypeCheckboxes();populateInsuranceCheckboxes();}
   if(view==='admin-subscriptions'){renderAdminSubscriptions();}
   if(view==='admin-registry'){renderAdminRegistry();}
   if(view==='admin-insurances'){renderAdminInsurances();}
@@ -19608,7 +19608,7 @@ function editEvent(id){
   if(managedBtn)_setToggleBtnActive(managedBtn,ev.pricingMode==='managed');
   // Trigger visibility updates
   onPricingModeChange();
-  // C1 defensive: re-verify event type wasn't reset by onPricingModeChange
+  // C1 defensive: verify event type wasn't reset during form setup
   const _typeAfterPM=document.getElementById('ne-type')?.value;
   if(_typeAfterPM!==ev.type){
     console.warn('[editEvent] C1: event type changed after onPricingModeChange!', ev.type, '→', _typeAfterPM, '— restoring');
@@ -19726,7 +19726,7 @@ function editEvent(id){
   if(ev.surveys&&ev.surveys.length){
     ev.surveys.forEach(sq=>addSurveyQuestion(sq));
   }
-  // B3: Final defensive type verification — ensure type matches Firestore value
+  // B3: Defensive type verification — safety net before go() call
   const _finalTypeVal=document.getElementById('ne-type')?.value;
   if(_finalTypeVal!==(ev.type||'jam')){
     console.warn('[editEvent] B3: Final type mismatch!','expected:',ev.type,'got:',_finalTypeVal,'— force restoring');
