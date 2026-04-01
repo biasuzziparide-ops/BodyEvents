@@ -426,7 +426,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.13</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.14</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2775,7 +2775,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.13';
+const APP_VERSION='V3.10.14';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -12714,7 +12714,11 @@ async function renderUserEvents(){
       return '<div class="participants-pip"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>'+_pCount+'</div>';
     })();
     /* Badge order: Type > Level > Price > Confirm > Closed */
-    return `<div class="card-hover mb-4" style="border-radius:16px;overflow:hidden;padding:0" onclick="showEventDetail('${ev.id}'${ev._recDate?`,'${ev._recDate}'`:''})">
+    // V3.10.14: "Iscritto" stamp badge for events where user has active booking
+    const _userIsBooked=store.currentUser?!!store.bookings.find(bk=>bk.eventId===ev.id&&bk.userId===store.currentUser.id&&bk.status!=='cancellata'&&(bk.recurringDate||null)===(ev._recDate||null)):false;
+    const _iscrittoBadge=_userIsBooked?'<div style="position:absolute;top:6px;right:-8px;z-index:10;transform:rotate(12deg);background:var(--green);color:#fff;font-size:.6rem;font-weight:800;letter-spacing:1.2px;padding:3px 12px 3px 10px;border-radius:4px;box-shadow:0 2px 8px rgba(16,185,129,.45);border:1.5px solid rgba(255,255,255,.2)">✓ ISCRITTO</div>':'';
+    return `<div class="card-hover mb-4" style="border-radius:16px;overflow:hidden;padding:0;position:relative" onclick="showEventDetail('${ev.id}'${ev._recDate?`,'${ev._recDate}'`:''})">
+      ${_iscrittoBadge}
       <div style="display:flex;align-items:stretch">
         ${_uniStrip}
         <div style="flex:1;min-width:0;padding:14px 16px;display:flex;gap:14px;align-items:flex-start">
@@ -13032,12 +13036,23 @@ async function renderUserDashboard(){
     const _isUnread=_isEventUnread(ev.id);
     const _unreadBadge=_isUnread?'<span class="notif-card-badge" style="margin-left:auto">\u{1F4E2} Novit\u00e0</span>':'';
 
-    // Alert stamp overlay
+    // V3.10.14: Alert stamp badge (Opzione B — rotated stamp top-right)
     let alertStamp='';
-    if(hasAlert&&alertType!=='modificato'){
-      const stampText=alertType==='cancellato'?'ANNULLATO':'RIMANDATO';
-      const stampColor=alertType==='cancellato'?'var(--red)':'var(--yellow)';
-      alertStamp=`<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-18deg);font-size:2.5rem;font-weight:900;color:${stampColor};opacity:.15;white-space:nowrap;pointer-events:none;letter-spacing:6px;z-index:1">${stampText}</div>`;
+    if(hasAlert){
+      const _stampIcon=alertType==='cancellato'?'🚫':alertType==='rimandato'?'⏰':'📝';
+      const _stampLabel=alertType==='cancellato'?'ANNULLATO':alertType==='rimandato'?'RIMANDATO':'MODIFICATO';
+      const _stampBg=alertType==='cancellato'?'linear-gradient(135deg,#ef4444,#dc2626)':alertType==='rimandato'?'linear-gradient(135deg,#eab308,#ca8a04)':'linear-gradient(135deg,#f97316,#ea580c)';
+      const _stampTxtColor=alertType==='rimandato'?'#000':'#fff';
+      const _stampShadow=alertType==='cancellato'?'rgba(239,68,68,.5)':alertType==='rimandato'?'rgba(234,179,8,.5)':'rgba(249,115,22,.5)';
+      alertStamp=`<div style="position:absolute;top:4px;right:-6px;z-index:10;transform:rotate(10deg);background:${_stampBg};color:${_stampTxtColor};font-size:.6rem;font-weight:800;letter-spacing:1px;padding:4px 12px 4px 8px;border-radius:5px;box-shadow:0 3px 12px ${_stampShadow};border:1.5px solid rgba(255,255,255,.2);display:flex;align-items:center;gap:4px"><span style="font-size:.85rem">${_stampIcon}</span> ${_stampLabel}</div>`;
+    }
+
+    // V3.10.14: Organizer notice megaphone badge (Opzione C — circle + ribbon)
+    let orgNoticeBadge='';
+    const _bkRecDateNote=b.recurringDate||null;
+    const _hasOrgNote=(ev.recurrence&&_bkRecDateNote&&ev.organizerNotes?.[_bkRecDateNote]?.text)||ev.organizerNote?.text;
+    if(_hasOrgNote&&!hasAlert){
+      orgNoticeBadge=`<div style="position:absolute;top:-6px;right:-6px;z-index:10;width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#eab308,#ca8a04);display:flex;align-items:center;justify-content:center;border:2.5px solid var(--s50);box-shadow:0 2px 10px rgba(234,179,8,.5)"><span style="font-size:1.05rem">📢</span></div><div style="position:absolute;top:0;right:0;bottom:0;width:4px;border-radius:0 16px 16px 0;background:linear-gradient(to bottom,#eab308,#ca8a04);z-index:3"></div>`;
     }
 
     // === OPZIONE C: Modification tracking with inline highlights + compact banner ===
@@ -13183,7 +13198,7 @@ async function renderUserDashboard(){
     })();
 
     html+=`<div class="card-hover mb-4" style="border-radius:16px;overflow:hidden;padding:0;border-color:${borderColor};background:${bgColor};position:relative${alertType==='cancellato'?';opacity:.8':''}" onclick="showEventDetail('${ev.id}'${b.recurringDate?`,'${b.recurringDate}'`:''})">
-      ${alertStamp}
+      ${alertStamp}${orgNoticeBadge}
       <div style="display:flex;align-items:stretch;position:relative;z-index:2">
         ${_uniStrip}
         <div style="flex:1;min-width:0;padding:14px 16px;display:flex;flex-direction:column;gap:0">
