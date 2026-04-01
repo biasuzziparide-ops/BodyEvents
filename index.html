@@ -426,7 +426,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.15</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.17</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2775,7 +2775,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.15';
+const APP_VERSION='V3.10.17';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -11703,6 +11703,10 @@ function _doBookNormal(){
         <div class="text-xs txt3 mb-1" style="text-transform:uppercase;letter-spacing:.5px">Metodi di pagamento accettati</div>
         <div class="flex gap-2 flex-wrap">${payMethodBtns.join('')}</div>
       </div>
+      <div style="padding:8px 14px;border-radius:8px;background:rgba(168,85,247,.06);border-left:3px solid #a855f7;display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <span style="font-size:.85rem">ℹ️</span>
+        <p style="font-size:.75rem;color:var(--txt2);line-height:1.5;margin:0">Link di pagamento e dettagli sempre disponibili in <strong style="color:#c084fc">Le mie prenotazioni</strong></p>
+      </div>
       <div style="background:rgba(234,179,8,.08);border-radius:8px;padding:10px">
         <p class="text-xs" style="color:var(--yellow);line-height:1.6">⏳ Finché l'anticipo non sarà ricevuto e verificato dall'organizzatore, la prenotazione risulterà <strong>in attesa di conferma</strong>.</p>
       </div>
@@ -11733,10 +11737,10 @@ function _doBookNormal(){
       </div>
       ${depositHtml}
     </div>
-    <div style="padding:8px 14px;border-radius:8px;background:rgba(168,85,247,.06);border-left:3px solid #a855f7;display:flex;align-items:center;gap:8px;margin-top:12px">
+    ${needsDeposit?'':`<div style="padding:8px 14px;border-radius:8px;background:rgba(168,85,247,.06);border-left:3px solid #a855f7;display:flex;align-items:center;gap:8px;margin-top:12px">
       <span style="font-size:.85rem">ℹ️</span>
       <p style="font-size:.75rem;color:var(--txt2);line-height:1.5;margin:0">Link di pagamento e dettagli sempre disponibili in <strong style="color:#c084fc">Le mie prenotazioni</strong></p>
-    </div>
+    </div>`}
     <div class="flex gap-3 mt-6" style="justify-content:flex-end">
       <button class="btn btn-ghost btn-sm" id="bookCancel">Annulla</button>
       <button class="btn btn-primary btn-sm" id="bookConfirm">${needsDeposit?'Prenota (anticipo richiesto)':'Conferma prenotazione'}</button>
@@ -15789,6 +15793,17 @@ async function showEventDetail(evId,recDate){
             if(ev.paymentMethods&&ev.paymentMethods.cash)links.push('<span class="badge" style="background:var(--green-bg);color:var(--green);padding:4px 10px;font-size:.72rem">💵 Cash</span>');
             return links.length?'<div class="flex gap-2 flex-wrap mt-2">'+links.join('')+'</div>':'';
           })()
+          +(function(){
+            if(myBooking.paymentStatus==='pagato'||myBooking.paymentStatus==='gratuito'||myBooking.gift)return '';
+            if(!ev.deposit||!ev.deposit.required||!ev.deposit.causal)return '';
+            const _userName=store.currentUser?.username||'';
+            const _causalText=ev.deposit.causal.replace(/Nome Cognome/gi,_userName).replace(/\[nome\]/gi,_userName);
+            return '<div style="margin-top:8px;background:var(--s100);border:1px solid var(--s400);border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:8px">'
+              +'<div style="flex:1;min-width:0"><div class="text-xs txt3" style="text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Causale pagamento</div>'
+              +'<span class="text-sm" style="color:var(--brand-l);font-family:monospace;word-break:break-all">'+escHtml(_causalText)+'</span></div>'
+              +'<button class="btn btn-ghost btn-sm" style="font-size:.7rem;padding:2px 8px;flex-shrink:0" onclick="navigator.clipboard.writeText(\''+_causalText.replace(/'/g,"\\'")+'\');showToast(\'Causale copiata!\')">📋 Copia</button>'
+              +'</div>';
+          })()
           +'</div>'
           +'</div>'
           +(function(){
@@ -15922,6 +15937,7 @@ async function renderAdminEvents(){
   const u=store.currentUser;
   // Auto-purge cancelled events older than 10 days
   _autoPurgeCancelledEvents(u.id);
+  _purgeInsuranceSurveyData(); // V3.10.16: Auto-purge insurance survey data
   runDataCleanup(); // V3.7.0: One-time cleanup
   let evts=store.events.filter(e=>isEventVisibleToManager(e,u.id));
   evts.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
@@ -16286,6 +16302,106 @@ function _autoArchiveConcludedEvents(){
       console.info('_autoArchiveConcludedEvents: '+ev.title+' auto-archived after '+daysSince+' days');
     }
   });
+}
+
+// V3.10.16: Auto-purge insurance survey responses 5 days after event end
+// These contain sensitive personal data (codice fiscale, date of birth, etc.)
+// and must be deleted once the organizer has had time to process the insurance
+let _insSurveyPurgeDone=false;
+async function _purgeInsuranceSurveyData(){
+  if(_insSurveyPurgeDone)return;
+  _insSurveyPurgeDone=true;
+  const today=new Date();today.setHours(0,0,0,0);
+  const PURGE_DAYS=5;
+
+  // Find events owned by this organizer that have insurance AND have ended > 5 days ago
+  const mgrId=store.currentUser?.id;
+  if(!mgrId)return;
+  const candidateEvents=store.events.filter(ev=>{
+    if(!isEventVisibleToManager(ev,mgrId))return false;
+    if(!ev.insurance?.enabled)return false;
+    // Skip recurring events (they don't "end" the same way)
+    if(ev.recurrence&&ev.recurrence.active!==false)return false;
+    // Must have days data
+    if(!ev.days||!ev.days.length)return false;
+    const lastDayDate=ev.days[ev.days.length-1].date;
+    if(!lastDayDate)return false;
+    const evEnd=new Date(lastDayDate+'T23:59:59');
+    const daysSince=Math.floor((today-evEnd)/(1000*60*60*24));
+    return daysSince>=PURGE_DAYS;
+  });
+
+  if(!candidateEvents.length)return;
+
+  for(const ev of candidateEvents){
+    // Check if already purged (flag on event)
+    if(ev._insSurveyPurged)continue;
+
+    console.info('[V3.10.16] Purging insurance survey data for event:', ev.id, ev.title);
+    let purgedCount=0;
+
+    // 1) Purge from bookings: remove insuranceSurveyResponses field
+    const evBookings=store.bookings.filter(b=>b.eventId===ev.id&&b.insuranceSurveyResponses&&Object.keys(b.insuranceSurveyResponses).length>0);
+    for(const b of evBookings){
+      try{
+        await fbDb.collection('bookings').doc(b.id).update({
+          insuranceSurveyResponses:firebase.firestore.FieldValue.delete()
+        });
+        delete b.insuranceSurveyResponses; // Remove from local store too
+        purgedCount++;
+      }catch(e){
+        console.error('[V3.10.16] Failed to purge booking insurance survey:', b.id, e);
+      }
+    }
+
+    // 2) Purge from user assignments: clear surveyAnswers in assignedInsurances
+    // Get all unique userIds from event bookings
+    const userIds=new Set(store.bookings.filter(b=>b.eventId===ev.id).map(b=>b.userId));
+    const reqIds=ev.insurance.requiredInsuranceIds||[];
+    for(const uid of userIds){
+      // Check users collection
+      const user=store.users.find(u=>u.id===uid);
+      if(user?.assignedInsurances?.length){
+        let changed=false;
+        user.assignedInsurances.forEach(a=>{
+          if(reqIds.includes(a.insuranceId)&&a.surveyAnswers&&Object.keys(a.surveyAnswers).length>0){
+            a.surveyAnswers={};
+            changed=true;
+          }
+        });
+        if(changed){
+          try{
+            await fbDb.collection('users').doc(uid).update({assignedInsurances:user.assignedInsurances});
+            purgedCount++;
+          }catch(e){console.error('[V3.10.16] Failed to purge user insurance survey:', uid, e);}
+        }
+      }
+      // Check managers collection (organizers who are also participants)
+      const mgr=store.managers.find(m=>m.id===uid);
+      if(mgr?.assignedInsurances?.length){
+        let changed=false;
+        mgr.assignedInsurances.forEach(a=>{
+          if(reqIds.includes(a.insuranceId)&&a.surveyAnswers&&Object.keys(a.surveyAnswers).length>0){
+            a.surveyAnswers={};
+            changed=true;
+          }
+        });
+        if(changed){
+          try{
+            await fbDb.collection('managers').doc(uid).update({assignedInsurances:mgr.assignedInsurances});
+            purgedCount++;
+          }catch(e){console.error('[V3.10.16] Failed to purge manager insurance survey:', uid, e);}
+        }
+      }
+    }
+
+    // 3) Mark event as purged (persist to Firestore to avoid re-processing)
+    ev._insSurveyPurged=true;
+    ev._insSurveyPurgedAt=new Date().toISOString();
+    await fsUpdate('events',ev.id,{_insSurveyPurged:true,_insSurveyPurgedAt:ev._insSurveyPurgedAt}).catch(console.error);
+
+    console.info('[V3.10.16] Purged', purgedCount, 'records for event:', ev.title);
+  }
 }
 
 // === RECURRING EVENT VIRTUAL INSTANCES ===
@@ -17512,7 +17628,7 @@ function confirmAlertEdit(){
     formEv.orgName=oldEv.orgName;
     formEv.createdAt=oldEv.createdAt;
     formEv.status='pubblicato';
-    formEv.refunds=oldRefunds||null;
+    formEv.refunds=oldRefunds||null;if(oldEv.eventCosts)formEv.eventCosts=oldEv.eventCosts;if(oldEv.confirmedByOrganizer)formEv.confirmedByOrganizer=oldEv.confirmedByOrganizer;if(oldEv._insSurveyPurged){formEv._insSurveyPurged=oldEv._insSurveyPurged;formEv._insSurveyPurgedAt=oldEv._insSurveyPurgedAt;}
     // Preserve recurrence metadata (exceptions, active state, pause) from old event
     if(oldEv.recurrence){
       if(formEv.recurrence){
@@ -19787,7 +19903,7 @@ function saveAsDraft(){
         const idx=store.events.findIndex(e=>e.id===editingEventId);
         if(idx>=0){
           const oldEv=store.events[idx];const oldPM=oldEv.pricingMode;const oldRefunds=oldEv.refunds;
-          ev.id=editingEventId;ev.status='bozza';ev.managerId=oldEv.managerId;ev.orgName=oldEv.orgName;ev.createdAt=oldEv.createdAt;ev.alert=oldEv.alert;ev.refunds=oldRefunds||null;
+          ev.id=editingEventId;ev.status='bozza';ev.managerId=oldEv.managerId;ev.orgName=oldEv.orgName;ev.createdAt=oldEv.createdAt;ev.alert=oldEv.alert;ev.refunds=oldRefunds||null;if(oldEv.eventCosts)ev.eventCosts=oldEv.eventCosts;if(oldEv.confirmedByOrganizer)ev.confirmedByOrganizer=oldEv.confirmedByOrganizer;if(oldEv._insSurveyPurged){ev._insSurveyPurged=oldEv._insSurveyPurged;ev._insSurveyPurgedAt=oldEv._insSurveyPurgedAt;}
           // Preserve recurrence metadata
           if(oldEv.recurrence){if(ev.recurrence){ev.recurrence.exceptions=oldEv.recurrence.exceptions||{};ev.recurrence.active=oldEv.recurrence.active;ev.recurrence.pausedUntil=oldEv.recurrence.pausedUntil||null;}else{ev.recurrence=oldEv.recurrence;}}
           if(oldEv.bookings)ev.bookings=oldEv.bookings;
@@ -19847,7 +19963,7 @@ function publishNewEvent(){
         const idx=store.events.findIndex(e=>e.id===editingEventId);
         if(idx>=0){
           const oldEv2=store.events[idx];const oldPM=oldEv2.pricingMode;const oldRefunds=oldEv2.refunds;
-          ev.id=editingEventId;ev.managerId=oldEv2.managerId;ev.orgName=oldEv2.orgName;ev.createdAt=oldEv2.createdAt;ev.alert=oldEv2.alert;ev.status='pubblicato';ev.refunds=oldRefunds||null;
+          ev.id=editingEventId;ev.managerId=oldEv2.managerId;ev.orgName=oldEv2.orgName;ev.createdAt=oldEv2.createdAt;ev.alert=oldEv2.alert;ev.status='pubblicato';ev.refunds=oldRefunds||null;if(oldEv2.eventCosts)ev.eventCosts=oldEv2.eventCosts;if(oldEv2.confirmedByOrganizer)ev.confirmedByOrganizer=oldEv2.confirmedByOrganizer;if(oldEv2._insSurveyPurged){ev._insSurveyPurged=oldEv2._insSurveyPurged;ev._insSurveyPurgedAt=oldEv2._insSurveyPurgedAt;}
           // Preserve recurrence metadata
           if(oldEv2.recurrence){if(ev.recurrence){ev.recurrence.exceptions=oldEv2.recurrence.exceptions||{};ev.recurrence.active=oldEv2.recurrence.active;ev.recurrence.pausedUntil=oldEv2.recurrence.pausedUntil||null;}else{ev.recurrence=oldEv2.recurrence;}}
           if(oldEv2.bookings)ev.bookings=oldEv2.bookings;
@@ -21647,6 +21763,8 @@ async function downloadExcel(){
 async function exportInsuranceSurveyExcel(eventId){
   const ev=store.events.find(e=>e.id===eventId);
   if(!ev||!ev.insurance?.enabled)return;
+  // V3.10.16: Block export if data has been purged
+  if(ev._insSurveyPurged){showToast('I dati del questionario assicurazione sono stati eliminati per privacy','error');return;}
   await ensureInsurancesLoaded();
   if(typeof ExcelJS==='undefined'){
     const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';document.head.appendChild(s);
@@ -21938,7 +22056,17 @@ async function showAdminEventDetail(evId){
   const orgNoteBtn=_isCapo&&ev.status==='pubblicato'?(_hasOrgNote
     ?'<button class="btn btn-sm" style="background:var(--yellow-bg);color:var(--yellow);border:1px solid rgba(234,179,8,.4);font-size:.8rem" onclick="openOrgNoteModal(\''+ev.id+'\')"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--yellow);margin-right:4px"></span>📢 Avviso attivo</button>'
     :'<button class="btn btn-sm" style="background:var(--s200);color:var(--txt2);border:1px solid var(--s400);font-size:.8rem" onclick="openOrgNoteModal(\''+ev.id+'\')">📢 Avviso partecipanti</button>'):'';
-  const excelBtn=_isCapo?'<button class="btn btn-sm" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3);font-size:.8rem;margin-left:auto" onclick="downloadExcel()">📥 Scarica Excel</button>'+(_hasInsReq?'<button class="btn btn-sm" style="background:rgba(99,102,241,.12);color:var(--brand-l);border:1px solid rgba(99,102,241,.3);font-size:.8rem" onclick="exportInsuranceSurveyExcel(\''+ev.id+'\')">🛡️ Excel Assicurazioni</button>':''):'';
+  // V3.10.16: Hide insurance Excel button if survey data has been purged or >5 days after event end
+  const _insDataAvailable=(()=>{
+    if(!_hasInsReq)return false;
+    if(ev._insSurveyPurged)return false;
+    if(!ev.days||!ev.days.length)return false;
+    const _lastDay=ev.days[ev.days.length-1].date;
+    if(!_lastDay)return false;
+    const _daysSinceEnd=Math.floor((new Date()-new Date(_lastDay+'T23:59:59'))/(1000*60*60*24));
+    return _daysSinceEnd<5;
+  })();
+  const excelBtn=_isCapo?'<button class="btn btn-sm" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3);font-size:.8rem;margin-left:auto" onclick="downloadExcel()">📥 Scarica Excel</button>'+(_insDataAvailable?'<button class="btn btn-sm" style="background:rgba(99,102,241,.12);color:var(--brand-l);border:1px solid rgba(99,102,241,.3);font-size:.8rem" onclick="exportInsuranceSurveyExcel(\''+ev.id+'\')">🛡️ Excel Assicurazioni</button>':''):'';
   let viewToggleHtml='';
   if(showSessionToggle){
     const sessionOptions=[];
@@ -21963,6 +22091,10 @@ async function showAdminEventDetail(evId){
     }
   } else {
     viewToggleHtml=`<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:20px">${orgNoteBtn}<div style="display:flex;gap:8px;margin-left:auto">${excelBtn}</div></div>`;
+  }
+  // V3.10.16: Show purge notice if insurance data was deleted
+  if(_hasInsReq&&ev._insSurveyPurged){
+    viewToggleHtml+=`<div style="padding:8px 14px;border-radius:8px;background:rgba(239,68,68,.06);border-left:3px solid var(--red);display:flex;align-items:center;gap:8px;margin-bottom:16px"><span style="font-size:.85rem">🔒</span><p style="font-size:.75rem;color:var(--txt2);line-height:1.5;margin:0">I dati del questionario assicurazione sono stati eliminati automaticamente per motivi di privacy (${ev._insSurveyPurgedAt?new Date(ev._insSurveyPurgedAt).toLocaleDateString('it-IT'):''})</p></div>`;
   }
 
   // Recurring date tabs HTML
@@ -22940,6 +23072,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   // Auto-conclude events whose last day has passed (midnight)
   autoConcludeEvents();
   _autoArchiveConcludedEvents();
+  _purgeInsuranceSurveyData(); // V3.10.16: Auto-purge insurance survey data
 
   // Tier suggestion banner — delegated listener on price/cost fields
   const neForm=document.getElementById('ne-form');
