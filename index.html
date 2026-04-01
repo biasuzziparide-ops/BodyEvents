@@ -426,7 +426,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.11</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.12</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2775,7 +2775,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.11';
+const APP_VERSION='V3.10.12';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -15546,7 +15546,10 @@ async function showEventDetail(evId,recDate){
   if(contactItems.length) contactHtml='<div class="flex gap-3 mt-3 flex-wrap items-center" style="padding-top:12px;border-top:1px solid var(--s300)">'+contactItems.join('')+'</div>';
 
   const isDisabledByAlert=(_detShowAlert&&_detShowAlert.type==='cancellato')||(ev.alert&&ev.alert.type==='cancellato');
-  c.innerHTML=`<div class="container" style="padding-top:32px;padding-bottom:48px;max-width:700px">
+  // V3.10.12: Pre-compute booking status for conditional layout reordering
+  const _detRecDatePre=currentBookingRecDate||null;
+  const _userHasBooking=!!store.bookings.find(b=>b.eventId===ev.id&&b.userId===store.currentUser.id&&b.status!=='cancellata'&&(b.recurringDate||null)===_detRecDatePre);
+  c.innerHTML=`<div class="container" style="display:flex;flex-direction:column;padding-top:32px;padding-bottom:48px;max-width:700px">
     <div class="text-sm txt3 mb-6" style="cursor:pointer" onclick="go('${backView}')">← Torna agli eventi</div>
     ${isAdminPreview?'<div class="badge badge-yellow mb-4" style="padding:6px 12px">👁️ Preview come la vedono gli utenti</div>':''}
     ${alertBanner}
@@ -15564,7 +15567,7 @@ async function showEventDetail(evId,recDate){
       if(!_noteText)return '';
       return '<div style="background:linear-gradient(135deg,rgba(234,179,8,.08),rgba(249,115,22,.05));border:1px solid rgba(234,179,8,.3);border-radius:14px;padding:16px 18px;margin-bottom:20px"><div style="display:flex;align-items:flex-start;gap:10px"><span style="font-size:1.2rem;flex-shrink:0;margin-top:1px">📢</span><div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:600;color:var(--yellow);margin-bottom:6px">Comunicazione dall\'organizzatore</div><div style="font-size:.85rem;color:var(--txt);line-height:1.7;word-wrap:break-word;white-space:pre-wrap">'+_linkifyText(escHtml(_noteText))+'</div><div style="font-size:.65rem;color:var(--txt3);margin-top:8px">Aggiornato il '+_fmtNoteDate(_noteDate)+'</div></div></div></div>';
     })()}
-    <div class="card mb-6" ${isDisabledByAlert?'style="opacity:.5;pointer-events:none"':''}>
+    <div style="order:${_userHasBooking?2:0}"><div class="card mb-6" ${isDisabledByAlert?'style="opacity:.5;pointer-events:none"':''}>
       ${''}<!-- V3.10.11: image removed from event detail for cleaner UX -->
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
         <div class="flex gap-2 flex-wrap"><span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>${levelBadges}</div>
@@ -15587,7 +15590,8 @@ async function showEventDetail(evId,recDate){
           +'<a id="ev-detail-read-more" style="display:inline-flex;align-items:center;gap:4px;color:var(--brand-l);font-size:.8rem;font-weight:600;cursor:pointer;margin-top:8px;text-decoration:none" onclick="toggleEventDescBlock(true)" onmouseover="this.style.textDecoration=\'underline\'" onmouseout="this.style.textDecoration=\'none\'">Leggi tutto ▾</a>'
           +'</div>';
       })()}
-    </div>
+    </div></div>
+    <div style="order:${_userHasBooking?1:0}">
     ${currentBookingRecDate?`<div class="card mb-4" style="background:rgba(234,179,8,.06);border-color:var(--yellow);padding:12px 16px;text-align:center"><span class="text-sm" style="color:var(--yellow)">🔄 Stai prenotando per la data: <strong>${fmtDate(currentBookingRecDate)}</strong></span></div>`:''}
     ${(()=>{
       const _detRecDate=currentBookingRecDate||null;
@@ -15814,6 +15818,7 @@ async function showEventDetail(evId,recDate){
         :'';
       return _preRegParticipants+'<h2 class="font-semibold text-white mb-3">Programma</h2>'+daysHtml+eventPkgHtml+loyaltyHtml+'<div style="padding-top:16px">'+_preDepositCard+'<button class="btn btn-primary w-full" style="padding:14px;font-size:1rem" onclick="doBook()">'+(isFreeEvent?'✅ Iscriviti gratuitamente':isManagedByOrg?'📋 Iscriviti!':'Prenota')+'</button></div>';
     })()}
+    </div>
   </div>`;
   go('event-detail-dynamic');
   // Replace history state with detail parameters for browser back support
