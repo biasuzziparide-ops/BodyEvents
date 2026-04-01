@@ -426,7 +426,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.14</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.15</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2775,7 +2775,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.14';
+const APP_VERSION='V3.10.15';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -11733,6 +11733,10 @@ function _doBookNormal(){
       </div>
       ${depositHtml}
     </div>
+    <div style="padding:8px 14px;border-radius:8px;background:rgba(168,85,247,.06);border-left:3px solid #a855f7;display:flex;align-items:center;gap:8px;margin-top:12px">
+      <span style="font-size:.85rem">ℹ️</span>
+      <p style="font-size:.75rem;color:var(--txt2);line-height:1.5;margin:0">Link di pagamento e dettagli sempre disponibili in <strong style="color:#c084fc">Le mie prenotazioni</strong></p>
+    </div>
     <div class="flex gap-3 mt-6" style="justify-content:flex-end">
       <button class="btn btn-ghost btn-sm" id="bookCancel">Annulla</button>
       <button class="btn btn-primary btn-sm" id="bookConfirm">${needsDeposit?'Prenota (anticipo richiesto)':'Conferma prenotazione'}</button>
@@ -13037,8 +13041,9 @@ async function renderUserDashboard(){
     const _unreadBadge=_isUnread?'<span class="notif-card-badge" style="margin-left:auto">\u{1F4E2} Novit\u00e0</span>':'';
 
     // V3.10.14: Alert stamp badge (Opzione B — rotated stamp top-right)
+    // V3.10.15: Only show stamp when unread (disappears after user opens detail)
     let alertStamp='';
-    if(hasAlert){
+    if(hasAlert&&_isUnread){
       const _stampIcon=alertType==='cancellato'?'🚫':alertType==='rimandato'?'⏰':'📝';
       const _stampLabel=alertType==='cancellato'?'ANNULLATO':alertType==='rimandato'?'RIMANDATO':'MODIFICATO';
       const _stampBg=alertType==='cancellato'?'linear-gradient(135deg,#ef4444,#dc2626)':alertType==='rimandato'?'linear-gradient(135deg,#eab308,#ca8a04)':'linear-gradient(135deg,#f97316,#ea580c)';
@@ -13051,7 +13056,7 @@ async function renderUserDashboard(){
     let orgNoticeBadge='';
     const _bkRecDateNote=b.recurringDate||null;
     const _hasOrgNote=(ev.recurrence&&_bkRecDateNote&&ev.organizerNotes?.[_bkRecDateNote]?.text)||ev.organizerNote?.text;
-    if(_hasOrgNote&&!hasAlert){
+    if(_hasOrgNote&&!hasAlert&&_isUnread){
       orgNoticeBadge=`<div style="position:absolute;top:-6px;right:-6px;z-index:10;width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#eab308,#ca8a04);display:flex;align-items:center;justify-content:center;border:2.5px solid var(--s50);box-shadow:0 2px 10px rgba(234,179,8,.5)"><span style="font-size:1.05rem">📢</span></div><div style="position:absolute;top:0;right:0;bottom:0;width:4px;border-radius:0 16px 16px 0;background:linear-gradient(to bottom,#eab308,#ca8a04);z-index:3"></div>`;
     }
 
