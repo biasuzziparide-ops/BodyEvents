@@ -602,7 +602,7 @@ textarea.input{resize:none;font-family:inherit}
     <div style="padding:4px 16px 4px;display:flex;align-items:center;gap:8px">
       <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.78rem;color:var(--txt2)">
         <input type="checkbox" id="filter-community-toggle" checked onchange="renderUserEvents()" style="accent-color:var(--brand)">
-        🤝 Mostra Community Events
+        🤝 Mostra eventi proposti da altri utenti come te
       </label>
     </div>
     <!-- Toggle filtri avanzati -->
@@ -12797,7 +12797,7 @@ async function renderUserEvents(){
     </div>`;
   });
 
-  const allCards=[...eventCards,...jamCards];
+  const _evItems=evts.map((ev,i)=>({d:ev.days[0]?.date||'',h:eventCards[i]}));const _jItems=communityEvts.map((j,i)=>({d:j.date||'',h:jamCards[i]}));const allCards=[..._evItems,..._jItems].sort((a,b)=>a.d.localeCompare(b.d)).map(c=>c.h);
   // V3.1.5: Pagination — show _userEvPageSize events at a time
   const _pageSize=_userEvPageSize;
   const visibleCards=allCards.slice(0,_userEvCurrentMax);
@@ -15665,63 +15665,38 @@ async function showEventDetail(evId,recDate){
         const roleLbl=myBooking.role==='base'?'💪 Base':myBooking.role==='flyer'?'🦅 Flyer':myBooking.role==='entrambi'?'🔄 Entrambi':'🤷 Non definito';
         const payLbl=myBooking.paymentStatus==='pagato'?'<span style="color:var(--green)">💰 Pagato</span>':myBooking.paymentStatus==='gratuito'?'<span style="color:var(--green)">🆓 Gratuito</span>':'<span style="color:var(--yellow)">⏳ In attesa</span>';
         const depLbl=myBooking.depositStatus==='ricevuto'?'<span style="color:var(--green)">✅ Ricevuto</span>':myBooking.depositStatus==='pending'?'<span style="color:var(--yellow)">⏳ In attesa</span>':'';
-        // Sessions/days booked
-        let sessionsHtml='';
-        // V3.2 FIX: For recurring events, override item dates with the actual recurring date
-        // Uses offset-based calculation to support multi-day recurring events
+        // Programma evento — timeline view (solo parti prenotate)
         const _bkRecDate=myBooking.recurringDate||null;
         const _bkBaseDate=ev.days&&ev.days[0]?ev.days[0].date:null;
         const _bkRecOffset=(_bkRecDate&&_bkBaseDate)?(new Date(_bkRecDate+'T00:00:00').getTime()-new Date(_bkBaseDate+'T00:00:00').getTime()):0;
-        const _fixItemDate=(origDateStr)=>{
-          if(!_bkRecOffset||!origDateStr)return origDateStr;
-          // Try to find which template day this item date matches
-          for(const d of (ev.days||[])){
-            if(d.date&&fmtDateShort(d.date)===origDateStr){
-              const shifted=new Date(new Date(d.date+'T00:00:00').getTime()+_bkRecOffset);
-              return fmtDateShort(localDateStr(shifted));
-            }
-          }
-          return origDateStr;
-        };
-        if(myBooking.items&&myBooking.items.length){
-          sessionsHtml='<div class="mb-3"><div class="text-xs txt3 mb-2" style="text-transform:uppercase;letter-spacing:.5px">Dettaglio prenotazione</div>';
-          myBooking.items.forEach(item=>{
-            const _itemDate=_bkRecOffset?_fixItemDate(item.date||''):(item.date||'');
-            // V3.2 FIX: Also fix item name if it contains old template date
-            let _itemName=item.name;
-            if(_bkRecOffset&&item.date&&item.name.includes(item.date)){
-              _itemName=item.name.replace(item.date,_fixItemDate(item.date));
-            }
-            sessionsHtml+='<div style="border-bottom:1px solid var(--s200);padding:12px 0"><div class="text-sm text-white">'+_itemName+'</div>'+(_itemDate||item.time?'<div class="text-xs txt3" style="margin-top:2px">'+(_itemDate?_itemDate:'')+(_itemDate&&item.time?' · ':'')+( item.time?item.time:'')+'</div>':'')+(item.tier?'<div class="text-sm font-medium" style="color:var(--brand-l);margin-top:6px">'+item.tier+'</div>':'')+'</div>';
-          });
-          sessionsHtml+='</div>';
-        } else {
-          // Fallback: smart session display from IDs using day-grouping logic
-          const _sessionMap={};
-          ev.days.forEach(d=>(d.sessions||[]).forEach(s=>{_sessionMap[s.id]=s;}));
-          const _allEvSIds=[];ev.days.forEach(d=>(d.sessions||[]).forEach(s=>_allEvSIds.push(s.id)));
-          const _sIds=myBooking.sessions||[];
-          const _coversAll=_sIds.length&&_allEvSIds.length>0&&_allEvSIds.every(id=>_sIds.includes(id));
-          if(!_sIds.length||_coversAll){
-            sessionsHtml='<div class="mb-3"><div class="text-xs txt3 mb-2" style="text-transform:uppercase;letter-spacing:.5px">Tipo</div><div class="text-sm text-white">Intero evento</div></div>';
-          } else {
-            // Analyse per-day coverage
-            sessionsHtml='<div class="mb-3"><div class="text-xs txt3 mb-2" style="text-transform:uppercase;letter-spacing:.5px">Sessioni prenotate</div>';
-            ev.days.forEach((d,di)=>{
-              const daySessIds=(d.sessions||[]).map(s=>s.id);
-              const coveredAll=daySessIds.length>0&&daySessIds.every(id=>_sIds.includes(id));
-              if(coveredAll){
-                const _fallbackDate=(_bkRecOffset&&d.date)?fmtDateShort(localDateStr(new Date(new Date(d.date+'T00:00:00').getTime()+_bkRecOffset))):(d.date?fmtDateShort(d.date):'');
-                sessionsHtml+='<div class="py-2 text-sm text-white" style="border-bottom:1px solid var(--s200)">📅 Giornata '+(ev.days.length>1?(di+1):'')+(_fallbackDate?' <span class="text-xs txt3">'+_fallbackDate+'</span>':'')+'</div>';
-              } else {
-                (d.sessions||[]).forEach(s=>{
-                  if(_sIds.includes(s.id)) sessionsHtml+='<div class="py-2 text-sm text-white" style="border-bottom:1px solid var(--s200)">'+s.name+' <span class="text-xs txt3">'+s.startTime+' — '+s.endTime+'</span></div>';
-                });
-              }
+        const _allEvSIds=[];ev.days.forEach(d=>(d.sessions||[]).forEach(s=>_allEvSIds.push(s.id)));
+        const _bookedSIds=myBooking.sessions||[];
+        const _showAllSess=!_bookedSIds.length||!_allEvSIds.length||(_allEvSIds.length>0&&_allEvSIds.every(id=>_bookedSIds.includes(id)));
+        const _prDays=ev.days.filter(d=>{if(_showAllSess)return true;const dSIds=(d.sessions||[]).map(s=>s.id);return dSIds.length?dSIds.some(id=>_bookedSIds.includes(id)):true;});
+        let sessionsHtml='<div style="padding-top:12px;border-top:1px solid var(--s200);margin-bottom:12px"><div style="font-size:.7rem;color:var(--txt3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">📅 Programma evento</div>';
+        _prDays.forEach((d,idx)=>{
+          const _isLast=idx===_prDays.length-1;
+          const _dd=d.date?new Date(d.date+'T00:00:00'):null;
+          const _actualDate=(_bkRecOffset&&_dd)?new Date(_dd.getTime()+_bkRecOffset):_dd;
+          const _dateStr=_actualDate?fmtDateShort(localDateStr(_actualDate)):'';
+          const _dSessions=(d.sessions||[]).filter(s=>_showAllSess||_bookedSIds.includes(s.id));
+          sessionsHtml+='<div style="position:relative;padding-left:24px;'+(_isLast?'':'margin-bottom:14px')+'">';
+          if(!_isLast)sessionsHtml+='<div style="position:absolute;left:7px;top:22px;bottom:-14px;width:2px;background:var(--s400)"></div>';
+          sessionsHtml+='<div style="position:absolute;left:2px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--brand-l);border:2px solid var(--s100);z-index:1"></div>';
+          if(_prDays.length>1){sessionsHtml+='<div style="font-size:.82rem;font-weight:600;color:#fff;margin-bottom:6px">Giornata '+(idx+1)+' <span style="font-size:.7rem;color:var(--txt3);font-weight:400;margin-left:4px">'+_dateStr+'</span></div>';}
+          else{sessionsHtml+='<div style="font-size:.82rem;font-weight:600;color:#fff;margin-bottom:6px">'+_dateStr+'</div>';}
+          if(_dSessions.length){
+            _dSessions.forEach((s,si)=>{
+              sessionsHtml+='<div style="display:flex;align-items:center;gap:8px;padding:6px 0;'+(si<_dSessions.length-1?'border-bottom:1px solid var(--s300)':'')+'">'
+                +'<span style="font-size:.8rem;color:var(--txt);flex:1">'+escHtml(s.name)+'</span>'
+                +'<span style="font-size:.7rem;color:var(--brand-l);white-space:nowrap;font-family:monospace">'+s.startTime+' — '+s.endTime+'</span></div>';
             });
-            sessionsHtml+='</div>';
+          } else if(d.startTime&&d.endTime){
+            sessionsHtml+='<div style="font-size:.7rem;color:var(--brand-l);font-family:monospace">'+d.startTime+' — '+d.endTime+'</div>';
           }
-        }
+          sessionsHtml+='</div>';
+        });
+        sessionsHtml+='</div>';
         // Survey responses
         let surveyHtml='';
         if(ev.surveys&&ev.surveys.length&&myBooking.surveyResponses&&Object.keys(myBooking.surveyResponses).length){
