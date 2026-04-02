@@ -234,8 +234,8 @@ textarea.input{resize:none;font-family:inherit}
 /* === MOBILE TOP-NAV === */
 .mobile-topnav{display:none}
 .mtn-avatar{cursor:pointer;flex-shrink:0}
-.mtn-items{display:flex;gap:2px;flex:1;justify-content:center}
-.mtn-item{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:48px;padding:6px 10px;border-radius:14px;cursor:pointer;font-size:1.6rem;transition:all .15s;gap:2px}
+.mtn-items{display:flex;gap:0;flex:1;justify-content:center}
+.mtn-item{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:40px;padding:6px 6px;border-radius:14px;cursor:pointer;font-size:1.4rem;transition:all .15s;gap:2px}
 .mtn-item:hover{background:var(--s200)}
 .mtn-item.active{background:var(--brand-bg)}
 .mtn-item .mtn-label{font-size:.6rem;font-weight:600;color:var(--txt3);line-height:1;white-space:nowrap}
@@ -264,7 +264,7 @@ textarea.input{resize:none;font-family:inherit}
   .filter-grid{grid-template-columns:1fr!important}.filter-grid [style*="grid-column:span 2"]{grid-column:span 1!important}
   .nav-links,.nav-auth{display:none}
   .hamburger{display:flex}
-  .mobile-topnav{display:flex!important;align-items:center;flex:1;gap:8px;margin:0 8px}
+  .mobile-topnav{display:flex!important;align-items:center;flex:1;gap:4px;margin:0 4px}
   .mobile-quickbar{display:none!important}
   .logo{display:none!important}
   .sidebar{display:none}
@@ -427,7 +427,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.24</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.26</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2817,7 +2817,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.24';
+const APP_VERSION='V3.10.26';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -12668,7 +12668,7 @@ async function renderUserEvents(){
     const _effBkDl=getEffectiveBookingDeadline(ev,ev._recDate||null);
     const _todayStr=localDateStr(new Date());
     const _bookClosed=_regManualCard === true ? true : (_regManualCard === false ? false : (_effBkDl&&_todayStr>_effBkDl));
-    const bookClosedBadge=_bookClosed?'<span class="badge" style="background:var(--red-bg);color:var(--red)">🔒 Prenotazioni chiuse</span>':'';
+    const bookClosedBadge=_bookClosed?'<div style="position:absolute;top:50%;left:50%;z-index:8;transform:translate(-50%,-50%) rotate(-8deg);width:120%;background:rgba(239,68,68,.45);color:#fff;font-size:.65rem;font-weight:800;letter-spacing:2px;padding:6px 0;text-align:center;text-transform:uppercase;white-space:nowrap;pointer-events:none;box-shadow:0 2px 10px rgba(239,68,68,.2);border-top:1px solid rgba(255,255,255,.1);border-bottom:1px solid rgba(255,255,255,.1)">🔒 PRENOTAZIONI CHIUSE</div>':'';
     /* Deadline banner — check for active early bird first */
     const _deadlineBanner=(()=>{
       // Check if event has active early bird with date-based deadline
@@ -12819,10 +12819,11 @@ async function renderUserEvents(){
     /* Badge order: Type > Level > Price > Confirm > Closed */
     // V3.10.14: "Iscritto" stamp badge for events where user has active booking
     const _userIsBooked=store.currentUser?!!store.bookings.find(bk=>bk.eventId===ev.id&&bk.userId===store.currentUser.id&&bk.status!=='cancellata'&&(bk.recurringDate||null)===(ev._recDate||null)):false;
-    const _iscrittoBadge=_userIsBooked?'<div style="position:absolute;top:6px;right:0;z-index:10;transform:rotate(12deg);background:var(--green);color:#fff;font-size:.6rem;font-weight:800;letter-spacing:1.2px;padding:3px 12px 3px 10px;border-radius:4px;box-shadow:0 2px 8px rgba(16,185,129,.45);border:1.5px solid rgba(255,255,255,.2)">✓ ISCRITTO</div>':'';
+    const _iscrittoBadge=_userIsBooked?'<div style="position:absolute;top:6px;right:0;z-index:12;transform:rotate(12deg);background:var(--green);color:#fff;font-size:.6rem;font-weight:800;letter-spacing:1.2px;padding:3px 12px 3px 10px;border-radius:4px;box-shadow:0 2px 8px rgba(16,185,129,.45);border:1.5px solid rgba(255,255,255,.2)">✓ ISCRITTO</div>':'';
     return `<div class="card-hover mb-4" style="border-radius:16px;overflow:hidden;padding:0;position:relative" onclick="showEventDetail('${ev.id}'${ev._recDate?`,'${ev._recDate}'`:''})">
       ${_iscrittoBadge}
-      <div style="display:flex;align-items:stretch">
+      ${bookClosedBadge}
+      <div style="display:flex;align-items:stretch${_bookClosed?';opacity:.7':''}">
         ${_uniStrip}
         <div style="flex:1;min-width:0;padding:14px 16px;display:flex;gap:14px;align-items:flex-start">
           <div style="position:relative;flex-shrink:0">${_partPipHtml}${cardThumb}</div>
@@ -12831,7 +12832,7 @@ async function renderUserEvents(){
               ${_orgLogoHtml}<h3 class="font-semibold text-white" style="margin-bottom:0;font-size:.95rem;line-height:1.3;overflow-wrap:break-word;word-break:break-word;min-width:0">${escHtml(ev.title)}</h3>
             </div>
             <div class="flex gap-2 mt-1 flex-wrap" style="row-gap:4px">
-              <span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>${levelBadges}${pricingBadge}${confirmBadge}${bookClosedBadge}
+              <span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>${levelBadges}${pricingBadge}${confirmBadge}
             </div>
             <div style="margin-top:8px;font-size:.78rem;color:var(--txt2)">
               🕐 dalle ${_startTime} alle ${_endTime} · <a style="color:var(--brand-l);cursor:pointer;text-decoration:none" onclick="event.stopPropagation();showOrgPublicProfile('${ev.managerId}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${escHtml(ev.orgName)}</a>${_partnerHtml}
@@ -16207,7 +16208,7 @@ async function renderAdminEvents(){
               🕐 dalle ${_aStartTime} alle ${_aEndTime} · <a style="color:var(--brand-l);cursor:pointer;text-decoration:none" onclick="event.stopPropagation();showOrgPublicProfile('${ev.managerId}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${escHtml(ev.orgName)}</a>${_aPartnerHtml}
             </div>
             ${_regClosedLabel}
-            <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">${actions}</div>
+            <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none">${actions}</div>
           </div>
         </div>
       </div>
@@ -20084,12 +20085,12 @@ function saveAsDraft(){
           // Preserve recurrence metadata
           if(oldEv.recurrence){if(ev.recurrence){ev.recurrence.exceptions=oldEv.recurrence.exceptions||{};ev.recurrence.active=oldEv.recurrence.active;ev.recurrence.pausedUntil=oldEv.recurrence.pausedUntil||null;}else{ev.recurrence=oldEv.recurrence;}}
           if(oldEv.bookings)ev.bookings=oldEv.bookings;
-          // V3.10.24: If booking deadline changed, reset manual registration close flags
+          // V3.10.26: If booking deadline changed, reset manual registration close flags
           if (oldEv.registrationClosedDates && Object.keys(oldEv.registrationClosedDates).length > 0) {
             const deadlineChanged = (oldEv.bookingDeadline || null) !== (ev.bookingDeadline || null)
               || (oldEv.bookingDeadlineDaysBefore != null && oldEv.bookingDeadlineDaysBefore !== ev.bookingDeadlineDaysBefore);
             if (deadlineChanged) {
-              console.log('[V3.10.24] Deadline changed, clearing registrationClosedDates');
+              console.log('[V3.10.26] Deadline changed, clearing registrationClosedDates');
               ev.registrationClosedDates = null;
             } else {
               ev.registrationClosedDates = oldEv.registrationClosedDates;
@@ -20157,12 +20158,12 @@ function publishNewEvent(){
           // Preserve recurrence metadata
           if(oldEv2.recurrence){if(ev.recurrence){ev.recurrence.exceptions=oldEv2.recurrence.exceptions||{};ev.recurrence.active=oldEv2.recurrence.active;ev.recurrence.pausedUntil=oldEv2.recurrence.pausedUntil||null;}else{ev.recurrence=oldEv2.recurrence;}}
           if(oldEv2.bookings)ev.bookings=oldEv2.bookings;
-          // V3.10.24: If booking deadline changed, reset manual registration close flags
+          // V3.10.26: If booking deadline changed, reset manual registration close flags
           if (oldEv2.registrationClosedDates && Object.keys(oldEv2.registrationClosedDates).length > 0) {
             const deadlineChanged = (oldEv2.bookingDeadline || null) !== (ev.bookingDeadline || null)
               || (oldEv2.bookingDeadlineDaysBefore != null && oldEv2.bookingDeadlineDaysBefore !== ev.bookingDeadlineDaysBefore);
             if (deadlineChanged) {
-              console.log('[V3.10.24] Deadline changed, clearing registrationClosedDates');
+              console.log('[V3.10.26] Deadline changed, clearing registrationClosedDates');
               ev.registrationClosedDates = null;
             } else {
               ev.registrationClosedDates = oldEv2.registrationClosedDates;
@@ -20430,7 +20431,7 @@ function cancelBooking(bId){
   },'danger');
 }
 /**
- * V3.10.24: Sanitize bookings that were corrupted by the gift toggle bug.
+ * V3.10.26: Sanitize bookings that were corrupted by the gift toggle bug.
  * If a booking has gift=false, amount=0, and a _preGiftSnapshot with amount>0,
  * it means the restore failed — apply the snapshot now.
  */
@@ -20455,7 +20456,7 @@ function _sanitizeGiftBug(b){
     items:b.items||null,
     _preGiftSnapshot:firebase.firestore.FieldValue.delete()
   }).catch(console.error);
-  console.log('[V3.10.24] Auto-fixed corrupted gift booking:',b.id,'restored amount:',b.amount);
+  console.log('[V3.10.26] Auto-fixed corrupted gift booking:',b.id,'restored amount:',b.amount);
   return true;
 }
 
