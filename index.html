@@ -427,7 +427,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.20</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.21</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2817,7 +2817,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.20';
+const APP_VERSION='V3.10.21';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -3275,7 +3275,11 @@ let _insurancesLoaded=false;
 
 async function ensureBookingsLoaded(){
   if(_bookingsLoaded)return;
-  const snap=await fbDb.collection('bookings').get();
+  // V3.10.21: Security — non-managers only load their own bookings
+  const isManagerUser=store.managers.some(m=>m.id===store.currentUser?.id);
+  const snap=isManagerUser
+    ?await fbDb.collection('bookings').get()
+    :await fbDb.collection('bookings').where('userId','==',store.currentUser.id).get();
   store.bookings=[];snap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.bookings.push(d);});
   _bookingsLoaded=true;
   _userOwnBookingsLoaded=true;
@@ -3334,8 +3338,15 @@ async function ensureSubscriptionsLoaded(){
 
 async function ensureUsersLoaded(){
   if(_usersFullyLoaded)return;
-  const snap=await fbDb.collection('users').get();
-  store.users=[];snap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.users.push(d);});
+  // V3.10.21: Security — non-managers only load their own user doc
+  const isManagerUser=store.managers.some(m=>m.id===store.currentUser?.id);
+  if(isManagerUser){
+    const snap=await fbDb.collection('users').get();
+    store.users=[];snap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.users.push(d);});
+  } else {
+    const doc=await fbDb.collection('users').doc(store.currentUser.id).get();
+    store.users=doc.exists?[{...doc.data(),id:doc.id}]:[];
+  }
   _usersFullyLoaded=true;
   _markFresh('users');
 }
@@ -4513,13 +4524,13 @@ function selectUnivColor(el,color){
   el.style.border='3px solid #fff';
 }
 
-function getUniverseColor(univId){const u=store.universes.find(x=>x.id===univId);return u?u.color:'#a3a3a3';}
+function getUniverseColor(univId){const u=store.universes.find(x=>x.id===univId);return u?safeColor(u.color):'#a3a3a3';}
 function getUniverseName(univId){const u=store.universes.find(x=>x.id===univId);return u?u.name:'—';}
 function getUniverseEmoji(univId){const u=store.universes.find(x=>x.id===univId);return u?u.emoji:'';}
 function getUniverseBadgeHtml(univId){
   const u=store.universes.find(x=>x.id===univId);
   if(!u)return '';
-  return '<span class="badge" style="background:'+u.color+'22;color:'+u.color+';border:1px solid '+u.color+'44">'+u.emoji+' '+u.name+'</span>';
+  return '<span class="badge" style="background:'+safeColor(u.color)+'22;color:'+safeColor(u.color)+';border:1px solid '+safeColor(u.color)+'44">'+escHtml(u.emoji)+' '+escHtml(u.name)+'</span>';
 }
 function getMultiUniverseBadgesHtml(ev){
   const ids=ev.universeIds||[ev.universeId].filter(Boolean);
@@ -4956,8 +4967,8 @@ function renderInfoPage(){
     univSec+=h3('Universi attualmente presenti');
     active.forEach(u=>{
       const desc=u.description?'<div style="font-size:.78rem;color:var(--txt3);margin-top:4px;line-height:1.45">'+escHtml(u.description)+'</div>':'';
-      const rolesHtml=(u.roles||[]).length?'<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">'+u.roles.map(r=>'<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:10px;font-size:.8rem;font-weight:600;background:'+u.color+'22;color:'+u.color+'">'+escHtml(r)+'</span>').join('')+'</div>':'';
-      univSec+='<div style="background:var(--s100);border-radius:12px;padding:14px;margin-bottom:8px;border:1px solid var(--s300);border-left:3px solid '+u.color+'"><div style="font-size:.85rem;font-weight:700;color:var(--txt1)">'+u.emoji+' '+escHtml(u.name)+'</div>'+desc+rolesHtml+'</div>';
+      const rolesHtml=(u.roles||[]).length?'<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">'+u.roles.map(r=>'<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:10px;font-size:.8rem;font-weight:600;background:'+safeColor(u.color)+'22;color:'+safeColor(u.color)+'">'+escHtml(r)+'</span>').join('')+'</div>':'';
+      univSec+='<div style="background:var(--s100);border-radius:12px;padding:14px;margin-bottom:8px;border:1px solid var(--s300);border-left:3px solid '+safeColor(u.color)+'"><div style="font-size:.85rem;font-weight:700;color:var(--txt1)">'+escHtml(u.emoji)+' '+escHtml(u.name)+'</div>'+desc+rolesHtml+'</div>';
     });
     univSec+=p('<span style="color:var(--txt3);font-style:italic">Altri universi possono essere creati ed entrare a far parte della piattaforma.</span>');
   }
@@ -5333,7 +5344,7 @@ function getPartnerBadgesHtml(ev){
   if(!ev.partnerIds||!ev.partnerIds.length)return'';
   return ev.partnerIds.map(pid=>{
     const mgr=store.managers.find(m=>m.id===pid);
-    return mgr?'<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:8px;font-size:.72rem;background:rgba(168,85,247,.1);color:#a855f7;border:1px solid rgba(168,85,247,.2)">🤝 '+mgr.orgName+'</span>':'';
+    return mgr?'<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:8px;font-size:.72rem;background:rgba(168,85,247,.1);color:#a855f7;border:1px solid rgba(168,85,247,.2)">🤝 '+escHtml(mgr.orgName)+'</span>':'';
   }).filter(Boolean).join(' ');
 }
 function getCapofilaLabel(ev,currentId){
@@ -5357,7 +5368,7 @@ function renderSelectedPartners(){
   wrap.innerHTML=ids.map(mid=>{
     const mgr=store.managers.find(m=>m.id===mid);if(!mgr)return'';
     const univs=(mgr.universes||[]).map(uid=>{const u=store.universes.find(x=>x.id===uid);return u?(u.emoji+' '+u.name):'';}).filter(Boolean).join(', ');
-    return '<div class="ne-partner-chip" data-mid="'+mid+'" style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;border:1px solid var(--brand);background:var(--brand-bg);color:var(--brand-l);font-size:.82rem;font-weight:500"><div><div>'+mgr.orgName+'</div><div class="text-xs" style="color:var(--txt3);margin-top:1px">'+univs+'</div></div><button type="button" onclick="removePartner(\''+mid+'\')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:1rem;padding:0 0 0 4px;line-height:1" title="Rimuovi partner">&times;</button></div>';
+    return '<div class="ne-partner-chip" data-mid="'+mid+'" style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;border:1px solid var(--brand);background:var(--brand-bg);color:var(--brand-l);font-size:.82rem;font-weight:500"><div><div>'+escHtml(mgr.orgName)+'</div><div class="text-xs" style="color:var(--txt3);margin-top:1px">'+escHtml(univs)+'</div></div><button type="button" onclick="removePartner(\''+mid+'\')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:1rem;padding:0 0 0 4px;line-height:1" title="Rimuovi partner">&times;</button></div>';
   }).join('');
   togglePartnerEntryConfig(true);
 }
@@ -5416,7 +5427,7 @@ function filterPartnerList(){
   c.innerHTML=filtered.map(m=>{
     const univs=(m.universes||[]).map(uid=>{const u=store.universes.find(x=>x.id===uid);return u?(u.emoji+' '+u.name):'';}).filter(Boolean).join(', ')||'—';
     const checked=alreadySelected.has(m.id)?'checked':'';
-    return '<label class="flex items-center gap-3" style="cursor:pointer;padding:10px 12px;border-bottom:1px solid var(--s300)"><input type="checkbox" class="partner-cb" value="'+m.id+'" '+checked+'><div style="flex:1"><div class="text-sm text-white font-medium">'+m.orgName+'</div><div class="text-xs txt3">'+m.username+' · '+univs+'</div></div></label>';
+    return '<label class="flex items-center gap-3" style="cursor:pointer;padding:10px 12px;border-bottom:1px solid var(--s300)"><input type="checkbox" class="partner-cb" value="'+m.id+'" '+checked+'><div style="flex:1"><div class="text-sm text-white font-medium">'+escHtml(m.orgName)+'</div><div class="text-xs txt3">'+escHtml(m.username)+' · '+escHtml(univs)+'</div></div></label>';
   }).join('');
 }
 function confirmPartnerSelection(){
@@ -5428,7 +5439,7 @@ function confirmPartnerSelection(){
     const mid=cb.value;
     const mgr=store.managers.find(m=>m.id===mid);if(!mgr)return;
     const univs=(mgr.universes||[]).map(uid=>{const u=store.universes.find(x=>x.id===uid);return u?(u.emoji+' '+u.name):'';}).filter(Boolean).join(', ');
-    wrap.insertAdjacentHTML('beforeend','<div class="ne-partner-chip" data-mid="'+mid+'" style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;border:1px solid var(--brand);background:var(--brand-bg);color:var(--brand-l);font-size:.82rem;font-weight:500"><div><div>'+mgr.orgName+'</div><div class="text-xs" style="color:var(--txt3);margin-top:1px">'+univs+'</div></div><button type="button" onclick="removePartner(\''+mid+'\')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:1rem;padding:0 0 0 4px;line-height:1" title="Rimuovi partner">&times;</button></div>');
+    wrap.insertAdjacentHTML('beforeend','<div class="ne-partner-chip" data-mid="'+mid+'" style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;border:1px solid var(--brand);background:var(--brand-bg);color:var(--brand-l);font-size:.82rem;font-weight:500"><div><div>'+escHtml(mgr.orgName)+'</div><div class="text-xs" style="color:var(--txt3);margin-top:1px">'+escHtml(univs)+'</div></div><button type="button" onclick="removePartner(\''+mid+'\')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:1rem;padding:0 0 0 4px;line-height:1" title="Rimuovi partner">&times;</button></div>');
   });
   if(!wrap.children.length)wrap.innerHTML='<span class="text-xs txt3">Nessun partner selezionato</span>';
   togglePartnerEntryConfig(wrap.querySelectorAll('.ne-partner-chip').length>0);
@@ -5723,15 +5734,15 @@ function renderProfileUniverseSettings(){
   activeUnivs.forEach(u=>{
     const sub=subs.find(s=>s.universeId===u.id);
     const isSub=!!sub;
-    html+='<div style="padding:12px;background:'+u.color+'11;border:1px solid '+u.color+'33;border-radius:12px;margin-bottom:8px">';
+    html+='<div style="padding:12px;background:'+safeColor(u.color)+'11;border:1px solid '+safeColor(u.color)+'33;border-radius:12px;margin-bottom:8px">';
     html+='<div style="display:flex;align-items:center;justify-content:space-between;gap:12px">';
-    html+='<div><div style="color:'+u.color+';font-weight:600;font-size:.95rem">'+u.emoji+' '+u.name+'</div>';
-    html+='<div class="text-xs txt3 mt-1">Ruoli: '+(u.roles.length?u.roles.join(', '):'nessuno')+'</div></div>';
+    html+='<div><div style="color:'+safeColor(u.color)+';font-weight:600;font-size:.95rem">'+escHtml(u.emoji)+' '+escHtml(u.name)+'</div>';
+    html+='<div class="text-xs txt3 mt-1">Ruoli: '+(u.roles.length?u.roles.map(r=>escHtml(r)).join(', '):'nessuno')+'</div></div>';
     html+='<button class="btn btn-sm '+(isSub?'btn-primary':'btn-secondary')+'" onclick="toggleUniverseSubscription(\''+u.id+'\','+(!isSub)+')">'+(isSub?'✓ Iscritto':'+ Iscriviti')+'</button>';
     html+='</div>';
     if(isSub&&u.roles.length){
       const currentRole=isManager?(store.currentUser.universeRoles||{})[u.id]||'':(sub?sub.preferredRole:'');
-      html+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid '+u.color+'33">';
+      html+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid '+safeColor(u.color)+'33">';
       html+='<label class="text-xs font-medium txt2">Ruolo preferito:</label>';
       html+='<select class="input mt-1" style="font-size:.8rem" onchange="updateUniversePreferredRole(\''+u.id+'\',this.value)">';
       html+='<option value=""'+(currentRole?'':' selected')+'>— Seleziona —</option>';
@@ -5836,7 +5847,7 @@ function renderAdminUniversesView(){
         }else if(isMyProposal){
           actionsHtml='<span class="badge" style="background:var(--yellow-bg);color:var(--yellow)">In attesa</span>';
         }
-        return '<div class="card mb-3" style="border-left:4px solid '+u.color+'"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><div><div class="font-semibold text-white">'+u.emoji+' '+u.name+'</div><div class="text-xs txt3 mt-1">Ruoli: '+(u.roles.length?u.roles.join(', '):'nessuno')+'</div><div class="text-xs txt3">Proposto da: '+(proposer?.username||u.createdBy)+'</div></div>'+actionsHtml+'</div></div>';
+        return '<div class="card mb-3" style="border-left:4px solid '+safeColor(u.color)+'"><div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><div><div class="font-semibold text-white">'+escHtml(u.emoji)+' '+escHtml(u.name)+'</div><div class="text-xs txt3 mt-1">Ruoli: '+(u.roles.length?u.roles.map(r=>escHtml(r)).join(', '):'nessuno')+'</div><div class="text-xs txt3">Proposto da: '+escHtml(proposer?.username||u.createdBy)+'</div></div>'+actionsHtml+'</div></div>';
       }).join('');
     }
   }
@@ -5855,7 +5866,7 @@ function renderAdminUniversesView(){
           actions='<span style="margin-left:4px;cursor:pointer;opacity:.6;font-size:.65rem" onclick="event.stopPropagation();editUniverseRole(\''+u.id+'\',\''+esc+'\')" title="Rinomina">✏️</span>'
             +'<span style="margin-left:2px;cursor:pointer;opacity:.6;font-size:.65rem" onclick="event.stopPropagation();deleteUniverseRole(\''+u.id+'\',\''+esc+'\')" title="Elimina">🗑️</span>';
         }
-        return '<span class="badge" style="background:'+u.color+'22;color:'+u.color+';display:inline-flex;align-items:center;gap:2px">'+escHtml(r)+actions+'</span>';
+        return '<span class="badge" style="background:'+safeColor(u.color)+'22;color:'+safeColor(u.color)+';display:inline-flex;align-items:center;gap:2px">'+escHtml(r)+actions+'</span>';
       }).join(' ');
       rolesHtml+='</div>';
       // Pending roles
@@ -5907,7 +5918,7 @@ function renderAdminUniversesView(){
       }
       // Description
       let descHtml=u.description?'<div class="text-xs txt3" style="margin-top:4px;margin-bottom:6px;line-height:1.45">'+escHtml(u.description)+'</div>':'';
-      return '<div class="card mb-3" style="border-left:4px solid '+u.color+'"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><div style="flex:1"><div class="font-semibold text-white">'+u.emoji+' '+u.name+'</div>'+descHtml+rolesHtml+pendingRolesHtml+proposeRoleHtml+evTypesHtml+addEvTypeHtml+'</div>'+editBtnHtml+'</div></div>';
+      return '<div class="card mb-3" style="border-left:4px solid '+safeColor(u.color)+'"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><div style="flex:1"><div class="font-semibold text-white">'+escHtml(u.emoji)+' '+escHtml(u.name)+'</div>'+descHtml+rolesHtml+pendingRolesHtml+proposeRoleHtml+evTypesHtml+addEvTypeHtml+'</div>'+editBtnHtml+'</div></div>';
     }).join('');
   }
   // Universe association requests from managers (master only)
@@ -5981,7 +5992,7 @@ function openEditUniverseModal(univId){
   html+='<div class="mb-3"><label class="label">Ruoli (separati da virgola)</label><input class="input" id="eu-roles" value="'+rolesVal+'" placeholder="es. Base, Flyer, Entrambi"></div>';
   // Preview
   html+='<div class="mt-3 mb-2"><label class="label">Anteprima</label></div>';
-  html+='<div id="eu-preview" class="card" style="border-left:4px solid '+u.color+';padding:12px"><span style="font-size:1.2rem" id="eu-prev-emoji">'+u.emoji+'</span> <span class="font-semibold text-white" id="eu-prev-name">'+u.name+'</span><div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px" id="eu-prev-roles">'+(u.roles||[]).map(r=>'<span class="badge" style="background:'+u.color+'22;color:'+u.color+'">'+r+'</span>').join(' ')+'</div></div>';
+  html+='<div id="eu-preview" class="card" style="border-left:4px solid '+safeColor(u.color)+';padding:12px"><span style="font-size:1.2rem" id="eu-prev-emoji">'+escHtml(u.emoji)+'</span> <span class="font-semibold text-white" id="eu-prev-name">'+escHtml(u.name)+'</span><div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px" id="eu-prev-roles">'+(u.roles||[]).map(r=>'<span class="badge" style="background:'+safeColor(u.color)+'22;color:'+safeColor(u.color)+'">'+escHtml(r)+'</span>').join(' ')+'</div></div>';
   html+='</div>';
   html+='<div class="flex gap-3 mt-4" style="justify-content:flex-end"><button class="btn btn-ghost btn-sm" id="eu-cancel">Annulla</button><button class="btn btn-primary btn-sm" id="eu-save">Salva modifiche</button></div>';
   o.innerHTML='<div class="dialog" style="max-width:480px;width:92%">'+html+'</div>';
@@ -8135,6 +8146,17 @@ function isRegistryCollapsed(listId){
 
 function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
+/* V3.10.21: Security — server-side role verification */
+async function verifyMasterRole(){
+  if(!store.currentUser?.id)return false;
+  try{const doc=await fbDb.collection('managers').doc(store.currentUser.id).get();return doc.exists&&doc.data().role==='master';}catch(e){return false;}
+}
+async function verifyManagerRole(){
+  if(!store.currentUser?.id)return false;
+  try{const doc=await fbDb.collection('managers').doc(store.currentUser.id).get();return doc.exists;}catch(e){return false;}
+}
+function safeColor(c){return/^#[0-9a-fA-F]{3,8}$/.test(c)?c:'#888888';}
+
 /* V3.3.1: Resolve current username from store (users/managers) with fallback */
 function resolveUserName(userId,fallback){
   if(!userId)return fallback||'N/D';
@@ -8850,7 +8872,7 @@ async function loginWithGoogle(){
     }
     await loadCurrentUser(user.uid);
     _loginInProgress=false;
-    try{localStorage.removeItem('_inviteOrgId');localStorage.removeItem('_inviteOrgName');}catch(ex){}
+    try{sessionStorage.removeItem('_inviteOrgId');sessionStorage.removeItem('_inviteOrgName');}catch(ex){}
     showToast('Login effettuato!');
   }catch(e){
     _loginInProgress=false;
@@ -8894,7 +8916,7 @@ async function sendMagicLinkEmail(){
   try{
     const actionCodeSettings={url:window.location.origin+'/?mode=signIn',handleCodeInApp:true};
     await fbAuth.sendSignInLinkToEmail(email,actionCodeSettings);
-    window.localStorage.setItem('emailForSignIn',email);
+    window.sessionStorage.setItem('emailForSignIn',email);
     document.getElementById('login-form').classList.add('hidden');
     document.getElementById('login-sent').classList.remove('hidden');
     showToast('Magic link inviato!');
@@ -9084,7 +9106,7 @@ async function submitUserRegistration(){
     document.getElementById('reg-sent')?.classList.remove('hidden');
     showToast(window._inviteOrgName?'Registrazione completata! Benvenuto nella community di '+window._inviteOrgName+'!':'Registrazione completata: '+username);
     window._inviteOrgId=null;window._inviteOrgName=null;
-    try{localStorage.removeItem('_inviteOrgId');localStorage.removeItem('_inviteOrgName');}catch(ex){}
+    try{sessionStorage.removeItem('_inviteOrgId');sessionStorage.removeItem('_inviteOrgName');}catch(ex){}
   }catch(e){
     _registrationInProgress=false;
     if(e.code==='auth/email-already-in-use'){showToast('Questa email è già registrata','error');}
@@ -9248,6 +9270,11 @@ function switchMode(mode){
     showToast('Il tuo account organizzatore è in attesa di approvazione. Non puoi accedere alla vista organizzatore.','error');
     return;
   }
+  // V3.10.21: Security — verify user is actually a manager/master
+  if(mode==='admin'){
+    const isManagerOrMaster=store.managers.some(m=>m.id===store.currentUser?.id);
+    if(!isManagerOrMaster){showToast('Accesso riservato agli organizzatori','error');return;}
+  }
   currentMode=mode;
   const btnU=document.getElementById('btnModeUser');
   const btnA=document.getElementById('btnModeAdmin');
@@ -9321,6 +9348,18 @@ window.addEventListener('popstate',function(e){
 
 let _privacyReturnView='profile';
 function go(view){
+  // === V3.10.21: VIEW GUARDS ===
+  const _adminViews=['admin','admin-events','admin-event-detail','admin-new-event','admin-subscriptions','admin-registry','admin-universes','admin-community-events','admin-community-jams','admin-backup','admin-checkin','admin-insurances','admin-org-profile','admin-users'];
+  const _masterOnlyViews=['admin-universes','admin-community-events','admin-community-jams','admin-backup','admin-users'];
+  if(_adminViews.includes(view)){
+    const _isManagerOrMaster=store.managers.some(m=>m.id===store.currentUser?.id);
+    if(!_isManagerOrMaster){showToast('Accesso riservato agli organizzatori','error');go('events');return;}
+  }
+  if(_masterOnlyViews.includes(view)){
+    const _mgr=store.managers.find(m=>m.id===store.currentUser?.id);
+    if(!_mgr||_mgr.role!=='master'){showToast('Accesso riservato al Master','error');go('admin-events');return;}
+  }
+  // === END VIEW GUARDS ===
   const _previousView=currentView; // V3.2: Track previous view before overwriting
   if(view==='privacy-policy') _privacyReturnView=currentView||'profile';
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
@@ -17229,7 +17268,7 @@ function copyEventAsTemplate(id){
         ev.partnerIds.forEach(mid=>{
           const mgr=store.managers.find(m=>m.id===mid);if(!mgr)return;
           const univs=(mgr.universes||[]).map(uid=>{const u=store.universes.find(x=>x.id===uid);return u?(u.emoji+' '+u.name):'';}).filter(Boolean).join(', ');
-          wrap.insertAdjacentHTML('beforeend','<div class="ne-partner-chip" data-mid="'+mid+'" style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;border:1px solid var(--brand);background:var(--brand-bg);color:var(--brand-l);font-size:.82rem;font-weight:500"><div><div>'+mgr.orgName+'</div><div class="text-xs" style="color:var(--txt3);margin-top:1px">'+univs+'</div></div><button type="button" onclick="removePartner(\''+mid+'\')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:1rem;padding:0 0 0 4px;line-height:1" title="Rimuovi partner">&times;</button></div>');
+          wrap.insertAdjacentHTML('beforeend','<div class="ne-partner-chip" data-mid="'+mid+'" style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;border:1px solid var(--brand);background:var(--brand-bg);color:var(--brand-l);font-size:.82rem;font-weight:500"><div><div>'+escHtml(mgr.orgName)+'</div><div class="text-xs" style="color:var(--txt3);margin-top:1px">'+escHtml(univs)+'</div></div><button type="button" onclick="removePartner(\''+mid+'\')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:1rem;padding:0 0 0 4px;line-height:1" title="Rimuovi partner">&times;</button></div>');
         });
         togglePartnerEntryConfig(true);
       }
@@ -18034,7 +18073,7 @@ function renderAdminBackup(){
 }
 
 async function exportFullBackup(){
-  if(store.currentUser.role!=='master'){showToast('Solo il Master può eseguire backup','error');return;}
+  if(!await verifyMasterRole()){showToast('Accesso non autorizzato','error');return;}
   showToast('Preparazione backup in corso...');
   try{
     const collections=['users','managers','events','bookings','communityJams','attendances','universes','subscriptionTypes','subscriptions','pendingSubTokens','insurances'];
@@ -18067,8 +18106,8 @@ async function exportFullBackup(){
   }
 }
 
-function showRestoreBackup(){
-  if(store.currentUser.role!=='master'){showToast('Solo il Master può ripristinare backup','error');return;}
+async function showRestoreBackup(){
+  if(!await verifyMasterRole()){showToast('Accesso non autorizzato','error');return;}
   const input=document.createElement('input');
   input.type='file';input.accept='.json';
   input.onchange=async(e)=>{
@@ -19673,7 +19712,7 @@ function editEvent(id){
       ev.partnerIds.forEach(mid=>{
         const mgr=store.managers.find(m=>m.id===mid);if(!mgr)return;
         const univs=(mgr.universes||[]).map(uid=>{const u=store.universes.find(x=>x.id===uid);return u?(u.emoji+' '+u.name):'';}).filter(Boolean).join(', ');
-        wrap.insertAdjacentHTML('beforeend','<div class="ne-partner-chip" data-mid="'+mid+'" style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;border:1px solid var(--brand);background:var(--brand-bg);color:var(--brand-l);font-size:.82rem;font-weight:500"><div><div>'+mgr.orgName+'</div><div class="text-xs" style="color:var(--txt3);margin-top:1px">'+univs+'</div></div><button type="button" onclick="removePartner(\''+mid+'\')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:1rem;padding:0 0 0 4px;line-height:1" title="Rimuovi partner">&times;</button></div>');
+        wrap.insertAdjacentHTML('beforeend','<div class="ne-partner-chip" data-mid="'+mid+'" style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:10px;border:1px solid var(--brand);background:var(--brand-bg);color:var(--brand-l);font-size:.82rem;font-weight:500"><div><div>'+escHtml(mgr.orgName)+'</div><div class="text-xs" style="color:var(--txt3);margin-top:1px">'+escHtml(univs)+'</div></div><button type="button" onclick="removePartner(\''+mid+'\')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:1rem;padding:0 0 0 4px;line-height:1" title="Rimuovi partner">&times;</button></div>');
       });
       togglePartnerEntryConfig(true);
     }
@@ -21184,6 +21223,7 @@ function openPromoteToOrgModal(userId){
 }
 
 async function confirmPromoteToOrg(userId){
+  if(!await verifyMasterRole()){showToast('Accesso non autorizzato','error');return;}
   const u=store.users.find(x=>x.id===userId);
   if(!u){showToast('Utente non trovato','error');return;}
   if(store.managers.some(m=>m.id===userId)){showToast('Già organizzatore','error');closeModal();return;}
@@ -22734,11 +22774,11 @@ function checkDeepLink(){
   }
   // V3.2 FIX: Persist deep link in localStorage so it survives Google signInWithRedirect page reloads
   if(_pendingDeepLink){
-    try{localStorage.setItem('_pendingDeepLink',JSON.stringify(_pendingDeepLink));}catch(e){}
+    try{sessionStorage.setItem('_pendingDeepLink',JSON.stringify(_pendingDeepLink));}catch(e){}
   } else {
     // No URL params — try to restore from localStorage (redirect came back with clean URL)
     try{
-      const saved=localStorage.getItem('_pendingDeepLink');
+      const saved=sessionStorage.getItem('_pendingDeepLink');
       if(saved){_pendingDeepLink=JSON.parse(saved);}
     }catch(e){}
   }
@@ -22752,7 +22792,7 @@ async function handleDeepLink(){
   const dl=_pendingDeepLink;
   _pendingDeepLink=null;
   // V3.2: Clear persisted deep link from localStorage
-  try{localStorage.removeItem('_pendingDeepLink');}catch(e){}
+  try{sessionStorage.removeItem('_pendingDeepLink');}catch(e){}
   if(dl.type==='event'){
     // Open event detail view
     const ev=store.events.find(e=>e.id===dl.id)||store.communityJams?.find(j=>j.id===dl.id);
@@ -22944,12 +22984,12 @@ fbAuth.getRedirectResult().then(async(result)=>{
         };
         // Recover invite data from localStorage (survives Google redirect page reload)
         try{
-          const _savedInviteOrgId=localStorage.getItem('_inviteOrgId');
+          const _savedInviteOrgId=sessionStorage.getItem('_inviteOrgId');
           if(_savedInviteOrgId){
             userData.invitedBy=_savedInviteOrgId;
             userData.invitedAt=now;
-            userData.inviteOrgName=localStorage.getItem('_inviteOrgName')||'';
-            localStorage.removeItem('_inviteOrgId');localStorage.removeItem('_inviteOrgName');
+            userData.inviteOrgName=sessionStorage.getItem('_inviteOrgName')||'';
+            sessionStorage.removeItem('_inviteOrgId');sessionStorage.removeItem('_inviteOrgName');
           }
         }catch(e){}
         await fbDb.collection('users').doc(user.uid).set(userData);
@@ -22984,11 +23024,11 @@ fbAuth.onAuthStateChanged(async(user)=>{
     // already called it, the second call is safely a no-op
     // Check for magic link sign-in
     if(fbAuth.isSignInWithEmailLink(window.location.href)){
-      let email=window.localStorage.getItem('emailForSignIn');
+      let email=window.sessionStorage.getItem('emailForSignIn');
       if(!email){email=window.prompt('Conferma la tua email:');}
       try{
         await fbAuth.signInWithEmailLink(email,window.location.href);
-        window.localStorage.removeItem('emailForSignIn');
+        window.sessionStorage.removeItem('emailForSignIn');
         window.history.replaceState(null,'',window.location.pathname);
       }catch(e){showToast('Errore magic link: '+e.message,'error');dismissAuthSplash();return;}
     }
@@ -23010,14 +23050,14 @@ fbAuth.onAuthStateChanged(async(user)=>{
     if(_pendingDeepLink&&_pendingDeepLink.type==='invite'){
       window._inviteOrgId=_pendingDeepLink.orgId;
       // Persist invite data in localStorage so it survives Google redirect
-      try{localStorage.setItem('_inviteOrgId',_pendingDeepLink.orgId);}catch(e){}
+      try{sessionStorage.setItem('_inviteOrgId',_pendingDeepLink.orgId);}catch(e){}
       go('register');
       // Fetch organizer name for banner
       fbDb.collection('managers').doc(_pendingDeepLink.orgId).get().then(doc=>{
         if(doc.exists){
           const orgData=doc.data();
           window._inviteOrgName=orgData.orgName||orgData.username||'';
-          try{localStorage.setItem('_inviteOrgName',window._inviteOrgName);}catch(e){}
+          try{sessionStorage.setItem('_inviteOrgName',window._inviteOrgName);}catch(e){}
           _showInviteBanner(window._inviteOrgName);
         }else{
           showToast('L\'organizzatore di questo invito non è più attivo','error');
