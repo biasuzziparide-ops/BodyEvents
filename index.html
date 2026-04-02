@@ -14241,7 +14241,7 @@ function showJamDetail(jamId){
     </div>`;
   }
 
-  const _jamRegClosed = jam.registrationClosedDates && jam.registrationClosedDates['__single__'] === true;
+  const _jamRegClosed = jam.registrationClosedDates && jam.registrationClosedDates['_single'] === true;
   let joinBtn='';
   if(isJoined){
     joinBtn=`<button class="btn btn-danger" style="width:100%" onclick="leaveJam('${jam.id}')">✕ Non parteciperò più</button>`;
@@ -14454,7 +14454,7 @@ function joinJam(jamId){
   if(jam.participants.some(p=>p.userId===uid)){showToast('Sei già iscritto','error');return;}
   // Check manual registration close for jams
   if (jam.registrationClosedDates) {
-    const _jamRegState = jam.registrationClosedDates['__single__'];
+    const _jamRegState = jam.registrationClosedDates['_single'];
     if (_jamRegState === true) { showToast('Le iscrizioni sono state chiuse dall\'organizzatore', 'error'); return; }
   }
   if(jam.maxSpots&&jam.participants.length>=jam.maxSpots){showToast('Posti esauriti','error');return;}
@@ -16345,7 +16345,7 @@ function renderRecExclusions(){
  */
 function isRegistrationManuallyControlled(ev, recDate) {
   if (!ev.registrationClosedDates) return null;
-  const key = (ev.recurrence && recDate) ? recDate : '__single__';
+  const key = (ev.recurrence && recDate) ? recDate : '_single';
   const val = ev.registrationClosedDates[key];
   if (val === true) return true;
   if (val === false) return false;
@@ -16356,7 +16356,7 @@ function toggleRegistrationClosed(evId) {
   const ev = store.events.find(e => e.id === evId);
   if (!ev) return;
   const recDate = (ev.recurrence && typeof recDateFilter !== 'undefined' && recDateFilter && recDateFilter !== '__all__') ? recDateFilter : null;
-  const key = recDate || '__single__';
+  const key = recDate || '_single';
   const currentState = isRegistrationManuallyControlled(ev, recDate);
 
   if (currentState === true) {
