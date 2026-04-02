@@ -427,7 +427,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.26</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.27</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2817,7 +2817,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.26';
+const APP_VERSION='V3.10.27';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -12909,7 +12909,7 @@ async function renderUserEvents(){
   // Update count
   const rc2=document.getElementById('filter-results-count');
   if(rc2){
-    const totalAll=store.events.filter(e=>e.status==='pubblicato'&&!(e.alert&&e.alert.type==='cancellato')).length+store.communityJams.filter(j=>j.status!=='cancellato'&&!(j.alert&&j.alert.type==='cancellato')&&j.date>=localDateStr(new Date())).length;
+    const totalAll=store.events.filter(e=>e.status==='pubblicato'&&!(e.alert&&e.alert.type==='cancellato')&&!(e.adminSuspension&&e.adminSuspension.suspended)).length+store.communityJams.filter(j=>j.status!=='cancellato'&&!(j.alert&&j.alert.type==='cancellato')&&j.date>=localDateStr(new Date())).length;
     const shownCount=Math.min(visibleCards.length,allCards.length);
     rc2.textContent=shownCount===totalAll?totalAll+' eventi disponibili':shownCount+' di '+totalAll+' eventi';
   }
@@ -13909,7 +13909,7 @@ function getFilteredEvents(){
   const dateTo=(document.getElementById('filter-date-to')||{}).value||'';
   const priceMaxVal=(document.getElementById('filter-price-max')||{}).value;
   const priceMax=priceMaxVal?parseFloat(priceMaxVal):null;
-  let baseEvts=store.events.filter(e=>e.status==='pubblicato'&&!(e.alert&&e.alert.type==='cancellato'));
+  let baseEvts=store.events.filter(e=>e.status==='pubblicato'&&!(e.alert&&e.alert.type==='cancellato')&&!(e.adminSuspension&&e.adminSuspension.suspended));
   // Expand recurring events into virtual instances (next 2 occurrences)
   let evts=expandRecurringForList(baseEvts);
   // Universe filter: if no explicit filter, show only subscribed universes
@@ -15703,6 +15703,10 @@ async function showEventDetail(evId,recDate){
       if(!_noteText)return '';
       return '<div style="background:linear-gradient(135deg,rgba(234,179,8,.08),rgba(249,115,22,.05));border:1px solid rgba(234,179,8,.3);border-radius:14px;padding:16px 18px;margin-bottom:20px"><div style="display:flex;align-items:flex-start;gap:10px"><span style="font-size:1.2rem;flex-shrink:0;margin-top:1px">📢</span><div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:600;color:var(--yellow);margin-bottom:6px">Comunicazione dall\'organizzatore</div><div style="font-size:.85rem;color:var(--txt);line-height:1.7;word-wrap:break-word;white-space:pre-wrap">'+_linkifyText(escHtml(_noteText))+'</div><div style="font-size:.65rem;color:var(--txt3);margin-top:8px">Aggiornato il '+_fmtNoteDate(_noteDate)+'</div></div></div></div>';
     })()}
+    ${(()=>{
+      if(!ev.adminSuspension||!ev.adminSuspension.suspended)return '';
+      return '<div style="background:rgba(239,68,68,.08);border:2px solid rgba(239,68,68,.35);border-radius:14px;padding:16px 18px;margin-bottom:20px"><div style="display:flex;align-items:flex-start;gap:10px"><span style="font-size:1.2rem;flex-shrink:0;margin-top:1px">⛔</span><div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:600;color:var(--red);margin-bottom:6px">Comunicazione dall\'amministratore della piattaforma</div><div style="font-size:.85rem;color:var(--txt);line-height:1.7;word-wrap:break-word;white-space:pre-wrap">'+escHtml(ev.adminSuspension.message)+'</div><div style="font-size:.65rem;color:var(--txt3);margin-top:8px">'+fmtDateFull(ev.adminSuspension.date)+'</div></div></div></div>';
+    })()}
     <div style="order:${_userHasBooking?2:0}"><div class="card mb-6" ${isDisabledByAlert?'style="opacity:.5;pointer-events:none"':''}>
       ${''}<!-- V3.10.11: image removed from event detail for cleaner UX -->
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
@@ -16192,8 +16196,10 @@ async function renderAdminEvents(){
         ? '<div style="font-size:.55rem;color:var(--red);margin-top:2px">🔒 ' + _closedCount + ' data' + (_closedCount > 1 ? 'e' : '') + ' con iscrizioni chiuse</div>'
         : '<div style="font-size:.55rem;color:var(--red);margin-top:2px">🔒 Iscrizioni chiuse</div>')
       : '';
-    return `<div class="card-hover mb-4" style="border-radius:16px;overflow:hidden;padding:0;${opacity};${partnerBorder}" onclick="showAdminEventDetail('${ev.id}')">
-      <div style="display:flex;align-items:stretch">
+    const _adminSuspBanner=ev.adminSuspension&&ev.adminSuspension.suspended?'<div style="position:absolute;top:50%;left:50%;z-index:8;transform:translate(-50%,-50%) rotate(-8deg);width:120%;background:rgba(239,68,68,.45);color:#fff;font-size:.65rem;font-weight:800;letter-spacing:2px;padding:6px 0;text-align:center;text-transform:uppercase;white-space:nowrap;pointer-events:none;box-shadow:0 2px 10px rgba(239,68,68,.2);border-top:1px solid rgba(255,255,255,.1);border-bottom:1px solid rgba(255,255,255,.1)">⛔ SOSPESO DALL\'ADMIN</div>':'';
+    return `<div class="card-hover mb-4" style="border-radius:16px;overflow:hidden;padding:0;position:relative;${opacity};${partnerBorder}" onclick="showAdminEventDetail('${ev.id}')">
+      ${_adminSuspBanner}
+      <div style="display:flex;align-items:stretch${ev.adminSuspension&&ev.adminSuspension.suspended?';opacity:.7':''}">
         ${_aUniStrip}
         <div style="flex:1;min-width:0;padding:14px 16px;display:flex;gap:14px;align-items:flex-start">
           ${_aCardThumb}
@@ -17998,6 +18004,7 @@ async function renderCommunityEvents(){
     const lastDay=e.days&&e.days.length?e.days[e.days.length-1].date:null;
     return lastDay&&lastDay<today;
   });
+  const sospesi=allEvts.filter(e=>e.adminSuspension&&e.adminSuspension.suspended&&e.status==='pubblicato');
   const bozze=allEvts.filter(e=>e.status==='bozza');
   const conclusi=allEvts.filter(e=>e.status==='concluso');
   const archiviati=allEvts.filter(e=>e.status==='archiviato');
@@ -18011,6 +18018,7 @@ async function renderCommunityEvents(){
     <div class="stat-card" style="padding:12px 8px"><div class="value" style="color:var(--blue);font-size:1.3rem">${pubPast.length}</div><div class="label">Pub. passati</div></div>
     <div class="stat-card" style="padding:12px 8px"><div class="value" style="color:var(--txt3);font-size:1.3rem">${conclusi.length}</div><div class="label">Conclusi</div></div>
     <div class="stat-card" style="padding:12px 8px"><div class="value" style="color:#6366f1;font-size:1.3rem">${archiviati.length}</div><div class="label">Archiviati</div></div>
+    ${sospesi.length?'<div class="stat-card" style="padding:12px 8px"><div class="value" style="color:var(--orange);font-size:1.3rem">'+sospesi.length+'</div><div class="label">Sospesi</div></div>':''}
     ${cancellati.length?'<div class="stat-card" style="padding:12px 8px"><div class="value" style="color:var(--red);font-size:1.3rem">'+cancellati.length+'</div><div class="label">Cancellati</div></div>':''}
     <div class="stat-card" style="padding:12px 8px"><div class="value" style="color:var(--brand-l);font-size:1.3rem">${allEvts.length}</div><div class="label">Totale</div></div>
   </div>`;
@@ -18033,7 +18041,7 @@ async function renderCommunityEvents(){
         <div style="flex:1;min-width:0">
           <div class="flex gap-2 items-center mb-1 flex-wrap" style="row-gap:4px">
             <span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)};font-size:.7rem;padding:2px 8px">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>
-            ${alertBadge}${partnerBadge}${recBadge}
+            ${alertBadge}${partnerBadge}${recBadge}${ev.adminSuspension&&ev.adminSuspension.suspended?'<span class="badge" style="background:rgba(239,68,68,.12);color:var(--red);font-size:.65rem;border:1px solid rgba(239,68,68,.25)">⛔ Sospeso</span>':''}
           </div>
           <h3 style="font-size:.92rem;font-weight:600;color:var(--txt1);margin:2px 0;line-height:1.3">${escHtml(ev.title)}</h3>
           <div style="font-size:.76rem;color:var(--txt3);margin-top:4px;display:flex;flex-wrap:wrap;gap:4px 14px">
@@ -18044,9 +18052,14 @@ async function renderCommunityEvents(){
             <span>👥 ${bkCount} iscritti</span>
           </div>
         </div>
-        <div style="display:flex;gap:6px;flex-shrink:0;align-items:center">
+        <div style="display:flex;gap:6px;flex-shrink:0;align-items:center;flex-wrap:nowrap">
           <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();showEventDetail('${ev.id}')" title="Preview utente" style="font-size:.85rem;padding:4px 8px">👁️</button>
           <button class="btn btn-sm" style="background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.25);font-size:.72rem;padding:4px 10px" onclick="event.stopPropagation();showAdminEventDetail('${ev.id}')">📊 Dettaglio</button>
+          ${ev.status!=='cancellato'?(ev.adminSuspension&&ev.adminSuspension.suspended
+            ?'<button class="btn btn-sm" style="background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.25);font-size:.72rem;padding:4px 10px" onclick="event.stopPropagation();adminUnsuspendEvent(\''+ev.id+'\')">▶️ Riattiva</button>'
+            :'<button class="btn btn-sm" style="background:rgba(245,158,11,.1);color:var(--yellow);border:1px solid rgba(245,158,11,.25);font-size:.72rem;padding:4px 10px" onclick="event.stopPropagation();openAdminSuspendModal(\''+ev.id+'\')">⏸️ Sospendi</button>')
+          :''}
+          ${ev.status!=='cancellato'?'<button class="btn btn-sm" style="background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.25);font-size:.72rem;padding:4px 10px" onclick="event.stopPropagation();adminCancelEvent(\''+ev.id+'\')">🗑️ Cancella</button>':''}
         </div>
       </div>
     </div>`;
@@ -18071,6 +18084,7 @@ async function renderCommunityEvents(){
 
   // === Render sections ===
   let html='';
+  html+=_ceSection('⛔','Sospesi',sospesi,'rgba(239,68,68,.06)',false);
   html+=_ceSection('📅','In programma',pubFuture,'rgba(16,185,129,.08)',false);
   html+=_ceSection('📝','Bozze',bozze,'rgba(234,179,8,.08)',false);
   html+=_ceSection('📆','Pubblicati passati',pubPast,'rgba(59,130,246,.06)',pubPast.length>5);
@@ -18079,6 +18093,96 @@ async function renderCommunityEvents(){
   html+=_ceSection('🚫','Cancellati',cancellati,'rgba(239,68,68,.06)',true);
 
   c.innerHTML=html||'<div class="card text-center txt3">Nessun evento presente sulla piattaforma.</div>';
+}
+
+/* ==============================
+   ADMIN EVENT MODERATION (Master only)
+============================== */
+function openAdminSuspendModal(evId){
+  const ev=store.events.find(e=>e.id===evId);if(!ev)return;
+  const overlay=document.createElement('div');
+  overlay.className='overlay';
+  overlay.id='admin-suspend-overlay';
+  overlay.innerHTML=`<div class="dialog" style="max-width:520px;width:95%">
+    <h2 class="text-lg font-bold text-white mb-2">⏸️ Sospendi evento</h2>
+    <p class="text-sm txt3 mb-2">Stai sospendendo: <strong style="color:var(--txt1)">${escHtml(ev.title)}</strong></p>
+    <p class="text-sm txt3 mb-4">L'evento sparirà dalla ricerca utenti. Gli utenti già iscritti continueranno a vederlo nelle loro prenotazioni. L'organizzatore vedrà un banner con il tuo messaggio.</p>
+    <div class="mb-4">
+      <label class="label">Messaggio per l'organizzatore e gli utenti iscritti</label>
+      <textarea class="input" id="admin-suspend-message" rows="4" placeholder="Scrivi il motivo della sospensione e le eventuali azioni richieste all'organizzatore..." style="resize:vertical"></textarea>
+    </div>
+    <div class="flex gap-2 justify-end">
+      <button class="btn btn-secondary btn-sm" onclick="closeAdminSuspendModal()">Annulla</button>
+      <button class="btn btn-sm" style="background:rgba(245,158,11,.15);color:var(--yellow);border:1px solid rgba(245,158,11,.3)" onclick="adminSuspendEvent('${ev.id}')">⏸️ Conferma sospensione</button>
+    </div>
+  </div>`;
+  overlay.onclick=(e)=>{if(e.target===overlay)closeAdminSuspendModal();};
+  document.body.appendChild(overlay);
+}
+function closeAdminSuspendModal(){
+  const o=document.getElementById('admin-suspend-overlay');if(o)o.remove();
+}
+function adminSuspendEvent(evId){
+  const msg=(document.getElementById('admin-suspend-message')?.value||'').trim();
+  if(!msg){showToast('Scrivi un messaggio per l\'organizzatore','error');return;}
+  const ev=store.events.find(e=>e.id===evId);if(!ev)return;
+  ev.adminSuspension={
+    suspended:true,
+    message:msg,
+    date:localDateStr(new Date()),
+    suspendedBy:store.currentUser.id
+  };
+  fsUpdate('events',ev.id,{adminSuspension:ev.adminSuspension}).catch(console.error);
+  closeAdminSuspendModal();
+  renderCommunityEvents();
+  showToast('Evento sospeso — non più visibile nella ricerca utenti','info');
+}
+function adminUnsuspendEvent(evId){
+  showConfirm('Riattiva evento','Riattivare questo evento? Tornerà visibile nella ricerca utenti.',()=>{
+    const ev=store.events.find(e=>e.id===evId);if(!ev)return;
+    ev.adminSuspension=null;
+    fsUpdate('events',ev.id,{adminSuspension:null}).catch(console.error);
+    renderCommunityEvents();
+    showToast('Evento riattivato — di nuovo visibile nella ricerca');
+  });
+}
+function adminCancelEvent(evId){
+  const ev=store.events.find(e=>e.id===evId);if(!ev)return;
+  const bkCount=store.bookings.filter(b=>b.eventId===evId&&b.status!=='cancellata').length;
+  const bkWarning=bkCount>0?'<br><br><strong style="color:var(--yellow)">⚠️ Attenzione: ci sono '+bkCount+' iscritti a questo evento.</strong> Vedranno l\'evento come ANNULLATO.':'';
+  const overlay=document.createElement('div');
+  overlay.className='overlay';
+  overlay.id='admin-cancel-overlay';
+  overlay.innerHTML=`<div class="dialog" style="max-width:520px;width:95%">
+    <h2 class="text-lg font-bold text-white mb-2">🗑️ Cancella evento (admin)</h2>
+    <p class="text-sm txt3 mb-2">Stai cancellando: <strong style="color:var(--txt1)">${escHtml(ev.title)}</strong></p>
+    <p class="text-sm txt3 mb-2">Organizzatore: <strong style="color:var(--brand-l)">${escHtml(ev.orgName)}</strong></p>
+    <p class="text-sm txt3 mb-4">L'evento verrà segnato come cancellato e eliminato automaticamente dopo 10 giorni.${bkWarning}</p>
+    <div class="mb-4">
+      <label class="label">Messaggio per gli iscritti (facoltativo)</label>
+      <textarea class="input" id="admin-cancel-message" rows="3" placeholder="Motivo della cancellazione..." style="resize:vertical"></textarea>
+    </div>
+    <div class="flex gap-2 justify-end">
+      <button class="btn btn-secondary btn-sm" onclick="closeAdminCancelModal()">Annulla</button>
+      <button class="btn btn-danger btn-sm" onclick="confirmAdminCancel('${ev.id}')">🗑️ Conferma cancellazione</button>
+    </div>
+  </div>`;
+  overlay.onclick=(e)=>{if(e.target===overlay)closeAdminCancelModal();};
+  document.body.appendChild(overlay);
+}
+function closeAdminCancelModal(){
+  const o=document.getElementById('admin-cancel-overlay');if(o)o.remove();
+}
+function confirmAdminCancel(evId){
+  const ev=store.events.find(e=>e.id===evId);if(!ev)return;
+  const msg=(document.getElementById('admin-cancel-message')?.value||'').trim()||'Evento cancellato dall\'amministratore della piattaforma.';
+  ev.status='cancellato';
+  ev.alert={type:'cancellato',message:msg,date:localDateStr(new Date()),timestamp:new Date().toISOString()};
+  if(ev.adminSuspension)ev.adminSuspension=null;
+  fsSet('events',ev.id,ev).catch(console.error);
+  closeAdminCancelModal();
+  renderCommunityEvents();
+  showToast('Evento cancellato — verrà eliminato tra 10 giorni','error');
 }
 
 /* ==============================
@@ -20085,12 +20189,12 @@ function saveAsDraft(){
           // Preserve recurrence metadata
           if(oldEv.recurrence){if(ev.recurrence){ev.recurrence.exceptions=oldEv.recurrence.exceptions||{};ev.recurrence.active=oldEv.recurrence.active;ev.recurrence.pausedUntil=oldEv.recurrence.pausedUntil||null;}else{ev.recurrence=oldEv.recurrence;}}
           if(oldEv.bookings)ev.bookings=oldEv.bookings;
-          // V3.10.26: If booking deadline changed, reset manual registration close flags
+          // V3.10.27: If booking deadline changed, reset manual registration close flags
           if (oldEv.registrationClosedDates && Object.keys(oldEv.registrationClosedDates).length > 0) {
             const deadlineChanged = (oldEv.bookingDeadline || null) !== (ev.bookingDeadline || null)
               || (oldEv.bookingDeadlineDaysBefore != null && oldEv.bookingDeadlineDaysBefore !== ev.bookingDeadlineDaysBefore);
             if (deadlineChanged) {
-              console.log('[V3.10.26] Deadline changed, clearing registrationClosedDates');
+              console.log('[V3.10.27] Deadline changed, clearing registrationClosedDates');
               ev.registrationClosedDates = null;
             } else {
               ev.registrationClosedDates = oldEv.registrationClosedDates;
@@ -20158,12 +20262,12 @@ function publishNewEvent(){
           // Preserve recurrence metadata
           if(oldEv2.recurrence){if(ev.recurrence){ev.recurrence.exceptions=oldEv2.recurrence.exceptions||{};ev.recurrence.active=oldEv2.recurrence.active;ev.recurrence.pausedUntil=oldEv2.recurrence.pausedUntil||null;}else{ev.recurrence=oldEv2.recurrence;}}
           if(oldEv2.bookings)ev.bookings=oldEv2.bookings;
-          // V3.10.26: If booking deadline changed, reset manual registration close flags
+          // V3.10.27: If booking deadline changed, reset manual registration close flags
           if (oldEv2.registrationClosedDates && Object.keys(oldEv2.registrationClosedDates).length > 0) {
             const deadlineChanged = (oldEv2.bookingDeadline || null) !== (ev.bookingDeadline || null)
               || (oldEv2.bookingDeadlineDaysBefore != null && oldEv2.bookingDeadlineDaysBefore !== ev.bookingDeadlineDaysBefore);
             if (deadlineChanged) {
-              console.log('[V3.10.26] Deadline changed, clearing registrationClosedDates');
+              console.log('[V3.10.27] Deadline changed, clearing registrationClosedDates');
               ev.registrationClosedDates = null;
             } else {
               ev.registrationClosedDates = oldEv2.registrationClosedDates;
@@ -20431,7 +20535,7 @@ function cancelBooking(bId){
   },'danger');
 }
 /**
- * V3.10.26: Sanitize bookings that were corrupted by the gift toggle bug.
+ * V3.10.27: Sanitize bookings that were corrupted by the gift toggle bug.
  * If a booking has gift=false, amount=0, and a _preGiftSnapshot with amount>0,
  * it means the restore failed — apply the snapshot now.
  */
@@ -20456,7 +20560,7 @@ function _sanitizeGiftBug(b){
     items:b.items||null,
     _preGiftSnapshot:firebase.firestore.FieldValue.delete()
   }).catch(console.error);
-  console.log('[V3.10.26] Auto-fixed corrupted gift booking:',b.id,'restored amount:',b.amount);
+  console.log('[V3.10.27] Auto-fixed corrupted gift booking:',b.id,'restored amount:',b.amount);
   return true;
 }
 
@@ -22438,6 +22542,14 @@ async function showAdminEventDetail(evId){
       return '<div class="card mb-4" style="background:var(--red-bg);border:2px solid rgba(239,68,68,.4);padding:16px"><div class="flex items-center gap-2 mb-3"><span style="font-size:1.3rem">⚠️</span><span class="font-bold" style="color:var(--red)">Non hai raggiunto il numero minimo di iscritti ('+_cur+'/'+_needed+'): conferma o cancella l\'evento!</span></div><div class="flex gap-3"><button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3);padding:8px 16px" onclick="confirmEventDespiteMin(\''+ev.id+'\')">✅ Conferma evento</button><button class="btn btn-sm" style="background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.3);padding:8px 16px" onclick="cancelEventDueToMin(\''+ev.id+'\')">🚫 Cancella evento</button></div></div>';
     })()}
 
+    ${(()=>{
+      if(!ev.adminSuspension||!ev.adminSuspension.suspended)return '';
+      const _admMgr=store.managers.find(m=>m.role==='master');
+      const _admEmail=_admMgr?(_admMgr.contactEmail||_admMgr.email):'';
+      const _admPhone=_admMgr?(_admMgr.phone||''):'';
+      const _admContacts=(_admEmail?'<span>✉️ <a href="mailto:'+escHtml(_admEmail)+'" style="color:#f87171;text-decoration:underline">'+escHtml(_admEmail)+'</a></span>':'')+(_admPhone?'<span style="margin-left:12px">📞 <a href="tel:'+escHtml(_admPhone)+'" style="color:#f87171;text-decoration:underline">'+escHtml(_admPhone)+'</a></span>':'');
+      return '<div class="card mb-4" style="background:rgba(239,68,68,.08);border:2px solid rgba(239,68,68,.4);padding:18px 20px"><div style="display:flex;align-items:flex-start;gap:12px"><span style="font-size:1.5rem;flex-shrink:0">⛔</span><div style="flex:1;min-width:0"><div style="font-size:.9rem;font-weight:700;color:var(--red);margin-bottom:8px">Evento sospeso dall\'amministratore della piattaforma</div><div style="font-size:.85rem;color:var(--txt);line-height:1.7;word-wrap:break-word;white-space:pre-wrap">'+escHtml(ev.adminSuspension.message)+'</div><div style="font-size:.7rem;color:var(--txt3);margin-top:10px">Sospeso il '+fmtDateFull(ev.adminSuspension.date)+'</div>'+((_admEmail||_admPhone)?'<div style="margin-top:10px;font-size:.78rem;color:var(--txt2)">Per informazioni contatta l\'admin: '+_admContacts+'</div>':'')+'</div></div></div>';
+    })()}
     <!-- Event header -->
     <div class="card mb-6">
       <div class="flex gap-2 mb-2 flex-wrap">
