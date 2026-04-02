@@ -427,7 +427,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.23</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.24</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2817,7 +2817,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.23';
+const APP_VERSION='V3.10.24';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -20084,12 +20084,12 @@ function saveAsDraft(){
           // Preserve recurrence metadata
           if(oldEv.recurrence){if(ev.recurrence){ev.recurrence.exceptions=oldEv.recurrence.exceptions||{};ev.recurrence.active=oldEv.recurrence.active;ev.recurrence.pausedUntil=oldEv.recurrence.pausedUntil||null;}else{ev.recurrence=oldEv.recurrence;}}
           if(oldEv.bookings)ev.bookings=oldEv.bookings;
-          // V3.10.23: If booking deadline changed, reset manual registration close flags
+          // V3.10.24: If booking deadline changed, reset manual registration close flags
           if (oldEv.registrationClosedDates && Object.keys(oldEv.registrationClosedDates).length > 0) {
             const deadlineChanged = (oldEv.bookingDeadline || null) !== (ev.bookingDeadline || null)
               || (oldEv.bookingDeadlineDaysBefore != null && oldEv.bookingDeadlineDaysBefore !== ev.bookingDeadlineDaysBefore);
             if (deadlineChanged) {
-              console.log('[V3.10.23] Deadline changed, clearing registrationClosedDates');
+              console.log('[V3.10.24] Deadline changed, clearing registrationClosedDates');
               ev.registrationClosedDates = null;
             } else {
               ev.registrationClosedDates = oldEv.registrationClosedDates;
@@ -20157,12 +20157,12 @@ function publishNewEvent(){
           // Preserve recurrence metadata
           if(oldEv2.recurrence){if(ev.recurrence){ev.recurrence.exceptions=oldEv2.recurrence.exceptions||{};ev.recurrence.active=oldEv2.recurrence.active;ev.recurrence.pausedUntil=oldEv2.recurrence.pausedUntil||null;}else{ev.recurrence=oldEv2.recurrence;}}
           if(oldEv2.bookings)ev.bookings=oldEv2.bookings;
-          // V3.10.23: If booking deadline changed, reset manual registration close flags
+          // V3.10.24: If booking deadline changed, reset manual registration close flags
           if (oldEv2.registrationClosedDates && Object.keys(oldEv2.registrationClosedDates).length > 0) {
             const deadlineChanged = (oldEv2.bookingDeadline || null) !== (ev.bookingDeadline || null)
               || (oldEv2.bookingDeadlineDaysBefore != null && oldEv2.bookingDeadlineDaysBefore !== ev.bookingDeadlineDaysBefore);
             if (deadlineChanged) {
-              console.log('[V3.10.23] Deadline changed, clearing registrationClosedDates');
+              console.log('[V3.10.24] Deadline changed, clearing registrationClosedDates');
               ev.registrationClosedDates = null;
             } else {
               ev.registrationClosedDates = oldEv2.registrationClosedDates;
@@ -20351,6 +20351,7 @@ async function renderAdminBookings(){
   tw.innerHTML=`<table class="table">
     <thead><tr><th>Utente</th><th>Evento</th><th>Dettaglio</th><th style="white-space:nowrap">Tier</th><th>Totale</th><th>Pagato</th><th>Anticipo</th><th>Azioni</th></tr></thead>
     <tbody>${bks.map(b=>{
+      _sanitizeGiftBug(b);
       const isCancelled=b.status==='cancellata';
       const rowStyle=isCancelled?'opacity:.5':b.depositStatus==='pending'?'background:rgba(234,179,8,.03)':'';
       const evType=getEvType(b.eventId);
@@ -20428,29 +20429,88 @@ function cancelBooking(bId){
     renderAdminBookings();showToast('Prenotazione cancellata','error');
   },'danger');
 }
+/**
+ * V3.10.24: Sanitize bookings that were corrupted by the gift toggle bug.
+ * If a booking has gift=false, amount=0, and a _preGiftSnapshot with amount>0,
+ * it means the restore failed — apply the snapshot now.
+ */
+function _sanitizeGiftBug(b){
+  if(b.gift)return false; // still a gift, nothing to fix
+  if(b.amount>0||b.totalAmount>0)return false; // amount is fine
+  if(!b._preGiftSnapshot)return false; // no snapshot to restore from
+  const snap=b._preGiftSnapshot;
+  if(!snap.amount&&!snap.totalAmount)return false; // snapshot also has 0
+  // Found corrupted booking — restore silently
+  b.amount=snap.amount||0;b.totalAmount=snap.totalAmount||0;
+  b.paymentStatus=snap.paymentStatus||null;b.depositStatus=snap.depositStatus||null;
+  b.insurancePaid=snap.insurancePaid!=null?snap.insurancePaid:b.insurancePaid;
+  b.insuranceSurcharge=snap.insuranceSurcharge!=null?snap.insuranceSurcharge:b.insuranceSurcharge;
+  if(snap.items)b.items=snap.items;
+  delete b._preGiftSnapshot;
+  // Persist fix to Firestore
+  fsUpdate('bookings',b.id,{
+    amount:b.amount,totalAmount:b.totalAmount,
+    paymentStatus:b.paymentStatus,depositStatus:b.depositStatus,
+    insurancePaid:b.insurancePaid,insuranceSurcharge:b.insuranceSurcharge,
+    items:b.items||null,
+    _preGiftSnapshot:firebase.firestore.FieldValue.delete()
+  }).catch(console.error);
+  console.log('[V3.10.24] Auto-fixed corrupted gift booking:',b.id,'restored amount:',b.amount);
+  return true;
+}
+
 function toggleGift(bId,ctx){
   const b=store.bookings.find(x=>x.id===bId);if(!b)return;
   b.gift=!b.gift;
   const updates={gift:b.gift};
   if(b.gift){
-    b._preGiftSnapshot={amount:b.amount,totalAmount:b.totalAmount,paymentStatus:b.paymentStatus,depositStatus:b.depositStatus,insurancePaid:b.insurancePaid,insuranceSurcharge:b.insuranceSurcharge,items:(b.items||[]).map(i=>({...i}))};
+    // Save snapshot of current values BOTH locally and on Firestore
+    const snapshot={amount:b.amount,totalAmount:b.totalAmount,paymentStatus:b.paymentStatus,depositStatus:b.depositStatus,insurancePaid:b.insurancePaid,insuranceSurcharge:b.insuranceSurcharge,items:(b.items||[]).map(i=>({...i}))};
+    b._preGiftSnapshot=snapshot;
+    updates._preGiftSnapshot=snapshot;
+    // Zero out all financial fields
     b.depositStatus=null;b.paymentStatus='gratuito';b.amount=0;b.totalAmount=0;b.insurancePaid=null;b.insuranceSurcharge=0;
     if(b.items&&b.items.length)b.items.forEach(i=>{i.price=0;});
     updates.depositStatus=null;updates.paymentStatus='gratuito';updates.amount=0;updates.totalAmount=0;updates.insurancePaid=null;updates.insuranceSurcharge=0;
     if(b.items)updates.items=b.items;
     showToast('🎁 Contrassegnato come regalo');
   }else{
+    // Restore from snapshot (check Firestore-persisted field first, then local)
     const snap=b._preGiftSnapshot;
     if(snap){
-      b.amount=snap.amount;b.totalAmount=snap.totalAmount;b.paymentStatus=snap.paymentStatus;b.depositStatus=snap.depositStatus;
-      b.insurancePaid=snap.insurancePaid!=null?snap.insurancePaid:b.insurancePaid;b.insuranceSurcharge=snap.insuranceSurcharge!=null?snap.insuranceSurcharge:b.insuranceSurcharge;
+      b.amount=snap.amount||0;b.totalAmount=snap.totalAmount||0;
+      b.paymentStatus=snap.paymentStatus||null;b.depositStatus=snap.depositStatus||null;
+      b.insurancePaid=snap.insurancePaid!=null?snap.insurancePaid:b.insurancePaid;
+      b.insuranceSurcharge=snap.insuranceSurcharge!=null?snap.insuranceSurcharge:b.insuranceSurcharge;
       if(snap.items)b.items=snap.items;
-      updates.amount=snap.amount;updates.totalAmount=snap.totalAmount;updates.paymentStatus=snap.paymentStatus;updates.depositStatus=snap.depositStatus;
+      updates.amount=b.amount;updates.totalAmount=b.totalAmount;
+      updates.paymentStatus=b.paymentStatus;updates.depositStatus=b.depositStatus;
       updates.insurancePaid=b.insurancePaid;updates.insuranceSurcharge=b.insuranceSurcharge;
       if(snap.items)updates.items=snap.items;
+      // Clean up snapshot from both local and Firestore
       delete b._preGiftSnapshot;
+      updates._preGiftSnapshot=firebase.firestore.FieldValue.delete();
     }else{
-      b.paymentStatus=null;updates.paymentStatus=null;
+      // No snapshot available — try to recalculate from event pricing
+      const ev=store.events.find(e=>e.id===b.eventId);
+      if(ev&&ev.pricingMode!=='free'&&ev.pricingMode!=='direct'){
+        // Recalculate amount from booking tier and event tiers
+        const tierPrice=(()=>{
+          if(b.tier&&ev.tiers&&ev.tiers[b.tier]!=null)return ev.tiers[b.tier];
+          if(ev.tiers&&ev.tiers.medio!=null)return ev.tiers.medio;
+          return 0;
+        })();
+        b.amount=tierPrice;b.totalAmount=tierPrice;
+        b.paymentStatus=null;b.depositStatus=null;
+        updates.amount=tierPrice;updates.totalAmount=tierPrice;
+        updates.paymentStatus=null;updates.depositStatus=null;
+        updates._preGiftSnapshot=firebase.firestore.FieldValue.delete();
+        console.warn('[toggleGift] No snapshot found, recalculated amount from tier:', b.tier, '→ €'+tierPrice);
+      }else{
+        // Free/direct event — just reset payment status
+        b.paymentStatus=null;updates.paymentStatus=null;
+        updates._preGiftSnapshot=firebase.firestore.FieldValue.delete();
+      }
     }
     showToast('Rimosso contrassegno regalo');
   }
@@ -22489,6 +22549,7 @@ async function showAdminEventDetail(evId){
         <thead><tr><th class="th-participant" style="cursor:pointer" onclick="sortAdminDetail('userName')">Partecipante ${adminDetailSort.field==='userName'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('role')">Ruolo ${adminDetailSort.field==='role'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('sessions')">Sessioni ${adminDetailSort.field==='sessions'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${_isCapo&&ev.pricingMode!=='free'&&ev.pricingMode!=='direct'?'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'tier\')">Tier '+(adminDetailSort.field==='tier'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}<th style="cursor:pointer" onclick="sortAdminDetail('checkedIn')">Presente ${adminDetailSort.field==='checkedIn'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${_isCapo&&ev.pricingMode!=='free'&&ev.pricingMode!=='direct'?'<th style="cursor:pointer" onclick="sortAdminDetail(\'amount\')">Importo '+(adminDetailSort.field==='amount'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'paymentStatus\')">Pagato '+(adminDetailSort.field==='paymentStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'depositStatus\')">Anticipo '+(adminDetailSort.field==='depositStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'daIncassare\')">Da incassare '+(adminDetailSort.field==='daIncassare'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${_isCapo&&_hasInsReq?'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'insurancePaid\')">🛡️ Assic. '+(adminDetailSort.field==='insurancePaid'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).length?'<th class="th-survey" style="border-left:2px solid var(--s400);padding-left:12px;cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+(ev.surveys[0].id)+'\')">'+ev.surveys[0].question.substring(0,20)+(ev.surveys[0].question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+ev.surveys[0].id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).slice(1).map(sq=>'<th class="th-survey" style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+sq.id+'\')">'+sq.question.substring(0,20)+(sq.question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+sq.id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>').join('')}<th>Azioni</th></tr></thead>
         <tbody>${active.map(b=>{
           _sanitizeBookingState(b);
+          _sanitizeGiftBug(b);
           const depositHtml=isArchived?(b.depositStatus==='ricevuto'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">✅ Ricevuto</span>':b.depositStatus==='pending'?'<span class="badge badge-yellow">⏳ Pending</span>':'<span class="text-xs txt3">—</span>')
             :(b.depositStatus==='pending'?'<span class="badge badge-yellow" style="cursor:pointer" onclick="event.stopPropagation();confirmDepositCtx(\''+b.id+'\',\'detail\')">⏳ Pending</span>'
             :b.depositStatus==='ricevuto'?'<span class="badge" style="background:var(--green-bg);color:var(--green);cursor:pointer" onclick="event.stopPropagation();revertDepositCtx(\''+b.id+'\',\'detail\')">✅ Ricevuto</span>'
