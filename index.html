@@ -427,7 +427,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.22</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.23</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2817,7 +2817,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.22';
+const APP_VERSION='V3.10.23';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -11000,10 +11000,21 @@ async function doBook(){
     }
   }
 
+  // Block booking if manually closed
+  const _regManualCheck = isRegistrationManuallyControlled(ev, currentBookingRecDate);
+  if (_regManualCheck === true) {
+    showToast('Le iscrizioni per questo evento sono state chiuse dall\'organizzatore', 'error');
+    return;
+  }
+  // If manually force-opened, skip deadline check below
+  const _skipDeadlineCheck = _regManualCheck === false;
+
   // Block booking after deadline (uses getEffectiveBookingDeadline for recurring support)
-  const _effDeadline=getEffectiveBookingDeadline(ev,currentBookingRecDate);
-  if(_effDeadline&&localDateStr(new Date())>_effDeadline){
-    showToast('Le prenotazioni per questo evento sono chiuse (dal '+fmtDateShort(_effDeadline)+')','error');return;
+  if (!_skipDeadlineCheck) {
+    const _effDeadline=getEffectiveBookingDeadline(ev,currentBookingRecDate);
+    if(_effDeadline&&localDateStr(new Date())>_effDeadline){
+      showToast('Le prenotazioni per questo evento sono chiuse (dal '+fmtDateShort(_effDeadline)+')','error');return;
+    }
   }
 
   // Block duplicate booking — check LOCAL store first
@@ -12653,9 +12664,10 @@ async function renderUserEvents(){
     const pricingBadge=ev.pricingMode==='free'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🆓 Gratuito</span>':ev.pricingMode==='managed'?'<span class="badge badge-yellow">🤝 Costi con org.</span>':ev.pricingMode==='direct'?'<span class="badge" style="background:rgba(139,92,246,.1);color:var(--purple)">📞 Costo diretto</span>':(_cardSubInfo&&_cardSubInfo.type==='entry'?'<span class="badge" style="background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)">🎟️ Gratis con abb.</span>':_cardSubInfo&&_cardSubInfo.type==='discount'?'<span class="badge" style="background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)">💰 da €'+_cardSubInfo.price+' <span style="text-decoration:line-through;font-size:.6rem;opacity:.6">€'+_minP+'</span></span>':(_minP>0?'<span class="badge" style="background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)">💰 da €'+_minP+'</span>':''));
     const confirmStatus=getConfirmationStatus(ev);
     const confirmBadge=confirmStatus==='attesa'?'<span class="badge badge-attesa">⏳ Min. non raggiunto</span>':confirmStatus==='deadline_scaduta'?'<span class="badge" style="background:var(--red-bg);color:var(--red)">🚫 Deadline scaduta</span>':confirmStatus==='confermato'?'<span class="badge badge-confermato">✅ Confermato</span>':'';
+    const _regManualCard = isRegistrationManuallyControlled(ev, ev._recDate || null);
     const _effBkDl=getEffectiveBookingDeadline(ev,ev._recDate||null);
     const _todayStr=localDateStr(new Date());
-    const _bookClosed=_effBkDl&&_todayStr>_effBkDl;
+    const _bookClosed=_regManualCard === true ? true : (_regManualCard === false ? false : (_effBkDl&&_todayStr>_effBkDl));
     const bookClosedBadge=_bookClosed?'<span class="badge" style="background:var(--red-bg);color:var(--red)">🔒 Prenotazioni chiuse</span>':'';
     /* Deadline banner — check for active early bird first */
     const _deadlineBanner=(()=>{
@@ -14229,9 +14241,12 @@ function showJamDetail(jamId){
     </div>`;
   }
 
+  const _jamRegClosed = jam.registrationClosedDates && jam.registrationClosedDates['__single__'] === true;
   let joinBtn='';
   if(isJoined){
     joinBtn=`<button class="btn btn-danger" style="width:100%" onclick="leaveJam('${jam.id}')">✕ Non parteciperò più</button>`;
+  } else if(_jamRegClosed){
+    joinBtn=`<button class="btn btn-secondary" style="width:100%;opacity:.5;cursor:not-allowed" disabled>🔒 Iscrizioni chiuse dall'organizzatore</button>`;
   } else if(isFull){
     joinBtn=`<button class="btn btn-secondary" style="width:100%;opacity:.5;cursor:not-allowed" disabled>Posti esauriti</button>`;
   } else {
@@ -14437,6 +14452,11 @@ function joinJam(jamId){
   if(!jam.participants)jam.participants=[];
   const uid=store.currentUser.id;
   if(jam.participants.some(p=>p.userId===uid)){showToast('Sei già iscritto','error');return;}
+  // Check manual registration close for jams
+  if (jam.registrationClosedDates) {
+    const _jamRegState = jam.registrationClosedDates['__single__'];
+    if (_jamRegState === true) { showToast('Le iscrizioni sono state chiuse dall\'organizzatore', 'error'); return; }
+  }
   if(jam.maxSpots&&jam.participants.length>=jam.maxSpots){showToast('Posti esauriti','error');return;}
   jam.participants.push({userId:uid,userName:store.currentUser.username,joinedAt:localDateStr(new Date())});
   fsUpdate('communityJams',jam.id,{participants:jam.participants}).catch(console.error);
@@ -15886,14 +15906,16 @@ async function showEventDetail(evId,recDate){
           +'</div>';
       }
       // === CHECK BOOKING DEADLINE (uses getEffectiveBookingDeadline for recurring support) ===
+      const _regManualDet = isRegistrationManuallyControlled(ev, _detRecDate);
       const _detEffDl=getEffectiveBookingDeadline(ev,_detRecDate);
-      const _bookingClosed=_detEffDl&&localDateStr(new Date())>_detEffDl;
+      const _bookingClosed=_regManualDet === true ? true : (_regManualDet === false ? false : (_detEffDl&&localDateStr(new Date())>_detEffDl));
       if(_bookingClosed){
+        const _closedMsg = _regManualDet === true ? 'Prenotazioni chiuse dall\'organizzatore' : 'Le prenotazioni si sono chiuse il ' + fmtDateShort(_detEffDl);
         return _preRegParticipants+'<h2 class="font-semibold text-white mb-3">Programma</h2>'+daysHtml+eventPkgHtml+loyaltyHtml
           +'<div class="card text-center mt-4" style="border:2px solid var(--red);background:var(--red-bg);padding:20px">'
           +'<span style="font-size:2rem">🔒</span>'
           +'<p class="font-bold mt-2" style="color:var(--red)">Prenotazioni chiuse</p>'
-          +'<p class="text-sm txt3 mt-2">Le prenotazioni si sono chiuse il '+fmtDateShort(_detEffDl)+'</p>'
+          +'<p class="text-sm txt3 mt-2">'+_closedMsg+'</p>'
           +'</div>';
       }
       // === NORMAL BOOKING VIEW ===
@@ -16162,6 +16184,13 @@ async function renderAdminEvents(){
     const _aEndTime=d0?.endTime||(d0?.sessions&&d0.sessions.length?d0.sessions.reduce((m,s)=>s.endTime>m?s.endTime:m,'00:00'):'');
     const partnerBadgeSmall=isPartner?getCapofilaLabel(ev,u.id):'';
     const alertBadge=ev.alert?'<span class="badge" style="background:'+(ev.alert.type==='modificato'?'var(--orange-bg)':'var(--red-bg)')+';color:'+(ev.alert.type==='modificato'?'var(--orange)':'var(--red)')+'">⚠️ '+(ev.alert.type==='cancellato'?'Annullato':ev.alert.type==='rimandato'?'Rimandato':'Modificato')+'</span>':'';
+    const _hasClosedDates = ev.registrationClosedDates && Object.values(ev.registrationClosedDates).some(v => v === true);
+    const _closedCount = _hasClosedDates ? Object.values(ev.registrationClosedDates).filter(v => v === true).length : 0;
+    const _regClosedLabel = _hasClosedDates
+      ? (ev.recurrence
+        ? '<div style="font-size:.55rem;color:var(--red);margin-top:2px">🔒 ' + _closedCount + ' data' + (_closedCount > 1 ? 'e' : '') + ' con iscrizioni chiuse</div>'
+        : '<div style="font-size:.55rem;color:var(--red);margin-top:2px">🔒 Iscrizioni chiuse</div>')
+      : '';
     return `<div class="card-hover mb-4" style="border-radius:16px;overflow:hidden;padding:0;${opacity};${partnerBorder}" onclick="showAdminEventDetail('${ev.id}')">
       <div style="display:flex;align-items:stretch">
         ${_aUniStrip}
@@ -16177,6 +16206,7 @@ async function renderAdminEvents(){
             <div style="margin-top:8px;font-size:.78rem;color:var(--txt2)">
               🕐 dalle ${_aStartTime} alle ${_aEndTime} · <a style="color:var(--brand-l);cursor:pointer;text-decoration:none" onclick="event.stopPropagation();showOrgPublicProfile('${ev.managerId}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${escHtml(ev.orgName)}</a>${_aPartnerHtml}
             </div>
+            ${_regClosedLabel}
             <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">${actions}</div>
           </div>
         </div>
@@ -16309,6 +16339,85 @@ function renderRecExclusions(){
    - For non-recurring with bookingDeadline: that fixed date
    - Fallback: end of last event day (or recDate for recurring)
 */
+/**
+ * Checks manual registration control for a specific event+date.
+ * Returns: true (manually closed), false (manually forced open), null (no manual control)
+ */
+function isRegistrationManuallyControlled(ev, recDate) {
+  if (!ev.registrationClosedDates) return null;
+  const key = (ev.recurrence && recDate) ? recDate : '__single__';
+  const val = ev.registrationClosedDates[key];
+  if (val === true) return true;
+  if (val === false) return false;
+  return null;
+}
+
+function toggleRegistrationClosed(evId) {
+  const ev = store.events.find(e => e.id === evId);
+  if (!ev) return;
+  const recDate = (ev.recurrence && typeof recDateFilter !== 'undefined' && recDateFilter && recDateFilter !== '__all__') ? recDateFilter : null;
+  const key = recDate || '__single__';
+  const currentState = isRegistrationManuallyControlled(ev, recDate);
+
+  if (currentState === true) {
+    const _effDl = getEffectiveBookingDeadline(ev, recDate);
+    const _today = localDateStr(new Date());
+    const deadlinePassed = _effDl && _today > _effDl;
+
+    if (deadlinePassed) {
+      showConfirm(
+        'Riapri iscrizioni',
+        'La deadline automatica (' + (_effDl ? fmtDateShort(_effDl) : '—') + ') è già scaduta. Vuoi forzare la riapertura delle iscrizioni' + (recDate ? ' per il ' + fmtDate(recDate) : '') + '? Le iscrizioni resteranno aperte finché non le chiudi di nuovo.',
+        () => {
+          if (!ev.registrationClosedDates) ev.registrationClosedDates = {};
+          ev.registrationClosedDates[key] = false;
+          fsUpdate('events', ev.id, { registrationClosedDates: ev.registrationClosedDates }).catch(console.error);
+          showToast('Iscrizioni riaperte forzatamente' + (recDate ? ' per il ' + fmtDate(recDate) : ''), 'success');
+          showAdminEventDetail(evId);
+        }
+      );
+    } else {
+      showConfirm(
+        'Riapri iscrizioni',
+        'Riaprire le iscrizioni' + (recDate ? ' per il ' + fmtDate(recDate) : '') + '? La deadline automatica' + (_effDl ? ' (' + fmtDateShort(_effDl) + ')' : '') + ' tornerà attiva.',
+        () => {
+          if (!ev.registrationClosedDates) ev.registrationClosedDates = {};
+          delete ev.registrationClosedDates[key];
+          if (Object.keys(ev.registrationClosedDates).length === 0) delete ev.registrationClosedDates;
+          fsUpdate('events', ev.id, { registrationClosedDates: ev.registrationClosedDates || firebase.firestore.FieldValue.delete() }).catch(console.error);
+          showToast('Iscrizioni riaperte' + (recDate ? ' per il ' + fmtDate(recDate) : ''), 'success');
+          showAdminEventDetail(evId);
+        }
+      );
+    }
+  } else if (currentState === false) {
+    showConfirm(
+      'Chiudi iscrizioni',
+      'Chiudere nuovamente le iscrizioni' + (recDate ? ' per il ' + fmtDate(recDate) : '') + '?',
+      () => {
+        if (!ev.registrationClosedDates) ev.registrationClosedDates = {};
+        ev.registrationClosedDates[key] = true;
+        fsUpdate('events', ev.id, { registrationClosedDates: ev.registrationClosedDates }).catch(console.error);
+        showToast('Iscrizioni chiuse' + (recDate ? ' per il ' + fmtDate(recDate) : ''), 'success');
+        showAdminEventDetail(evId);
+      }
+    );
+  } else {
+    const activeCount = store.bookings.filter(b => b.eventId === ev.id && b.status !== 'cancellata' && (!recDate || (b.recurringDate || null) === recDate)).length;
+    showConfirm(
+      'Chiudi iscrizioni',
+      'Chiudere le iscrizioni' + (recDate ? ' per il ' + fmtDate(recDate) : '') + '? Attualmente ci sono ' + activeCount + ' iscritti. Le iscrizioni esistenti non verranno cancellate.',
+      () => {
+        if (!ev.registrationClosedDates) ev.registrationClosedDates = {};
+        ev.registrationClosedDates[key] = true;
+        fsUpdate('events', ev.id, { registrationClosedDates: ev.registrationClosedDates }).catch(console.error);
+        showToast('Iscrizioni chiuse' + (recDate ? ' per il ' + fmtDate(recDate) : ''), 'success');
+        showAdminEventDetail(evId);
+      }
+    );
+  }
+}
+
 function getEffectiveBookingDeadline(ev,recDate){
   // Recurring event: always calculate per-instance deadline
   if(ev.recurrence&&recDate){
@@ -19975,6 +20084,19 @@ function saveAsDraft(){
           // Preserve recurrence metadata
           if(oldEv.recurrence){if(ev.recurrence){ev.recurrence.exceptions=oldEv.recurrence.exceptions||{};ev.recurrence.active=oldEv.recurrence.active;ev.recurrence.pausedUntil=oldEv.recurrence.pausedUntil||null;}else{ev.recurrence=oldEv.recurrence;}}
           if(oldEv.bookings)ev.bookings=oldEv.bookings;
+          // V3.10.23: If booking deadline changed, reset manual registration close flags
+          if (oldEv.registrationClosedDates && Object.keys(oldEv.registrationClosedDates).length > 0) {
+            const deadlineChanged = (oldEv.bookingDeadline || null) !== (ev.bookingDeadline || null)
+              || (oldEv.bookingDeadlineDaysBefore != null && oldEv.bookingDeadlineDaysBefore !== ev.bookingDeadlineDaysBefore);
+            if (deadlineChanged) {
+              console.log('[V3.10.23] Deadline changed, clearing registrationClosedDates');
+              ev.registrationClosedDates = null;
+            } else {
+              ev.registrationClosedDates = oldEv.registrationClosedDates;
+            }
+          } else {
+            ev.registrationClosedDates = oldEv.registrationClosedDates || null;
+          }
           // V3.1.7 FIX: Write to Firestore FIRST, then update local store
           console.log('[saveAsDraft] SAVING event. type:', ev.type, 'pricingMode:', ev.pricingMode);
           console.log('[saveAsDraft] Event-level EB:', ev.earlyBird);
@@ -20035,6 +20157,19 @@ function publishNewEvent(){
           // Preserve recurrence metadata
           if(oldEv2.recurrence){if(ev.recurrence){ev.recurrence.exceptions=oldEv2.recurrence.exceptions||{};ev.recurrence.active=oldEv2.recurrence.active;ev.recurrence.pausedUntil=oldEv2.recurrence.pausedUntil||null;}else{ev.recurrence=oldEv2.recurrence;}}
           if(oldEv2.bookings)ev.bookings=oldEv2.bookings;
+          // V3.10.23: If booking deadline changed, reset manual registration close flags
+          if (oldEv2.registrationClosedDates && Object.keys(oldEv2.registrationClosedDates).length > 0) {
+            const deadlineChanged = (oldEv2.bookingDeadline || null) !== (ev.bookingDeadline || null)
+              || (oldEv2.bookingDeadlineDaysBefore != null && oldEv2.bookingDeadlineDaysBefore !== ev.bookingDeadlineDaysBefore);
+            if (deadlineChanged) {
+              console.log('[V3.10.23] Deadline changed, clearing registrationClosedDates');
+              ev.registrationClosedDates = null;
+            } else {
+              ev.registrationClosedDates = oldEv2.registrationClosedDates;
+            }
+          } else {
+            ev.registrationClosedDates = oldEv2.registrationClosedDates || null;
+          }
           console.log('[publishNewEvent] SAVING event. type:', ev.type, 'pricingMode:', ev.pricingMode);
           console.log('[publishNewEvent] Event-level EB:', ev.earlyBird);
           ev.days.forEach((d,i)=>{console.log(`[publishNewEvent] Day ${i} EB:`, d.earlyBird);d.sessions.forEach((s,j)=>{console.log(`[publishNewEvent] Session ${i}-${j} EB:`, s.earlyBird);});});
@@ -22180,7 +22315,9 @@ async function showAdminEventDetail(evId){
       const label=fmtDate(d);
       const icon=isPast?'📋':'📅';
       const pastLabel=isPast?' (concluso)':'';
-      return `<button class="btn btn-sm" style="padding:6px 14px;font-size:.78rem;border-radius:20px;${isActive?'background:var(--brand);color:#fff;border:1px solid var(--brand)':'background:var(--s200);color:var(--txt2);border:1px solid var(--s400)'}" onclick="setAdminRecDateFilter('${d}','${evId}')">${icon} ${label}${pastLabel}</button>`;
+      const _regLock = isRegistrationManuallyControlled(ev, d);
+      const _regLockIcon = _regLock === true ? ' <span style="font-size:.55rem;color:var(--red)">🔒</span>' : _regLock === false ? ' <span style="font-size:.55rem;color:var(--green)">🔓</span>' : '';
+      return `<button class="btn btn-sm" style="padding:6px 14px;font-size:.78rem;border-radius:20px;${isActive?'background:var(--brand);color:#fff;border:1px solid var(--brand)':'background:var(--s200);color:var(--txt2);border:1px solid var(--s400)'}" onclick="setAdminRecDateFilter('${d}','${evId}')">${icon} ${label}${pastLabel}${_regLockIcon}</button>`;
     }).join('');
     const allActive=recDateFilter==='__all__';
     const allBtn=`<button class="btn btn-sm" style="padding:6px 14px;font-size:.78rem;border-radius:20px;${allActive?'background:var(--brand);color:#fff;border:1px solid var(--brand)':'background:var(--s200);color:var(--txt2);border:1px solid var(--s400)'}" onclick="setAdminRecDateFilter('__all__','${evId}')">📊 Tutte le date</button>`;
@@ -22201,15 +22338,30 @@ async function showAdminEventDetail(evId){
       const _hb=store.bookings.some(b=>b.eventId===ev.id&&b.status!=='cancellata');
       const _isPaused=ev.recurrence&&ev.recurrence.active===false;
       const _resumeBtn=_isPaused?'<button class="btn btn-sm" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="resumeRecurring(\''+ev.id+'\')">▶️ Riprendi</button>':'';
+      const _regRecDate=(ev.recurrence&&typeof recDateFilter!=='undefined'&&recDateFilter&&recDateFilter!=='__all__')?recDateFilter:null;
+      const _regManual=isRegistrationManuallyControlled(ev,_regRecDate);
+      const _regDateLabel=_regRecDate?' ('+fmtDate(_regRecDate)+')':'';
+      const _regCloseBtn=(_regManual===true)
+        ?'<button class="btn btn-sm" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.25);border-radius:20px;font-size:.7rem;font-weight:700" onclick="event.stopPropagation();toggleRegistrationClosed(\''+ev.id+'\')">🔓 Riapri Iscrizioni'+_regDateLabel+'</button>'
+        :(_regManual===false)
+          ?'<button class="btn btn-sm" style="background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.25);border-radius:20px;font-size:.7rem;font-weight:700" onclick="event.stopPropagation();toggleRegistrationClosed(\''+ev.id+'\')">🔒 Chiudi Iscrizioni'+_regDateLabel+'</button>'
+          :'<button class="btn btn-sm" style="background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.25);border-radius:20px;font-size:.7rem;font-weight:700" onclick="event.stopPropagation();toggleRegistrationClosed(\''+ev.id+'\')">🔒 Chiudi Iscrizioni'+_regDateLabel+'</button>';
       const _shareBtn='<button class="btn btn-sm" style="background:rgba(59,130,246,.1);color:var(--blue);border:1px solid rgba(59,130,246,.25)" onclick="openShareModal(\''+ev.id+'\')">📤 Condividi</button>';
-      if(_hb)return _eyeBtn+_shareBtn+'<button class="btn btn-sm" style="background:rgba(249,115,22,.12);color:var(--orange);border:1px solid rgba(249,115,22,.3)" onclick="openAlertModal(\''+ev.id+'\')">⚠️ Modifica o Cancella</button>'+_resumeBtn;
-      return _eyeBtn+_shareBtn+_resumeBtn+'<button class="btn btn-sm" style="background:rgba(234,179,8,.15);color:var(--yellow);border:1px solid rgba(234,179,8,.3)" onclick="revertToDraft(\''+ev.id+'\')">📝 Torna in bozza</button><button class="btn btn-danger btn-sm" onclick="deleteEvent(\''+ev.id+'\')">🗑️ Elimina</button>';
+      if(_hb)return _eyeBtn+_shareBtn+'<button class="btn btn-sm" style="background:rgba(249,115,22,.12);color:var(--orange);border:1px solid rgba(249,115,22,.3)" onclick="openAlertModal(\''+ev.id+'\')">⚠️ Modifica o Cancella</button>'+_resumeBtn+_regCloseBtn;
+      return _eyeBtn+_shareBtn+_resumeBtn+_regCloseBtn+'<button class="btn btn-sm" style="background:rgba(234,179,8,.15);color:var(--yellow);border:1px solid rgba(234,179,8,.3)" onclick="revertToDraft(\''+ev.id+'\')">📝 Torna in bozza</button><button class="btn btn-danger btn-sm" onclick="deleteEvent(\''+ev.id+'\')">🗑️ Elimina</button>';
     }
     if(ev.status==='cancellato')return '<button class="btn btn-ghost btn-sm" onclick="showEventDetail(\''+ev.id+'\')">👁️ Preview</button><button class="btn btn-danger btn-sm" onclick="hardDeleteEvent(\''+ev.id+'\')">🗑️ Elimina</button>';
     if(ev.status==='archiviato')return _eyeBtn+'<button class="btn btn-sm" style="background:rgba(99,102,241,.1);color:#6366f1;border:1px solid rgba(99,102,241,.2);font-size:.75rem" onclick="copyEventAsTemplate(\''+ev.id+'\')">📋 Usa come template</button>';
     // concluso
     return _eyeBtn+'<button class="btn btn-sm" style="background:rgba(99,102,241,.08);color:#6366f1;border:1px solid rgba(99,102,241,.2);font-size:.75rem" onclick="archiveEvent(\''+ev.id+'\')">📦 Archivia</button><button class="btn btn-sm" style="background:rgba(99,102,241,.1);color:#6366f1;border:1px solid rgba(99,102,241,.2);font-size:.75rem" onclick="copyEventAsTemplate(\''+ev.id+'\')">📋 Template</button>';
   })();
+
+  const _regManualForBadge = isRegistrationManuallyControlled(ev, (ev.recurrence && recDateFilter && recDateFilter !== '__all__') ? recDateFilter : null);
+  const _regBadgeHtml = _regManualForBadge === true
+    ? '<span class="badge" style="background:var(--red-bg);color:var(--red)">🔒 Iscrizioni chiuse</span>'
+    : _regManualForBadge === false
+      ? '<span class="badge" style="background:var(--green-bg);color:var(--green)">🔓 Riaperte</span>'
+      : '';
 
   c.innerHTML=`<div class="container" style="padding-top:32px;padding-bottom:48px;max-width:1100px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px">
@@ -22231,6 +22383,7 @@ async function showAdminEventDetail(evId){
         <span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>
         <span class="badge ${badgeStatus(ev.status)}">${capitalize(ev.status)}</span>
         ${getRecurrenceBadge(ev)}
+        ${_regBadgeHtml}
       </div>
       <h1 class="text-2xl font-bold text-white" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px" onclick="const _d=this.nextElementSibling;_d.classList.toggle('hidden');this.querySelector('.ev-desc-arrow').textContent=_d.classList.contains('hidden')?'▸':'▾'">${escHtml(ev.title)} <span class="ev-desc-arrow" style="font-size:.7rem;color:var(--txt3);flex-shrink:0">▸</span></h1>
       <div class="hidden">
