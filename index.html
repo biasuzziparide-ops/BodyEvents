@@ -427,7 +427,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.21</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.22</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2817,7 +2817,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.21';
+const APP_VERSION='V3.10.22';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -12853,8 +12853,10 @@ async function renderUserEvents(){
     const uid=store.currentUser.id;
     const isJoined=(jam.participants||[]).some(p=>p.userId===uid);
     const joinedBadge=isJoined?'<span class="badge" style="background:rgba(16,185,129,.15);color:var(--green)">✅ Iscritto</span>':'';
+    const _jamIscrittoBadge=isJoined?'<div style="position:absolute;top:6px;right:0;z-index:10;transform:rotate(12deg);background:var(--green);color:#fff;font-size:.6rem;font-weight:800;letter-spacing:1.2px;padding:3px 12px 3px 10px;border-radius:4px;box-shadow:0 2px 8px rgba(16,185,129,.45);border:1.5px solid rgba(255,255,255,.2)">✓ ISCRITTO</div>':'';
     const _jamUniStrip=(jam.universeIds||[]).length?getUniverseStripHtml({universeIds:jam.universeIds}):'<div style="width:26px;flex-shrink:0;background:var(--green);display:flex;align-items:center;justify-content:center;border-radius:16px 0 0 16px"><span style="writing-mode:vertical-lr;text-orientation:mixed;transform:rotate(180deg);font-size:.55rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,245,.85);white-space:nowrap;user-select:none">Community</span></div>';
-    return `<div class="card-hover mb-4" style="border-radius:16px;overflow:hidden;padding:0" onclick="showJamDetail('${jam.id}')">
+    return `<div class="card-hover mb-4" style="border-radius:16px;overflow:hidden;padding:0;position:relative" onclick="showJamDetail('${jam.id}')">
+      ${_jamIscrittoBadge}
       <div style="display:flex;align-items:stretch">
         ${_jamUniStrip}
         <div style="flex:1;min-width:0;padding:14px 16px;display:flex;gap:14px;align-items:flex-start">
@@ -12866,7 +12868,7 @@ async function renderUserEvents(){
             </div>
           </div>
           <div class="flex-1">
-            <div class="flex gap-2 flex-wrap mb-1"><span class="badge ${badgeType(jam.type||'jam')}" style="${badgeTypeStyle(jam.type||'jam')}">${getJamTypeDisplay(jam.type||'jam')}</span><span class="badge" style="background:rgba(255,255,255,.04);color:var(--txt2);border:1px dashed rgba(255,255,255,.12);font-size:.6rem">🤝 Community</span>${joinedBadge}</div>
+            <div class="flex gap-2 flex-wrap mb-1"><span class="badge ${badgeType(jam.type||'jam')}" style="${badgeTypeStyle(jam.type||'jam')}">${getJamTypeDisplay(jam.type||'jam')}</span><span class="badge" style="background:rgba(255,255,255,.04);color:var(--txt2);border:1px dashed rgba(255,255,255,.12);font-size:.6rem">🤝 Community</span></div>
             <h3 class="font-semibold text-white">${escHtml(jam.title)}</h3>
             <div class="flex gap-3 mt-1 text-xs txt3">
               <span>📅 ${fmtDate(jam.date)}</span><span>🕐 ${jam.startTime} — ${jam.endTime}</span>
