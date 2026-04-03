@@ -427,7 +427,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.30</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.32</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2818,7 +2818,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.30';
+const APP_VERSION='V3.10.32';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -13151,16 +13151,27 @@ async function renderUserDashboard(){
     if(!bookingsByType[type])bookingsByType[type]=[];
     bookingsByType[type].push(b);
   });
+  // V3.10.31: Merge community jams into bookingsByType for unified display
+  allUserJams.forEach(jam=>{
+    if(!bookingsByType['jam'])bookingsByType['jam']=[];
+    bookingsByType['jam'].push({_isCommunityJam:true,_jam:jam});
+  });
+  // Sort mixed sections (regular bookings + community jams) by date
+  Object.keys(bookingsByType).forEach(_sType=>{
+    bookingsByType[_sType].sort((_sa,_sb)=>{
+      const _sdA=_sa._isCommunityJam?(_sa._jam.date||''):(_sa.recurringDate||(store.events.find(e=>e.id===_sa.eventId)?.days?.[0]?.date)||'');
+      const _sdB=_sb._isCommunityJam?(_sb._jam.date||''):(_sb.recurringDate||(store.events.find(e=>e.id===_sb.eventId)?.days?.[0]?.date)||'');
+      return _sdA.localeCompare(_sdB);
+    });
+  });
   // Section order: by date of first upcoming event in each section (chronological)
   const sectionOrder=Object.keys(bookingsByType)
     .filter(type=>bookingsByType[type]&&bookingsByType[type].length>0)
     .sort((a,b)=>{
       const firstA=bookingsByType[a][0];
       const firstB=bookingsByType[b][0];
-      const evA=store.events.find(e=>e.id===firstA.eventId);
-      const evB=store.events.find(e=>e.id===firstB.eventId);
-      const dateA=firstA.recurringDate||evA?.days?.[0]?.date||'';
-      const dateB=firstB.recurringDate||evB?.days?.[0]?.date||'';
+      const dateA=firstA._isCommunityJam?(firstA._jam.date||''):(firstA.recurringDate||(store.events.find(e=>e.id===firstA.eventId)?.days?.[0]?.date)||'');
+      const dateB=firstB._isCommunityJam?(firstB._jam.date||''):(firstB.recurringDate||(store.events.find(e=>e.id===firstB.eventId)?.days?.[0]?.date)||'');
       return dateA.localeCompare(dateB);
     });
 
@@ -13180,6 +13191,62 @@ async function renderUserDashboard(){
     const _secLabel=getEventTypeLabel(_secType);
     html+=`<h2 class="font-semibold text-white mb-3 mt-6">${_secIcon} ${_secLabel} (${_typeBks.length})</h2>`;
     _typeBks.forEach((b,i)=>{
+    // V3.10.31: Community jam card (from store.communityJams)
+    if(b._isCommunityJam){
+      const jam=b._jam;
+      const _jDd=jam.date?new Date(jam.date+'T00:00:00'):null;
+      const _jDayNum=_jDd?_jDd.getDate():'';
+      const _jMonthStr=_jDd?MONTHS_IT[_jDd.getMonth()]:'';
+      const _jYearStr=_jDd?_jDd.getFullYear():'';
+      const _jParts=(jam.participants||[]).length;
+      const _jSpotsText=jam.maxSpots?_jParts+'/'+jam.maxSpots:_jParts+'';
+      const _jUnivBadges=(jam.universeIds||[]).map(id=>getUniverseBadgeHtml(id)).join('');
+      const _jUnread=_isJamUnread(jam.id);
+      const _jHasNote=jam.creatorNote&&jam.creatorNote.text;
+      const _jNoticeBadge=_jHasNote&&_jUnread?`<div style="position:absolute;top:-4px;right:0;z-index:10;width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#eab308,#ca8a04);display:flex;align-items:center;justify-content:center;border:2.5px solid var(--s50);box-shadow:0 2px 10px rgba(234,179,8,.5)"><span style="font-size:1.05rem">📢</span></div><div style="position:absolute;top:0;right:0;bottom:0;width:4px;border-radius:0 16px 16px 0;background:linear-gradient(to bottom,#eab308,#ca8a04);z-index:3"></div>`:'';
+      const _jUnreadBadge=_jUnread?'<span class="notif-card-badge" style="margin-left:auto">📢 Novità</span>':'';
+      const _jBorderColor=_jHasNote&&_jUnread?'rgba(234,179,8,.5)':'var(--green)';
+      const _jCreatorName=resolveUserName(jam.userId,jam.userName||'');
+      const _jUniStrip=(jam.universeIds&&jam.universeIds.length)?getUniverseStripHtml({universeIds:jam.universeIds}):'';
+      // Card thumb: date block only (community jams have no image)
+      const _jDateBlock=`<div style="flex-shrink:0;width:80px;align-self:stretch;display:flex;align-items:center;justify-content:center">
+            <div class="date-block" style="position:relative;width:80px;border-radius:12px;background:linear-gradient(160deg,rgba(16,185,129,.14),rgba(16,185,129,.06));border:1px solid rgba(16,185,129,.15);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:14px 0">
+              <span style="font-size:1.6rem;font-weight:800;color:#fff;line-height:1.1">${_jDayNum}</span>
+              <span style="font-size:.7rem;font-weight:700;color:rgba(16,185,129,.65);text-transform:uppercase;line-height:1;letter-spacing:.5px">${_jMonthStr}</span>
+              <span style="font-size:.55rem;font-weight:500;color:rgba(16,185,129,.35);line-height:1;margin-top:2px">${_jYearStr}</span>
+            </div>
+          </div>`;
+      html+=`<div class="card-hover mb-4" style="border-radius:16px;overflow:hidden;padding:0;border-color:${_jBorderColor};background:rgba(16,185,129,.03);position:relative" onclick="showJamDetail('${jam.id}')">
+        ${_jNoticeBadge}
+        <div style="display:flex;align-items:stretch;position:relative;z-index:2">
+          ${_jUniStrip}
+          <div style="flex:1;min-width:0;padding:14px 16px;display:flex;flex-direction:column;gap:0">
+            ${!_firstCardRendered?'<div style="font-size:.65rem;color:var(--txt3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">Prossimo evento</div>':''}
+            <div style="display:flex;gap:14px;align-items:flex-start">
+              ${_jDateBlock}
+              <div style="flex:1;min-width:0">
+                <h3 style="margin:0;font-size:.95rem;font-weight:600;color:#fff;line-height:1.3;overflow-wrap:break-word;word-break:break-word;min-width:0">${escHtml(jam.title)}</h3>
+                <div style="display:flex;gap:4px;flex-wrap:wrap;row-gap:4px;margin-top:4px">
+                  ${_jUnivBadges}<span class="badge ${badgeType(jam.type||'jam')}" style="${badgeTypeStyle(jam.type||'jam')}">${getEventTypeIcon(jam.type||'jam')} ${getEventTypeLabel(jam.type||'jam')}</span><span class="badge" style="background:rgba(16,185,129,.15);color:var(--green)">✅ Iscritto</span>${_jUnreadBadge}
+                </div>
+                <div style="margin-top:8px;font-size:.78rem;color:var(--txt2)">
+                  🕐 ${jam.startTime||''} — ${jam.endTime||''} · 📍 ${escHtml(jam.location||'')} · 👥 ${_jSpotsText}
+                </div>
+                <div style="margin-top:4px;font-size:.75rem;color:var(--txt3)">
+                  proposta da <span style="color:var(--brand-l)">${escHtml(_jCreatorName)}</span>
+                </div>
+                ${_jHasNote?'<div style="margin-top:6px;padding:5px 10px;border-radius:8px;font-size:.7rem;font-weight:600;border:1px solid rgba(234,179,8,.3);background:rgba(234,179,8,.06);color:var(--yellow);display:inline-block">📢 Avviso dal creatore</div>':''}
+                <div style="margin-top:10px">
+                  <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();leaveJam('${jam.id}');setTimeout(renderUserDashboard,300)">✕ Annulla iscrizione</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+      _firstCardRendered=true;
+      return;
+    }
     const ev=store.events.find(e=>e.id===b.eventId);
     if(!ev)return;
     const d0=ev.days[0];
@@ -13394,45 +13461,7 @@ async function renderUserDashboard(){
   });
   }); // end sectionOrder.forEach
 
-  // V3.6.2: I miei Community Event (joined + created, deduped)
-  if(allUserJams.length){
-    html+=`<h2 class="font-semibold text-white mb-3 mt-6">🎉 Community Event a cui sei iscritto (${allUserJams.length})</h2>`;
-    allUserJams.forEach(jam=>{
-      const dd=jam.date?new Date(jam.date+'T00:00:00'):null;
-      const dayNum=dd?dd.getDate():'';
-      const monthStr=dd?MONTHS_IT[dd.getMonth()]:'';
-      const parts=(jam.participants||[]).length;
-      const spotsText=jam.maxSpots?parts+'/'+jam.maxSpots:parts+'';
-      const univBadges=(jam.universeIds||[]).map(id=>getUniverseBadgeHtml(id)).join('');
-      const isJoined=(jam.participants||[]).some(p=>p.userId===uid);
-      const borderColor='var(--green)';
-      const _jamUnread=_isJamUnread(jam.id);
-      const _jamHasNote=jam.creatorNote&&jam.creatorNote.text;
-      const _jamNoticeBadge=_jamHasNote&&_jamUnread?`<div style="position:absolute;top:-4px;right:0;z-index:10;width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#eab308,#ca8a04);display:flex;align-items:center;justify-content:center;border:2.5px solid var(--s50);box-shadow:0 2px 10px rgba(234,179,8,.5)"><span style="font-size:1.05rem">📢</span></div><div style="position:absolute;top:0;right:0;bottom:0;width:4px;border-radius:0 16px 16px 0;background:linear-gradient(to bottom,#eab308,#ca8a04);z-index:3"></div>`:'';
-      const _jamUnreadBadge=_jamUnread?'<span class="notif-card-badge" style="margin-left:auto">📢 Novità</span>':'';
-      html+=`<div class="card mb-4 card-hover" style="border-color:${_jamHasNote&&_jamUnread?'rgba(234,179,8,.5)':borderColor};background:rgba(16,185,129,.03);cursor:pointer;position:relative" onclick="showJamDetail('${jam.id}')">
-        ${_jamNoticeBadge}
-        <div class="flex gap-4" style="align-items:flex-start">
-          <div style="flex-shrink:0;width:56px;height:56px;border-radius:12px;background:rgba(16,185,129,.1);display:flex;flex-direction:column;align-items:center;justify-content:center">
-            <span style="font-size:1.3rem;font-weight:700;color:var(--green)">${dayNum}</span>
-            <span style="font-size:.6rem;color:rgba(16,185,129,.5)">${monthStr}</span>
-          </div>
-          <div class="flex-1">
-            <div class="flex gap-2 flex-wrap mb-1">${univBadges}<span class="badge ${badgeType(jam.type||'jam')}" style="${badgeTypeStyle(jam.type||'jam')}">${getJamTypeDisplay(jam.type||'jam')}</span>${isJoined?'<span class="badge" style="background:rgba(16,185,129,.15);color:var(--green)">✅ Iscritto</span>':jam.userId===uid?'<span class="badge" style="background:rgba(168,85,247,.15);color:var(--purple)">👤 Creatore</span>':''}${_jamUnreadBadge}</div>
-            <h3 class="font-semibold text-white">${escHtml(jam.title)}</h3>
-            <div class="flex gap-3 mt-1 text-xs txt3">
-              <span>📅 ${fmtDate(jam.date)}</span><span>🕐 ${jam.startTime} — ${jam.endTime}</span>
-            </div>
-            <div class="text-xs txt3 mt-1">📍 ${escHtml(jam.location)} · 👥 ${spotsText} partecipanti</div>
-            ${_jamHasNote?'<div style="margin-top:6px;padding:5px 10px;border-radius:8px;font-size:.7rem;font-weight:600;border:1px solid rgba(234,179,8,.3);background:rgba(234,179,8,.06);color:var(--yellow);display:inline-block">📢 Avviso dall\'organizzatore</div>':''}
-          </div>
-        </div>
-        ${isJoined?`<div class="flex gap-2 mt-4" style="border-top:1px solid var(--s300);padding-top:12px">
-          <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();leaveJam('${jam.id}');setTimeout(renderUserDashboard,300)">✕ Annulla iscrizione</button>
-        </div>`:''}
-      </div>`;
-    });
-  }
+  // V3.10.31: Community jams are now merged into bookingsByType (see MODIFICA B1/B3)
 
   // V3.6.2: Archivio (past bookings) — moved to end
   if(pastBookings.length){
@@ -14109,12 +14138,8 @@ function openCreateJamModal(){
   overlay.innerHTML=`
     <div class="dialog" style="max-width:500px">
       <h2 class="text-xl font-bold text-white mb-4">🤝 Proponi un Community Event</h2>
-      <div id="jam-create-infocard-wrap"></div>
-      <div class="mb-4">
-        <label class="label">Tipo di evento</label>
-        <div class="flex gap-2 flex-wrap" id="jam-type-btns"></div>
-        <input class="input mt-2 hidden" id="jam-custom-type" placeholder="Scrivi il tipo...">
-      </div>
+      <!-- V3.10.32: info card banner removed -->
+      <!-- V3.10.32: Tipo evento rimosso — sempre 'jam' di default -->
       <div class="mb-4">
         <label class="label">🌌 Universi *</label>
         <div id="jam-universes-list" class="flex gap-2 flex-wrap"></div>
@@ -14131,7 +14156,7 @@ function openCreateJamModal(){
         <div><label class="label">🗺️ Link Google Maps</label><input class="input" id="jam-location-url" placeholder="https://maps.google.com/..."></div>
       </div>
       <div class="grid grid-2 gap-3 mb-4">
-        <div><label class="label">👥 Max partecipanti</label><input class="input" id="jam-max-spots" type="number" min="2" max="100" placeholder="es. 20"></div>
+        <div><label class="label" style="font-size:.78rem;line-height:1.3">👥 Se vuoi, metti un numero massimo di partecipanti</label><input class="input" id="jam-max-spots" type="number" min="2" max="100" placeholder="es. 20"></div>
         <div><label class="label">💬 Link gruppo WhatsApp</label><input class="input" id="jam-group-link" placeholder="https://chat.whatsapp.com/..."></div>
       </div>
       <div class="mb-4">
@@ -14153,7 +14178,14 @@ function openCreateJamModal(){
   `;
   overlay.onclick=(e)=>{if(e.target===overlay)closeJamModal();};
   document.body.appendChild(overlay);
-  setTimeout(()=>obShowInfoCard('ic_jam_create','jam-create-infocard-wrap'),200);
+  // V3.10.32: Highlight required fields with colored border
+  ['jam-title','jam-date','jam-start','jam-end','jam-location'].forEach(_reqId=>{
+    const _el=document.getElementById(_reqId);
+    if(_el)_el.style.cssText+=';border:1.5px solid rgba(168,85,247,.45);box-shadow:0 0 0 1px rgba(168,85,247,.1)';
+  });
+  const _jucLabel=document.querySelector('#jam-universes-list')?.parentElement?.querySelector('.label');
+  if(_jucLabel)_jucLabel.style.cssText+=';color:var(--brand-l)';
+  // V3.10.32: info card removed from creation form
   document.getElementById('jam-date').value=getTodayDate();
   document.getElementById('jam-start').value=getNowTime();
   updateJamMinSubsDeadline();
@@ -14162,13 +14194,24 @@ function openCreateJamModal(){
   if(juc){
     const active=getActiveUniverses();
     juc.innerHTML=active.map(u=>'<button type="button" class="jam-univ-btn" data-univ="'+u.id+'" onclick="toggleJamUnivBtn(this)" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:12px;border:2px solid '+u.color+'40;background:transparent;color:var(--txt2);font-size:.85rem;font-weight:600;cursor:pointer;transition:all .2s ease;outline:none"><span style="font-size:1.1rem">'+u.emoji+'</span>'+u.name+'</button>').join('');
+    // V3.10.32: Auto-select first universe + banner if multiple
+    if(active.length>=1){
+      const firstBtn=juc.querySelector('.jam-univ-btn');
+      if(firstBtn)toggleJamUnivBtn(firstBtn);
+    }
+    if(active.length>1){
+      const _univBanner=document.createElement('div');
+      _univBanner.style.cssText='margin-top:8px;padding:10px 14px;border-radius:10px;background:rgba(168,85,247,.06);border:1px solid rgba(168,85,247,.15);font-size:.78rem;color:var(--txt2);line-height:1.5';
+      _univBanner.innerHTML='✨ Il tuo evento sarà visibile negli universi selezionati qui sopra: <strong>scegli quello (o quelli) dove si trovano i tuoi amici!</strong>';
+      juc.parentElement.appendChild(_univBanner);
+    }
   }
-  // Populate type buttons from selected universes
-  populateJamTypeButtons();
+  // V3.10.32: Type buttons removed — type is always 'jam'
+  selectedJamType='jam';
 }
 function toggleJamUnivBtn(btn){
   toggleUnivBtn(btn);
-  populateJamTypeButtons();
+  // V3.10.32: populateJamTypeButtons removed — type always 'jam'
 }
 function populateJamTypeButtons(){
   const btnsWrap=document.getElementById('jam-type-btns');if(!btnsWrap)return;
@@ -14573,7 +14616,7 @@ function editJamModal(jamId){
         <div><label class="label">🗺️ Link Maps</label><input class="input" id="je-location-url" value="${escHtml(jam.locationUrl||'')}"></div>
       </div>
       <div class="grid grid-2 gap-3 mb-4">
-        <div><label class="label">👥 Max partecipanti</label><input class="input" id="je-max-spots" type="number" value="${jam.maxSpots||''}"></div>
+        <div><label class="label" style="font-size:.78rem;line-height:1.3">👥 Se vuoi, metti un numero massimo di partecipanti</label><input class="input" id="je-max-spots" type="number" value="${jam.maxSpots||''}"></div>
         <div><label class="label">💬 Link gruppo</label><input class="input" id="je-group-link" value="${escHtml(jam.groupLink||'')}"></div>
       </div>
       <div class="mb-4">
@@ -16297,11 +16340,30 @@ async function renderAdminEvents(){
     const _aMgr=store.managers.find(m=>m.id===ev.managerId);
     const _aOrgLogoHtml=_aMgr&&_aMgr.orgLogo?`<div style="width:26px;height:26px;border-radius:50%;overflow:hidden;border:2px solid var(--s300);flex-shrink:0"><img src="${_aMgr.orgLogo}" style="width:100%;height:100%;object-fit:cover" alt=""></div>`:'';
     const _aUniStrip=getUniverseStripHtml(ev);
-    const levelBadges=getEventLevelBadges(ev);
-    const _aMinP=ev.pricingMode==='standard'?minPrice(ev):0;
-    const _aPricingBadge=ev.pricingMode==='free'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🆓 Gratuito</span>':ev.pricingMode==='managed'?'<span class="badge badge-yellow">🤝 Costi con org.</span>':ev.pricingMode==='direct'?'<span class="badge" style="background:rgba(139,92,246,.1);color:var(--purple)">📞 Costo diretto</span>':(_aMinP>0?'<span class="badge" style="background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)">💰 da €'+_aMinP+'</span>':'');
-    const confirmStatus=getConfirmationStatus(ev);
-    const confirmBadge=confirmStatus==='attesa'?'<span class="badge badge-attesa">⏳ Min. non raggiunto</span>':confirmStatus==='deadline_scaduta'?'<span class="badge" style="background:var(--red-bg);color:var(--red)">🚫 Deadline scaduta</span>':confirmStatus==='confermato'?'<span class="badge badge-confermato">✅ Confermato</span>':'';
+    // V3.10.31: Booking status badge (replaces levelBadges, pricingBadge, confirmBadge, alertBadge)
+    const _abkToday=localDateStr(new Date());
+    let _bookingStatusBadge='';
+    if(ev.recurrence){
+      const _abkHasClosedDates=ev.registrationClosedDates&&Object.values(ev.registrationClosedDates).some(v=>v===true);
+      const _abkClosedCount=_abkHasClosedDates?Object.values(ev.registrationClosedDates).filter(v=>v===true).length:0;
+      const _abkPaused=ev.recurrence.active===false;
+      if(_abkPaused){
+        _bookingStatusBadge='<span class="badge" style="background:var(--red-bg);color:var(--red)">🔒 Prenotazioni chiuse</span>';
+      } else if(_abkHasClosedDates){
+        _bookingStatusBadge='<span class="badge" style="background:rgba(234,179,8,.12);color:var(--yellow);border:1px solid rgba(234,179,8,.25)">⚠️ '+_abkClosedCount+' data'+(_abkClosedCount>1?'e':'')+' con iscrizioni chiuse</span>';
+      } else {
+        _bookingStatusBadge='<span class="badge" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.25)">✅ Prenotazioni aperte</span>';
+      }
+    } else {
+      const _abkManual=isRegistrationManuallyControlled(ev,null);
+      const _abkDeadline=getEffectiveBookingDeadline(ev,null);
+      const _abkActiveCnt=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata').length;
+      const _abkFull=ev.maxSpots>0&&_abkActiveCnt>=ev.maxSpots;
+      const _abkClosed=_abkManual===true?true:(_abkManual===false?false:((_abkDeadline&&_abkToday>_abkDeadline)||_abkFull));
+      _bookingStatusBadge=_abkClosed
+        ?'<span class="badge" style="background:var(--red-bg);color:var(--red)">🔒 Prenotazioni chiuse</span>'
+        :'<span class="badge" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.25)">✅ Prenotazioni aperte</span>';
+    }
     const _aPartnerCount=ev.partnerIds?ev.partnerIds.length:0;
     const _aPartnerHtml=(()=>{
       if(_aPartnerCount===0)return '';
@@ -16311,17 +16373,7 @@ async function renderAdminEvents(){
       }
       return ' <span class="badge" style="background:var(--purple-bg);color:var(--purple);cursor:pointer;font-size:.65rem;padding:1px 8px;white-space:nowrap" onclick="event.stopPropagation();showEventPartners(\''+ev.id+'\')">+'+_aPartnerCount+' partner</span>';
     })();
-    const _aStartTime=d0?.startTime||(d0?.sessions&&d0.sessions.length?d0.sessions.reduce((m,s)=>s.startTime<m?s.startTime:m,'23:59'):'');
-    const _aEndTime=d0?.endTime||(d0?.sessions&&d0.sessions.length?d0.sessions.reduce((m,s)=>s.endTime>m?s.endTime:m,'00:00'):'');
     const partnerBadgeSmall=isPartner?getCapofilaLabel(ev,u.id):'';
-    const alertBadge=ev.alert?'<span class="badge" style="background:'+(ev.alert.type==='modificato'?'var(--orange-bg)':'var(--red-bg)')+';color:'+(ev.alert.type==='modificato'?'var(--orange)':'var(--red)')+'">⚠️ '+(ev.alert.type==='cancellato'?'Annullato':ev.alert.type==='rimandato'?'Rimandato':'Modificato')+'</span>':'';
-    const _hasClosedDates = ev.registrationClosedDates && Object.values(ev.registrationClosedDates).some(v => v === true);
-    const _closedCount = _hasClosedDates ? Object.values(ev.registrationClosedDates).filter(v => v === true).length : 0;
-    const _regClosedLabel = _hasClosedDates
-      ? (ev.recurrence
-        ? '<div style="font-size:.55rem;color:var(--red);margin-top:2px">🔒 ' + _closedCount + ' data' + (_closedCount > 1 ? 'e' : '') + ' con iscrizioni chiuse</div>'
-        : '<div style="font-size:.55rem;color:var(--red);margin-top:2px">🔒 Iscrizioni chiuse</div>')
-      : '';
     const _adminSuspBanner=ev.adminSuspension&&ev.adminSuspension.suspended?'<div style="position:absolute;top:50%;left:50%;z-index:8;transform:translate(-50%,-50%) rotate(-8deg);width:120%;background:rgba(239,68,68,.45);color:#fff;font-size:.65rem;font-weight:800;letter-spacing:2px;padding:6px 0;text-align:center;text-transform:uppercase;white-space:nowrap;pointer-events:none;box-shadow:0 2px 10px rgba(239,68,68,.2);border-top:1px solid rgba(255,255,255,.1);border-bottom:1px solid rgba(255,255,255,.1)">⛔ SOSPESO DALL\'ADMIN</div>':'';
     return `<div class="card-hover mb-4" style="border-radius:16px;overflow:hidden;padding:0;position:relative;${opacity};${partnerBorder}" onclick="showAdminEventDetail('${ev.id}')">
       ${_adminSuspBanner}
@@ -16334,12 +16386,11 @@ async function renderAdminEvents(){
               ${_aOrgLogoHtml}<h3 class="font-semibold text-white" style="margin-bottom:0;font-size:.95rem;line-height:1.3;overflow-wrap:break-word;word-break:break-word;min-width:0">${escHtml(ev.title)}</h3>
             </div>
             <div class="flex gap-2 mt-1 flex-wrap" style="row-gap:4px">
-              ${levelBadges}${_aPricingBadge}${confirmBadge}${alertBadge}
+              ${_bookingStatusBadge}${partnerBadgeSmall}
             </div>
             <div style="margin-top:8px;font-size:.78rem;color:var(--txt2)">
-              🕐 dalle ${_aStartTime} alle ${_aEndTime} · <a style="color:var(--brand-l);cursor:pointer;text-decoration:none" onclick="event.stopPropagation();showOrgPublicProfile('${ev.managerId}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${escHtml(ev.orgName)}</a>${_aPartnerHtml}
+              <a style="color:var(--brand-l);cursor:pointer;text-decoration:none" onclick="event.stopPropagation();showOrgPublicProfile('${ev.managerId}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${escHtml(ev.orgName)}</a>${_aPartnerHtml}
             </div>
-            ${_regClosedLabel}
             <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none">${actions}</div>
           </div>
         </div>
