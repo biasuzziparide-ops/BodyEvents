@@ -427,7 +427,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.27</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.28</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2817,7 +2817,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.27';
+const APP_VERSION='V3.10.28';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -13359,6 +13359,7 @@ async function renderUserDashboard(){
               <span>📅 ${fmtDate(jam.date)}</span><span>🕐 ${jam.startTime} — ${jam.endTime}</span>
             </div>
             <div class="text-xs txt3 mt-1">📍 ${escHtml(jam.location)} · 👥 ${spotsText} partecipanti</div>
+            ${jam.creatorNote&&jam.creatorNote.text?'<div style="margin-top:6px;padding:5px 10px;border-radius:8px;font-size:.7rem;font-weight:600;border:1px solid rgba(234,179,8,.3);background:rgba(234,179,8,.06);color:var(--yellow);display:inline-block">📢 Avviso dall\'organizzatore</div>':''}
           </div>
         </div>
         ${isJoined?`<div class="flex gap-2 mt-4" style="border-top:1px solid var(--s300);padding-top:12px">
@@ -14275,8 +14276,12 @@ function showJamDetail(jamId){
   }).join(''):'<p class="text-sm txt3">Nessun partecipante ancora.</p>';
 
   const isOwner=jam.userId===uid;
+  const _hasJamNote=jam.creatorNote&&jam.creatorNote.text;
   const ownerActions=isOwner?`<div class="flex gap-2 mt-3" style="padding-top:12px;border-top:1px solid var(--s300)">
     <button class="btn btn-secondary btn-sm" onclick="editJamModal('${jam.id}')">✏️ Modifica</button>
+    ${_hasJamNote
+      ?'<button class="btn btn-sm" style="background:var(--yellow-bg);color:var(--yellow);border:1px solid rgba(234,179,8,.4)" onclick="event.stopPropagation();openJamNoteModal(\''+jam.id+'\')"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--yellow);margin-right:4px"></span>📢 Avviso attivo</button>'
+      :'<button class="btn btn-sm" style="background:var(--s200);color:var(--txt2);border:1px solid var(--s400)" onclick="event.stopPropagation();openJamNoteModal(\''+jam.id+'\')">📢 Avviso partecipanti</button>'}
     <button class="btn btn-danger btn-sm" onclick="cancelJam('${jam.id}')">🗑️ Cancella</button>
   </div>`:'';
 
@@ -14293,6 +14298,7 @@ function showJamDetail(jamId){
   c.innerHTML=`<div class="container" style="padding-top:32px;padding-bottom:48px;max-width:700px">
     <div class="text-sm txt3 mb-6" style="cursor:pointer" onclick="go('jams')">← Torna ai Community Events</div>
     ${jamAlertBanner}
+    ${jam.creatorNote&&jam.creatorNote.text?'<div style="background:linear-gradient(135deg,rgba(234,179,8,.08),rgba(249,115,22,.05));border:1px solid rgba(234,179,8,.3);border-radius:14px;padding:16px 18px;margin-bottom:20px"><div style="display:flex;align-items:flex-start;gap:10px"><span style="font-size:1.2rem;flex-shrink:0;margin-top:1px">📢</span><div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:600;color:var(--yellow);margin-bottom:6px">Comunicazione dall\'organizzatore</div><div style="font-size:.85rem;color:var(--txt);line-height:1.7;word-wrap:break-word;white-space:pre-wrap">'+_linkifyText(escHtml(jam.creatorNote.text))+'</div><div style="font-size:.65rem;color:var(--txt3);margin-top:8px">Aggiornato il '+(jam.creatorNote.updatedAt?fmtDateFull(jam.creatorNote.updatedAt.split('T')[0]):'')+'</div></div></div></div>':''}
     <div class="card mb-6">
       <div class="flex gap-2 mb-3 flex-wrap">
         <span class="badge ${badgeType(jam.type||'jam')}" style="${badgeTypeStyle(jam.type||'jam')}">${getJamTypeDisplay(jam.type||'jam')}</span>
@@ -14568,6 +14574,55 @@ function saveJamEdit(jamId){
   document.getElementById('jam-edit-overlay').remove();
   showJamDetail(jamId);
   showToast('Community event aggiornato','success');
+}
+
+/* ==============================
+   COMMUNITY EVENT: CREATOR NOTE (Avviso partecipanti)
+============================== */
+function openJamNoteModal(jamId){
+  const jam=store.communityJams.find(j=>j.id===jamId);if(!jam)return;
+  const existingText=jam.creatorNote&&jam.creatorNote.text?jam.creatorNote.text:'';
+  const hasNote=!!existingText;
+  const o=document.createElement('div');o.className='overlay';o.id='jam-note-overlay';
+  o.onclick=e=>{if(e.target===o)closeJamNoteModal();};
+  o.innerHTML=`<div class="dialog" style="max-width:500px">
+    <h3 class="font-semibold text-white mb-2">📢 Avviso per i partecipanti</h3>
+    <p class="text-xs txt3 mb-3">Questo messaggio sarà visibile a tutti nella pagina del tuo community event. Utile per comunicazioni logistiche, cambiamenti di programma o info aggiuntive. I link verranno resi cliccabili automaticamente.</p>
+    <textarea class="input" id="jam-note-textarea" rows="5" maxlength="1000" placeholder="Es: Il punto di ritrovo è cambiato, ci vediamo al parcheggio nord..." style="resize:vertical;min-height:100px">${escHtml(existingText)}</textarea>
+    <div class="flex justify-between items-center mt-2">
+      <span class="text-xs txt3" id="jam-note-charcount">${existingText.length}/1000</span>
+    </div>
+    <div class="flex gap-2 mt-4" style="justify-content:flex-end">
+      ${hasNote?'<button class="btn btn-sm" style="background:var(--red-bg);color:var(--red);margin-right:auto" onclick="removeJamNote(\''+jamId+'\')">🗑️ Rimuovi</button>':''}
+      <button class="btn btn-sm btn-secondary" onclick="closeJamNoteModal()">Annulla</button>
+      <button class="btn btn-sm btn-primary" onclick="saveJamNote('${jamId}')">💾 Salva</button>
+    </div>
+  </div>`;
+  document.body.appendChild(o);
+  const ta=document.getElementById('jam-note-textarea');
+  if(ta)ta.oninput=()=>{const cc=document.getElementById('jam-note-charcount');if(cc)cc.textContent=ta.value.length+'/1000';};
+}
+function closeJamNoteModal(){const o=document.getElementById('jam-note-overlay');if(o)o.remove();}
+async function saveJamNote(jamId){
+  const text=(document.getElementById('jam-note-textarea')?.value||'').trim();
+  if(!text){showToast('Scrivi un messaggio prima di salvare','error');return;}
+  const jam=store.communityJams.find(j=>j.id===jamId);if(!jam)return;
+  const note={text,updatedAt:new Date().toISOString()};
+  try{
+    jam.creatorNote=note;
+    await fsUpdate('communityJams',jam.id,{creatorNote:note});
+    closeJamNoteModal();showToast('Avviso salvato!');
+    showJamDetail(jamId);
+  }catch(err){console.error('saveJamNote error:',err);showToast('Errore nel salvataggio','error');}
+}
+async function removeJamNote(jamId){
+  const jam=store.communityJams.find(j=>j.id===jamId);if(!jam)return;
+  try{
+    delete jam.creatorNote;
+    await fbDb.collection('communityJams').doc(jamId).update({creatorNote:firebase.firestore.FieldValue.delete()});
+    closeJamNoteModal();showToast('Avviso rimosso');
+    showJamDetail(jamId);
+  }catch(err){console.error('removeJamNote error:',err);showToast('Errore nella rimozione','error');}
 }
 
 function cancelJam(jamId){
@@ -20189,12 +20244,12 @@ function saveAsDraft(){
           // Preserve recurrence metadata
           if(oldEv.recurrence){if(ev.recurrence){ev.recurrence.exceptions=oldEv.recurrence.exceptions||{};ev.recurrence.active=oldEv.recurrence.active;ev.recurrence.pausedUntil=oldEv.recurrence.pausedUntil||null;}else{ev.recurrence=oldEv.recurrence;}}
           if(oldEv.bookings)ev.bookings=oldEv.bookings;
-          // V3.10.27: If booking deadline changed, reset manual registration close flags
+          // V3.10.28: If booking deadline changed, reset manual registration close flags
           if (oldEv.registrationClosedDates && Object.keys(oldEv.registrationClosedDates).length > 0) {
             const deadlineChanged = (oldEv.bookingDeadline || null) !== (ev.bookingDeadline || null)
               || (oldEv.bookingDeadlineDaysBefore != null && oldEv.bookingDeadlineDaysBefore !== ev.bookingDeadlineDaysBefore);
             if (deadlineChanged) {
-              console.log('[V3.10.27] Deadline changed, clearing registrationClosedDates');
+              console.log('[V3.10.28] Deadline changed, clearing registrationClosedDates');
               ev.registrationClosedDates = null;
             } else {
               ev.registrationClosedDates = oldEv.registrationClosedDates;
@@ -20262,12 +20317,12 @@ function publishNewEvent(){
           // Preserve recurrence metadata
           if(oldEv2.recurrence){if(ev.recurrence){ev.recurrence.exceptions=oldEv2.recurrence.exceptions||{};ev.recurrence.active=oldEv2.recurrence.active;ev.recurrence.pausedUntil=oldEv2.recurrence.pausedUntil||null;}else{ev.recurrence=oldEv2.recurrence;}}
           if(oldEv2.bookings)ev.bookings=oldEv2.bookings;
-          // V3.10.27: If booking deadline changed, reset manual registration close flags
+          // V3.10.28: If booking deadline changed, reset manual registration close flags
           if (oldEv2.registrationClosedDates && Object.keys(oldEv2.registrationClosedDates).length > 0) {
             const deadlineChanged = (oldEv2.bookingDeadline || null) !== (ev.bookingDeadline || null)
               || (oldEv2.bookingDeadlineDaysBefore != null && oldEv2.bookingDeadlineDaysBefore !== ev.bookingDeadlineDaysBefore);
             if (deadlineChanged) {
-              console.log('[V3.10.27] Deadline changed, clearing registrationClosedDates');
+              console.log('[V3.10.28] Deadline changed, clearing registrationClosedDates');
               ev.registrationClosedDates = null;
             } else {
               ev.registrationClosedDates = oldEv2.registrationClosedDates;
@@ -20535,7 +20590,7 @@ function cancelBooking(bId){
   },'danger');
 }
 /**
- * V3.10.27: Sanitize bookings that were corrupted by the gift toggle bug.
+ * V3.10.28: Sanitize bookings that were corrupted by the gift toggle bug.
  * If a booking has gift=false, amount=0, and a _preGiftSnapshot with amount>0,
  * it means the restore failed — apply the snapshot now.
  */
@@ -20560,7 +20615,7 @@ function _sanitizeGiftBug(b){
     items:b.items||null,
     _preGiftSnapshot:firebase.firestore.FieldValue.delete()
   }).catch(console.error);
-  console.log('[V3.10.27] Auto-fixed corrupted gift booking:',b.id,'restored amount:',b.amount);
+  console.log('[V3.10.28] Auto-fixed corrupted gift booking:',b.id,'restored amount:',b.amount);
   return true;
 }
 
