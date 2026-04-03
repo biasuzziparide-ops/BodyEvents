@@ -427,7 +427,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.28</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.29</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2288,6 +2288,7 @@ textarea.input{resize:none;font-family:inherit}
       <label class="label">Username</label>
       <input class="input" id="profile-username" maxlength="20" value="" oninput="const c=document.getElementById('username-char-count');if(c)c.textContent=this.value.length">
       <div style="font-size:.6rem;color:var(--txt3);text-align:right;margin-top:2px"><span id="username-char-count">0</span>/20</div>
+      <div id="profile-username-locked-hint" style="display:none;margin-top:4px;padding:6px 10px;border-radius:8px;background:rgba(168,85,247,.06);border:1px solid rgba(168,85,247,.2);font-size:.72rem;color:#a855f7;line-height:1.5">🔒 Lo username è gestito dal profilo organizzatore. Per modificarlo, vai nelle impostazioni dell'organizzazione.</div>
     </div>
     <div class="mb-3">
       <label class="label">Email</label>
@@ -2817,7 +2818,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.28';
+const APP_VERSION='V3.10.29';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -9483,6 +9484,21 @@ function populateProfileFields(){
   // Form fields
   const usernameEl=document.getElementById('profile-username');
   if(usernameEl) usernameEl.value=u.username||'';
+  // V3.10.29: Lock username field for organizers — managed from org profile
+  const _isOrgUser=store.managers.some(m=>m.id===u.id);
+  if(usernameEl&&_isOrgUser){
+    usernameEl.disabled=true;
+    usernameEl.style.opacity='.6';
+    usernameEl.style.cursor='not-allowed';
+    const _lockHint=document.getElementById('profile-username-locked-hint');
+    if(_lockHint)_lockHint.style.display='block';
+  } else if(usernameEl){
+    usernameEl.disabled=false;
+    usernameEl.style.opacity='';
+    usernameEl.style.cursor='';
+    const _lockHint=document.getElementById('profile-username-locked-hint');
+    if(_lockHint)_lockHint.style.display='none';
+  }
   const emailFieldEl=document.getElementById('profile-email-field');
   if(emailFieldEl) emailFieldEl.value=u.email||'';
   const authMethodEl=document.getElementById('profile-auth-method');
@@ -9562,7 +9578,11 @@ function disableProfileSave(){
 }
 
 async function saveProfileChanges(){
-  const newUsername=(document.getElementById('profile-username')?.value||'').trim();
+  const _isOrgUser=store.managers.some(m=>m.id===store.currentUser?.id);
+  // V3.10.29: For organizers, always use the username from the managers record (immutable from user side)
+  const newUsername=_isOrgUser
+    ?(store.currentUser.username||'').trim()
+    :(document.getElementById('profile-username')?.value||'').trim();
   if(!newUsername){showToast('Inserisci un username','error');return;}
   if(newUsername.length>20){showToast('⚠️ Il nome utente non può superare i 20 caratteri','error');return;}
   const u=store.currentUser;
@@ -10399,9 +10419,17 @@ async function saveOrgProfile(){
   if(logoData)updateData.orgLogo=logoData;
   else if(logoData===false)updateData.orgLogo=null;
   await fsUpdate('managers',u.id,updateData).catch(console.error);
+  // V3.10.29: Sync username to users collection if this organizer has a user doc
+  const _linkedUser=store.users.find(x=>x.id===u.id);
+  if(_linkedUser&&_linkedUser.username!==usernameVal){
+    _linkedUser.username=usernameVal;
+    _linkedUser.initials=usernameVal.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+    fsUpdate('users',u.id,{username:usernameVal,initials:_linkedUser.initials}).catch(console.error);
+  }
   // Update all UI references
   document.querySelectorAll('.profile-org').forEach(el=>el.textContent=nameVal);
   document.querySelectorAll('.profile-name').forEach(el=>el.textContent=usernameVal);
+  document.querySelectorAll('.profile-name-user').forEach(el=>el.textContent=usernameVal);
   document.querySelectorAll('.sidebar-org-name').forEach(el=>el.textContent=nameVal||'Organizzatore');
   // Sidebar icon: use logo or emoji
   document.querySelectorAll('.sidebar-org-icon').forEach(el=>{
@@ -21700,7 +21728,9 @@ function showRemoveOverlay(step){
         <h2 style="color:var(--red);margin-bottom:8px">ATTENZIONE — Azione irreversibile</h2>
         <p class="txt2 mb-4">Stai per eliminare definitivamente ${typeLbl === 'organizzatore' ? "l'" : "l'"}${typeLbl}:</p>
         <p class="font-bold text-lg mb-2" style="color:var(--red)">${name}</p>
-        <p class="text-sm txt2 mb-6">${removeTarget._type==='org'?'Tutti gli eventi e le prenotazioni associati verranno rimossi.':'Tutte le prenotazioni associate verranno rimosse.'}</p>
+        <p class="text-sm txt2 mb-6">${removeTarget._type==='org'
+          ?'Tutti gli eventi e le prenotazioni associati verranno rimossi.'+(store.users.some(u=>u.id===removeTarget.id)?' <strong style="color:var(--yellow)">⚠️ Anche il profilo utente collegato verrà eliminato.</strong>':'')
+          :'Tutte le prenotazioni associate verranno rimosse.'+(store.managers.some(m=>m.id===removeTarget.id)?' <strong style="color:var(--yellow)">⚠️ Anche il profilo organizzatore collegato e i suoi eventi verranno eliminati.</strong>':'')}</p>
         <div style="background:var(--red-bg);border:1px solid var(--red);border-radius:12px;padding:16px;margin-bottom:24px">
           <p class="text-sm font-bold" style="color:var(--red)">⚠️ Questa operazione NON può essere annullata</p>
         </div>
@@ -21798,6 +21828,24 @@ function executeRemoveUser(){
       store.users.splice(idx,1);
       fsDelete('users',userId).catch(console.error);
 
+      // ── 3b. V3.10.29: DELETE LINKED ORGANIZER (if exists) ──
+      const _linkedMgrIdx=store.managers.findIndex(m=>m.id===userId);
+      let nEventsRemoved=0;
+      if(_linkedMgrIdx>-1){
+        const _linkedMgr=store.managers[_linkedMgrIdx];
+        store.managers.splice(_linkedMgrIdx,1);
+        fsDelete('managers',userId).catch(console.error);
+        // Remove organizer's events and their bookings
+        const mgrEvIds=store.events.filter(e=>e.managerId===userId).map(e=>e.id);
+        mgrEvIds.forEach(eId=>fsDelete('events',eId).catch(console.error));
+        store.events=store.events.filter(e=>e.managerId!==userId);
+        const mgrBksToDelete=store.bookings.filter(b=>mgrEvIds.includes(b.eventId));
+        mgrBksToDelete.forEach(b=>fsDelete('bookings',b.id).catch(console.error));
+        store.bookings=store.bookings.filter(b=>!mgrEvIds.includes(b.eventId));
+        nEventsRemoved=mgrEvIds.length;
+        console.log('Linked organizer removed:',_linkedMgr.orgName||_linkedMgr.username,'| Events deleted:',mgrEvIds.length,'| Event bookings deleted:',mgrBksToDelete.length);
+      }
+
       // ── 4. ATTENDANCES: keep (historical record) ──
       // store.attendances[userId] is preserved for concluded events
 
@@ -21806,7 +21854,7 @@ function executeRemoveUser(){
       const nSubs=userSubs.length;
       console.log('User removed:',removeTarget.username,'| Future bookings deleted:',nFuture,'| Past bookings preserved:',nPast,'| Subscriptions deleted:',nSubs);
     }
-    showToast('Utente '+removeTarget.username+' rimosso definitivamente','error');
+    showToast('Utente '+removeTarget.username+' rimosso definitivamente'+(store.managers.some(m=>m.id===removeTarget.id)?'':' (+ profilo organizzatore)'),'error');
   } else {
     const idx=store.managers.findIndex(m=>m.id===removeTarget.id);
     if(idx>-1){
@@ -21820,6 +21868,36 @@ function executeRemoveUser(){
       const bksToDelete=store.bookings.filter(b=>evIds.includes(b.eventId));
       bksToDelete.forEach(b=>fsDelete('bookings',b.id).catch(console.error));
       store.bookings=store.bookings.filter(b=>!evIds.includes(b.eventId));
+
+      // ── V3.10.29: DELETE LINKED USER (if exists) ──
+      const _linkedUserIdx=store.users.findIndex(u=>u.id===mId);
+      if(_linkedUserIdx>-1){
+        const _linkedUser=store.users[_linkedUserIdx];
+        const _luEmail=_linkedUser.email;
+        // Delete user's subscriptions
+        const _luSubs=store.subscriptions.filter(s=>s.userId===mId);
+        _luSubs.forEach(s=>fsDelete('subscriptions',s.id).catch(console.error));
+        store.subscriptions=store.subscriptions.filter(s=>s.userId!==mId);
+        // Handle user's bookings (as participant, NOT as organizer — those were already handled above)
+        const _luBookings=store.bookings.filter(b=>(b.userId===mId||b.email===_luEmail)&&b.status!=='cancellata');
+        const _today=localDateStr(new Date());
+        _luBookings.forEach(b=>{
+          const ev=store.events.find(e=>e.id===b.eventId);
+          const isFuture=ev&&ev.days&&ev.days.length&&ev.days[ev.days.length-1].date>=_today;
+          if(isFuture||!ev){
+            fsDelete('bookings',b.id).catch(console.error);
+            store.bookings=store.bookings.filter(x=>x.id!==b.id);
+          } else {
+            b.userRemoved=true;
+            b.userRemovedAt=new Date().toISOString();
+            fsUpdate('bookings',b.id,{userRemoved:true,userRemovedAt:new Date().toISOString()}).catch(console.error);
+          }
+        });
+        // Delete user document
+        store.users.splice(_linkedUserIdx,1);
+        fsDelete('users',mId).catch(console.error);
+        console.log('Linked user removed:',_linkedUser.username,'| Subscriptions deleted:',_luSubs.length,'| Bookings handled:',_luBookings.length);
+      }
     }
     showToast('Organizzatore '+removeTarget.username+' rimosso definitivamente','error');
   }
