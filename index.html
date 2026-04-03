@@ -427,7 +427,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.33</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.34</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2818,7 +2818,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.33';
+const APP_VERSION='V3.10.34';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -13142,39 +13142,42 @@ async function renderUserDashboard(){
     return evDate<today||ev.status==='concluso'||ev.status==='archiviato';
   });
 
-  // V3.6.2: Group upcoming bookings by event type
+  // V3.10.34: Separate cancelled events from upcoming
+  const _cancelledBookings=upcomingBookings.filter(b=>{
+    const ev=store.events.find(e=>e.id===b.eventId);
+    return ev&&ev.alert&&ev.alert.type==='cancellato';
+  });
+  const _activeUpcoming=upcomingBookings.filter(b=>{
+    const ev=store.events.find(e=>e.id===b.eventId);
+    return !ev||!ev.alert||ev.alert.type!=='cancellato';
+  });
+
+  // V3.6.2: Group upcoming bookings by event type (only non-cancelled)
   const bookingsByType={};
-  upcomingBookings.forEach(b=>{
+  _activeUpcoming.forEach(b=>{
     const ev=store.events.find(e=>e.id===b.eventId);
     if(!ev)return;
     const type=ev.type||'jam';
     if(!bookingsByType[type])bookingsByType[type]=[];
     bookingsByType[type].push(b);
   });
-  // V3.10.33: Extract jam+social bookings and merge with communityJams into unified 'community' section
-  const _ceJamBks=bookingsByType['jam']||[];
-  const _ceSocialBks=bookingsByType['social']||[];
-  delete bookingsByType['jam'];
-  delete bookingsByType['social'];
-  const _ceMerged=[..._ceJamBks,..._ceSocialBks];
-  allUserJams.forEach(jam=>{_ceMerged.push({_isCommunityJam:true,_jam:jam});});
-  if(_ceMerged.length)bookingsByType['community']=_ceMerged;
-  // Sort community section by date (mixed regular bookings + community jams)
-  if(bookingsByType['community']){
-    bookingsByType['community'].sort((_sa,_sb)=>{
-      const _sdA=_sa._isCommunityJam?(_sa._jam.date||''):(_sa.recurringDate||(store.events.find(e=>e.id===_sa.eventId)?.days?.[0]?.date)||'');
-      const _sdB=_sb._isCommunityJam?(_sb._jam.date||''):(_sb.recurringDate||(store.events.find(e=>e.id===_sb.eventId)?.days?.[0]?.date)||'');
-      return _sdA.localeCompare(_sdB);
-    });
+  // V3.10.34: Add communityJams as their own 'community' section (jam/social stay in their own sections)
+  if(allUserJams.length){
+    bookingsByType['community']=allUserJams.map(jam=>({_isCommunityJam:true,_jam:jam}));
   }
   // Section order: by date of first upcoming event in each section (chronological)
+  // V3.10.34: Section order — community section always at the end, other sections sorted chronologically
   const sectionOrder=Object.keys(bookingsByType)
     .filter(type=>bookingsByType[type]&&bookingsByType[type].length>0)
     .sort((a,b)=>{
+      if(a==='community')return 1;
+      if(b==='community')return -1;
       const firstA=bookingsByType[a][0];
       const firstB=bookingsByType[b][0];
-      const dateA=firstA._isCommunityJam?(firstA._jam.date||''):(firstA.recurringDate||(store.events.find(e=>e.id===firstA.eventId)?.days?.[0]?.date)||'');
-      const dateB=firstB._isCommunityJam?(firstB._jam.date||''):(firstB.recurringDate||(store.events.find(e=>e.id===firstB.eventId)?.days?.[0]?.date)||'');
+      const evA=store.events.find(e=>e.id===firstA.eventId);
+      const evB=store.events.find(e=>e.id===firstB.eventId);
+      const dateA=firstA.recurringDate||evA?.days?.[0]?.date||'';
+      const dateB=firstB.recurringDate||evB?.days?.[0]?.date||'';
       return dateA.localeCompare(dateB);
     });
 
@@ -13465,7 +13468,54 @@ async function renderUserDashboard(){
   });
   }); // end sectionOrder.forEach
 
-  // V3.10.31: Community jams are now merged into bookingsByType (see MODIFICA B1/B3)
+  // V3.10.34: Cancelled bookings section
+  if(_cancelledBookings.length){
+    html+=`<h2 class="font-semibold text-white mb-3 mt-6" style="opacity:.7">🚫 Annullati (${_cancelledBookings.length})</h2>`;
+    _cancelledBookings.forEach(b=>{
+      const ev=store.events.find(e=>e.id===b.eventId);
+      if(!ev)return;
+      const d0=ev.days[0];
+      const _dashDate=b.recurringDate||d0?.date;
+      const dd=_dashDate?new Date(_dashDate+'T00:00:00'):null;
+      const dayNum=dd?dd.getDate():'';
+      const monthStr=dd?MONTHS_IT[dd.getMonth()]:'';
+      const _yearStr=dd?dd.getFullYear():'';
+      const _mgr=store.managers.find(m=>m.id===ev.managerId);
+      const _orgLogoHtml=_mgr&&_mgr.orgLogo?`<div style="width:22px;height:22px;border-radius:50%;overflow:hidden;border:2px solid var(--s300);flex-shrink:0;opacity:.5"><img src="${_mgr.orgLogo}" style="width:100%;height:100%;object-fit:cover" alt=""></div>`:'';
+      const _uniStrip=getUniverseStripHtml(ev);
+      const _alertLabel=ev.alert.type==='cancellato'?'ANNULLATO':'CANCELLATO';
+      // Date block
+      const _cDateBlock=`<div style="flex-shrink:0;width:80px;align-self:stretch;display:flex;align-items:center;justify-content:center">
+            <div class="date-block" style="position:relative;width:80px;border-radius:12px;background:linear-gradient(160deg,rgba(239,68,68,.08),rgba(239,68,68,.03));border:1px solid rgba(239,68,68,.15);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:14px 0">
+              <span style="font-size:1.6rem;font-weight:800;color:var(--txt3);line-height:1.1">${dayNum}</span>
+              <span style="font-size:.7rem;font-weight:700;color:rgba(239,68,68,.45);text-transform:uppercase;line-height:1;letter-spacing:.5px">${monthStr}</span>
+              <span style="font-size:.55rem;font-weight:500;color:rgba(239,68,68,.25);line-height:1;margin-top:2px">${_yearStr}</span>
+            </div>
+          </div>`;
+      html+=`<div class="card-hover mb-4" style="border-radius:16px;overflow:hidden;padding:0;border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.03);position:relative;opacity:.7" onclick="showEventDetail('${ev.id}'${b.recurringDate?`,'${b.recurringDate}'`:''})">
+        <div style="position:absolute;top:50%;left:50%;z-index:8;transform:translate(-50%,-50%) rotate(-8deg);width:120%;background:rgba(239,68,68,.35);color:#fff;font-size:.6rem;font-weight:800;letter-spacing:2px;padding:5px 0;text-align:center;text-transform:uppercase;white-space:nowrap;pointer-events:none">🚫 ${_alertLabel}</div>
+        <div style="display:flex;align-items:stretch;position:relative;z-index:2">
+          ${_uniStrip}
+          <div style="flex:1;min-width:0;padding:14px 16px;display:flex;flex-direction:column;gap:0">
+            <div style="display:flex;gap:14px;align-items:flex-start">
+              ${_cDateBlock}
+              <div style="flex:1;min-width:0">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+                  ${_orgLogoHtml}<h3 style="margin:0;font-size:.95rem;font-weight:600;color:var(--txt3);line-height:1.3;overflow-wrap:break-word;word-break:break-word;min-width:0;text-decoration:line-through">${escHtml(ev.title)}</h3>
+                </div>
+                <div style="display:flex;gap:4px;flex-wrap:wrap;row-gap:4px;margin-top:4px">
+                  <span class="badge" style="background:var(--red-bg);color:var(--red)">🚫 ${_alertLabel}</span>
+                </div>
+                <div style="margin-top:8px;font-size:.78rem;color:var(--txt3)">
+                  <a style="color:var(--txt3);cursor:pointer;text-decoration:none" onclick="event.stopPropagation();showOrgPublicProfile('${ev.managerId}')">${escHtml(ev.orgName||(_mgr?_mgr.orgName:''))}</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    });
+  }
 
   // V3.6.2: Archivio (past bookings) — moved to end
   if(pastBookings.length){
@@ -15876,10 +15926,7 @@ async function showEventDetail(evId,recDate){
       if(!_noteText)return '';
       return '<div style="background:linear-gradient(135deg,rgba(234,179,8,.08),rgba(249,115,22,.05));border:1px solid rgba(234,179,8,.3);border-radius:14px;padding:16px 18px;margin-bottom:20px"><div style="display:flex;align-items:flex-start;gap:10px"><span style="font-size:1.2rem;flex-shrink:0;margin-top:1px">📢</span><div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:600;color:var(--yellow);margin-bottom:6px">Comunicazione dall\'organizzatore</div><div style="font-size:.85rem;color:var(--txt);line-height:1.7;word-wrap:break-word;white-space:pre-wrap">'+_linkifyText(escHtml(_noteText))+'</div><div style="font-size:.65rem;color:var(--txt3);margin-top:8px">Aggiornato il '+_fmtNoteDate(_noteDate)+'</div></div></div></div>';
     })()}
-    ${(()=>{
-      if(!ev.adminSuspension||!ev.adminSuspension.suspended)return '';
-      return '<div style="background:rgba(239,68,68,.08);border:2px solid rgba(239,68,68,.35);border-radius:14px;padding:16px 18px;margin-bottom:20px"><div style="display:flex;align-items:flex-start;gap:10px"><span style="font-size:1.2rem;flex-shrink:0;margin-top:1px">⛔</span><div style="flex:1;min-width:0"><div style="font-size:.82rem;font-weight:600;color:var(--red);margin-bottom:6px">Comunicazione dall\'amministratore della piattaforma</div><div style="font-size:.85rem;color:var(--txt);line-height:1.7;word-wrap:break-word;white-space:pre-wrap">'+escHtml(ev.adminSuspension.message)+'</div><div style="font-size:.65rem;color:var(--txt3);margin-top:8px">'+fmtDateFull(ev.adminSuspension.date)+'</div></div></div></div>';
-    })()}
+    ${''}<!-- V3.10.34: Admin suspension message removed from user view — only visible in showAdminEventDetail -->
     <div style="order:${_userHasBooking?2:0}"><div class="card mb-6" ${isDisabledByAlert?'style="opacity:.5;pointer-events:none"':''}>
       ${''}<!-- V3.10.11: image removed from event detail for cleaner UX -->
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
