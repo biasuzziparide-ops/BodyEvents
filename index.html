@@ -427,7 +427,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.29</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.30</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2818,7 +2818,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.29';
+const APP_VERSION='V3.10.30';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -2896,6 +2896,26 @@ function _isEventUnread(eventId){
   return false;
 }
 
+// V3.10.30: Check if a community jam has unread creatorNote for the current user
+function _isJamUnread(jamId){
+  const jam=store.communityJams.find(j=>j.id===jamId);if(!jam)return false;
+  if(!jam.creatorNote||!jam.creatorNote.text)return false;
+  const data=_getReadAlerts();const seen=data['jam_'+jamId]||{};
+  const noteTs=jam.creatorNote.updatedAt||'';
+  if(noteTs&&noteTs!==seen.noteSeen)return true;
+  return false;
+}
+
+function _markJamRead(jamId){
+  const uid=store.currentUser?.id;if(!uid)return;
+  const data=_getReadAlerts();
+  const jam=store.communityJams.find(j=>j.id===jamId);if(!jam)return;
+  if(!data['jam_'+jamId])data['jam_'+jamId]={};
+  if(jam.creatorNote)data['jam_'+jamId].noteSeen=jam.creatorNote.updatedAt||'';
+  localStorage.setItem(READ_ALERTS_KEY+uid,JSON.stringify(data));
+  updateNotificationBadges();
+}
+
 function _countUnreadBookings(){
   if(!store.currentUser)return 0;
   const uid=store.currentUser.id;const uEmail=store.currentUser.email;
@@ -2904,6 +2924,12 @@ function _countUnreadBookings(){
   const counted=new Set();
   myBookings.forEach(b=>{
     if(!counted.has(b.eventId)&&_isEventUnread(b.eventId)){count++;counted.add(b.eventId);}
+  });
+  // V3.10.30: Count unread jam creatorNotes for jams user is joined to
+  store.communityJams.forEach(jam=>{
+    if(jam.status==='cancellato'||(jam.alert&&jam.alert.type==='cancellato'))return;
+    const isJoined=(jam.participants||[]).some(p=>p.userId===uid);
+    if(isJoined&&_isJamUnread(jam.id))count++;
   });
   return count;
 }
@@ -2932,8 +2958,16 @@ function _cleanupReadAlerts(){
   const uid=store.currentUser?.id;if(!uid)return;
   const data=_getReadAlerts();
   const eventIds=new Set(store.events.map(e=>e.id));
+  const jamIds=new Set(store.communityJams.map(j=>j.id));
   let changed=false;
-  Object.keys(data).forEach(eid=>{if(!eventIds.has(eid)){delete data[eid];changed=true;}});
+  Object.keys(data).forEach(key=>{
+    if(key.startsWith('jam_')){
+      // V3.10.30: Cleanup jam entries
+      if(!jamIds.has(key.substring(4))){delete data[key];changed=true;}
+    } else {
+      if(!eventIds.has(key)){delete data[key];changed=true;}
+    }
+  });
   if(changed)localStorage.setItem(READ_ALERTS_KEY+uid,JSON.stringify(data));
 }
 
@@ -13066,11 +13100,9 @@ async function renderUserDashboard(){
     _seenBk.add(key);return true;
   };
   const active=store.bookings.filter(b=>_dedupFilter(b,false));
-  // Get community events user has joined OR created
-  const joinedJams=store.communityJams.filter(j=>j.status!=='cancellato'&&!(j.alert&&j.alert.type==='cancellato')&&(j.participants||[]).some(p=>p.userId===uid));
-  const myCreatedJams=store.communityJams.filter(j=>j.userId===uid&&j.status!=='cancellato'&&!(j.alert&&j.alert.type==='cancellato'));
-  const allUserJams=[...joinedJams];
-  myCreatedJams.forEach(j=>{if(!allUserJams.some(x=>x.id===j.id))allUserJams.push(j);});
+  // V3.10.30: Only show jams the user has JOINED (as participant), not created-only
+  // Created jams are managed from the Community Events page
+  const allUserJams=store.communityJams.filter(j=>j.status!=='cancellato'&&!(j.alert&&j.alert.type==='cancellato')&&(j.participants||[]).some(p=>p.userId===uid));
   allUserJams.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
 
   // V3.3.0: Preload participant counts for Jam/Social bookings (per-occurrence)
@@ -13364,7 +13396,7 @@ async function renderUserDashboard(){
 
   // V3.6.2: I miei Community Event (joined + created, deduped)
   if(allUserJams.length){
-    html+=`<h2 class="font-semibold text-white mb-3 mt-6">🎉 I miei Community Event (${allUserJams.length})</h2>`;
+    html+=`<h2 class="font-semibold text-white mb-3 mt-6">🎉 Community Event a cui sei iscritto (${allUserJams.length})</h2>`;
     allUserJams.forEach(jam=>{
       const dd=jam.date?new Date(jam.date+'T00:00:00'):null;
       const dayNum=dd?dd.getDate():'';
@@ -13374,20 +13406,25 @@ async function renderUserDashboard(){
       const univBadges=(jam.universeIds||[]).map(id=>getUniverseBadgeHtml(id)).join('');
       const isJoined=(jam.participants||[]).some(p=>p.userId===uid);
       const borderColor='var(--green)';
-      html+=`<div class="card mb-4 card-hover" style="border-color:${borderColor};background:rgba(16,185,129,.03);cursor:pointer" onclick="showJamDetail('${jam.id}')">
+      const _jamUnread=_isJamUnread(jam.id);
+      const _jamHasNote=jam.creatorNote&&jam.creatorNote.text;
+      const _jamNoticeBadge=_jamHasNote&&_jamUnread?`<div style="position:absolute;top:-4px;right:0;z-index:10;width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#eab308,#ca8a04);display:flex;align-items:center;justify-content:center;border:2.5px solid var(--s50);box-shadow:0 2px 10px rgba(234,179,8,.5)"><span style="font-size:1.05rem">📢</span></div><div style="position:absolute;top:0;right:0;bottom:0;width:4px;border-radius:0 16px 16px 0;background:linear-gradient(to bottom,#eab308,#ca8a04);z-index:3"></div>`:'';
+      const _jamUnreadBadge=_jamUnread?'<span class="notif-card-badge" style="margin-left:auto">📢 Novità</span>':'';
+      html+=`<div class="card mb-4 card-hover" style="border-color:${_jamHasNote&&_jamUnread?'rgba(234,179,8,.5)':borderColor};background:rgba(16,185,129,.03);cursor:pointer;position:relative" onclick="showJamDetail('${jam.id}')">
+        ${_jamNoticeBadge}
         <div class="flex gap-4" style="align-items:flex-start">
           <div style="flex-shrink:0;width:56px;height:56px;border-radius:12px;background:rgba(16,185,129,.1);display:flex;flex-direction:column;align-items:center;justify-content:center">
             <span style="font-size:1.3rem;font-weight:700;color:var(--green)">${dayNum}</span>
             <span style="font-size:.6rem;color:rgba(16,185,129,.5)">${monthStr}</span>
           </div>
           <div class="flex-1">
-            <div class="flex gap-2 flex-wrap mb-1">${univBadges}<span class="badge ${badgeType(jam.type||'jam')}" style="${badgeTypeStyle(jam.type||'jam')}">${getJamTypeDisplay(jam.type||'jam')}</span>${isJoined?'<span class="badge" style="background:rgba(16,185,129,.15);color:var(--green)">✅ Iscritto</span>':jam.userId===uid?'<span class="badge" style="background:rgba(168,85,247,.15);color:var(--purple)">👤 Creatore</span>':''}</div>
+            <div class="flex gap-2 flex-wrap mb-1">${univBadges}<span class="badge ${badgeType(jam.type||'jam')}" style="${badgeTypeStyle(jam.type||'jam')}">${getJamTypeDisplay(jam.type||'jam')}</span>${isJoined?'<span class="badge" style="background:rgba(16,185,129,.15);color:var(--green)">✅ Iscritto</span>':jam.userId===uid?'<span class="badge" style="background:rgba(168,85,247,.15);color:var(--purple)">👤 Creatore</span>':''}${_jamUnreadBadge}</div>
             <h3 class="font-semibold text-white">${escHtml(jam.title)}</h3>
             <div class="flex gap-3 mt-1 text-xs txt3">
               <span>📅 ${fmtDate(jam.date)}</span><span>🕐 ${jam.startTime} — ${jam.endTime}</span>
             </div>
             <div class="text-xs txt3 mt-1">📍 ${escHtml(jam.location)} · 👥 ${spotsText} partecipanti</div>
-            ${jam.creatorNote&&jam.creatorNote.text?'<div style="margin-top:6px;padding:5px 10px;border-radius:8px;font-size:.7rem;font-weight:600;border:1px solid rgba(234,179,8,.3);background:rgba(234,179,8,.06);color:var(--yellow);display:inline-block">📢 Avviso dall\'organizzatore</div>':''}
+            ${_jamHasNote?'<div style="margin-top:6px;padding:5px 10px;border-radius:8px;font-size:.7rem;font-weight:600;border:1px solid rgba(234,179,8,.3);background:rgba(234,179,8,.06);color:var(--yellow);display:inline-block">📢 Avviso dall\'organizzatore</div>':''}
           </div>
         </div>
         ${isJoined?`<div class="flex gap-2 mt-4" style="border-top:1px solid var(--s300);padding-top:12px">
@@ -14239,6 +14276,8 @@ function showJamDetail(jamId){
   if(!jam)return;
   const c=document.getElementById('dynamic-event-detail');
   if(!c)return;
+  // V3.10.30: Mark jam as read (dismiss notification badge)
+  _markJamRead(jamId);
   const parts=jam.participants||[];
   const uid=store.currentUser.id;
   const isJoined=parts.some(p=>p.userId===uid);
@@ -14430,9 +14469,13 @@ function renderUserJams(){
   }
 
   let html=tabsHtml;
-  if(myJams.length) html+='<h3 class="text-sm font-medium mb-3" style="color:var(--brand-l)">I miei Community Events</h3>';
+  // V3.10.30: Show "I miei" section with management context
+  if(myJams.length){
+    html+='<h3 class="text-sm font-medium mb-1" style="color:var(--brand-l)">I miei Community Events</h3>';
+    html+='<p class="text-xs txt3 mb-3">Gestisci i community events che hai creato. Le tue iscrizioni ad eventi di altri le trovi in <a style="color:var(--brand-l);cursor:pointer" onclick="go(\'dashboard\')">Le mie prenotazioni</a>.</p>';
+  }
   html+=myJams.map(jam=>renderJamCard(jam,uid,true)).join('');
-  if(myJams.length&&otherJams.length) html+='<h3 class="text-sm font-medium mb-3 mt-5 txt3">Community Events degli altri</h3>';
+  if(otherJams.length) html+='<h3 class="text-sm font-medium mb-3 mt-5 txt3">Community Events degli altri</h3>';
   html+=otherJams.map(jam=>renderJamCard(jam,uid,false)).join('');
   c.innerHTML=html;
 }
