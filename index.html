@@ -427,7 +427,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.35</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.36</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2818,7 +2818,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.35';
+const APP_VERSION='V3.10.36';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -14426,13 +14426,13 @@ function showJamDetail(jamId){
   const _jamRegClosed = jam.registrationClosedDates && jam.registrationClosedDates['_single'] === true;
   let joinBtn='';
   if(isJoined){
-    joinBtn=`<button class="btn btn-danger" style="width:100%" onclick="leaveJam('${jam.id}')">✕ Non parteciperò più</button>`;
+    joinBtn=`<button class="btn btn-danger" style="width:100%" data-join-jam="${jam.id}" onclick="leaveJam('${jam.id}')">✕ Non parteciperò più</button>`;
   } else if(_jamRegClosed){
     joinBtn=`<button class="btn btn-secondary" style="width:100%;opacity:.5;cursor:not-allowed" disabled>🔒 Iscrizioni chiuse dall'organizzatore</button>`;
   } else if(isFull){
     joinBtn=`<button class="btn btn-secondary" style="width:100%;opacity:.5;cursor:not-allowed" disabled>Posti esauriti</button>`;
   } else {
-    joinBtn=`<button class="btn btn-primary" style="width:100%" onclick="joinJam('${jam.id}')">✋ Parteciperò!</button>`;
+    joinBtn=`<button class="btn btn-primary" style="width:100%" data-join-jam="${jam.id}" onclick="joinJam('${jam.id}')">✋ Parteciperò!</button>`;
   }
 
   const groupLinkHtml=jam.groupLink?`<div class="card mb-4"><a href="${jam.groupLink}" target="_blank" class="flex items-center gap-2 text-sm" style="color:var(--green);text-decoration:none">💬 Unisciti al gruppo WhatsApp →</a></div>`:'';
@@ -14637,32 +14637,73 @@ function renderJamCard(jam,uid,isMine){
   </div>`;
 }
 
-function joinJam(jamId){
-  const jam=store.communityJams.find(j=>j.id===jamId);
-  if(!jam)return;
-  if(!jam.participants)jam.participants=[];
-  const uid=store.currentUser.id;
-  if(jam.participants.some(p=>p.userId===uid)){showToast('Sei già iscritto','error');return;}
-  // Check manual registration close for jams
-  if (jam.registrationClosedDates) {
-    const _jamRegState = jam.registrationClosedDates['_single'];
-    if (_jamRegState === true) { showToast('Le iscrizioni sono state chiuse dall\'organizzatore', 'error'); return; }
+// V3.10.36: joinJam uses a Firestore transaction to avoid race conditions
+// and only updates local state after the server write is confirmed.
+async function joinJam(jamId){
+  const uid=store.currentUser?.id;
+  if(!uid){showToast('Devi essere autenticato','error');return;}
+  // Double-tap protection: disable the join button during the write
+  const _btns=document.querySelectorAll(`[data-join-jam="${jamId}"]`);
+  _btns.forEach(b=>{b.disabled=true;b.style.opacity='0.6';b.style.cursor='wait';});
+  try{
+    const ref=fbDb.collection('communityJams').doc(jamId);
+    const updated=await fbDb.runTransaction(async(tx)=>{
+      const snap=await tx.get(ref);
+      if(!snap.exists)throw new Error('NOT_FOUND');
+      const data=snap.data()||{};
+      const parts=Array.isArray(data.participants)?data.participants.slice():[];
+      if(parts.some(p=>p.userId===uid))throw new Error('ALREADY_JOINED');
+      if(data.registrationClosedDates && data.registrationClosedDates['_single']===true)throw new Error('REG_CLOSED');
+      if(data.maxSpots && parts.length>=data.maxSpots)throw new Error('FULL');
+      parts.push({userId:uid,userName:store.currentUser.username,joinedAt:localDateStr(new Date())});
+      tx.update(ref,{participants:parts});
+      return parts;
+    });
+    // Commit local state only after server confirmation
+    const jam=store.communityJams.find(j=>j.id===jamId);
+    if(jam)jam.participants=updated;
+    showToast('Ti sei iscritto al community event!','success');
+  }catch(err){
+    console.error('joinJam error:',err);
+    const msg=err&&err.message;
+    if(msg==='NOT_FOUND')showToast('Community event non trovato','error');
+    else if(msg==='ALREADY_JOINED')showToast('Sei già iscritto','error');
+    else if(msg==='REG_CLOSED')showToast('Le iscrizioni sono state chiuse dall\'organizzatore','error');
+    else if(msg==='FULL')showToast('Posti esauriti','error');
+    else showToast('Errore durante l\'iscrizione. Riprova.','error');
+  }finally{
+    _btns.forEach(b=>{b.disabled=false;b.style.opacity='';b.style.cursor='';});
+    showJamDetail(jamId);
   }
-  if(jam.maxSpots&&jam.participants.length>=jam.maxSpots){showToast('Posti esauriti','error');return;}
-  jam.participants.push({userId:uid,userName:store.currentUser.username,joinedAt:localDateStr(new Date())});
-  fsUpdate('communityJams',jam.id,{participants:jam.participants}).catch(console.error);
-  showToast('Ti sei iscritto al community event!','success');
-  showJamDetail(jamId);
 }
 
-function leaveJam(jamId){
-  const jam=store.communityJams.find(j=>j.id===jamId);
-  if(!jam||!jam.participants)return;
-  const uid=store.currentUser.id;
-  jam.participants=jam.participants.filter(p=>p.userId!==uid);
-  fsUpdate('communityJams',jam.id,{participants:jam.participants}).catch(console.error);
-  showToast('Iscrizione rimossa','success');
-  showJamDetail(jamId);
+// V3.10.36: leaveJam uses a transaction and updates local state only after confirmation
+async function leaveJam(jamId){
+  const uid=store.currentUser?.id;
+  if(!uid){showToast('Devi essere autenticato','error');return;}
+  const _btns=document.querySelectorAll(`[data-join-jam="${jamId}"]`);
+  _btns.forEach(b=>{b.disabled=true;b.style.opacity='0.6';b.style.cursor='wait';});
+  try{
+    const ref=fbDb.collection('communityJams').doc(jamId);
+    const updated=await fbDb.runTransaction(async(tx)=>{
+      const snap=await tx.get(ref);
+      if(!snap.exists)throw new Error('NOT_FOUND');
+      const data=snap.data()||{};
+      const parts=Array.isArray(data.participants)?data.participants.slice():[];
+      const next=parts.filter(p=>p.userId!==uid);
+      tx.update(ref,{participants:next});
+      return next;
+    });
+    const jam=store.communityJams.find(j=>j.id===jamId);
+    if(jam)jam.participants=updated;
+    showToast('Iscrizione rimossa','success');
+  }catch(err){
+    console.error('leaveJam error:',err);
+    showToast('Errore durante la rimozione. Riprova.','error');
+  }finally{
+    _btns.forEach(b=>{b.disabled=false;b.style.opacity='';b.style.cursor='';});
+    showJamDetail(jamId);
+  }
 }
 
 function editJamModal(jamId){
@@ -14717,7 +14758,9 @@ function editJamModal(jamId){
   }
 }
 
-function saveJamEdit(jamId){
+// V3.10.36: saveJamEdit writes only editable fields via update()
+// so participants (managed by joinJam/leaveJam transactions) are never clobbered.
+async function saveJamEdit(jamId){
   const jam=store.communityJams.find(j=>j.id===jamId);if(!jam)return;
   const title=(document.getElementById('je-title')?.value||'').trim();
   const desc=(document.getElementById('je-desc')?.value||'').trim();
@@ -14732,32 +14775,41 @@ function saveJamEdit(jamId){
   // Track if anything changed
   const changed=jam.title!==title||jam.date!==date||jam.startTime!==start||jam.endTime!==end||jam.location!==location;
 
-  jam.universeIds=editUnivIds;
-  jam.title=title;
-  jam.description=desc;
-  jam.date=date;
-  jam.startTime=start;
-  jam.endTime=end;
-  jam.location=location;
-  jam.locationUrl=(document.getElementById('je-location-url')?.value||'').trim();
-  jam.maxSpots=parseInt(document.getElementById('je-max-spots')?.value)||null;
-  jam.groupLink=(document.getElementById('je-group-link')?.value||'').trim();
-  jam.contactPhone=(document.getElementById('je-phone')?.value||'').trim();
-  jam.contactEmail=(document.getElementById('je-email')?.value||'').trim();
-  jam.minSubscribers=document.getElementById('je-min-subs')?.checked?{
-    count:parseInt(document.getElementById('je-min-subs-count')?.value)||0,
-    deadline:document.getElementById('je-min-subs-deadline')?.value||null
-  }:null;
+  const updates={
+    universeIds:editUnivIds,
+    title:title,
+    description:desc,
+    date:date,
+    startTime:start,
+    endTime:end,
+    location:location,
+    locationUrl:(document.getElementById('je-location-url')?.value||'').trim(),
+    maxSpots:parseInt(document.getElementById('je-max-spots')?.value)||null,
+    groupLink:(document.getElementById('je-group-link')?.value||'').trim(),
+    contactPhone:(document.getElementById('je-phone')?.value||'').trim(),
+    contactEmail:(document.getElementById('je-email')?.value||'').trim(),
+    minSubscribers:document.getElementById('je-min-subs')?.checked?{
+      count:parseInt(document.getElementById('je-min-subs-count')?.value)||0,
+      deadline:document.getElementById('je-min-subs-deadline')?.value||null
+    }:null
+  };
 
   // If has participants and something changed, mark as modified
   if(changed&&jam.participants&&jam.participants.length>0){
-    jam.alert={type:'modificato',message:'Community event modificato dall\'organizzatore.',date:localDateStr(new Date())};
+    updates.alert={type:'modificato',message:'Community event modificato dall\'organizzatore.',date:localDateStr(new Date())};
   }
 
-  fsSet('communityJams',jam.id,jam).catch(console.error);
-  document.getElementById('jam-edit-overlay').remove();
-  showJamDetail(jamId);
-  showToast('Community event aggiornato','success');
+  try{
+    await fbDb.collection('communityJams').doc(jam.id).update(_stripUndefined(updates));
+    // Mirror to local state only after server confirmation
+    Object.assign(jam,updates);
+    document.getElementById('jam-edit-overlay')?.remove();
+    showJamDetail(jamId);
+    showToast('Community event aggiornato','success');
+  }catch(err){
+    console.error('saveJamEdit error:',err);
+    showToast('Errore nel salvataggio. Riprova.','error');
+  }
 }
 
 /* ==============================
@@ -14809,13 +14861,20 @@ async function removeJamNote(jamId){
   }catch(err){console.error('removeJamNote error:',err);showToast('Errore nella rimozione','error');}
 }
 
+// V3.10.36: cancelJam writes only {alert} via update() to never clobber participants.
 function cancelJam(jamId){
-  showConfirm('Cancella community event','Cancellare questo community event? I partecipanti lo vedranno come annullato.',()=>{
+  showConfirm('Cancella community event','Cancellare questo community event? I partecipanti lo vedranno come annullato.',async()=>{
     const jam=store.communityJams.find(j=>j.id===jamId);if(!jam)return;
-    jam.alert={type:'cancellato',message:'Community event cancellato dall\'organizzatore.',date:localDateStr(new Date()),timestamp:new Date().toISOString()};
-    fsSet('communityJams',jam.id,jam).catch(console.error);
-    showJamDetail(jamId);
-    showToast('Community event cancellato','error');
+    const alertObj={type:'cancellato',message:'Community event cancellato dall\'organizzatore.',date:localDateStr(new Date()),timestamp:new Date().toISOString()};
+    try{
+      await fbDb.collection('communityJams').doc(jam.id).update({alert:alertObj});
+      jam.alert=alertObj;
+      showJamDetail(jamId);
+      showToast('Community event cancellato','error');
+    }catch(err){
+      console.error('cancelJam error:',err);
+      showToast('Errore nella cancellazione. Riprova.','error');
+    }
   },'danger');
 }
 
