@@ -427,7 +427,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.34</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.35</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2818,7 +2818,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.34';
+const APP_VERSION='V3.10.35';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -12919,37 +12919,46 @@ async function renderUserEvents(){
   if(qFilter){const ql=qFilter.toLowerCase();communityEvts=communityEvts.filter(j=>(j.title+j.description+j.location+(j.userName||'')).toLowerCase().includes(ql));}
   communityEvts.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
 
+  // V3.10.35: Community jam cards — same layout as organizer event cards, with dashed border
   const jamCards=communityEvts.map(jam=>{
     const dd=jam.date?new Date(jam.date+'T00:00:00'):null;
     const dayNum=dd?dd.getDate():'';
     const monthStr=dd?MONTHS_IT[dd.getMonth()]:'';
+    const _jYearStr=dd?dd.getFullYear():'';
     const parts=(jam.participants||[]).length;
     const spotsText=jam.maxSpots?parts+'/'+jam.maxSpots:parts+'';
     const uid=store.currentUser.id;
     const isJoined=(jam.participants||[]).some(p=>p.userId===uid);
-    const joinedBadge=isJoined?'<span class="badge" style="background:rgba(16,185,129,.15);color:var(--green)">✅ Iscritto</span>':'';
-    const _jamIscrittoBadge=isJoined?'<div style="position:absolute;top:6px;right:0;z-index:10;transform:rotate(12deg);background:var(--green);color:#fff;font-size:.6rem;font-weight:800;letter-spacing:1.2px;padding:3px 12px 3px 10px;border-radius:4px;box-shadow:0 2px 8px rgba(16,185,129,.45);border:1.5px solid rgba(255,255,255,.2)">✓ ISCRITTO</div>':'';
+    const _jamIscrittoBadge=isJoined?'<div style="position:absolute;top:6px;right:0;z-index:12;transform:rotate(12deg);background:var(--green);color:#fff;font-size:.6rem;font-weight:800;letter-spacing:1.2px;padding:3px 12px 3px 10px;border-radius:4px;box-shadow:0 2px 8px rgba(16,185,129,.45);border:1.5px solid rgba(255,255,255,.2)">✓ ISCRITTO</div>':'';
     const _jamUniStrip=(jam.universeIds||[]).length?getUniverseStripHtml({universeIds:jam.universeIds}):'<div style="width:26px;flex-shrink:0;background:var(--green);display:flex;align-items:center;justify-content:center;border-radius:16px 0 0 16px"><span style="writing-mode:vertical-lr;text-orientation:mixed;transform:rotate(180deg);font-size:.55rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,245,.85);white-space:nowrap;user-select:none">Community</span></div>';
-    return `<div class="card-hover mb-4" style="border-radius:16px;overflow:hidden;padding:0;position:relative" onclick="showJamDetail('${jam.id}')">
+    const _jPartPipHtml=parts>0?'<div class="participants-pip"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>'+parts+'</div>':'';
+    const _jDateBlock=`<div style="flex-shrink:0;width:80px;align-self:stretch;display:flex;align-items:center;justify-content:center">
+          <div class="date-block" style="position:relative;width:80px;border-radius:12px;background:linear-gradient(160deg,rgba(217,70,239,.14),rgba(168,85,247,.08));border:1px solid rgba(217,70,239,.15);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:14px 0">
+            <span style="font-size:1.6rem;font-weight:800;color:#fff;line-height:1.1">${dayNum}</span>
+            <span style="font-size:.7rem;font-weight:700;color:rgba(240,171,252,.65);text-transform:uppercase;line-height:1;letter-spacing:.5px">${monthStr}</span>
+            <span style="font-size:.55rem;font-weight:500;color:rgba(240,171,252,.35);line-height:1;margin-top:2px">${_jYearStr}</span>
+          </div>
+        </div>`;
+    const _jCreatorName=resolveUserName(jam.userId,jam.userName||'');
+    return `<div class="card-hover mb-4" style="border-radius:16px;overflow:hidden;padding:0;position:relative;border:2px dashed rgba(168,85,247,.35)" onclick="showJamDetail('${jam.id}')">
       ${_jamIscrittoBadge}
       <div style="display:flex;align-items:stretch">
         ${_jamUniStrip}
         <div style="flex:1;min-width:0;padding:14px 16px;display:flex;gap:14px;align-items:flex-start">
-          <div style="position:relative;flex-shrink:0">
-            ${parts>0?'<div class="participants-pip"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>'+parts+'</div>':''}
-            <div style="width:56px;height:56px;border-radius:12px;background:rgba(16,185,129,.1);display:flex;flex-direction:column;align-items:center;justify-content:center">
-              <span style="font-size:1.3rem;font-weight:700;color:var(--green)">${dayNum}</span>
-              <span style="font-size:.6rem;color:rgba(16,185,129,.5)">${monthStr}</span>
+          <div style="position:relative;flex-shrink:0">${_jPartPipHtml}${_jDateBlock}</div>
+          <div class="flex-1" style="min-width:0">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+              <h3 class="font-semibold text-white" style="margin-bottom:0;font-size:.95rem;line-height:1.3;overflow-wrap:break-word;word-break:break-word;min-width:0">${escHtml(jam.title)}</h3>
             </div>
-          </div>
-          <div class="flex-1">
-            <div class="flex gap-2 flex-wrap mb-1"><span class="badge ${badgeType(jam.type||'jam')}" style="${badgeTypeStyle(jam.type||'jam')}">${getJamTypeDisplay(jam.type||'jam')}</span><span class="badge" style="background:rgba(255,255,255,.04);color:var(--txt2);border:1px dashed rgba(255,255,255,.12);font-size:.6rem">🤝 Community</span></div>
-            <h3 class="font-semibold text-white">${escHtml(jam.title)}</h3>
-            <div class="flex gap-3 mt-1 text-xs txt3">
-              <span>📅 ${fmtDate(jam.date)}</span><span>🕐 ${jam.startTime} — ${jam.endTime}</span>
+            <div class="flex gap-2 mt-1 flex-wrap" style="row-gap:4px">
+              <span class="badge ${badgeType(jam.type||'jam')}" style="${badgeTypeStyle(jam.type||'jam')}">${getEventTypeIcon(jam.type||'jam')} ${getEventTypeLabel(jam.type||'jam')}</span><span class="badge" style="background:rgba(255,255,255,.04);color:var(--txt2);border:1px dashed rgba(255,255,255,.12);font-size:.6rem">🤝 Community</span>
             </div>
-            <div class="flex gap-2 mt-1 text-xs txt3"><span>📍 ${escHtml(jam.location)}</span></div>
-            <div class="text-xs txt3 mt-1">proposta da ${escHtml(resolveUserName(jam.userId,jam.userName))} · 👥 ${spotsText} partecipanti</div>
+            <div style="margin-top:8px;font-size:.78rem;color:var(--txt2)">
+              🕐 dalle ${jam.startTime||''} alle ${jam.endTime||''} · 📍 ${escHtml(jam.location||'')} · 👥 ${spotsText}
+            </div>
+            <div style="margin-top:4px;font-size:.75rem;color:var(--txt3)">
+              proposta da <span style="color:var(--brand-l)">${escHtml(_jCreatorName)}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -13158,26 +13167,33 @@ async function renderUserDashboard(){
     const ev=store.events.find(e=>e.id===b.eventId);
     if(!ev)return;
     const type=ev.type||'jam';
-    if(!bookingsByType[type])bookingsByType[type]=[];
-    bookingsByType[type].push(b);
+    // V3.10.35: Redirect 'social' type (label "Community Event") into unified 'community' bucket
+    const _bucket=(type==='social')?'community':type;
+    if(!bookingsByType[_bucket])bookingsByType[_bucket]=[];
+    bookingsByType[_bucket].push(b);
   });
-  // V3.10.34: Add communityJams as their own 'community' section (jam/social stay in their own sections)
+  // V3.10.35: Append communityJams into 'community' bucket (unified with social/organizer bookings)
   if(allUserJams.length){
-    bookingsByType['community']=allUserJams.map(jam=>({_isCommunityJam:true,_jam:jam}));
+    if(!bookingsByType['community'])bookingsByType['community']=[];
+    allUserJams.forEach(jam=>{bookingsByType['community'].push({_isCommunityJam:true,_jam:jam});});
+  }
+  // V3.10.35: Sort community section by date (mixed organizer bookings + community jams)
+  if(bookingsByType['community']){
+    bookingsByType['community'].sort((_ca,_cb)=>{
+      const _cdA=_ca._isCommunityJam?(_ca._jam.date||''):(_ca.recurringDate||(store.events.find(e=>e.id===_ca.eventId)?.days?.[0]?.date)||'');
+      const _cdB=_cb._isCommunityJam?(_cb._jam.date||''):(_cb.recurringDate||(store.events.find(e=>e.id===_cb.eventId)?.days?.[0]?.date)||'');
+      return _cdA.localeCompare(_cdB);
+    });
   }
   // Section order: by date of first upcoming event in each section (chronological)
-  // V3.10.34: Section order — community section always at the end, other sections sorted chronologically
+  // V3.10.35: Section order — all sections sorted chronologically (community included)
   const sectionOrder=Object.keys(bookingsByType)
     .filter(type=>bookingsByType[type]&&bookingsByType[type].length>0)
     .sort((a,b)=>{
-      if(a==='community')return 1;
-      if(b==='community')return -1;
       const firstA=bookingsByType[a][0];
       const firstB=bookingsByType[b][0];
-      const evA=store.events.find(e=>e.id===firstA.eventId);
-      const evB=store.events.find(e=>e.id===firstB.eventId);
-      const dateA=firstA.recurringDate||evA?.days?.[0]?.date||'';
-      const dateB=firstB.recurringDate||evB?.days?.[0]?.date||'';
+      const dateA=firstA._isCommunityJam?(firstA._jam.date||''):(firstA.recurringDate||(store.events.find(e=>e.id===firstA.eventId)?.days?.[0]?.date)||'');
+      const dateB=firstB._isCommunityJam?(firstB._jam.date||''):(firstB.recurringDate||(store.events.find(e=>e.id===firstB.eventId)?.days?.[0]?.date)||'');
       return dateA.localeCompare(dateB);
     });
 
