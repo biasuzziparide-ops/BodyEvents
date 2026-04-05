@@ -427,7 +427,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.36</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.37</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2818,7 +2818,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.36';
+const APP_VERSION='V3.10.37';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -4977,7 +4977,7 @@ async function _splitConcludedRecurringDates(){
     // Fix B — NON più fsSet dell'intero padre: le exceptions sono già state salvate atomicamente nel loop
   }
 }
-/* === INFO PAGE — Come funziona BodyEvents (V3.0.0) === */
+/* === INFO PAGE — Come funziona BodyEvents (V3.10.37) === */
 function renderInfoPage(){
   const c=document.getElementById('info-page-content');if(!c)return;
   const active=getActiveUniverses();
@@ -5047,6 +5047,17 @@ function renderInfoPage(){
   typesSec+=p('<span style="margin-top:10px;display:block">Gli organizzatori possono anche creare <strong style="color:var(--txt1)">tipologie aggiuntive personalizzate</strong> per il proprio universo.</span>');
   html+=sec(typesSec);
 
+  // === COMUNICAZIONI E MODIFICHE (V3.10.37) ===
+  let commSec=h2('📢','Comunicazioni e modifiche');
+  commSec+=p('Quando un organizzatore modifica un evento a cui sei iscritto, vedrai dei <strong style="color:var(--txt1)">banner colorati</strong> sulla scheda dell\'evento che ti avvisano del cambiamento:');
+  commSec+='<div style="display:flex;flex-direction:column;gap:8px;margin:10px 0">';
+  commSec+='<div style="background:rgba(249,115,22,.1);border:1px solid rgba(249,115,22,.3);border-left:3px solid #f97316;border-radius:10px;padding:10px 14px;font-size:.82rem;color:var(--txt2);line-height:1.5"><strong style="color:#f97316">🟠 Modificato</strong> — l\'organizzatore ha cambiato qualcosa (orario, luogo, programma, prezzi). Clicca sull\'evento per vedere cosa è cambiato.</div>';
+  commSec+='<div style="background:rgba(234,179,8,.1);border:1px solid rgba(234,179,8,.3);border-left:3px solid #eab308;border-radius:10px;padding:10px 14px;font-size:.82rem;color:var(--txt2);line-height:1.5"><strong style="color:#eab308">🟡 Rimandato</strong> — l\'evento è stato spostato a una nuova data.</div>';
+  commSec+='<div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-left:3px solid #ef4444;border-radius:10px;padding:10px 14px;font-size:.82rem;color:var(--txt2);line-height:1.5"><strong style="color:#ef4444">🔴 Cancellato</strong> — l\'evento è stato annullato. La tua prenotazione resta come riferimento, ma l\'evento non avrà luogo.</div>';
+  commSec+='</div>';
+  commSec+=tip('💡','<strong style="color:#6366f1">Novità sui Community Event:</strong> se ti iscrivi a un community event creato da un altro utente, il creatore può inviarti note e aggiornamenti. Li vedrai con un piccolo badge di notifica finché non apri la scheda dell\'evento.');
+  html+=sec(commSec);
+
   // === PREZZI ===
   let priceSec=h2('💰','Come funzionano i prezzi');
   priceSec+=p('Ogni evento può avere una politica di prezzo diversa, decisa dall\'organizzatore:');
@@ -5059,6 +5070,7 @@ function renderInfoPage(){
     priceSec+='<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--s100);border-radius:10px;margin-bottom:6px;border:1px solid var(--s300)"><span style="font-size:1.1rem;flex-shrink:0">'+t.icon+'</span><div style="flex:1"><div style="font-size:.82rem;font-weight:700;color:var(--txt1)">'+t.name+'</div><div style="font-size:.78rem;color:var(--txt3);line-height:1.45">'+t.desc+'</div></div></div>';
   });
   priceSec+=p('Alcuni eventi possono anche prevedere uno <strong style="color:var(--txt1)">sconto early bird</strong> per chi si prenota in anticipo, o un <strong style="color:var(--txt1)">anticipo</strong> da versare al momento dell\'iscrizione.');
+  priceSec+=p('Ogni evento ha una propria <strong style="color:var(--txt1)">scadenza di iscrizione</strong>. In alcuni casi l\'organizzatore può decidere di chiudere le iscrizioni in anticipo (es. posti esauriti o cutoff organizzativo). Se un evento appare con iscrizioni chiuse, non sarà più possibile prenotarsi anche se la data non è ancora arrivata.');
   priceSec+=h3('🎟️ Abbonamenti');
   priceSec+=p('Gli organizzatori possono attivare degli <strong style="color:var(--txt1)">abbonamenti</strong> per la propria comunità. Se possiedi un abbonamento attivo e compatibile con l\'evento, il prezzo potrebbe essere <strong style="color:var(--txt1)">ridotto</strong> o l\'ingresso potrebbe essere <strong style="color:var(--txt1)">incluso</strong> nel tuo pacchetto, senza costi aggiuntivi.');
   html+=sec(priceSec);
@@ -5090,6 +5102,13 @@ function renderInfoPage(){
   }
   html+=sec(usersSec);
 
+  // === ASSICURAZIONI (V3.10.37) ===
+  let insSec=h2('🛡️','Assicurazioni');
+  insSec+=p('Alcuni eventi richiedono che i partecipanti siano coperti da un\'<strong style="color:var(--txt1)">assicurazione sportiva</strong> (es. FIPE, ASI, UISP). È una scelta dell\'organizzatore, spesso legata al tipo di pratica o alla location.');
+  insSec+=p('Se ti iscrivi a un evento che richiede assicurazione, potresti dover compilare un <strong style="color:var(--txt1)">breve sondaggio assicurativo</strong> indicando se ne possiedi già una e di che tipo. L\'organizzatore utilizza queste informazioni solo ai fini dell\'evento specifico.');
+  insSec+=tip('🔒','<strong style="color:#6366f1">Privacy:</strong> i dati assicurativi vengono automaticamente rimossi dalla piattaforma <strong style="color:#6366f1">5 giorni dopo la conclusione dell\'evento</strong>, in linea con le normative sulla protezione dei dati personali.');
+  html+=sec(insSec);
+
   // === COSTI DELLA PIATTAFORMA ===
   let costiSec=h2('🪙','Costi della piattaforma');
   costiSec+=p('BodyEvents è <strong style="color:var(--txt1)">completamente gratuita</strong> — nessun costo per registrarsi, prenotare eventi o utilizzare qualsiasi funzionalità della piattaforma.');
@@ -5112,7 +5131,7 @@ function renderInfoPage(){
 
   c.innerHTML=html;
 }
-/* === INFO PAGE ORGANIZER — Guida Organizzatore (V3.0.0) === */
+/* === INFO PAGE ORGANIZER — Guida Organizzatore (V3.10.37) === */
 function renderInfoPageOrganizer(){
   const c=document.getElementById('info-page-organizer-content');if(!c)return;
   const master=store.managers.find(m=>m.role==='master');
@@ -5154,6 +5173,7 @@ function renderInfoPageOrganizer(){
     {id:'org-iscritti',icon:'📊',label:'Lista iscritti'},
     {id:'org-prezzi',icon:'💰',label:'Costi e prezzi'},
     {id:'org-checkin',icon:'📱',label:'Check-in e presenze'},
+    {id:'org-assicurazioni',icon:'🛡️',label:'Assicurazioni'},
     {id:'org-abbonamenti',icon:'🎟️',label:'Abbonamenti'},
     {id:'org-anagrafica',icon:'📇',label:'Anagrafica'},
     {id:'org-comunicazioni',icon:'📢',label:'Comunicazioni'},
@@ -5221,6 +5241,8 @@ function renderInfoPageOrganizer(){
   );
   s7+=h3('Vista per sessione');
   s7+=p('Per eventi multi-sessione, filtra la vista per <strong style="color:var(--txt1)">singola sessione</strong>: vedi solo i partecipanti di quella specifica attività.');
+  s7+=h3('Chiusura manuale iscrizioni');
+  s7+=p('Puoi <strong style="color:var(--txt1)">chiudere manualmente le iscrizioni</strong> per una singola giornata o per l\'intero evento, anche prima della scadenza naturale. Utile quando raggiungi il numero massimo di partecipanti o vuoi bloccare nuove adesioni per motivi organizzativi. La riapertura è sempre possibile con un tap.');
   s7+=h3('Export Excel avanzato');
   s7+=p('L\'export include: <strong style="color:var(--txt1)">riepilogo metriche con formule</strong> (totale previsto, incassato, da incassare), distribuzione ruoli, lista completa con sondaggi, e sezione cancellati. Per eventi multi-sessione, un <strong style="color:var(--txt1)">foglio separato per ogni sessione</strong>.');
   s7+=valueBox('⚡','<strong style="color:#10b981">Efficienza:</strong> tutte le operazioni di gestione partecipanti avvengono inline, senza navigare altrove. Conferma pagamenti, registra anticipi, esporta — tutto dalla stessa schermata.');
@@ -5272,6 +5294,20 @@ function renderInfoPageOrganizer(){
   s8+=valueBox('🕐','<strong style="color:#10b981">Tempo risparmiato:</strong> niente più liste cartacee, spunte manuali o conteggi a fine giornata. Il sistema traccia tutto in tempo reale.');
   html+='<div id="org-checkin" style="scroll-margin-top:16px">'+sec(s8)+'</div>';
 
+  // === 6b. ASSICURAZIONI (V3.10.37) ===
+  let sIns=h2('🛡️','Assicurazioni');
+  sIns+=tagline('Gestisci requisiti e coperture assicurative dei tuoi partecipanti');
+  sIns+=p('Se i tuoi eventi richiedono una <strong style="color:var(--txt1)">copertura assicurativa</strong> (FIPE, ASI, UISP o altre), puoi attivare questo requisito direttamente in fase di creazione evento. I partecipanti saranno guidati a dichiarare la propria copertura al momento dell\'iscrizione.');
+  sIns+=h3('Gestione centralizzata');
+  sIns+=p('Dalla sezione <strong style="color:var(--txt1)">🛡️ Assicurazioni</strong> nella sidebar puoi visualizzare tutte le coperture dichiarate dai tuoi iscritti in un unico posto, con filtri per tipo di assicurazione e stato di validità.');
+  sIns+=h3('Sovrapprezzo assicurativo');
+  sIns+=p('Puoi applicare un <strong style="color:var(--txt1)">sovrapprezzo</strong> ai partecipanti che non possiedono assicurazione — utile per offrire tessere temporanee o assicurazioni giornaliere, con tracciamento separato dei pagamenti.');
+  sIns+=h3('Export e conformità');
+  sIns+=p('L\'export Excel degli iscritti include colonne dedicate: tipo assicurazione, stato di pagamento dell\'eventuale sovrapprezzo e risposte al sondaggio assicurativo.');
+  sIns+=tip('🔒','<strong style="color:#6366f1">Privacy e compliance:</strong> i dati del sondaggio assicurativo vengono <strong style="color:#6366f1">automaticamente eliminati 5 giorni dopo la fine dell\'evento</strong>, in linea con il principio di minimizzazione del GDPR. Esporta i dati prima di questa scadenza se ti servono per pratiche amministrative.');
+  sIns+=valueBox('✅','<strong style="color:#10b981">Valore:</strong> conformità normativa gestita dalla piattaforma, senza raccolta manuale di documenti, senza fogli di calcolo paralleli, e con eliminazione automatica dei dati sensibili a evento concluso.');
+  html+='<div id="org-assicurazioni" style="scroll-margin-top:16px">'+sec(sIns)+'</div>';
+
   // === 7. ABBONAMENTI ===
   let s5=h2('🎟️','Abbonamenti');
   s5+=tagline('Fidelizza la tua community con pacchetti su misura');
@@ -5309,6 +5345,8 @@ function renderInfoPageOrganizer(){
     +featItem('⏰','<strong style="color:var(--txt1)">Rimandato</strong> — l\'evento viene spostato a nuova data. Banner giallo visibile a tutti.')
     +featItem('🚫','<strong style="color:var(--txt1)">Cancellato</strong> — evento annullato. Banner rosso. Le prenotazioni restano come riferimento.')
   );
+  s9+=h3('Note ai partecipanti (community event)');
+  s9+=p('Se sei il creatore di un <strong style="color:var(--txt1)">community event</strong>, puoi inviare <strong style="color:var(--txt1)">note di aggiornamento</strong> ai partecipanti direttamente dalla scheda dell\'evento. Ogni partecipante vedrà un badge di notifica finché non apre la scheda e legge la nota. Perfetto per ultimi avvisi, cambi di luogo dell\'ultimo minuto o conferme di affluenza.');
   s9+=tip('💡','<strong style="color:#6366f1">Ricalcolo automatico:</strong> se modifichi i prezzi, le prenotazioni esistenti vengono ricalcolate. Sconti early bird e fedeltà vengono preservati quando possibile.');
   s9+=valueBox('📣','<strong style="color:#10b981">Efficienza:</strong> un unico aggiornamento raggiunge tutti i partecipanti. Nessun messaggio WhatsApp da inoltrare uno a uno.');
   html+='<div id="org-comunicazioni" style="scroll-margin-top:16px">'+sec(s9)+'</div>';
