@@ -427,7 +427,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.37</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.38</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2346,8 +2346,8 @@ textarea.input{resize:none;font-family:inherit}
   <!-- Guida e tutorial -->
   <div class="card mb-4">
     <h3 class="font-semibold text-white mb-3">📖 Guide e tutorial</h3>
-    <p class="text-xs txt3 mb-3">Rivedi tutti i badge informativi e i tour guidati al prossimo accesso alla piattaforma.</p>
-    <button class="btn btn-sm btn-secondary" onclick="obReset();showToast('Badge e tutorial resettati! Verranno mostrati di nuovo al prossimo accesso.')">🔄 Rivedi tutti i badge e tutorial</button>
+    <p class="text-xs txt3 mb-3">Rivedi subito la guida di benvenuto e tutti i badge informativi e tour guidati della piattaforma.</p>
+    <button class="btn btn-sm btn-secondary" onclick="replayAllOnboarding()">🔄 Rivedi tutti i badge e tutorial</button>
   </div>
 
   <!-- Stats personali -->
@@ -2818,7 +2818,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.37';
+const APP_VERSION='V3.10.38';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -2842,6 +2842,24 @@ function _obFlags(){try{return JSON.parse(localStorage.getItem(OB_KEY)||'{}');}c
 function _obSet(k){const f=_obFlags();f[k]=true;localStorage.setItem(OB_KEY,JSON.stringify(f));}
 function obSeen(k){return !!_obFlags()[k];}
 function obReset(){localStorage.removeItem(OB_KEY);}
+// V3.10.38: Rigioca l'intera sequenza di onboarding immediatamente (senza logout/login).
+// Usata dal bottone "Rivedi tutti i badge e tutorial" nel profilo utente.
+function replayAllOnboarding(){
+  // 1. Reset di tutti i flag di onboarding in localStorage
+  obReset();
+  // 2. Sanity cleanup: rimuovi eventuali overlay di tour/popup attualmente aperti
+  document.getElementById('ob-tour-overlay')?.remove();
+  document.getElementById('popup-add-home')?.remove();
+  _obCurrentTour=null;_obCurrentSlide=0;
+  // 3. Determina il tipo utente corrente
+  const cu=store.currentUser;
+  if(!cu){showToast('Devi essere loggato per rivedere i tutorial.');return;}
+  const isOrganizer=store.managers.some(m=>m.id===cu.id);
+  const userType=isOrganizer?'organizer':'user';
+  // 4. Parte subito la sequenza: popup "Aggiungi a Home" (se mobile) + welcome tour
+  showToast('🔄 Rieseguo la guida di benvenuto...');
+  setTimeout(()=>_showOnboardingSequence(userType),400);
+}
 
 /* ==============================
    NOTIFICATION BADGE SYSTEM (V3.4.0)
@@ -3160,39 +3178,74 @@ function _obRenderTourSlide(){
 function _obNext(){_obCurrentSlide++;_obRenderTourSlide();}
 function _obPrev(){_obCurrentSlide--;_obRenderTourSlide();}
 function _obCloseTour(){
-  const closedTour=_obCurrentTour;
   _obSet(_obCurrentTour);
   const el=document.getElementById('ob-tour-overlay');if(el)el.remove();
   _obCurrentTour=null;_obCurrentSlide=0;
-  // Chain: after welcome tour on mobile, show "Add to Home" popup
-  if((closedTour==='tour_welcome'||closedTour==='tour_welcome_org')&&window.innerWidth<=768){
-    setTimeout(()=>_showAddToHomePopup(),500);
-  }
 }
 
-// === ADD-TO-HOME POPUP (mobile only) ===
-function _showAddToHomePopup(){
-  if(window.innerWidth>768)return;
-  if(obSeen('popup_add_home'))return;
-  // Don't show if already in standalone mode (user already added to home)
-  if(window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone)return;
+// === ADD-TO-HOME POPUP (mobile only) — V3.10.38 ===
+// onComplete: callback invocata alla chiusura del popup (Ho capito / Mostra più tardi / click fuori)
+function _showAddToHomePopup(onComplete){
+  const finish=(markSeen)=>{
+    if(markSeen)_obSet('popup_add_home');
+    const n=document.getElementById('popup-add-home');if(n)n.remove();
+    if(typeof onComplete==='function')setTimeout(onComplete,300);
+  };
+  // Guard: desktop → salta direttamente
+  if(window.innerWidth>768){if(typeof onComplete==='function')onComplete();return;}
+  // Guard: già visto → salta
+  if(obSeen('popup_add_home')){if(typeof onComplete==='function')onComplete();return;}
+  // Guard: già installato come PWA → salta
+  if(window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone){
+    if(typeof onComplete==='function')onComplete();return;
+  }
+  // Esponi finish() temporaneamente sul window per il binding onclick degli inline handler
+  window._addHomePopupFinish=finish;
   const el=document.createElement('div');
   el.id='popup-add-home';el.className='ob-overlay';
   el.innerHTML=`<div class="ob-tour">
     <div class="ob-tour-icon">📱</div>
     <div class="ob-tour-title">Usa BodyEvents come fosse un'app!</div>
-    <div class="ob-tour-text" style="text-align:left;line-height:1.8">
+    <div class="ob-tour-text" style="text-align:left;line-height:1.7">
+      <div style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:.88rem;color:var(--txt2)">
+        💡 <b>Non perderla di vista!</b> Questa piattaforma ti servirà nei prossimi giorni e nelle prossime settimane per <b>controllare le tue prenotazioni, gestirle e farne di nuove</b>.
+      </div>
+      Ecco come aggiungerla alla Home del tuo telefono:<br><br>
       <b>1.</b> Apri il menu del browser o clicca il tasto condividi<br>
       <b>2.</b> Tocca "Aggiungi alla schermata Home"<br><br>
       Apparirà un'icona nella tua Home, e potrai accedere come fosse un'app!
+      <div style="margin-top:14px;padding:12px 14px;background:var(--s100);border:1px solid var(--s300);border-radius:10px;font-size:.82rem;color:var(--txt2);line-height:1.55">
+        🔖 Se proprio non vuoi farlo adesso, <b>salvala almeno nei preferiti</b> del tuo browser: così non dovrai cercarla ogni volta.
+      </div>
     </div>
     <div class="ob-tour-btns">
-      <button class="ob-btn-next" onclick="_obSet('popup_add_home');document.getElementById('popup-add-home').remove()">Ho capito!</button>
-      <button class="ob-btn-skip" onclick="document.getElementById('popup-add-home').remove()">Mostra più tardi</button>
+      <button class="ob-btn-next" onclick="window._addHomePopupFinish(true)">Ho capito!</button>
+      <button class="ob-btn-skip" onclick="window._addHomePopupFinish(false)">Mostra più tardi</button>
     </div>
   </div>`;
-  el.onclick=(e)=>{if(e.target===el)el.remove();};
+  el.onclick=(e)=>{if(e.target===el)finish(false);};
   document.body.appendChild(el);
+}
+
+// === ONBOARDING SEQUENCE ORCHESTRATOR (V3.10.38) ===
+// Ordine: prima "Aggiungi a Home", poi welcome tour adeguato al tipo utente.
+// userType: 'user' | 'organizer'
+function _showOnboardingSequence(userType){
+  const tourKey=(userType==='organizer')?'tour_welcome_org':'tour_welcome';
+  // Funzione helper: parte il tour di benvenuto
+  const runTour=()=>{obShowTour(tourKey);};
+  // Il popup "Aggiungi a Home" ha senso solo su mobile e se non già mostrato/installato
+  const canShowAddHome=
+    window.innerWidth<=768 &&
+    !obSeen('popup_add_home') &&
+    !(window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone);
+  if(!canShowAddHome){
+    // Desktop, oppure già visto, oppure già installato → vai direttamente al tour
+    runTour();
+    return;
+  }
+  // Mostra popup "Aggiungi a Home"; alla chiusura, parte il tour
+  _showAddToHomePopup(runTour);
 }
 
 // === INFO CARD RENDERING ===
@@ -9056,8 +9109,8 @@ async function loadCurrentUser(uid){
     _loadDeferredAdminData();
     // V3.4.1: Pre-load user's own bookings for notification badges (non-blocking)
     if(store.currentUser?.id){ensureUserBookingsLoaded(uid).then(()=>updateNotificationBadges());}
-    // Show welcome tour for new organizers (first login)
-    setTimeout(()=>obShowTour('tour_welcome_org'),600);
+    // V3.10.38: Onboarding sequence — popup "Aggiungi a Home" prima, poi welcome tour organizer
+    setTimeout(()=>_showOnboardingSequence('organizer'),600);
     checkPrivacyConsent();
     return;
   }
@@ -9087,6 +9140,8 @@ async function loadCurrentUser(uid){
     if(_pendingDeepLink){go('events');await handleDeepLink();}
     else{go('events');}
     checkPrivacyConsent();
+    // V3.10.38: Onboarding sequence — popup "Aggiungi a Home" prima, poi welcome tour utente
+    setTimeout(()=>_showOnboardingSequence('user'),600);
     return;
   }
   showToast('Profilo non trovato. Contatta il supporto.','error');
