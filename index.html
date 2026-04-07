@@ -427,7 +427,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.40</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.41</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2818,7 +2818,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.40';
+const APP_VERSION='V3.10.41';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -12995,6 +12995,9 @@ async function renderUserEvents(){
           </div>
         </div>
       </div>
+      <button style="position:absolute;bottom:10px;right:12px;z-index:15;width:24px;height:24px;border-radius:7px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.18);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;transition:background .2s" onclick="event.stopPropagation();shareEventFromCard('${ev.id}','${escHtml(ev.title).replace(/'/g,"\\'")}',${ev._recDate?`'${ev._recDate}'`:'null'})" title="Condividi">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+      </button>
     </div>`;
   });
 
@@ -13055,6 +13058,9 @@ async function renderUserEvents(){
           </div>
         </div>
       </div>
+      <button style="position:absolute;bottom:10px;right:12px;z-index:15;width:24px;height:24px;border-radius:7px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.18);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;transition:background .2s" onclick="event.stopPropagation();shareJamLink('${jam.id}','${escHtml(jam.title).replace(/'/g,"\\'")}',event)" title="Condividi">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+      </button>
     </div>`;
   });
 
@@ -14990,18 +14996,34 @@ function cancelJam(jamId){
 /* ==============================
    SHAREABLE LINK (Change C)
 ============================== */
-function openShareModal(eventId){
+// V3.10.41: Share event from user bacheca card (icon-only button)
+function shareEventFromCard(eventId, eventTitle, recDate) {
+  const shareUrl = window.location.origin + window.location.pathname + '?event=' + eventId + (recDate ? '&recDate=' + recDate : '');
+  const ev = store.events.find(e => e.id === eventId);
+  const dateStr = recDate ? fmtDate(recDate) : (ev && ev.days && ev.days.length ? fmtDate(ev.days[0].date) + (ev.days.length > 1 ? ' — ' + fmtDate(ev.days[ev.days.length - 1].date) : '') : '');
+  const shareText = eventTitle + (dateStr ? '\n📅 ' + dateStr : '') + '\n\nIscriviti qui 👇\n' + shareUrl;
+  if (navigator.share) {
+    navigator.share({ title: eventTitle, text: shareText, url: shareUrl }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      showToast('Link copiato!', 'success');
+    }).catch(() => { showToast('Non è stato possibile copiare il link', 'error'); });
+  }
+}
+
+function openShareModal(eventId, recDate){
   const ev=store.events.find(e=>e.id===eventId);
   if(!ev)return;
+  const _shareRecDate = recDate || currentBookingRecDate || null;
   // Include recDate for recurring events so the link opens the correct instance
   let shareUrl=window.location.origin+window.location.pathname+'?event='+eventId;
-  if(currentBookingRecDate)shareUrl+='&recDate='+currentBookingRecDate;
+  if(_shareRecDate)shareUrl+='&recDate='+_shareRecDate;
   const overlay=document.createElement('div');
   overlay.className='overlay';
   overlay.id='share-modal-overlay';
   const _imgSrc=ev.imageThumb?.src||ev.imageHeader?.src||ev.image||null;
   const imageHtml=_imgSrc?`<img src="${_imgSrc}" style="width:100%;height:120px;object-fit:cover;border-radius:8px;margin-bottom:12px">`:'';
-  const dateStr=currentBookingRecDate?fmtDate(currentBookingRecDate):(ev.days&&ev.days.length?fmtDate(ev.days[0].date)+(ev.days.length>1?' — '+fmtDate(ev.days[ev.days.length-1].date):''):'');
+  const dateStr=_shareRecDate?fmtDate(_shareRecDate):(ev.days&&ev.days.length?fmtDate(ev.days[0].date)+(ev.days.length>1?' — '+fmtDate(ev.days[ev.days.length-1].date):''):'');
   const waText=encodeURIComponent('*'+ev.title+'*\n📅 '+dateStr+'\n\nIscriviti qui 👇\n'+shareUrl);
   const hasNativeShare=!!navigator.share;
   overlay.innerHTML=`
@@ -15036,7 +15058,7 @@ function openShareModal(eventId){
           📋 Copia link
         </button>
       </div>
-      ${hasNativeShare?`<button class="btn btn-secondary w-full mb-4" style="padding:10px" onclick="nativeShareEvent('${eventId}')">📱 Condividi con...</button>`:''}
+      ${hasNativeShare?`<button class="btn btn-secondary w-full mb-4" style="padding:10px" onclick="nativeShareEvent('${eventId}'${_shareRecDate?`,'${_shareRecDate}'`:''})">📱 Condividi con...</button>`:''}
 
       <div class="mb-4">
         <label class="label">Link diretto</label>
@@ -15069,11 +15091,12 @@ function copyShareLink(){
   }
 }
 
-function nativeShareEvent(eventId){
+function nativeShareEvent(eventId, recDate){
   const ev=store.events.find(e=>e.id===eventId);if(!ev)return;
+  const _shareRecDate = recDate || currentBookingRecDate || null;
   let shareUrl=window.location.origin+window.location.pathname+'?event='+eventId;
-  if(currentBookingRecDate)shareUrl+='&recDate='+currentBookingRecDate;
-  const dateStr=currentBookingRecDate?fmtDate(currentBookingRecDate):(ev.days&&ev.days.length?fmtDate(ev.days[0].date):'');
+  if(_shareRecDate)shareUrl+='&recDate='+_shareRecDate;
+  const dateStr=_shareRecDate?fmtDate(_shareRecDate):(ev.days&&ev.days.length?fmtDate(ev.days[0].date):'');
   navigator.share({title:ev.title,text:ev.title+' — '+dateStr,url:shareUrl}).catch(()=>{});
 }
 
@@ -16121,7 +16144,7 @@ async function showEventDetail(evId,recDate){
       ${''}<!-- V3.10.11: image removed from event detail for cleaner UX -->
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
         <div class="flex gap-2 flex-wrap"><span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>${levelBadges}</div>
-        ${ev.status==='pubblicato'?`<button class="btn btn-sm" style="flex-shrink:0;padding:6px 14px;background:rgba(59,130,246,.1);color:var(--blue);border:1px solid rgba(59,130,246,.25);font-size:.8rem" onclick="event.stopPropagation();openShareModal('${ev.id}')" title="Condividi evento">📤 Condividi</button>`:''}
+        ${ev.status==='pubblicato'?`<button class="btn btn-sm" style="flex-shrink:0;padding:6px 14px;background:rgba(59,130,246,.1);color:var(--blue);border:1px solid rgba(59,130,246,.25);font-size:.8rem" onclick="event.stopPropagation();openShareModal('${ev.id}'${currentBookingRecDate?`,'${currentBookingRecDate}'`:''})" title="Condividi evento">📤 Condividi</button>`:''}
       </div>
       <h1 class="text-2xl font-bold text-white">${escHtml(ev.title)}</h1>
       ${(()=>{
@@ -22979,7 +23002,7 @@ async function showAdminEventDetail(evId){
         :(_regManual===false)
           ?'<button class="btn btn-sm" style="background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.25);border-radius:20px;font-size:.7rem;font-weight:700" onclick="event.stopPropagation();toggleRegistrationClosed(\''+ev.id+'\')">🔒 Chiudi Iscrizioni'+_regDateLabel+'</button>'
           :'<button class="btn btn-sm" style="background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.25);border-radius:20px;font-size:.7rem;font-weight:700" onclick="event.stopPropagation();toggleRegistrationClosed(\''+ev.id+'\')">🔒 Chiudi Iscrizioni'+_regDateLabel+'</button>';
-      const _shareBtn='<button class="btn btn-sm" style="background:rgba(59,130,246,.1);color:var(--blue);border:1px solid rgba(59,130,246,.25)" onclick="openShareModal(\''+ev.id+'\')">📤 Condividi</button>';
+      const _shareBtn='<button class="btn btn-sm" style="background:rgba(59,130,246,.1);color:var(--blue);border:1px solid rgba(59,130,246,.25)" onclick="openShareModal(\''+ev.id+'\''+ (_regRecDate ? ',\''+_regRecDate+'\'' : '') +')">📤 Condividi</button>';
       if(_hb)return _eyeBtn+_shareBtn+'<button class="btn btn-sm" style="background:rgba(249,115,22,.12);color:var(--orange);border:1px solid rgba(249,115,22,.3)" onclick="openAlertModal(\''+ev.id+'\')">⚠️ Modifica o Cancella</button>'+_resumeBtn+_regCloseBtn;
       return _eyeBtn+_shareBtn+_resumeBtn+_regCloseBtn+'<button class="btn btn-sm" style="background:rgba(234,179,8,.15);color:var(--yellow);border:1px solid rgba(234,179,8,.3)" onclick="revertToDraft(\''+ev.id+'\')">📝 Torna in bozza</button><button class="btn btn-danger btn-sm" onclick="deleteEvent(\''+ev.id+'\')">🗑️ Elimina</button>';
     }
