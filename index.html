@@ -15001,8 +15001,10 @@ function shareEventFromCard(eventId, eventTitle, recDate) {
   const shareUrl = window.location.origin + window.location.pathname + '?event=' + eventId + (recDate ? '&recDate=' + recDate : '');
   const ev = store.events.find(e => e.id === eventId);
   const dateStr = recDate ? fmtDate(recDate) : (ev && ev.days && ev.days.length ? fmtDate(ev.days[0].date) + (ev.days.length > 1 ? ' — ' + fmtDate(ev.days[ev.days.length - 1].date) : '') : '');
-  const shareText = eventTitle + (dateStr ? '\n📅 ' + dateStr : '') + '\n\nIscriviti qui 👇\n' + shareUrl;
   if (navigator.share) {
+    // NOTA: il testo NON deve contenere l'URL — il parametro 'url' lo aggiunge già.
+    // Se si include l'URL sia in 'text' che in 'url', WhatsApp/Telegram lo mostrano DUE volte.
+    const shareText = '*' + eventTitle + '*\n📅 ' + (dateStr || '') + '\n\nIscriviti qui 👇';
     navigator.share({ title: eventTitle, text: shareText, url: shareUrl }).catch(() => {});
   } else {
     navigator.clipboard.writeText(shareUrl).then(() => {
