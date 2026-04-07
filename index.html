@@ -427,7 +427,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.39</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.40</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2818,7 +2818,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.39';
+const APP_VERSION='V3.10.40';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -15699,10 +15699,15 @@ function showOrgPublicProfile(managerId){
 ============================== */
 async function showEventDetail(evId,recDate){
   const ev=store.events.find(e=>e.id===evId);if(!ev)return;
-  // V3.2 FIX: For Jam/Community events, ensure all event bookings are loaded (for participant list)
+  // V3.10.40 FIX: Non-blocking bookings preload for Jam/Community participant list
   if((ev.type==='jam'||ev.type==='social')&&!_bookingsLoaded&&!_eventBookingsLoadedSet.has(evId)){
-    ensureEventBookingsLoaded(evId).then(()=>showEventDetail(evId,recDate));
-    return;
+    ensureEventBookingsLoaded(evId).then(()=>{
+      // Refresh detail only if user is still viewing this event
+      if(currentView==='event-detail-dynamic'&&currentBookingEventId===evId){
+        showEventDetail(evId,recDate);
+      }
+    }).catch(e=>console.warn('[showEventDetail] bookings preload failed:',e));
+    // Don't return — render immediately with available data; will refresh when bookings arrive
   }
   currentBookingEventId=evId;
   // Auto-detect recurringDate for recurring events when not provided
@@ -15737,7 +15742,7 @@ async function showEventDetail(evId,recDate){
   const skipPricing=isFreeEvent||isManagedByOrg||isDirectCost;
   console.log('[showEventDetail] ev.type:', ev.type, 'pricingMode:', ev.pricingMode, 'skipPricing:', skipPricing, 'isFree:', isFreeEvent, 'isManaged:', isManagedByOrg, 'isDirect:', isDirectCost);
   console.log('[showEventDetail] Event-level EB:', ev.earlyBird);
-  ev.days.forEach((d,i)=>{console.log(`[showEventDetail] Day ${i} EB:`, d.earlyBird);d.sessions.forEach((s,j)=>{console.log(`[showEventDetail] Session ${i}-${j} EB:`, s.earlyBird);});});
+  ev.days.forEach((d,i)=>{console.log(`[showEventDetail] Day ${i} EB:`, d.earlyBird);(d.sessions||[]).forEach((s,j)=>{console.log(`[showEventDetail] Session ${i}-${j} EB:`, s.earlyBird);});});
 
   let daysHtml='';
   // Free event banner
@@ -15875,7 +15880,8 @@ async function showEventDetail(evId,recDate){
     return localDateStr(new Date(dayMs+(recMs-baseMs)));
   };
   ev.days.forEach((day,di)=>{
-    const isSingleSession=day.sessions.length<=1;
+    const _daySessions=day.sessions||[];
+    const isSingleSession=_daySessions.length<=1;
     const _dayEffDate=_detEffDate(day.date);
     daysHtml+=`<div class="card mb-3" style="border-color:var(--brand);background:rgba(217,70,239,.03)">
       <div class="flex justify-between items-center"><div class="flex items-center gap-3"><span>📅</span><div>
@@ -15883,11 +15889,11 @@ async function showEventDetail(evId,recDate){
         <span class="text-sm txt3" style="margin-left:8px">${day.startTime} — ${day.endTime}</span>
       </div></div></div></div>`;
 
-    if(day.sessions.length>1){
+    if(_daySessions.length>1){
       daysHtml+=`<div style="margin-left:16px;padding-left:16px;border-left:2px solid rgba(217,70,239,.2);margin-top:12px">`;
       daysHtml+=`<p class="text-sm txt3 mb-3">${skipPricing?'Seleziona le sessioni:':'Sessioni disponibili:'}</p>`;
       daysHtml+=`<div style="max-width:90%;margin:0 auto">`;
-      day.sessions.forEach((s,si)=>{
+      _daySessions.forEach((s,si)=>{
         const sLoc=s.location?`<div class="text-xs txt3 mt-1">${s.locationUrl?'<a href="'+s.locationUrl+'" target="_blank" style="color:var(--brand-l)">📍 '+escHtml(s.location)+' ↗</a>':'📍 '+escHtml(s.location)}</div>`:'';
         if(!skipPricing){
           if(si>0) daysHtml+='<div style="height:14px"></div>';
@@ -15928,7 +15934,7 @@ async function showEventDetail(evId,recDate){
           </div>`;
         }
         daysHtml+=renderEarlyBirdGrid(resolveEB(day.earlyBird,ev.earlyBird),'tier-ebday-'+ev.id+'-'+di,ev.id,day.tiers,_sdPct,_userHasEntrySub);
-      } else if(day.sessions.length>1){
+      } else if(_daySessions.length>1){
         // Free/managed: offer "Giornata intera" as alternative to individual sessions
         daysHtml+=`<div class="check-item mt-3 mb-2" onclick="toggleFreeDay(this,${di})" style="padding:8px 12px;cursor:pointer;background:rgba(16,185,129,.04);border:1px solid rgba(16,185,129,.2);border-radius:10px">
           <div class="checkbox"><span style="display:none;color:#fff;font-size:.6rem">✓</span></div>
@@ -15940,7 +15946,7 @@ async function showEventDetail(evId,recDate){
       }
 
     } else if(isSingleSession){
-      const s=day.sessions[0]||null;
+      const s=_daySessions[0]||null;
       const useTiers=day.tiers||(s?s.tiers:ev.tiers);
       const useEB=resolveEB(s?s.earlyBird:null,day.earlyBird,ev.earlyBird);
       const sLoc=s&&s.location?`<div class="text-xs txt3 mt-1">${s.locationUrl?'<a href="'+s.locationUrl+'" target="_blank" style="color:var(--brand-l)">📍 '+escHtml(s.location)+' ↗</a>':'📍 '+escHtml(s.location)}</div>`:'';
