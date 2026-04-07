@@ -23621,12 +23621,14 @@ async function handleDeepLink(){
   // V3.2: Clear persisted deep link from localStorage
   try{sessionStorage.removeItem('_pendingDeepLink');}catch(e){}
   if(dl.type==='event'){
-    // Open event detail view
-    const ev=store.events.find(e=>e.id===dl.id)||store.communityJams?.find(j=>j.id===dl.id);
+    const ev=store.events.find(e=>e.id===dl.id);
+    const jam=!ev?store.communityJams?.find(j=>j.id===dl.id):null;
     if(ev){
       go('events');
-      // Pass recDate for recurring events so currentBookingRecDate is set correctly
       setTimeout(()=>showEventDetail(dl.id,dl.recDate||undefined),300);
+    } else if(jam){
+      go('events');
+      setTimeout(()=>showJamDetail(dl.id),300);
     } else {
       showToast('Evento non trovato','error');
     }
