@@ -14699,7 +14699,7 @@ function shareJamLink(jamId,jamTitle,evt){
   const dateStr=jam&&jam.date?fmtDate(jam.date):'';
   if(navigator.share){
     const shareText='*'+jamTitle+'*'+(dateStr?'\n📅 '+dateStr:'')+'\n\nIscriviti qui 👇\n'+shareUrl;
-    navigator.share({title:jamTitle,text:shareText}).catch(()=>{});
+    navigator.share({text:shareText}).catch(()=>{});
   } else {
     navigator.clipboard.writeText(shareUrl).then(()=>{
       showToast('Link copiato!','success');
@@ -15009,7 +15009,7 @@ function shareEventFromCard(eventId, eventTitle, recDate) {
     // all'inizio del messaggio e non possiamo controllarne la posizione.
     // Includiamo l'URL direttamente nel 'text', alla fine, dove lo vogliamo.
     const shareText = '*' + eventTitle + '*\n📅 ' + (dateStr || '') + '\n\nIscriviti qui 👇\n' + shareUrl;
-    navigator.share({ title: eventTitle, text: shareText }).catch(() => {});
+    navigator.share({ text: shareText }).catch(() => {});
   } else {
     navigator.clipboard.writeText(shareUrl).then(() => {
       showToast('Link copiato!', 'success');
@@ -15104,7 +15104,7 @@ function nativeShareEvent(eventId, recDate){
   if(_shareRecDate)shareUrl+='&recDate='+_shareRecDate;
   const dateStr=_shareRecDate?fmtDate(_shareRecDate):(ev.days&&ev.days.length?fmtDate(ev.days[0].date):'');
   const shareText='*'+ev.title+'*\n📅 '+dateStr+'\n\nIscriviti qui 👇\n'+shareUrl;
-  navigator.share({title:ev.title,text:shareText}).catch(()=>{});
+  navigator.share({text:shareText}).catch(()=>{});
 }
 
 /* ==============================
