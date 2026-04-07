@@ -14695,8 +14695,11 @@ function renderUserJams(){
 function shareJamLink(jamId,jamTitle,evt){
   if(evt)evt.stopPropagation();
   const shareUrl=window.location.origin+window.location.pathname+'?event='+jamId;
+  const jam=store.communityJams.find(j=>j.id===jamId);
+  const dateStr=jam&&jam.date?fmtDate(jam.date):'';
   if(navigator.share){
-    navigator.share({title:jamTitle,url:shareUrl}).catch(()=>{});
+    const shareText='*'+jamTitle+'*'+(dateStr?'\n📅 '+dateStr:'')+'\n\nIscriviti qui 👇\n'+shareUrl;
+    navigator.share({title:jamTitle,text:shareText}).catch(()=>{});
   } else {
     navigator.clipboard.writeText(shareUrl).then(()=>{
       showToast('Link copiato!','success');
@@ -15002,10 +15005,11 @@ function shareEventFromCard(eventId, eventTitle, recDate) {
   const ev = store.events.find(e => e.id === eventId);
   const dateStr = recDate ? fmtDate(recDate) : (ev && ev.days && ev.days.length ? fmtDate(ev.days[0].date) + (ev.days.length > 1 ? ' — ' + fmtDate(ev.days[ev.days.length - 1].date) : '') : '');
   if (navigator.share) {
-    // NOTA: il testo NON deve contenere l'URL — il parametro 'url' lo aggiunge già.
-    // Se si include l'URL sia in 'text' che in 'url', WhatsApp/Telegram lo mostrano DUE volte.
-    const shareText = '*' + eventTitle + '*\n📅 ' + (dateStr || '') + '\n\nIscriviti qui 👇';
-    navigator.share({ title: eventTitle, text: shareText, url: shareUrl }).catch(() => {});
+    // NOTA: NON usare il parametro 'url' di navigator.share — la piattaforma lo prepende
+    // all'inizio del messaggio e non possiamo controllarne la posizione.
+    // Includiamo l'URL direttamente nel 'text', alla fine, dove lo vogliamo.
+    const shareText = '*' + eventTitle + '*\n📅 ' + (dateStr || '') + '\n\nIscriviti qui 👇\n' + shareUrl;
+    navigator.share({ title: eventTitle, text: shareText }).catch(() => {});
   } else {
     navigator.clipboard.writeText(shareUrl).then(() => {
       showToast('Link copiato!', 'success');
@@ -15099,7 +15103,8 @@ function nativeShareEvent(eventId, recDate){
   let shareUrl=window.location.origin+window.location.pathname+'?event='+eventId;
   if(_shareRecDate)shareUrl+='&recDate='+_shareRecDate;
   const dateStr=_shareRecDate?fmtDate(_shareRecDate):(ev.days&&ev.days.length?fmtDate(ev.days[0].date):'');
-  navigator.share({title:ev.title,text:ev.title+' — '+dateStr,url:shareUrl}).catch(()=>{});
+  const shareText='*'+ev.title+'*\n📅 '+dateStr+'\n\nIscriviti qui 👇\n'+shareUrl;
+  navigator.share({title:ev.title,text:shareText}).catch(()=>{});
 }
 
 /* ==============================
