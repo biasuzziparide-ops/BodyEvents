@@ -427,7 +427,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.42</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.43</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2818,7 +2818,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.42';
+const APP_VERSION='V3.10.43';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -21019,6 +21019,7 @@ function toggleGift(bId,ctx){
   if(b.gift){
     // Save snapshot of current values BOTH locally and on Firestore
     const snapshot={amount:b.amount,totalAmount:b.totalAmount,paymentStatus:b.paymentStatus,depositStatus:b.depositStatus,insurancePaid:b.insurancePaid,insuranceSurcharge:b.insuranceSurcharge,items:(b.items||[]).map(i=>({...i}))};
+    if(b._preInsuredSnapshot)snapshot._preInsuredSnapshot=b._preInsuredSnapshot;
     b._preGiftSnapshot=snapshot;
     updates._preGiftSnapshot=snapshot;
     // Zero out all financial fields
@@ -21035,6 +21036,7 @@ function toggleGift(bId,ctx){
       b.paymentStatus=snap.paymentStatus||null;b.depositStatus=snap.depositStatus||null;
       b.insurancePaid=snap.insurancePaid!=null?snap.insurancePaid:b.insurancePaid;
       b.insuranceSurcharge=snap.insuranceSurcharge!=null?snap.insuranceSurcharge:b.insuranceSurcharge;
+      if(snap._preInsuredSnapshot)b._preInsuredSnapshot=snap._preInsuredSnapshot;
       if(snap.items)b.items=snap.items;
       updates.amount=b.amount;updates.totalAmount=b.totalAmount;
       updates.paymentStatus=b.paymentStatus;updates.depositStatus=b.depositStatus;
@@ -21078,7 +21080,7 @@ function togglePayment(bId,ctx){
   b.paymentStatus=wasPaid?null:'pagato';
   const updates={paymentStatus:b.paymentStatus};
   // Auto-sync insurance payment with full payment status
-  if(b.insuranceSurcharge>0){
+  if(b.insuranceSurcharge>0&&b.insurancePaid!==null){
     b.insurancePaid=!wasPaid;
     updates.insurancePaid=b.insurancePaid;
   }
@@ -21105,6 +21107,73 @@ function toggleInsurancePaid(bId,ctx){
   else showToast('Pagamento assicurazione rimosso');
   if(ctx==='bookings')renderAdminBookings();
   else if(ctx==='detail'){window._adminDetailKeepScroll=true;showAdminEventDetail(b.eventId);}
+}
+function markAlreadyInsured(bookingId,ctx){
+  const b=store.bookings.find(x=>x.id===bookingId);
+  if(!b||!b.insuranceSurcharge)return;
+  const ev=store.events.find(e=>e.id===b.eventId);
+  if(!ev||!ev.insurance?.enabled)return;
+  if(isUserInsured(b.userId,ev.insurance.requiredInsuranceIds))return;
+  showConfirm('🛡️ Segna come già assicurato','Confermi che questo utente è già assicurato? Il sovrapprezzo assicurativo verrà rimosso dalla prenotazione e l\'assicurazione verrà assegnata in anagrafica.',async()=>{
+    try{
+      b._preInsuredSnapshot={insuranceSurcharge:b.insuranceSurcharge,insurancePaid:b.insurancePaid,amount:b.amount,totalAmount:b.totalAmount,paymentStatus:b.paymentStatus};
+      const oldSurcharge=b.insuranceSurcharge;
+      const assignedBy=store.currentUser.id;
+      for(const reqInsId of ev.insurance.requiredInsuranceIds){
+        const ins=store.insurances.find(i=>i.id===reqInsId);
+        const expiresAt=ins?.validTo||null;
+        await assignInsuranceToUser(b.userId,reqInsId,assignedBy,expiresAt,{});
+      }
+      b.insuranceSurcharge=0;
+      b.insurancePaid=null;
+      b.amount=b.amount-oldSurcharge;
+      b.totalAmount=b.totalAmount-oldSurcharge;
+      if(b.amount<0)b.amount=0;
+      if(b.totalAmount<0)b.totalAmount=0;
+      if(b.amount===0&&b.totalAmount===0&&!b.gift){
+        b._preInsuredSnapshot.paymentStatus=b._preInsuredSnapshot.paymentStatus||b.paymentStatus;
+        b.paymentStatus='gratuito';
+      }
+      const updates={insuranceSurcharge:b.insuranceSurcharge,insurancePaid:b.insurancePaid,amount:b.amount,totalAmount:b.totalAmount,paymentStatus:b.paymentStatus,_preInsuredSnapshot:b._preInsuredSnapshot};
+      await fsUpdate('bookings',b.id,updates);
+      showToast('🛡️ Utente segnato come già assicurato — sovrapprezzo rimosso');
+      if(ctx==='bookings')renderAdminBookings();
+      else if(ctx==='detail'){window._adminDetailKeepScroll=true;showAdminEventDetail(b.eventId);}
+    }catch(err){
+      console.error('markAlreadyInsured error:',err);
+      showToast('Errore nell\'assegnazione assicurazione','error');
+    }
+  });
+}
+function revertMarkAlreadyInsured(bookingId,ctx){
+  const b=store.bookings.find(x=>x.id===bookingId);
+  if(!b||!b._preInsuredSnapshot)return;
+  const ev=store.events.find(e=>e.id===b.eventId);
+  if(!ev)return;
+  showConfirm('↩️ Annulla "già assicurato"','Vuoi annullare? Il sovrapprezzo assicurativo verrà ripristinato e l\'assicurazione rimossa dall\'anagrafica dell\'utente.',async()=>{
+    try{
+      const snap=b._preInsuredSnapshot;
+      if(ev.insurance?.requiredInsuranceIds){
+        for(const reqInsId of ev.insurance.requiredInsuranceIds){
+          await removeInsuranceFromUser(b.userId,reqInsId);
+        }
+      }
+      b.insuranceSurcharge=snap.insuranceSurcharge;
+      b.insurancePaid=snap.insurancePaid;
+      b.amount=snap.amount;
+      b.totalAmount=snap.totalAmount;
+      if(snap.paymentStatus!==undefined)b.paymentStatus=snap.paymentStatus;
+      delete b._preInsuredSnapshot;
+      const updates={insuranceSurcharge:b.insuranceSurcharge,insurancePaid:b.insurancePaid,amount:b.amount,totalAmount:b.totalAmount,paymentStatus:b.paymentStatus,_preInsuredSnapshot:firebase.firestore.FieldValue.delete()};
+      await fsUpdate('bookings',b.id,updates);
+      showToast('↩️ Ripristinato: sovrapprezzo assicurativo reinserito');
+      if(ctx==='bookings')renderAdminBookings();
+      else if(ctx==='detail'){window._adminDetailKeepScroll=true;showAdminEventDetail(b.eventId);}
+    }catch(err){
+      console.error('revertMarkAlreadyInsured error:',err);
+      showToast('Errore nel ripristino','error');
+    }
+  });
 }
 function confirmDepositCtx(bId,ctx){
   showConfirm('Conferma anticipo','Confermare la ricezione dell\'anticipo?',()=>{
@@ -22542,7 +22611,7 @@ async function downloadExcel(){
       });
       const tierName=b.tier==='alto'?'Sostenitore':b.tier==='basso'?'Ridotto':'Standard';
       // V3.10.20: Insurance columns expanded (Assicurazione + Ass. Pagata + Sovrapprezzo)
-      const _bInsVal=_evHasInsC?[isUserInsured(b.userId,ev.insurance.requiredInsuranceIds)?'✓ Assicurato':'✗ Non assicurato',b.insurancePaid?'Pagato':'Non pagato',b.insuranceSurcharge||0]:[];
+      const _bInsVal=_evHasInsC?[(isUserInsured(b.userId,ev.insurance.requiredInsuranceIds)||(b._preInsuredSnapshot&&b.insuranceSurcharge===0))?'✓ Assicurato':'✗ Non assicurato',b.insurancePaid?'Pagato':(b.insurancePaid===null?'N/A':'Non pagato'),b.insuranceSurcharge||0]:[];
       const vals=[resolveUserName(b.userId,b.userName),b.email,roleName(b.role),getSessionLabel(b.sessions),tierName,b.checkedIn?'Sì':'No',b.checkinTime||'—',..._bInsVal,...surveyVals,b.bookedAt||'—'];
       vals.forEach((v,ci)=>{
         const c=ws.getCell(row,ci+1);c.value=v;c.font=dataFont;c.border=thinBorder;c.alignment={vertical:'middle'};
@@ -23193,11 +23262,15 @@ async function showAdminEventDetail(evId){
             ${_isCapo&&ev.pricingMode!=='free'&&ev.pricingMode!=='direct'?'<td style="white-space:nowrap"><span style="font-size:.75rem;padding:2px 6px;border-radius:4px;background:'+(b.tier==='alto'?'rgba(234,179,8,.12);color:var(--yellow)':b.tier==='basso'?'rgba(59,130,246,.12);color:var(--blue)':'rgba(168,85,247,.12);color:var(--purple)')+'">'+({alto:'✦ Sost.',medio:'● Std',basso:'○ Rid.'}[b.tier]||'● Std')+'</span></td>':''}
             <td>${checkedInHtml}</td>
             ${_isCapo&&ev.pricingMode!=='free'&&ev.pricingMode!=='direct'?'<td class="font-medium">'+amountHtml+' '+giftBtn+'</td><td>'+payHtml+'</td><td>'+depositHtml+'</td><td>'+daIncHtml+'</td>':''}${_isCapo&&_hasInsReq?(()=>{
-              if(b.gift||!b.insuranceSurcharge)return '<td><span class="text-xs txt3">—</span></td>';
+              if(b.gift)return '<td><span class="text-xs txt3">—</span></td>';
+              if(!b.insuranceSurcharge||b.insuranceSurcharge===0){
+                if(b._preInsuredSnapshot)return '<td><div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start"><span class="badge" style="background:var(--green-bg);color:var(--green);font-size:.7rem">✅ Già assicurato</span><button class="btn btn-sm" style="padding:1px 6px;font-size:.6rem;color:var(--txt3);background:transparent;border:1px solid var(--s400)" onclick="event.stopPropagation();revertMarkAlreadyInsured(\''+b.id+'\',\'detail\')" title="Annulla: ripristina sovrapprezzo">↩️ Annulla</button></div></td>';
+                return '<td><span class="text-xs txt3">—</span></td>';
+              }
               const _isInsUserInsured=isUserInsured(b.userId,ev.insurance.requiredInsuranceIds);
               if(_isInsUserInsured)return '<td><span class="badge" style="background:var(--green-bg);color:var(--green);font-size:.7rem">✅ Assicurato</span></td>';
               if(b.insurancePaid)return '<td><span class="badge" style="background:var(--green-bg);color:var(--green);cursor:pointer;font-size:.7rem" onclick="event.stopPropagation();toggleInsurancePaid(\''+b.id+'\',\'detail\')">🛡️ €'+b.insuranceSurcharge+' Pagata</span></td>';
-              return '<td><button class="btn btn-sm" style="background:rgba(249,115,22,.12);color:var(--orange);border:1px solid rgba(249,115,22,.3);font-size:.7rem" onclick="event.stopPropagation();toggleInsurancePaid(\''+b.id+'\',\'detail\')">🛡️ €'+b.insuranceSurcharge+' Segna pagata</button></td>';
+              return '<td><div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start"><button class="btn btn-sm" style="background:rgba(249,115,22,.12);color:var(--orange);border:1px solid rgba(249,115,22,.3);font-size:.7rem" onclick="event.stopPropagation();toggleInsurancePaid(\''+b.id+'\',\'detail\')">🛡️ €'+b.insuranceSurcharge+' Segna pagata</button><button class="btn btn-sm" style="padding:1px 6px;font-size:.6rem;color:var(--green);background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25)" onclick="event.stopPropagation();markAlreadyInsured(\''+b.id+'\',\'detail\')" title="Rimuovi sovrapprezzo e assegna assicurazione">✅ Già assicurato</button></div></td>';
             })():''}
             ${(ev.surveys||[]).length?'<td class="text-sm td-survey" style="border-left:2px solid var(--s400);padding-left:12px" title="'+(((arr)=>{const r=(b.surveyResponses||{})[arr[0]?.id];return Array.isArray(r)?r.join(', '):r||'—';})(ev.surveys))+'">'+(((arr)=>{const r=(b.surveyResponses||{})[arr[0]?.id];const d=Array.isArray(r)?r.join(', '):r||'—';return d.length>25?d.substring(0,23)+'…':d;})(ev.surveys))+'</td>':''}
             ${(ev.surveys||[]).slice(1).map(sq=>{
