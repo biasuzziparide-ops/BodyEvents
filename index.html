@@ -427,7 +427,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.43</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.47</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -4683,6 +4683,58 @@ function getMultiUniverseBorderStyle(ev,isCommunity){
   const bgStops=colors.map((c,i)=>{const s=Math.round(i/n*100);const e=Math.round((i+1)/n*100);return c+'08 '+s+'%,'+c+'08 '+e+'%';}).join(',');
   return 'border-left:8px '+bType+';border-image:linear-gradient(to bottom,'+stops.join(',')+') 1;border-radius:0;background:linear-gradient(90deg,'+bgStops+',transparent 40%)';
 }
+// V3.10.47: Get available roles for an event based on its universes
+function getEventRoles(ev){
+  if(!ev)return [];
+  const univIds=ev.universeIds||[ev.universeId||'univ_acro'].filter(Boolean);
+  const allRoles=[];
+  univIds.forEach(uid=>{
+    const univ=store.universes.find(u=>u.id===uid);
+    if(univ&&univ.roles&&univ.roles.length){
+      univ.roles.forEach(r=>{if(!allRoles.includes(r))allRoles.push(r);});
+    }
+  });
+  return allRoles;
+}
+
+// V3.10.47: Build dynamic role selector HTML based on event universes
+function buildRoleSelectorHtml(ev){
+  const roles=getEventRoles(ev);
+  if(!roles.length)return ''; // No roles → no selector
+  let html='<div class="card mb-3">';
+  html+='<label class="text-sm font-medium text-white mb-2" style="display:block">🎭 Qual è il tuo ruolo preferito?</label>';
+  html+='<div class="flex gap-2 flex-wrap" id="bookRoleSelector">';
+  roles.forEach(r=>{
+    const key=r.toLowerCase().replace(/\s+/g,'_');
+    html+='<button class="btn btn-sm book-role-btn" data-role="'+escHtml(key)+'" onclick="selectBookRole(this)" style="border:1px solid var(--s400)">'+escHtml(r)+'</button>';
+  });
+  // Sempre aggiungere "Non lo so ancora" come fallback
+  if(!roles.some(r=>r.toLowerCase()==='non lo so ancora'||r.toLowerCase()==='non_so')){
+    html+='<button class="btn btn-sm book-role-btn" data-role="non_so" onclick="selectBookRole(this)" style="border:1px solid var(--s400)">🤷 Non lo so ancora</button>';
+  }
+  html+='</div></div>';
+  return html;
+}
+
+// V3.10.47: Resolve role key to human-readable label
+function resolveRoleLabel(roleKey,ev){
+  if(!roleKey||roleKey==='—')return '—';
+  // Check non_so special case
+  if(roleKey==='non_so')return '🤷 Non lo so ancora';
+  // Try to find in event's universe roles
+  if(ev){
+    const roles=getEventRoles(ev);
+    const match=roles.find(r=>r.toLowerCase().replace(/\s+/g,'_')===roleKey);
+    if(match)return match;
+  }
+  // Fallback: legacy hardcoded mappings for backward compatibility
+  if(roleKey==='base')return '💪 Base';
+  if(roleKey==='flyer')return '🦅 Flyer';
+  if(roleKey==='entrambi')return '🔄 Entrambi';
+  // Unknown role: capitalize
+  return roleKey.charAt(0).toUpperCase()+roleKey.slice(1).replace(/_/g,' ');
+}
+
 /* Helper: hex color to rgba string */
 function hexToRgba(hex,alpha){
   const h=hex.replace('#','');
@@ -5816,8 +5868,13 @@ async function toggleUniverseSubscription(univId,subscribe){
 
 // Update preferred role for a universe (users only — managers don't have preferred roles)
 /* Helper: get user's effective preferred role from subscribedUniverses */
-function getUserEffectiveRole(user){
+function getUserEffectiveRole(user,ev){
   if(!user)return 'non_so';
+  // V3.10.47: If event is provided, only return a role that matches the event's universes
+  if(ev){
+    const evRoles=getEventRoles(ev);
+    if(!evRoles.length)return ''; // Event has no roles → no default
+  }
   // Helper to map raw role string to internal key
   function _mapRole(raw){
     if(!raw)return '';
@@ -8124,8 +8181,16 @@ function renderRegistryTable(reg,entries,theadId,tbodyId,listId){
 function openRegistryUserDetail(uid){
   if(!uid)return;
   // Role helpers (local scope duplicates from showAdminEventDetail)
-  const _roleColor=r=>r==='base'?'var(--green)':r==='flyer'?'var(--blue)':r==='non_so'?'var(--txt3)':'var(--purple)';
-  const _roleName=r=>r==='base'?'💪 Base':r==='flyer'?'🦅 Flyer':r==='non_so'?'🤷 Non lo so':r==='entrambi'?'🔄 Entrambi':'—';
+  const _roleColor=(r,ev)=>{
+    if(r==='base')return 'var(--green)';if(r==='flyer')return 'var(--blue)';
+    if(r==='non_so')return 'var(--txt3)';if(r==='entrambi')return 'var(--purple)';
+    if(ev){const univIds=ev.universeIds||[ev.universeId||'univ_acro'].filter(Boolean);
+      for(const uid of univIds){const univ=store.universes.find(u=>u.id===uid);
+        if(univ&&univ.roles&&univ.roles.some(ur=>ur.toLowerCase().replace(/\s+/g,'_')===r))return safeColor(univ.color);}
+    }
+    return 'var(--brand-l)';
+  };
+  const _roleName=(r,ev)=>resolveRoleLabel(r,ev);
   // uid might be a real user ID or an email (for guest bookings without userId)
   let user=store.users.find(x=>x.id===uid)||store.managers.find(x=>x.id===uid);
   if(!user){
@@ -8215,7 +8280,7 @@ function openRegistryUserDetail(uid){
       else if(b.paymentStatus==='gratuito'||b.paymentStatus==='abbonamento')payInfo='<span style="color:var(--green);font-size:.72rem">🎟️ '+(b.paymentStatus==='abbonamento'?'Abb.':'Gratis')+'</span>';
       else payInfo='<span style="color:var(--yellow);font-size:.72rem">⏳ €'+(b.amount||0)+'</span>';
     }
-    const roleStr=b.role?'<span style="font-size:.72rem;color:'+_roleColor(b.role)+'">'+_roleName(b.role)+'</span>':'';
+    const _bEvHasRoles=ev?getEventRoles(ev).length>0:true;const roleStr=(b.role&&_bEvHasRoles)?'<span style="font-size:.72rem;color:'+_roleColor(b.role,ev)+'">'+_roleName(b.role,ev)+'</span>':'';
     const borderLeft=showCancel?';border-left:3px solid var(--red)':'';
     let c='<div style="background:var(--s100);border:1px solid var(--s300);border-radius:12px;padding:10px 14px;margin-bottom:6px;cursor:pointer;transition:border-color .15s'+borderLeft+'" onmouseover="this.style.borderColor=\'var(--brand)\'" onmouseout="this.style.borderColor=\'var(--s300)\'" onclick="event.stopPropagation();this.closest(\'.overlay\').remove();showAdminEventDetail(\''+ev.id+'\')">';
     c+='<div style="display:flex;align-items:center;gap:8px">';
@@ -11513,15 +11578,7 @@ async function doBook(){
       <div class="card mb-3" style="background:rgba(16,185,129,.06);border-color:var(--green);padding:12px 16px;text-align:center">
         <span class="text-sm" style="color:var(--green)">✅ In quanto organizzatore, la tua iscrizione è gratuita</span>
       </div>
-      <div class="card mb-3">
-        <label class="text-sm font-medium text-white mb-2" style="display:block">🎭 Qual è il tuo ruolo preferito?</label>
-        <div class="flex gap-2 flex-wrap" id="bookRoleSelector">
-          <button class="btn btn-sm book-role-btn" data-role="base" onclick="selectBookRole(this)" style="border:1px solid var(--s400)">💪 Base</button>
-          <button class="btn btn-sm book-role-btn" data-role="flyer" onclick="selectBookRole(this)" style="border:1px solid var(--s400)">🦅 Flyer</button>
-          <button class="btn btn-sm book-role-btn" data-role="non_so" onclick="selectBookRole(this)" style="border:1px solid var(--s400)">🤷 Non lo so ancora</button>
-          <button class="btn btn-sm book-role-btn" data-role="entrambi" onclick="selectBookRole(this)" style="border:1px solid var(--s400)">🔄 Faccio spesso entrambi</button>
-        </div>
-      </div>
+      ${buildRoleSelectorHtml(ev)}
       ${renderSurveyQuestions(ev,'book_')}
       ${renderInsuranceSurveyForBooking(ev,'book_')}
       <div class="flex gap-3 mt-6" style="justify-content:flex-end">
@@ -11530,11 +11587,13 @@ async function doBook(){
       </div>
     </div>`;
     document.body.appendChild(_ownOverlay);
-    const _ownPrefRole=getUserEffectiveRole(store.currentUser);
+    const _ownPrefRole=getUserEffectiveRole(store.currentUser,ev);
     if(_ownPrefRole){const _pb=_ownOverlay.querySelector('.book-role-btn[data-role="'+_ownPrefRole+'"]');if(_pb)selectBookRole(_pb);}
+    else{const _fb=_ownOverlay.querySelector('.book-role-btn');if(_fb&&getEventRoles(ev).length===1)selectBookRole(_fb);}
     _ownOverlay.querySelector('#bookCancel').onclick=()=>_ownOverlay.remove();
     _ownOverlay.querySelector('#bookConfirm').onclick=async()=>{
-      if(!selectedBookRole){showToast('Seleziona il tuo ruolo preferito!','error');return;}
+      const _evRoles=getEventRoles(ev);
+      if(_evRoles.length&&!selectedBookRole){showToast('Seleziona il tuo ruolo preferito!','error');return;}
       const surveyResponses=collectSurveyResponses(ev,'book_');
       if(surveyResponses===null)return;
       const insSurveyResponses=collectInsuranceSurveyResponses(ev,'book_');
@@ -11553,7 +11612,7 @@ async function doBook(){
         initials,color:avatarColors[Math.floor(Math.random()*avatarColors.length)],
         items:_ownItems,sessions:_ownSessionIds,scope:'evento',
         tier:'medio',amount:0,totalAmount:0,
-        role:selectedBookRole,recurringDate:currentBookingRecDate||null,
+        role:selectedBookRole||null,recurringDate:currentBookingRecDate||null,
         status:'confermata',depositStatus:null,paymentStatus:'gratuito',gift:true,
         surveyResponses:surveyResponses,
         insuranceSurveyResponses:insSurveyResponses,
@@ -11712,15 +11771,7 @@ async function bookWithSubscription(subId,eventId){
   if(hasSurveys){
     // Show survey + role dialog before completing subscription booking
     const o=document.createElement('div');o.className='overlay';
-    const roleSelector=`<div class="card mb-3">
-      <label class="text-sm font-medium text-white mb-2" style="display:block">🎭 Qual è il tuo ruolo preferito?</label>
-      <div class="flex gap-2 flex-wrap" id="bookRoleSelector">
-        <button class="btn btn-sm book-role-btn" data-role="base" onclick="selectBookRole(this)" style="border:1px solid var(--s400)">💪 Base</button>
-        <button class="btn btn-sm book-role-btn" data-role="flyer" onclick="selectBookRole(this)" style="border:1px solid var(--s400)">🦅 Flyer</button>
-        <button class="btn btn-sm book-role-btn" data-role="non_so" onclick="selectBookRole(this)" style="border:1px solid var(--s400)">🤷 Non lo so ancora</button>
-        <button class="btn btn-sm book-role-btn" data-role="entrambi" onclick="selectBookRole(this)" style="border:1px solid var(--s400)">🔄 Faccio spesso entrambi</button>
-      </div>
-    </div>`;
+    const roleSelector=buildRoleSelectorHtml(ev);
     o.innerHTML=`<div class="dialog" style="max-width:500px;width:90%">
       <h3 class="text-lg font-semibold text-white mb-4">🎟️ Prenotazione con abbonamento</h3>
       ${roleSelector}${renderSurveyQuestions(ev,'bksub_')}
@@ -11729,11 +11780,13 @@ async function bookWithSubscription(subId,eventId){
         <button class="btn btn-primary btn-sm" id="bksubConfirm">Conferma</button>
       </div></div>`;
     document.body.appendChild(o);
-    const prefRole=getUserEffectiveRole(store.currentUser);
+    const prefRole=getUserEffectiveRole(store.currentUser,ev);
     if(prefRole){const prefBtn=o.querySelector(`.book-role-btn[data-role="${prefRole}"]`);if(prefBtn)selectBookRole(prefBtn);}
+    else{const _fb=o.querySelector('.book-role-btn');if(_fb&&getEventRoles(ev).length===1)selectBookRole(_fb);}
     o.querySelector('#bksubCancel').onclick=()=>o.remove();
     o.querySelector('#bksubConfirm').onclick=async()=>{
-      if(!selectedBookRole){showToast('Seleziona il tuo ruolo preferito!','error');return;}
+      const _evRoles=getEventRoles(ev);
+      if(_evRoles.length&&!selectedBookRole){showToast('Seleziona il tuo ruolo preferito!','error');return;}
       const surveyResponses=collectSurveyResponses(ev,'bksub_');
       if(surveyResponses===null)return;
       const success=await useSubscriptionEntry(subId,eventId,ev.title);
@@ -11747,7 +11800,7 @@ async function bookWithSubscription(subId,eventId){
         initials,color:avatarColors[Math.floor(Math.random()*avatarColors.length)],
         items:_subItems,
         sessions:_subSessionIds,scope:_subScope,tier:'medio',amount:0,totalAmount:0,
-        role:selectedBookRole,recurringDate:currentBookingRecDate||null,
+        role:selectedBookRole||null,recurringDate:currentBookingRecDate||null,
         status:'confermata',
         depositStatus:null,paymentStatus:'abbonamento',gift:false,subscriptionId:subId,
         surveyResponses:surveyResponses,
@@ -11775,7 +11828,7 @@ async function bookWithSubscription(subId,eventId){
     initials,color:avatarColors[Math.floor(Math.random()*avatarColors.length)],
     items:_subItems,
     sessions:_subSessionIds,scope:_subScope,tier:'medio',amount:0,totalAmount:0,
-    role:getUserEffectiveRole(store.currentUser),recurringDate:currentBookingRecDate||null,
+    role:getUserEffectiveRole(store.currentUser,ev)||null,recurringDate:currentBookingRecDate||null,
     status:'confermata',
     depositStatus:null,paymentStatus:'abbonamento',gift:false,subscriptionId:subId,
     surveyResponses:{},
@@ -11869,15 +11922,7 @@ function _doBookNormal(){
       freeSummaryHtml+='</div>';
     }
     const o=document.createElement('div');o.className='overlay';
-    const roleSelector=`<div class="card mb-3">
-      <label class="text-sm font-medium text-white mb-2" style="display:block">🎭 Qual è il tuo ruolo preferito?</label>
-      <div class="flex gap-2 flex-wrap" id="bookRoleSelector">
-        <button class="btn btn-sm book-role-btn" data-role="base" onclick="selectBookRole(this)" style="border:1px solid var(--s400)">💪 Base</button>
-        <button class="btn btn-sm book-role-btn" data-role="flyer" onclick="selectBookRole(this)" style="border:1px solid var(--s400)">🦅 Flyer</button>
-        <button class="btn btn-sm book-role-btn" data-role="non_so" onclick="selectBookRole(this)" style="border:1px solid var(--s400)">🤷 Non lo so ancora</button>
-        <button class="btn btn-sm book-role-btn" data-role="entrambi" onclick="selectBookRole(this)" style="border:1px solid var(--s400)">🔄 Faccio spesso entrambi</button>
-      </div>
-    </div>`;
+    const roleSelector=buildRoleSelectorHtml(ev);
     // For managed events: build deposit + payment info if configured
     let managedInfoHtml='';
     const managedNeedsDeposit=evIsManaged&&ev.deposit&&ev.deposit.required&&ev.deposit.amount>0;
@@ -11919,11 +11964,13 @@ function _doBookNormal(){
         <button class="btn btn-primary btn-sm" id="bookConfirm">${evIsFree?'Iscriviti':(managedNeedsDeposit?'Prenota (anticipo richiesto)':'Iscriviti!')}</button>
       </div></div>`;
     document.body.appendChild(o);
-    const prefRole=getUserEffectiveRole(store.currentUser);
+    const prefRole=getUserEffectiveRole(store.currentUser,ev);
     if(prefRole){const prefBtn=o.querySelector(`.book-role-btn[data-role="${prefRole}"]`);if(prefBtn)selectBookRole(prefBtn);}
+    else{const _fb=o.querySelector('.book-role-btn');if(_fb&&getEventRoles(ev).length===1)selectBookRole(_fb);}
     o.querySelector('#bookCancel').onclick=()=>o.remove();
     o.querySelector('#bookConfirm').onclick=()=>{
-      if(!selectedBookRole){showToast('Seleziona il tuo ruolo preferito!','error');return;}
+      const _evRoles=getEventRoles(ev);
+      if(_evRoles.length&&!selectedBookRole){showToast('Seleziona il tuo ruolo preferito!','error');return;}
       const surveyResponses=collectSurveyResponses(ev,'book_');
       if(surveyResponses===null)return;
       const insSurveyResponses=collectInsuranceSurveyResponses(ev,'book_');
@@ -11938,7 +11985,7 @@ function _doBookNormal(){
         items:freeItems,
         sessions:freeSessionIds,
         scope:freeScope,tier:'medio',amount:0,totalAmount:0,
-        role:selectedBookRole,
+        role:selectedBookRole||null,
         status:managedNeedsDeposit?'in_attesa_anticipo':'confermata',
         depositStatus:managedNeedsDeposit?'pending':null,
         paymentStatus:evIsFree?'gratuito':null,gift:false,
@@ -12295,15 +12342,7 @@ function _doBookNormal(){
   o.innerHTML=`<div class="dialog" style="max-width:600px;width:90%">
     <h3 class="text-lg font-semibold text-white mb-4">📋 Riepilogo prenotazione</h3>
     <div style="max-height:50vh;overflow-y:auto">
-      <div class="card mb-3">
-        <label class="text-sm font-medium text-white mb-2" style="display:block">🎭 Qual è il tuo ruolo preferito?</label>
-        <div class="flex gap-2 flex-wrap" id="bookRoleSelector">
-          <button class="btn btn-sm book-role-btn" data-role="base" onclick="selectBookRole(this)" style="border:1px solid var(--s400)">💪 Base</button>
-          <button class="btn btn-sm book-role-btn" data-role="flyer" onclick="selectBookRole(this)" style="border:1px solid var(--s400)">🦅 Flyer</button>
-          <button class="btn btn-sm book-role-btn" data-role="non_so" onclick="selectBookRole(this)" style="border:1px solid var(--s400)">🤷 Non lo so ancora</button>
-          <button class="btn btn-sm book-role-btn" data-role="entrambi" onclick="selectBookRole(this)" style="border:1px solid var(--s400)">🔄 Faccio spesso entrambi</button>
-        </div>
-      </div>
+      ${buildRoleSelectorHtml(ev)}
       ${renderSurveyQuestions(ev,'book_')}
       ${renderInsuranceSurveyForBooking(ev,'book_')}
       <div style="margin-bottom:12px">
@@ -12326,14 +12365,18 @@ function _doBookNormal(){
   </div>`;
   document.body.appendChild(o);
   // Pre-select preferred role from profile
-  const prefRole=getUserEffectiveRole(store.currentUser);
+  const prefRole=getUserEffectiveRole(store.currentUser,ev);
   if(prefRole){
     const prefBtn=o.querySelector(`.book-role-btn[data-role="${prefRole}"]`);
     if(prefBtn){selectBookRole(prefBtn);}
+  }else{
+    const _fb=o.querySelector('.book-role-btn');
+    if(_fb&&getEventRoles(ev).length===1)selectBookRole(_fb);
   }
   o.querySelector('#bookCancel').onclick=()=>o.remove();
   o.querySelector('#bookConfirm').onclick=()=>{
-    if(!selectedBookRole){showToast('Seleziona il tuo ruolo preferito!','error');return;}
+    const _evRoles=getEventRoles(ev);
+    if(_evRoles.length&&!selectedBookRole){showToast('Seleziona il tuo ruolo preferito!','error');return;}
     const surveyResponses=collectSurveyResponses(ev,'book_');
     if(surveyResponses===null)return;
     const insSurveyResponses=collectInsuranceSurveyResponses(ev,'book_');
@@ -12384,7 +12427,7 @@ function _doBookNormal(){
       tier:tierKey,
       amount:totalAmount,
       totalAmount:totalAmount,
-      role:selectedBookRole,
+      role:selectedBookRole||null,
       recurringDate:currentBookingRecDate||null,
       status:needsDeposit?'in_attesa_anticipo':'confermata',
       depositStatus:needsDeposit?'pending':null,
@@ -12842,15 +12885,7 @@ async function renderCheckinB(){
         <div class="text-xs txt3 mt-2">📅 ${d0?fmtDate(d0.date)+' · '+d0.startTime+' — '+d0.endTime:''}</div>
         <div class="text-xs txt3 mt-1">👥 Posti disponibili: ${spotsLeft}</div>
       </div>
-      <div class="card mb-3">
-        <label class="text-sm font-medium text-white mb-2" style="display:block">🎭 Ruolo preferito</label>
-        <div class="flex gap-2 flex-wrap" id="wiRoleSelector">
-          <button class="btn btn-sm book-role-btn" data-role="base" onclick="selectBookRole(this)" style="border:1px solid var(--s400)">💪 Base</button>
-          <button class="btn btn-sm book-role-btn" data-role="flyer" onclick="selectBookRole(this)" style="border:1px solid var(--s400)">🦅 Flyer</button>
-          <button class="btn btn-sm book-role-btn" data-role="non_so" onclick="selectBookRole(this)" style="border:1px solid var(--s400)">🤷 Non so</button>
-          <button class="btn btn-sm book-role-btn" data-role="entrambi" onclick="selectBookRole(this)" style="border:1px solid var(--s400)">🔄 Entrambi</button>
-        </div>
-      </div>
+      ${buildRoleSelectorHtml(ev)}
       ${pricingHtml}
       ${payHtml}
       ${depHtml}
@@ -12868,13 +12903,15 @@ async function renderCheckinB(){
       <button class="btn btn-secondary w-full" onclick="go('events')">← Torna agli eventi</button>
     </div>`;
   // Pre-select preferred role
-  const pref=getUserEffectiveRole(store.currentUser);
+  const pref=getUserEffectiveRole(store.currentUser,ev);
   if(pref){const b=c.querySelector('.book-role-btn[data-role="'+pref+'"]');if(b)selectBookRole(b);}
+  else{const _fb=c.querySelector('.book-role-btn');if(_fb&&getEventRoles(ev).length===1)selectBookRole(_fb);}
 }
 
 function confirmWalkinCheckin(evId){
   const ev=store.events.find(e=>e.id===evId);if(!ev)return;
-  if(!selectedBookRole){showToast('Seleziona il tuo ruolo preferito!','error');return;}
+  const _evRoles=getEventRoles(ev);
+  if(_evRoles.length&&!selectedBookRole){showToast('Seleziona il tuo ruolo preferito!','error');return;}
   const surveyResponses=collectSurveyResponses(ev,'wi_');
   if(surveyResponses===null)return;
   const isFree=ev.pricingMode==='free';const isManaged=ev.pricingMode==='managed';const isDirect=ev.pricingMode==='direct';
@@ -12896,7 +12933,7 @@ function confirmWalkinCheckin(evId){
     initials:store.currentUser.username.split(' ').map(p=>p[0]).join('').toUpperCase().substring(0,2),color:'avatar-brand',
     items:items.length?items:[{type:'walk-in',name:ev.title,date:fmtDateShort(ev.days[0]?.date),time:'',tier:isFree?'Gratuito':'Da definire',price:0}],
     sessions,scope,tier:tierKey,amount:totalAmount,totalAmount,
-    role:selectedBookRole,recurringDate:checkinRecDate||null,status:needsDep?'in_attesa_anticipo':'confermata',
+    role:selectedBookRole||null,recurringDate:checkinRecDate||null,status:needsDep?'in_attesa_anticipo':'confermata',
     depositStatus:needsDep?'pending':null,paymentStatus:isFree?'gratuito':null,gift:false,walkIn:true,
     checkedIn:true,checkinTime:new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}),
     surveyResponses:surveyResponses,
@@ -16541,8 +16578,11 @@ async function showEventDetail(evId,recDate){
       // ── PRE-REGISTRATION participant list (Jam / Community events) ──
       let _preRegParticipants='';
       if(ev.type==='jam'||ev.type==='social'){
-        const _prRoleOrder={base:0,flyer:1,entrambi:2,non_so:3};
-        const _prRoleLblMap={base:'💪 Base',flyer:'🦅 Flyer',entrambi:'🔄 Entrambi',non_so:'🤷 Non definito'};
+        // V3.10.47: Dynamic role order from event universes
+        const _prEvRoles=getEventRoles(ev);
+        const _prRoleOrder={};
+        _prEvRoles.forEach((r,i)=>{_prRoleOrder[r.toLowerCase().replace(/\s+/g,'_')]=i;});
+        _prRoleOrder['non_so']=999;
         const _prBookings=store.bookings.filter(bk=>bk.eventId===ev.id&&bk.status!=='cancellata'&&(bk.recurringDate||null)===_detRecDate);
         _prBookings.sort((a,b)=>(_prRoleOrder[a.role]??99)-(_prRoleOrder[b.role]??99));
         if(_prBookings.length){
@@ -16558,7 +16598,7 @@ async function showEventDetail(evId,recDate){
             _preRegParticipants+='<div class="flex items-center justify-between py-2" style="border-bottom:1px solid var(--s100);gap:8px">'
               +'<div class="flex items-center gap-2">'+_pbAvatar
               +'<span class="text-sm'+(_isMe?' font-semibold':'')+'" style="color:'+(_isMe?'var(--brand-l)':'var(--txt1)')+'">'+escHtml(resolveUserName(pb.userId,pb.userName))+(_isMe?' (tu)':'')+'</span></div>'
-              +'<span class="text-xs" style="color:var(--txt3)">'+(_prRoleLblMap[pb.role]||'—')+'</span>'
+              +(_prEvRoles.length?'<span class="text-xs" style="color:var(--txt3)">'+resolveRoleLabel(pb.role,ev)+'</span>':'')
               +'</div>';
           });
           _preRegParticipants+='</div>';
@@ -16625,8 +16665,10 @@ async function showEventDetail(evId,recDate){
         // Participant list for Jam / community-type events
         let participantsHtml='';
         if(ev.type==='jam'||ev.type==='social'){
-          const _roleOrder={base:0,flyer:1,entrambi:2,non_so:3};
-          const _roleLblMap={base:'💪 Base',flyer:'🦅 Flyer',entrambi:'🔄 Entrambi',non_so:'🤷 Non definito'};
+          const _evRolesP=getEventRoles(ev);
+          const _roleOrder={};
+          _evRolesP.forEach((r,i)=>{_roleOrder[r.toLowerCase().replace(/\s+/g,'_')]=i;});
+          _roleOrder['non_so']=999;
           const _pBookings=store.bookings.filter(bk=>bk.eventId===ev.id&&bk.status!=='cancellata'&&(bk.recurringDate||null)===_detRecDate);
           _pBookings.sort((a,b)=>(_roleOrder[a.role]??99)-(_roleOrder[b.role]??99));
           if(_pBookings.length){
@@ -16635,7 +16677,7 @@ async function showEventDetail(evId,recDate){
               const isMe=pb.userId===store.currentUser.id;
               participantsHtml+='<div class="flex items-center justify-between py-2" style="border-bottom:1px solid var(--s100);gap:8px">'
                 +'<span class="text-sm'+(isMe?' font-semibold':'')+'" style="color:'+(isMe?'var(--brand-l)':'var(--txt1)')+'">'+escHtml(resolveUserName(pb.userId,pb.userName))+(isMe?' (tu)':'')+'</span>'
-                +'<span class="text-xs" style="color:var(--txt3)">'+(_roleLblMap[pb.role]||'—')+'</span>'
+                +(_evRolesP.length?'<span class="text-xs" style="color:var(--txt3)">'+resolveRoleLabel(pb.role,ev)+'</span>':'')
                 +'</div>';
             });
             participantsHtml+='</div>';
@@ -22908,7 +22950,16 @@ async function downloadExcel(){
   const dataFont={name:'Arial',size:10,color:{argb:'FF1F2937'}};
   const thinBorder={top:{style:'thin',color:{argb:'FFE5E7EB'}},bottom:{style:'thin',color:{argb:'FFE5E7EB'}},left:{style:'thin',color:{argb:'FFE5E7EB'}},right:{style:'thin',color:{argb:'FFE5E7EB'}}};
 
-  const roleName=r=>r==='base'?'Base':r==='flyer'?'Flyer':r==='non_so'?'Non lo so':r==='entrambi'?'Entrambi':'—';
+  const _expEvHasRoles=getEventRoles(ev).length>0;
+  const roleName=r=>{
+    if(!r||r==='—')return '—';
+    if(r==='non_so')return 'Non lo so ancora';
+    const roles=getEventRoles(ev);
+    const match=roles.find(x=>x.toLowerCase().replace(/\s+/g,'_')===r);
+    if(match)return match;
+    if(r==='base')return 'Base';if(r==='flyer')return 'Flyer';if(r==='entrambi')return 'Entrambi';
+    return r.charAt(0).toUpperCase()+r.slice(1).replace(/_/g,' ');
+  };
   const getSessionLabel=(sIds)=>buildSessionBadges(sIds,ev,'text');
   const payLabel=b=>b.gift?'Regalo':b.paymentStatus==='pagato'?'Pagato':b.paymentStatus==='gratuito'?'Gratuito':b.paymentStatus==='abbonamento'?'Abbonamento':'Non pagato';
   const depLabel=b=>b.depositStatus==='ricevuto'?'Ricevuto':b.depositStatus==='pending'?'Pending':'—';
@@ -23017,7 +23068,7 @@ async function downloadExcel(){
     // V3.1.7: Insurance column
     const _evHasIns=ev.insurance?.enabled&&ev.insurance.requiredInsuranceIds?.length;
     const _insCol=_evHasIns?['Assicurazione','Ass. Pagata','Sovrapprezzo €']:[];
-    const headers=['Partecipante','Email','Ruolo','Sessioni','Tier','Presente','Orario Check-in',..._insCol,...surveyCols,'Data Prenotazione','Importo','Pagamento','Anticipo €','Stato Anticipo'];
+    const headers=['Partecipante','Email',...(_expEvHasRoles?['Ruolo']:[]),'Sessioni','Tier','Presente','Orario Check-in',..._insCol,...surveyCols,'Data Prenotazione','Importo','Pagamento','Anticipo €','Stato Anticipo'];
     headers.forEach((h,ci)=>{
       const c=ws.getCell(row,ci+1);
       c.value=h;c.font=headerFont;c.fill=brandFill;c.alignment={horizontal:'center',vertical:'middle'};c.border=thinBorder;
@@ -23034,7 +23085,7 @@ async function downloadExcel(){
       const tierName=b.tier==='alto'?'Sostenitore':b.tier==='basso'?'Ridotto':'Standard';
       // V3.10.20: Insurance columns expanded (Assicurazione + Ass. Pagata + Sovrapprezzo)
       const _bInsVal=_evHasInsC?[(isUserInsured(b.userId,ev.insurance.requiredInsuranceIds)||(b._preInsuredSnapshot&&b.insuranceSurcharge===0))?'✓ Assicurato':'✗ Non assicurato',b.insurancePaid?'Pagato':(b.insurancePaid===null?'N/A':'Non pagato'),b.insuranceSurcharge||0]:[];
-      const vals=[resolveUserName(b.userId,b.userName),b.email,roleName(b.role),getSessionLabel(b.sessions),tierName,b.checkedIn?'Sì':'No',b.checkinTime||'—',..._bInsVal,...surveyVals,b.bookedAt||'—'];
+      const vals=[resolveUserName(b.userId,b.userName),b.email,...(_expEvHasRoles?[roleName(b.role)]:[]),getSessionLabel(b.sessions),tierName,b.checkedIn?'Sì':'No',b.checkinTime||'—',..._bInsVal,...surveyVals,b.bookedAt||'—'];
       vals.forEach((v,ci)=>{
         const c=ws.getCell(row,ci+1);c.value=v;c.font=dataFont;c.border=thinBorder;c.alignment={vertical:'middle'};
       });
@@ -23410,8 +23461,16 @@ async function showAdminEventDetail(evId){
   const _recEndInfo=ev.recurrence&&ev.recurrence.endDate?' · fino al '+fmtDateShort(ev.recurrence.endDate):'';
   const dateStr=recTabs?(recDateFilter&&recDateFilter!=='__all__'?fmtDate(recDateFilter):'🔄 Ricorrente — '+_recFreqLabel+_recEndInfo):(ev.days.length>1?fmtDateShort(ev.days[0]?.date)+' — '+fmtDateShort(ev.days[ev.days.length-1]?.date):fmtDate(ev.days[0]?.date));
   const locLink=ev.locationUrl?`<a href="${ev.locationUrl}" target="_blank" style="color:var(--brand-l)">📍 ${escHtml(ev.location)} ↗</a>`:`📍 ${escHtml(ev.location)}`;
-  const roleName=r=>r==='base'?'💪 Base':r==='flyer'?'🦅 Flyer':r==='non_so'?'🤷 Non lo so ancora':r==='entrambi'?'🔄 Entrambi':'—';
-  const roleColor=r=>r==='base'?'var(--green)':r==='flyer'?'var(--blue)':r==='non_so'?'var(--txt3)':'var(--purple)';
+  const roleName=r=>resolveRoleLabel(r,ev);
+  const roleColor=r=>{
+    if(r==='base')return 'var(--green)';if(r==='flyer')return 'var(--blue)';
+    if(r==='non_so')return 'var(--txt3)';if(r==='entrambi')return 'var(--purple)';
+    const univIds=ev?.universeIds||[ev?.universeId||'univ_acro'].filter(Boolean);
+    for(const uid of univIds){const univ=store.universes.find(u=>u.id===uid);
+      if(univ&&univ.roles&&univ.roles.some(ur=>ur.toLowerCase().replace(/\s+/g,'_')===r))return safeColor(univ.color);
+    }
+    return 'var(--brand-l)';
+  };
   // Session name lookup — uses global buildSessionBadges()
   const getSessionNames=(sIds)=>buildSessionBadges(sIds,ev,'html');
 
@@ -23651,7 +23710,12 @@ async function showAdminEventDetail(evId){
     <h2 class="font-semibold text-white mb-3">👥 Lista Partecipanti (${active.length}${active.filter(b=>b.checkedIn).length>0?' · <span style="color:var(--green)">'+active.filter(b=>b.checkedIn).length+' presenti</span>':''})${viewSubtitle}</h2>
     ${active.length?`<div class="card table-wrap" style="padding:0">
       <table class="table">
-        <thead><tr><th class="th-participant" style="cursor:pointer" onclick="sortAdminDetail('userName')">Partecipante ${adminDetailSort.field==='userName'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('role')">Ruolo ${adminDetailSort.field==='role'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th><th style="cursor:pointer" onclick="sortAdminDetail('sessions')">Sessioni ${adminDetailSort.field==='sessions'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${_isCapo&&ev.pricingMode!=='free'&&ev.pricingMode!=='direct'?'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'tier\')">Tier '+(adminDetailSort.field==='tier'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}<th style="cursor:pointer" onclick="sortAdminDetail('checkedIn')">Presente ${adminDetailSort.field==='checkedIn'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${_isCapo&&ev.pricingMode!=='free'&&ev.pricingMode!=='direct'?'<th style="cursor:pointer" onclick="sortAdminDetail(\'amount\')">Importo '+(adminDetailSort.field==='amount'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'paymentStatus\')">Pagato '+(adminDetailSort.field==='paymentStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'depositStatus\')">Anticipo '+(adminDetailSort.field==='depositStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'daIncassare\')">Da incassare '+(adminDetailSort.field==='daIncassare'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${_isCapo&&_hasInsReq?'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'insurancePaid\')">🛡️ Assic. '+(adminDetailSort.field==='insurancePaid'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).length?'<th class="th-survey" style="border-left:2px solid var(--s400);padding-left:12px;cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+(ev.surveys[0].id)+'\')">'+ev.surveys[0].question.substring(0,20)+(ev.surveys[0].question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+ev.surveys[0].id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).slice(1).map(sq=>'<th class="th-survey" style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+sq.id+'\')">'+sq.question.substring(0,20)+(sq.question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+sq.id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>').join('')}<th>Azioni</th></tr></thead>
+        ${(()=>{const _evHasRoles=getEventRoles(ev).length>0;return '<thead><tr><th class="th-participant" style="cursor:pointer" onclick="sortAdminDetail(\'userName\')">Partecipante '+
+        (adminDetailSort.field==='userName'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>'+
+        (_evHasRoles?'<th style="cursor:pointer" onclick="sortAdminDetail(\'role\')">Ruolo '+
+        (adminDetailSort.field==='role'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':'')+'<th style="cursor:pointer" onclick="sortAdminDetail(\'sessions\')">Sessioni '+
+        (adminDetailSort.field==='sessions'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+
+        '</th>'})()}${_isCapo&&ev.pricingMode!=='free'&&ev.pricingMode!=='direct'?'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'tier\')">Tier '+(adminDetailSort.field==='tier'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}<th style="cursor:pointer" onclick="sortAdminDetail('checkedIn')">Presente ${adminDetailSort.field==='checkedIn'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${_isCapo&&ev.pricingMode!=='free'&&ev.pricingMode!=='direct'?'<th style="cursor:pointer" onclick="sortAdminDetail(\'amount\')">Importo '+(adminDetailSort.field==='amount'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'paymentStatus\')">Pagato '+(adminDetailSort.field==='paymentStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'depositStatus\')">Anticipo '+(adminDetailSort.field==='depositStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'daIncassare\')">Da incassare '+(adminDetailSort.field==='daIncassare'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${_isCapo&&_hasInsReq?'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'insurancePaid\')">🛡️ Assic. '+(adminDetailSort.field==='insurancePaid'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).length?'<th class="th-survey" style="border-left:2px solid var(--s400);padding-left:12px;cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+(ev.surveys[0].id)+'\')">'+ev.surveys[0].question.substring(0,20)+(ev.surveys[0].question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+ev.surveys[0].id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).slice(1).map(sq=>'<th class="th-survey" style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+sq.id+'\')">'+sq.question.substring(0,20)+(sq.question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+sq.id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>').join('')}<th>Azioni</th></tr></thead><th style="cursor:pointer" onclick="sortAdminDetail('sessions')">Sessioni ${adminDetailSort.field==='sessions'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${_isCapo&&ev.pricingMode!=='free'&&ev.pricingMode!=='direct'?'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'tier\')">Tier '+(adminDetailSort.field==='tier'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}<th style="cursor:pointer" onclick="sortAdminDetail('checkedIn')">Presente ${adminDetailSort.field==='checkedIn'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${_isCapo&&ev.pricingMode!=='free'&&ev.pricingMode!=='direct'?'<th style="cursor:pointer" onclick="sortAdminDetail(\'amount\')">Importo '+(adminDetailSort.field==='amount'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'paymentStatus\')">Pagato '+(adminDetailSort.field==='paymentStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'depositStatus\')">Anticipo '+(adminDetailSort.field==='depositStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'daIncassare\')">Da incassare '+(adminDetailSort.field==='daIncassare'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${_isCapo&&_hasInsReq?'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'insurancePaid\')">🛡️ Assic. '+(adminDetailSort.field==='insurancePaid'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).length?'<th class="th-survey" style="border-left:2px solid var(--s400);padding-left:12px;cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+(ev.surveys[0].id)+'\')">'+ev.surveys[0].question.substring(0,20)+(ev.surveys[0].question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+ev.surveys[0].id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).slice(1).map(sq=>'<th class="th-survey" style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+sq.id+'\')">'+sq.question.substring(0,20)+(sq.question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+sq.id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>').join('')}<th>Azioni</th></tr></thead>
         <tbody>${active.map(b=>{
           _sanitizeBookingState(b);
           _sanitizeGiftBug(b);
@@ -23680,9 +23744,10 @@ async function showAdminEventDetail(evId){
           const _pLogo=_av.logo||(_pUser?.profileLogo||null);
           const avatarInner=_pLogo?'<img src="'+_pLogo+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">':_av.initials;
           const checkedInHtml=b.checkedIn?(!isArchived?'<button class="btn btn-sm" style="padding:2px 8px;font-size:.7rem;background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="event.stopPropagation();toggleAttendance(\''+b.id+'\',false)">✅ Presente'+(b.checkinTime?' '+b.checkinTime:'')+'</button>':'<span class="badge" style="background:rgba(16,185,129,.2);color:var(--green)">✅ Presente</span>'):(!isArchived?'<button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:.7rem" onclick="event.stopPropagation();toggleAttendance(\''+b.id+'\',true)">⬜ Segna presente</button>':'<span class="text-xs txt3">Assente</span>');
+          const _bEvHasRoles=getEventRoles(ev).length>0;
           return `<tr>
             <td class="td-participant"><div class="flex items-center gap-2"><div class="avatar ${avatarCls} hide-mobile" ${avatarStyle} style="${!avatarCls?'background:var(--s300);color:var(--txt3)':''}${_pLogo?';overflow:hidden':''}">${avatarInner}</div><div class="participant-info"><div class="font-medium text-white text-sm">${escHtml(resolveUserName(b.userId,b.userName))}</div><div class="text-xs txt3">${escHtml(b.email)}</div></div></div></td>
-            <td><span style="color:${roleColor(b.role)}">${roleName(b.role)}</span></td>
+            ${_bEvHasRoles?'<td><span style="color:${roleColor(b.role)}">${roleName(b.role)}</span></td>':''}
             <td style="min-width:140px">${getSessionNames(b.sessions)}</td>
             ${_isCapo&&ev.pricingMode!=='free'&&ev.pricingMode!=='direct'?'<td style="white-space:nowrap"><span style="font-size:.75rem;padding:2px 6px;border-radius:4px;background:'+(b.tier==='alto'?'rgba(234,179,8,.12);color:var(--yellow)':b.tier==='basso'?'rgba(59,130,246,.12);color:var(--blue)':'rgba(168,85,247,.12);color:var(--purple)')+'">'+({alto:'✦ Sost.',medio:'● Std',basso:'○ Rid.'}[b.tier]||'● Std')+'</span></td>':''}
             <td>${checkedInHtml}</td>
