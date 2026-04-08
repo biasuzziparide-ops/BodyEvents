@@ -2818,7 +2818,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.43';
+const APP_VERSION='V3.10.44';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -3354,7 +3354,7 @@ function _markFresh(collection){_loadTimestamps[collection]=Date.now();}
 /* ==============================
    LAZY LOADING INFRASTRUCTURE (V3.1.5)
    ============================== */
-let _bookingsLoaded=false;
+let _bookingsLoaded=false; // V3.10.44: true ONLY when ALL bookings are in memory (manager only) — guards admin views
 let _attendancesLoaded=false;
 let _subscriptionsLoaded=false;
 let _usersFullyLoaded=false;
@@ -3363,16 +3363,21 @@ let _insurancesLoaded=false;
 
 async function ensureBookingsLoaded(){
   if(_bookingsLoaded)return;
-  // V3.10.21: Security — non-managers only load their own bookings
+  // V3.10.44: For non-managers, if own bookings are already loaded, don't re-run.
+  // This prevents wiping event-specific bookings loaded by ensureEventBookingsLoaded().
   const isManagerUser=store.managers.some(m=>m.id===store.currentUser?.id);
+  if(!isManagerUser&&_userOwnBookingsLoaded)return;
+  // V3.10.21: Security — non-managers only load their own bookings
   const snap=isManagerUser
     ?await fbDb.collection('bookings').get()
     :await fbDb.collection('bookings').where('userId','==',store.currentUser.id).get();
   store.bookings=[];snap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.bookings.push(d);});
-  _bookingsLoaded=true;
+  if(isManagerUser){
+    _bookingsLoaded=true; // V3.10.44: ALL bookings loaded — only for managers
+  }
   _userOwnBookingsLoaded=true;
   _markFresh('bookings');_markFresh('userBookings');
-  // Run booking migrations once (need all bookings)
+  // Run booking migrations once (need all bookings — safe for partial data too)
   _migrateOrphanRecurringBookings();
   await _splitConcludedRecurringDates();
   _cleanupDuplicateRecurringInstances();
@@ -3460,9 +3465,12 @@ async function _refreshEvents(){
 }
 async function _refreshBookings(){
   try{
+    const isManagerUser=store.managers.some(m=>m.id===store.currentUser?.id);
+    if(!isManagerUser)return; // V3.10.44: non-managers should not call full refresh
     const snap=await fbDb.collection('bookings').get();
     store.bookings=[];snap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.bookings.push(d);});
     _bookingsLoaded=true;_userOwnBookingsLoaded=true;
+    _eventBookingsLoadedSet.clear(); // V3.10.44: reset per-event cache since we have everything
     _markFresh('bookings');_markFresh('userBookings');
   }catch(e){console.warn('[TTL] refreshBookings error:',e);}
 }
@@ -4597,7 +4605,7 @@ async function refreshData(){
   updateNotificationBadges(); // V3.4.0
 }
 
-function _resetLazyFlags(){_bookingsLoaded=false;_attendancesLoaded=false;_subscriptionsLoaded=false;_usersFullyLoaded=false;_userOwnBookingsLoaded=false;_insurancesLoaded=false;Object.keys(_loadTimestamps).forEach(k=>_loadTimestamps[k]=0);}
+function _resetLazyFlags(){_bookingsLoaded=false;_attendancesLoaded=false;_subscriptionsLoaded=false;_usersFullyLoaded=false;_userOwnBookingsLoaded=false;_insurancesLoaded=false;_eventBookingsLoadedSet.clear();Object.keys(_loadTimestamps).forEach(k=>_loadTimestamps[k]=0);}
 function resetStoreData(){_dataLoaded=false;_resetLazyFlags();store.events=[];store.bookings=[];store.users=[];store.managers=[];store.communityJams=[];store.attendances={};store.universes=[];store.subscriptionTypes=[];store.subscriptions=[];store.insurances=[];}
 
 /* ==============================
