@@ -427,7 +427,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.47</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.49</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -667,10 +667,10 @@ textarea.input{resize:none;font-family:inherit}
 <div class="view" id="view-jams">
 <div class="container" style="padding-top:32px;padding-bottom:48px;max-width:700px">
   <div class="flex justify-between items-center mb-2">
-    <h1 class="page-title">🤝 Community Events</h1>
+    <h1 class="page-title">🤝 I miei Community Events</h1>
     <button class="btn btn-primary btn-sm" onclick="openCreateJamModal()">+ Proponi Community Event</button>
   </div>
-  <p class="page-sub mb-6">Le tue community. Proponi un evento o partecipa!</p>
+  <p class="page-sub mb-6">Gestisci i community events che hai creato. Quelli degli altri li trovi nella bacheca Home.</p>
   <div id="user-jams-container"><!-- renderUserJams() --></div>
 </div>
 </div>
@@ -2848,7 +2848,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.47';
+const APP_VERSION='V3.10.49';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -15006,8 +15006,10 @@ function renderUserJams(){
   const filterDateFrom=(document.getElementById('jam-user-filter-date-from')||{}).value||'';
   const filterDateTo=(document.getElementById('jam-user-filter-date-to')||{}).value||'';
 
-  // Filter jams
+  // V3.10.49: Show only user's own community events in this page
+  // Other users' community events are visible in the main events board (Home)
   let allJams=store.communityJams.filter(jam=>{
+    if(jam.userId!==uid) return false; // Only own jams
     const matchText=filterText===''||jam.title.toLowerCase().includes(filterText.toLowerCase())||jam.description.toLowerCase().includes(filterText.toLowerCase())||jam.userName.toLowerCase().includes(filterText.toLowerCase());
     const matchType=filterType===''||jam.type===filterType;
     const matchDateFrom=filterDateFrom===''||jam.date>=filterDateFrom;
@@ -15033,9 +15035,7 @@ function renderUserJams(){
     allJams=activeJams;
   }
 
-  const myJams=allJams.filter(j=>j.userId===uid).sort((a,b)=>a.date.localeCompare(b.date));
-  const otherJams=allJams.filter(j=>j.userId!==uid).sort((a,b)=>a.date.localeCompare(b.date));
-  const jams=[...myJams,...otherJams];
+  const jams=allJams.sort((a,b)=>a.date.localeCompare(b.date));
 
   // Update results count
   const countEl=document.getElementById('jam-user-results-count');
@@ -15047,14 +15047,8 @@ function renderUserJams(){
   }
 
   let html=tabsHtml;
-  // V3.10.30: Show "I miei" section with management context
-  if(myJams.length){
-    html+='<h3 class="text-sm font-medium mb-1" style="color:var(--brand-l)">I miei Community Events</h3>';
-    html+='<p class="text-xs txt3 mb-3">Gestisci i community events che hai creato. Le tue iscrizioni ad eventi di altri le trovi in <a style="color:var(--brand-l);cursor:pointer" onclick="go(\'dashboard\')">Le mie prenotazioni</a>.</p>';
-  }
-  html+=myJams.map(jam=>renderJamCard(jam,uid,true)).join('');
-  if(otherJams.length) html+='<h3 class="text-sm font-medium mb-3 mt-5 txt3">Community Events degli altri</h3>';
-  html+=otherJams.map(jam=>renderJamCard(jam,uid,false)).join('');
+  // V3.10.49: Only own community events — all rendered with isMine=true (management actions)
+  html+=jams.map(jam=>renderJamCard(jam,uid,true)).join('');
   c.innerHTML=html;
 }
 // V3.10.39: Share link for community jams (uses ?event= for deep-link compatibility)
