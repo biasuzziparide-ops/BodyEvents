@@ -1565,6 +1565,12 @@ textarea.input{resize:none;font-family:inherit}
                   <button type="button" class="btn btn-sm" onclick="addRecExclusion()" style="white-space:nowrap">+ Aggiungi</button>
                 </div>
               </div>
+              <!-- V3.10.45: End date for recurrence -->
+              <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--s300)">
+                <label class="label">📅 Data fine ricorrenza <span class="text-xs txt3">(opzionale)</span></label>
+                <p class="text-xs txt3 mb-2">Le ricorrenze verranno generate solo fino a questa data. Lascia vuoto per ricorrenza illimitata.</p>
+                <input type="date" class="input" id="ne-rec-end-date" style="max-width:200px">
+              </div>
             </div>
           </div>
         </div>
@@ -2818,7 +2824,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.44';
+const APP_VERSION='V3.10.45';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -17052,7 +17058,14 @@ function getNextRecurringDates(ev,count){
   const freq=ev.recurrence.freq||'settimanale';
   const today=new Date();today.setHours(0,0,0,0);
   const pausedUntil=ev.recurrence.pausedUntil?new Date(ev.recurrence.pausedUntil+'T00:00:00'):null;
-  const startFrom=pausedUntil&&pausedUntil>today?pausedUntil:today;
+  // V3.10.45: Respect event start date — don't generate instances before the first day
+  const eventStartDate=ev.days&&ev.days[0]&&ev.days[0].date?new Date(ev.days[0].date+'T00:00:00'):null;
+  // startFrom = max(today, pausedUntil, eventStartDate)
+  let startFrom=today;
+  if(pausedUntil&&pausedUntil>startFrom)startFrom=pausedUntil;
+  if(eventStartDate&&eventStartDate>startFrom)startFrom=eventStartDate;
+  // V3.10.45: Respect recurrence end date
+  const recEndDate=ev.recurrence.endDate?new Date(ev.recurrence.endDate+'T00:00:00'):null;
   const exc=ev.recurrence.exceptions||{};
   const exclDates=ev.recurrence.exclusionDates||[];
   const dates=[];
@@ -17074,14 +17087,19 @@ function getNextRecurringDates(ev,count){
       const ds=localDateStr(d);
       // Multi-day: event is still "future" if we haven't passed the last day's end time
       const _endD=new Date(d);_endD.setDate(_endD.getDate()+_ds2);_endD.setHours(h,m,0,0);
-      if(now<_endD&&!isExcluded(ds)){dates.push(ds);}
+      if(now<_endD&&!isExcluded(ds)){
+        // V3.10.45: Don't push if past endDate
+        if(!recEndDate||d<=recEndDate)dates.push(ds);
+      }
       d.setDate(d.getDate()+7);
     }
     while(dates.length<count){
+      // V3.10.45: Stop if past endDate
+      if(recEndDate&&d>recEndDate)break;
       const dateStr=localDateStr(d);
       if(!isExcluded(dateStr))dates.push(dateStr);
       d.setDate(d.getDate()+7);
-      if(d-today>90*24*60*60*1000)break;
+      if(d-today>365*24*60*60*1000)break; // V3.10.45: extended safety limit from 90 to 365 days
     }
   } else if(freq==='mensile'){
     /* Monthly: same day-of-month as the event start date */
@@ -17097,6 +17115,8 @@ function getNextRecurringDates(ev,count){
       const tempD=new Date(d.getFullYear(),d.getMonth()+1,0);
       const actualDay=Math.min(targetDom,tempD.getDate());
       d.setDate(actualDay);
+      // V3.10.45: Stop if past endDate
+      if(recEndDate&&d>recEndDate)break;
       if(d>=startFrom){
         const dateStr=localDateStr(d);
         if(!isExcluded(dateStr))dates.push(dateStr);
@@ -17112,6 +17132,8 @@ function getNextRecurringDates(ev,count){
     let safety=0;
     while(dates.length<count&&safety<10){
       const d=new Date(year,targetMonth,targetDom);
+      // V3.10.45: Stop if past endDate
+      if(recEndDate&&d>recEndDate)break;
       if(d>=startFrom){
         const dateStr=localDateStr(d);
         if(!isExcluded(dateStr))dates.push(dateStr);
@@ -18487,7 +18509,7 @@ async function renderCommunityEvents(){
     const mgr=store.managers.find(m=>m.id===ev.managerId);
     const orgName=mgr?mgr.orgName:(ev.orgName||'—');
     const bkCount=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata').length;
-    const recBadge=ev.recurrence?'<span style="font-size:.68rem;color:var(--txt3);margin-left:4px">🔄 Ricorrente'+(ev.recurrence.active===false?' <span style="color:var(--yellow)">(pausa)</span>':'')+'</span>':'';
+    const recBadge=ev.recurrence?'<span style="font-size:.68rem;color:var(--txt3);margin-left:4px">🔄 Ricorrente'+(ev.recurrence.active===false?' <span style="color:var(--yellow)">(pausa)</span>':'')+(ev.recurrence.endDate?' <span style="font-size:.6rem;color:var(--txt3)">fino al '+fmtDateShort(ev.recurrence.endDate)+'</span>':'')+'</span>':'';
     const partnerCount=ev.partnerIds?ev.partnerIds.length:0;
     const partnerBadge=partnerCount?'<span class="badge" style="background:var(--purple-bg);color:var(--purple);font-size:.62rem;padding:1px 6px">🤝 '+partnerCount+' partner</span>':'';
     const alertBadge=ev.alert?'<span class="badge" style="background:'+(ev.alert.type==='modificato'?'var(--orange-bg)':'var(--red-bg)')+';color:'+(ev.alert.type==='modificato'?'var(--orange)':'var(--red)')+';font-size:.65rem">⚠️ '+(ev.alert.type==='cancellato'?'Annullato':ev.alert.type==='rimandato'?'Rimandato':'Modificato')+'</span>':'';
@@ -20194,7 +20216,7 @@ function collectFormData(){
     surveys:collectSurveysFromForm(),
     bookingDeadline:recChk?null:(document.getElementById('ne-booking-deadline')?.value||null),
     bookingDeadlineDaysBefore:recChk?(document.getElementById('ne-booking-deadline-days')?.value!==''?parseInt(document.getElementById('ne-booking-deadline-days')?.value):null):null,
-    status:'bozza',recurrence:recChk?(()=>{const _startDate=document.getElementById('ne-event-start-date')?.value||'';const _startDow=_startDate?new Date(_startDate+'T00:00:00').getDay():-1;const _dayNames=['domenica','lunedi','martedi','mercoledi','giovedi','venerdi','sabato'];const _day=_startDow>=0?_dayNames[_startDow]:'lunedi';const _exc={};_recExclusions.forEach(d=>{_exc[d]={type:'skip'};});return{day:_day,freq:recFreq,active:true,exceptions:_exc,exclusionDates:[..._recExclusions],pausedUntil:null}})():null,createdAt:localDateStr(new Date()),
+    status:'bozza',recurrence:recChk?(()=>{const _startDate=document.getElementById('ne-event-start-date')?.value||'';const _startDow=_startDate?new Date(_startDate+'T00:00:00').getDay():-1;const _dayNames=['domenica','lunedi','martedi','mercoledi','giovedi','venerdi','sabato'];const _day=_startDow>=0?_dayNames[_startDow]:'lunedi';const _exc={};_recExclusions.forEach(d=>{_exc[d]={type:'skip'};});return{day:_day,freq:recFreq,active:true,exceptions:_exc,exclusionDates:[..._recExclusions],pausedUntil:null,endDate:document.getElementById('ne-rec-end-date')?.value||null}})():null,createdAt:localDateStr(new Date()),
     allowDayPurchase:document.getElementById('ne-allow-day-purchase')?.checked!==false,
     partnerIds:getPartnerIdsFromForm(),
     partnerEntryPolicy:getPartnerIdsFromForm().length?(document.querySelector('input[name="ne-partner-entry-policy"]:checked')?.value||'none'):null,
@@ -20429,6 +20451,9 @@ function editEvent(id){
     // Restore exclusion dates
     _recExclusions=[...(ev.recurrence.exclusionDates||[])];
     renderRecExclusions();
+    // V3.10.45: Restore end date
+    const recEndEl=document.getElementById('ne-rec-end-date');
+    if(recEndEl&&ev.recurrence.endDate)recEndEl.value=ev.recurrence.endDate;
   }
   // Set event dates from days
   if(ev.days&&ev.days.length>0){
@@ -22842,6 +22867,8 @@ function getRecurringDateTabs(ev){
   const exc=(ev.recurrence.exceptions||{});
   const exclDates=ev.recurrence.exclusionDates||[];
   function isExcl(ds){return(exc[ds]&&(exc[ds].type==='skip'||exc[ds].type==='cancellato'||exc[ds].type==='split'))||exclDates.includes(ds);}
+  // V3.10.45: Respect event start date for past date generation too
+  const _eventStartDate=ev.days&&ev.days[0]&&ev.days[0].date?ev.days[0].date:null;
   // Check if today's session has ended (today is target day but session is over)
   const _todayStr=localDateStr(today);
   const _nowFull=new Date();
@@ -22859,23 +22886,23 @@ function getRecurringDateTabs(ev){
   // Include today if it's the target day AND the session has ended
   const pastDates=[];
   if(freq==='settimanale'){
-    if(_todaySessionEnded&&!isExcl(_todayStr)){
+    if(_todaySessionEnded&&!isExcl(_todayStr)&&(!_eventStartDate||_todayStr>=_eventStartDate)){
       pastDates.push(_todayStr);
     }
     const dp=new Date(today);dp.setDate(dp.getDate()-(_todaySessionEnded?7:1));
     let s=0;while(dp.getDay()!==targetDay&&s<7){dp.setDate(dp.getDate()-1);s++;}
     const dpStr=localDateStr(dp);
-    if(!isExcl(dpStr)&&dpStr!==_todayStr){pastDates.push(dpStr);}
-    else if(dpStr!==_todayStr){dp.setDate(dp.getDate()-7);const d2=localDateStr(dp);if(!isExcl(d2)&&d2!==_todayStr)pastDates.push(d2);}
+    if(!isExcl(dpStr)&&dpStr!==_todayStr&&(!_eventStartDate||dpStr>=_eventStartDate)){pastDates.push(dpStr);}
+    else if(dpStr!==_todayStr){dp.setDate(dp.getDate()-7);const d2=localDateStr(dp);if(!isExcl(d2)&&d2!==_todayStr&&(!_eventStartDate||d2>=_eventStartDate))pastDates.push(d2);}
   }else if(freq==='mensile'){
     const evStart=ev.days&&ev.days[0]?new Date(ev.days[0].date+'T00:00:00'):today;
     const dom=evStart.getDate();
     const dp=new Date(today);dp.setMonth(dp.getMonth()-1);dp.setDate(Math.min(dom,new Date(dp.getFullYear(),dp.getMonth()+1,0).getDate()));
-    if(dp<today){const dpStr=localDateStr(dp);if(!isExcl(dpStr))pastDates.push(dpStr);}
+    if(dp<today){const dpStr=localDateStr(dp);if(!isExcl(dpStr)&&(!_eventStartDate||dpStr>=_eventStartDate))pastDates.push(dpStr);}
   }else if(freq==='annuale'){
     const evStart=ev.days&&ev.days[0]?new Date(ev.days[0].date+'T00:00:00'):today;
     const dp=new Date(today.getFullYear()-1,evStart.getMonth(),evStart.getDate());
-    const dpStr=localDateStr(dp);if(!isExcl(dpStr))pastDates.push(dpStr);
+    const dpStr=localDateStr(dp);if(!isExcl(dpStr)&&(!_eventStartDate||dpStr>=_eventStartDate))pastDates.push(dpStr);
   }
   // Future dates (next 2)
   const futureDates=getNextRecurringDates(ev,2);
@@ -22991,7 +23018,8 @@ async function showAdminEventDetail(evId){
   _roleSource.forEach(b=>{if(b.role&&roles[b.role]!==undefined)roles[b.role]++;});
   // Date display
   const _recFreqLabel=(()=>{if(!ev.recurrence)return '';const dm={lunedi:'lunedì',martedi:'martedì',mercoledi:'mercoledì',giovedi:'giovedì',venerdi:'venerdì',sabato:'sabato',domenica:'domenica'};const f=ev.recurrence.freq||'settimanale';if(f==='settimanale')return 'ogni '+(dm[ev.recurrence.day]||ev.recurrence.day);if(f==='mensile')return 'ogni mese';return 'ogni anno';})();
-  const dateStr=recTabs?(recDateFilter&&recDateFilter!=='__all__'?fmtDate(recDateFilter):'🔄 Ricorrente — '+_recFreqLabel):(ev.days.length>1?fmtDateShort(ev.days[0]?.date)+' — '+fmtDateShort(ev.days[ev.days.length-1]?.date):fmtDate(ev.days[0]?.date));
+  const _recEndInfo=ev.recurrence&&ev.recurrence.endDate?' · fino al '+fmtDateShort(ev.recurrence.endDate):'';
+  const dateStr=recTabs?(recDateFilter&&recDateFilter!=='__all__'?fmtDate(recDateFilter):'🔄 Ricorrente — '+_recFreqLabel+_recEndInfo):(ev.days.length>1?fmtDateShort(ev.days[0]?.date)+' — '+fmtDateShort(ev.days[ev.days.length-1]?.date):fmtDate(ev.days[0]?.date));
   const locLink=ev.locationUrl?`<a href="${ev.locationUrl}" target="_blank" style="color:var(--brand-l)">📍 ${escHtml(ev.location)} ↗</a>`:`📍 ${escHtml(ev.location)}`;
   const roleName=r=>r==='base'?'💪 Base':r==='flyer'?'🦅 Flyer':r==='non_so'?'🤷 Non lo so ancora':r==='entrambi'?'🔄 Entrambi':'—';
   const roleColor=r=>r==='base'?'var(--green)':r==='flyer'?'var(--blue)':r==='non_so'?'var(--txt3)':'var(--purple)';
