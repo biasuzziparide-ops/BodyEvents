@@ -2848,7 +2848,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.46';
+const APP_VERSION='V3.10.47';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -9370,6 +9370,51 @@ async function loadCurrentUser(uid){
     setTimeout(()=>_showOnboardingSequence('user'),600);
     return;
   }
+  // V3.10.48: User was deleted from platform but Firebase Auth still exists
+  // Re-create user document to allow re-onboarding
+  console.warn('[BE_INIT] User doc missing for authenticated uid:',uid,'— re-creating profile');
+  const _authUser=fbAuth.currentUser;
+  if(_authUser){
+    const _reNow=new Date().toISOString();
+    // Auto-subscribe to all active universes
+    if(!store.universes.length){try{const snap=await fbDb.collection('universes').get();store.universes=[];snap.forEach(doc=>{const d=doc.data();d.id=doc.id;store.universes.push(d);});}catch(e){}}
+    const _reActiveUnivs=getActiveUniverses();
+    const _reSubUnivs=_reActiveUnivs.map(u=>({universeId:u.id,preferredRole:u.roles&&u.roles[0]||''}));
+    const _reInitRole=(()=>{const r=(_reSubUnivs[0]&&_reSubUnivs[0].preferredRole||'').toLowerCase();if(r.includes('fly'))return 'flyer';if(r.includes('bas'))return 'base';if(r.includes('entramb'))return 'entrambi';return 'non_so';})();
+    const _reUserData={
+      id:uid,
+      username:_authUser.displayName||_authUser.email.split('@')[0],
+      email:_authUser.email,
+      role:_reInitRole,
+      status:'attivo',
+      registeredAt:_reNow.split('T')[0],
+      authMethod:_authUser.providerData[0]?.providerId==='google.com'?'google':'email',
+      initials:(_authUser.displayName||_authUser.email.split('@')[0]||'??').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase(),
+      color:['avatar-brand','avatar-green','avatar-yellow','avatar-blue','avatar-purple'][Math.floor(Math.random()*5)],
+      subscribedUniverses:_reSubUnivs,
+      reRegisteredAt:_reNow,
+      consents:{privacy:false,privacyDate:null,marketing:false,marketingDate:null}
+    };
+    await fbDb.collection('users').doc(uid).set(_reUserData);
+    store.currentUser=_reUserData;
+    store.currentUser.id=uid;
+    if(!store.users.find(u=>u.id===uid)){store.users.push({..._reUserData});}
+    // Load user's bookings (may have past ones marked userRemoved)
+    await ensureUserBookingsLoaded(uid);
+    updateNotificationBadges();
+    document.querySelectorAll('.profile-name-user').forEach(el=>el.textContent=_reUserData.username||'');
+    updateUserAvatarDisplay();
+    document.getElementById('modeBanner').style.display='none';
+    document.getElementById('navbar-user').classList.remove('hidden');
+    // V3.10.48: Handle pending deep links (event links, checkin links, invite links, sub tokens)
+    if(_pendingDeepLink){go('events');await handleDeepLink();}
+    else{go('events');}
+    checkPrivacyConsent(); // GDPR: force privacy acceptance before any interaction
+    setTimeout(()=>_showOnboardingSequence('user'),600);
+    showToast('Bentornato! Il tuo profilo è stato ripristinato.','success');
+    return;
+  }
+  // Fallback: no auth user (shouldn't happen)
   showToast('Profilo non trovato. Contatta il supporto.','error');
   fbAuth.signOut();
   }finally{_loadingUserInProgress=false;}
@@ -9463,7 +9508,26 @@ async function submitUserRegistration(){
     try{sessionStorage.removeItem('_inviteOrgId');sessionStorage.removeItem('_inviteOrgName');}catch(ex){}
   }catch(e){
     _registrationInProgress=false;
-    if(e.code==='auth/email-already-in-use'){showToast('Questa email è già registrata','error');}
+    if(e.code==='auth/email-already-in-use'){
+      // V3.10.48: Try to sign in — if user was deleted from platform,
+      // loadCurrentUser() (MODIFICA 1) will re-create their profile.
+      // NOTE: Cannot query Firestore here because user is NOT authenticated yet
+      // (Firestore rules require isAuth()). So we try login directly.
+      const _reEmail=(document.getElementById('reg-email')?.value||'').trim();
+      const _rePass=(document.getElementById('reg-password')?.value||'').trim();
+      try{
+        await fbAuth.signInWithEmailAndPassword(_reEmail,_rePass);
+        // Login succeeded → onAuthStateChanged → loadCurrentUser() will handle everything:
+        // - If doc exists: normal login (user was already registered, not deleted)
+        // - If doc missing: MODIFICA 1 re-creates profile ("Bentornato!")
+      }catch(loginErr){
+        if(loginErr.code==='auth/wrong-password'||loginErr.code==='auth/invalid-credential'){
+          showToast('Questa email è già registrata. Se il tuo account era stato rimosso, usa la password originale oppure clicca "Password dimenticata" per reimpostarla.','error');
+        } else {
+          showToast('Questa email è già registrata. Prova a fare il login.','error');
+        }
+      }
+    }
     else if(e.code==='auth/weak-password'){showToast('Password troppo debole (minimo 6 caratteri)','error');}
     else{showToast('Errore: '+e.message,'error');}
   }
@@ -9607,7 +9671,22 @@ async function submitOrgRegistration(){
     showToast('Richiesta organizzatore inviata per: '+orgName);
   }catch(e){
     _registrationInProgress=false;
-    if(e.code==='auth/email-already-in-use'){showToast('Questa email è già registrata','error');}
+    if(e.code==='auth/email-already-in-use'){
+      // V3.10.48: Same pattern as MODIFICA 2 — try login directly
+      const _reEmail=(document.getElementById('rego-email')?.value||'').trim();
+      const _rePass=(document.getElementById('rego-password')?.value||'').trim();
+      try{
+        await fbAuth.signInWithEmailAndPassword(_reEmail,_rePass);
+        // Login succeeded → loadCurrentUser() will re-create profile if doc missing
+        // NOTE: Re-created as basic user. They will need to re-request organizer status.
+      }catch(loginErr){
+        if(loginErr.code==='auth/wrong-password'||loginErr.code==='auth/invalid-credential'){
+          showToast('Questa email è già registrata. Se il tuo account era stato rimosso, usa la password originale oppure clicca "Password dimenticata" per reimpostarla.','error');
+        } else {
+          showToast('Questa email è già registrata. Prova a fare il login.','error');
+        }
+      }
+    }
     else if(e.code==='auth/weak-password'){showToast('Password troppo debole (minimo 6 caratteri)','error');}
     else{showToast('Errore: '+e.message,'error');}
   }
