@@ -427,7 +427,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.53</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.54</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2849,7 +2849,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.53';
+const APP_VERSION='V3.10.54';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -16360,6 +16360,11 @@ async function showEventDetail(evId,recDate){
         <p class="text-xs mt-1" style="color:var(--txt2);line-height:1.5">${escHtml(ev.insurance.description||"Questo evento richiede un'assicurazione.")} Assicurazioni accettate: <strong>${escHtml(_insNames)}</strong>. Senza assicurazione verrà applicato un sovrapprezzo di <strong style="color:var(--warn)">€${_insPrice}</strong>.</p></div>`;
     }
   }
+  // V3.10.54: Recurring dates collapsible — only for recurring events
+  if(ev.recurrence&&ev.recurrence.day&&(ev.recurrence.active!==false||ev.recurrence.pausedUntil)){
+    daysHtml+=renderRecurringDatesCollapsible(ev);
+  }
+
   // V3.2 FIX: Compute effective dates for recurring events in Programma section
   const _detEffDate=(dayDate)=>{
     if(!currentBookingRecDate||!dayDate||!ev.days||!ev.days[0]||!ev.days[0].date)return dayDate;
@@ -17598,6 +17603,246 @@ function getNextRecurringDates(ev,count){
     }
   }
   return dates;
+}
+
+// V3.10.54: Generate ALL recurring dates (past + future) for the full calendar view
+function getAllRecurringDates(ev){
+  if(!ev.recurrence||!ev.recurrence.day)return [];
+  const targetDay=DAY_MAP_NUM[ev.recurrence.day];
+  if(targetDay===undefined)return [];
+  const freq=ev.recurrence.freq||'settimanale';
+  const exc=ev.recurrence.exceptions||{};
+  const exclDates=ev.recurrence.exclusionDates||[];
+  const eventStartDate=ev.days&&ev.days[0]&&ev.days[0].date?new Date(ev.days[0].date+'T00:00:00'):null;
+  if(!eventStartDate)return [];
+  const recEndDate=ev.recurrence.endDate?new Date(ev.recurrence.endDate+'T00:00:00'):new Date(Date.now()+365*86400000);
+  const today=new Date();today.setHours(0,0,0,0);
+  const pausedUntil=ev.recurrence.pausedUntil?new Date(ev.recurrence.pausedUntil+'T00:00:00'):null;
+  const todayStr=localDateStr(today);
+  const pausedUntilStr=pausedUntil?localDateStr(pausedUntil):null;
+  const allDates=[];
+
+  function getExclusionType(dateStr){
+    if(exc[dateStr]){
+      const t=exc[dateStr].type;
+      if(t==='skip'||t==='cancellato'||t==='split')return 'excluded';
+      if(t==='modificato')return 'modified';
+    }
+    if(exclDates.includes(dateStr))return 'excluded';
+    return null;
+  }
+
+  function pushDate(ds,excType){
+    const _isPaused=pausedUntilStr&&ds>=todayStr&&ds<pausedUntilStr?true:false;
+    if(excType==='excluded'){
+      allDates.push({date:ds,excluded:true,modified:false,paused:false});
+    } else {
+      allDates.push({date:ds,excluded:false,modified:excType==='modified',paused:_isPaused});
+    }
+  }
+
+  if(freq==='settimanale'){
+    const d=new Date(eventStartDate);
+    while(d.getDay()!==targetDay)d.setDate(d.getDate()+1);
+    while(d<=recEndDate){
+      const ds=localDateStr(d);
+      pushDate(ds,getExclusionType(ds));
+      d.setDate(d.getDate()+7);
+      if(allDates.length>200)break;
+    }
+  } else if(freq==='mensile'){
+    const targetDom=eventStartDate.getDate();
+    const d=new Date(eventStartDate);d.setDate(1);
+    let safety=0;
+    while(safety<60){
+      const tempD=new Date(d.getFullYear(),d.getMonth()+1,0);
+      const actualDay=Math.min(targetDom,tempD.getDate());
+      d.setDate(actualDay);
+      if(d>recEndDate)break;
+      if(d>=eventStartDate){
+        const ds=localDateStr(d);
+        pushDate(ds,getExclusionType(ds));
+      }
+      d.setMonth(d.getMonth()+1);d.setDate(1);
+      safety++;
+    }
+  } else if(freq==='annuale'){
+    const targetMonth=eventStartDate.getMonth();
+    const targetDom=eventStartDate.getDate();
+    let year=eventStartDate.getFullYear();
+    let safety=0;
+    while(safety<20){
+      const d=new Date(year,targetMonth,targetDom);
+      if(d>recEndDate)break;
+      if(d>=eventStartDate){
+        const ds=localDateStr(d);
+        pushDate(ds,getExclusionType(ds));
+      }
+      year++;safety++;
+    }
+  }
+  return allDates;
+}
+
+// V3.10.54: Collapsible calendar of all recurring dates
+function renderRecurringDatesCollapsible(ev){
+  const allDates=getAllRecurringDates(ev);
+  if(!allDates.length)return '';
+  const today=localDateStr(new Date());
+  const MONTHS_FULL=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+  const DAYS_SHORT=['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+  const totalActive=allDates.filter(d=>!d.excluded).length;
+  const totalExcluded=allDates.filter(d=>d.excluded).length;
+  const pastCount=allDates.filter(d=>!d.excluded&&!d.paused&&d.date<today).length;
+  const futureCount=allDates.filter(d=>!d.excluded&&!d.paused&&d.date>today).length;
+  const pausedCount=allDates.filter(d=>d.paused).length;
+  const hasToday=allDates.some(d=>!d.excluded&&d.date===today);
+  const firstDate=allDates[0].date;
+  const lastDate=allDates[allDates.length-1].date;
+  const _fd=new Date(firstDate+'T00:00:00');
+  const _ld=new Date(lastDate+'T00:00:00');
+  const rangeLabel=_fd.getDate()+' '+MONTHS_FULL[_fd.getMonth()]+' '+_fd.getFullYear()+' – '+_ld.getDate()+' '+MONTHS_FULL[_ld.getMonth()]+' '+_ld.getFullYear();
+  const _firstUpcomingIdx=allDates.findIndex(d=>!d.excluded&&d.date>=today);
+  const _uid='rdc-'+ev.id.slice(0,8);
+
+  let html='<div class="card mb-4" style="border:1px solid var(--s300);padding:0;border-radius:16px;overflow:hidden" id="'+_uid+'-wrap">';
+  html+='<button onclick="toggleRecDatesCollapsible(\''+_uid+'\')" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:none;border:none;cursor:pointer;color:var(--txt);font-family:inherit">';
+  html+='<div style="display:flex;align-items:center;gap:10px">';
+  html+='<div style="font-size:1.1rem;width:36px;height:36px;display:flex;align-items:center;justify-content:center;background:rgba(217,70,239,.12);border-radius:10px">📅</div>';
+  html+='<div style="text-align:left"><div style="font-size:.88rem;font-weight:600">Calendario date</div>';
+  html+='<div style="font-size:.72rem;color:var(--txt3);margin-top:2px">'+totalActive+' date previste · '+rangeLabel+'</div>';
+  html+='</div></div>';
+  html+='<span id="'+_uid+'-chev" style="font-size:.85rem;color:var(--txt3);transition:transform .25s ease">▼</span>';
+  html+='</button>';
+
+  html+='<div id="'+_uid+'-body" style="max-height:0;overflow:hidden;transition:max-height .35s ease">';
+  html+='<div style="height:1px;background:var(--s300);margin:0 16px"></div>';
+  html+='<div style="padding:12px 16px 16px">';
+
+  html+='<div style="display:flex;gap:12px;flex-wrap:wrap;padding:0 2px 10px">';
+  if(pastCount>0)html+='<span style="font-size:.68rem;color:var(--txt2);display:flex;align-items:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:var(--txt3)"></span>'+pastCount+' passat'+(pastCount===1?'a':'e')+'</span>';
+  if(hasToday)html+='<span style="font-size:.68rem;color:var(--txt2);display:flex;align-items:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:var(--green)"></span>Oggi</span>';
+  if(futureCount>0)html+='<span style="font-size:.68rem;color:var(--txt2);display:flex;align-items:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:var(--brand)"></span>'+futureCount+' futur'+(futureCount===1?'a':'e')+'</span>';
+  if(pausedCount>0)html+='<span style="font-size:.68rem;color:var(--txt2);display:flex;align-items:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:var(--yellow)"></span>'+pausedCount+' in pausa</span>';
+  if(totalExcluded>0)html+='<span style="font-size:.68rem;color:var(--txt2);display:flex;align-items:center;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:var(--red)"></span>'+totalExcluded+' esclus'+(totalExcluded===1?'a':'e')+'</span>';
+  html+='</div>';
+
+  const PAGE_SIZE=15;
+  html+='<div id="'+_uid+'-list">';
+  let rendered=0;
+  let currentMonth='';
+  allDates.forEach((item,idx)=>{
+    const d=new Date(item.date+'T00:00:00');
+    const monthKey=d.getFullYear()+'-'+d.getMonth();
+    const monthLabel=MONTHS_FULL[d.getMonth()]+' '+d.getFullYear();
+    if(monthKey!==currentMonth){
+      if(currentMonth)html+='</div>';
+      html+='<div class="rdcMonth" data-rdc-month="'+monthKey+'"'+(rendered>=PAGE_SIZE?' data-rdc-hidden="1" style="display:none"':'')+'>';
+      html+='<div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--txt3);padding:0 2px 6px">'+monthLabel+'</div>';
+      currentMonth=monthKey;
+    }
+    const isPast=!item.excluded&&item.date<today;
+    const isToday=!item.excluded&&item.date===today;
+    const isNext=_firstUpcomingIdx>=0&&!item.excluded&&!isToday&&item.date>today&&idx===_firstUpcomingIdx+(hasToday?1:0);
+    const isLast=idx===allDates.length-1&&!item.excluded;
+    const dayNum=d.getDate();
+    const dayName=DAYS_SHORT[d.getDay()];
+    const _multiDay=ev.days&&ev.days.length>1;
+    const _time=(ev.days&&ev.days[0])?(ev.days[0].startTime+' – '+ev.days[0].endTime+(_multiDay?' · '+ev.days.length+' giorni':'')):'';
+
+    let rowStyle='display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;';
+    if(item.excluded)rowStyle+='opacity:.35;';
+    else if(item.paused)rowStyle+='opacity:.55;';
+    else if(isPast)rowStyle+='opacity:.45;';
+
+    let boxStyle='width:40px;height:40px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:10px;flex-shrink:0;line-height:1;';
+    let numColor='color:var(--txt);';
+    if(isToday){boxStyle+='background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);';numColor='color:var(--green);';}
+    else if(isNext&&!isToday){boxStyle+='background:rgba(217,70,239,.12);border:1px solid rgba(217,70,239,.3);';numColor='color:var(--brand-l);';}
+    else{boxStyle+='background:var(--s200);';}
+
+    const hidden=rendered>=PAGE_SIZE;
+    html+='<div class="rdcRow" data-rdc-idx="'+idx+'"'+(hidden?' data-rdc-hidden="1" style="'+rowStyle+'display:none"':' style="'+rowStyle+'"')+'>';
+    html+='<div style="'+boxStyle+'"><span style="font-size:.95rem;font-weight:700;'+numColor+'">'+dayNum+'</span>';
+    html+='<span style="font-size:.55rem;font-weight:600;text-transform:uppercase;color:var(--txt3);margin-top:1px">'+dayName+'</span></div>';
+    html+='<div style="flex:1;min-width:0">';
+    html+='<div style="font-size:.8rem;font-weight:500;color:var(--txt);'+(item.excluded?'text-decoration:line-through;color:var(--txt3)':'')+'">'
+      +DAYS_IT[d.getDay()]+' '+dayNum+' '+MONTHS_FULL[d.getMonth()]+'</div>';
+    if(_time)html+='<div style="font-size:.7rem;color:var(--txt3);margin-top:1px">'+_time+'</div>';
+    html+='</div>';
+    if(item.excluded)html+='<span style="font-size:.65rem;font-weight:600;padding:3px 8px;border-radius:20px;color:var(--red);background:rgba(239,68,68,.12);text-decoration:line-through;flex-shrink:0">Esclusa</span>';
+    else if(item.paused)html+='<span style="font-size:.65rem;font-weight:600;padding:3px 8px;border-radius:20px;color:var(--yellow);background:rgba(234,179,8,.12);flex-shrink:0">⏸️ In pausa</span>';
+    else if(item.modified)html+='<span style="font-size:.65rem;font-weight:600;padding:3px 8px;border-radius:20px;color:var(--orange);background:rgba(249,115,22,.12);flex-shrink:0">Modificata</span>';
+    else if(isToday)html+='<span style="font-size:.65rem;font-weight:600;padding:3px 8px;border-radius:20px;color:var(--green);background:rgba(16,185,129,.12);flex-shrink:0">● Oggi</span>';
+    else if(isNext)html+='<span style="font-size:.65rem;font-weight:600;padding:3px 8px;border-radius:20px;color:var(--brand-l);background:rgba(217,70,239,.12);flex-shrink:0">Prossima</span>';
+    else if(isLast)html+='<span style="font-size:.65rem;font-weight:600;padding:3px 8px;border-radius:20px;color:var(--yellow);background:rgba(234,179,8,.12);flex-shrink:0">Ultima</span>';
+    else if(isPast)html+='<span style="font-size:.65rem;font-weight:600;padding:3px 8px;border-radius:20px;color:var(--txt3);background:var(--s200);flex-shrink:0">Passata</span>';
+    html+='</div>';
+    if(!hidden)rendered++;
+  });
+  if(currentMonth)html+='</div>';
+  html+='</div>';
+
+  if(allDates.length>PAGE_SIZE){
+    html+='<button id="'+_uid+'-more" onclick="loadMoreRecDates(\''+_uid+'\','+PAGE_SIZE+','+allDates.length+')" style="width:100%;margin-top:10px;padding:10px;border:1px dashed var(--s400);border-radius:10px;background:none;color:var(--brand-l);font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit">';
+    html+='Mostra altre date ▼ <span style="color:var(--txt3);font-weight:400">(+'+(allDates.length-PAGE_SIZE)+' rimanenti)</span></button>';
+  }
+
+  html+='</div></div></div>';
+  if(_recDatesCollapsibleOpen){
+    setTimeout(()=>{
+      const b=document.getElementById(_uid+'-body');
+      const c=document.getElementById(_uid+'-chev');
+      if(b){b.style.maxHeight=b.scrollHeight+'px';b.style.transition='none';setTimeout(()=>{b.style.transition='max-height .35s ease';},50);}
+      if(c)c.style.transform='rotate(180deg)';
+    },0);
+  }
+  return html;
+}
+
+// V3.10.54: Persist collapsible state across re-renders
+let _recDatesCollapsibleOpen=false;
+
+// V3.10.54: Toggle recurring dates collapsible
+function toggleRecDatesCollapsible(uid){
+  const body=document.getElementById(uid+'-body');
+  const chev=document.getElementById(uid+'-chev');
+  if(!body)return;
+  const isOpen=body.style.maxHeight&&body.style.maxHeight!=='0px';
+  if(isOpen){
+    body.style.maxHeight='0';
+    if(chev)chev.style.transform='rotate(0deg)';
+    _recDatesCollapsibleOpen=false;
+  } else {
+    body.style.maxHeight=body.scrollHeight+'px';
+    if(chev)chev.style.transform='rotate(180deg)';
+    _recDatesCollapsibleOpen=true;
+    setTimeout(()=>{if(body.style.maxHeight!=='0px')body.style.maxHeight=body.scrollHeight+'px';},360);
+  }
+}
+
+// V3.10.54: Load next batch of recurring dates
+function loadMoreRecDates(uid,pageSize,total){
+  const list=document.getElementById(uid+'-list');
+  const moreBtn=document.getElementById(uid+'-more');
+  if(!list)return;
+  const hiddenRows=list.querySelectorAll('.rdcRow[data-rdc-hidden]');
+  let shown=0;
+  hiddenRows.forEach(row=>{
+    if(shown>=pageSize)return;
+    row.style.display='flex';
+    row.removeAttribute('data-rdc-hidden');
+    const parent=row.closest('.rdcMonth');
+    if(parent&&parent.hasAttribute('data-rdc-hidden')){parent.style.display='';parent.removeAttribute('data-rdc-hidden');}
+    shown++;
+  });
+  const stillHidden=list.querySelectorAll('.rdcRow[data-rdc-hidden]').length;
+  if(stillHidden===0&&moreBtn)moreBtn.style.display='none';
+  else if(moreBtn){
+    moreBtn.innerHTML='Mostra altre date ▼ <span style="color:var(--txt3);font-weight:400">(+'+stillHidden+' rimanenti)</span>';
+  }
+  const body=document.getElementById(uid+'-body');
+  if(body)body.style.maxHeight=body.scrollHeight+'px';
 }
 
 function expandRecurringForList(events){
