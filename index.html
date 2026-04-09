@@ -2850,7 +2850,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.57';
+const APP_VERSION='V3.10.58';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -6526,8 +6526,7 @@ function switchSubTab(tab,btn){
 
 function renderSubTypes(c){
   const mgr=store.currentUser;
-  const isMaster=mgr.role==='master';
-  const myTypes=store.subscriptionTypes.filter(t=>isMaster||t.managerId===mgr.id);
+  const myTypes=store.subscriptionTypes.filter(t=>t.managerId===mgr.id);
   if(!myTypes.length){
     c.innerHTML='<div class="card text-center txt3" style="padding:40px">Nessuna tipologia creata. Clicca <strong>➕ Nuova tipologia</strong> per iniziare.</div>';
     return;
@@ -6587,8 +6586,7 @@ function toggleSubSort(field){
 
 function renderSubAssigned(c){
   const mgr=store.currentUser;
-  const isMaster=mgr.role==='master';
-  const mySubs=store.subscriptions.filter(s=>isMaster||s.managerId===mgr.id);
+  const mySubs=store.subscriptions.filter(s=>s.managerId===mgr.id);
 
   // ── METRICHE ECONOMICHE ──
   const totalSold=mySubs.length;
@@ -6732,8 +6730,7 @@ function renderSubAssigned(c){
 
 function renderSubAssignQR(c){
   const mgr=store.currentUser;
-  const isMaster=mgr.role==='master';
-  const myTypes=store.subscriptionTypes.filter(t=>(isMaster||t.managerId===mgr.id)&&(t.status||'active')==='active');
+  const myTypes=store.subscriptionTypes.filter(t=>t.managerId===mgr.id&&(t.status||'active')==='active');
   let html='<div class="card mb-4"><h3 class="font-semibold text-white mb-3">📱 Assegna abbonamento via QR</h3>';
   html+='<p class="text-sm txt2 mb-4">Seleziona una tipologia e genera un QR code. L\'utente lo scansionerà per ricevere l\'abbonamento.</p>';
   if(!myTypes.length){
@@ -7442,8 +7439,7 @@ function confirmDeleteSubscription(subId){
 
 async function exportSubsExcel(){
   const mgr=store.currentUser;
-  const isMaster=mgr.role==='master';
-  const mySubs=store.subscriptions.filter(s=>isMaster||s.managerId===mgr.id);
+  const mySubs=store.subscriptions.filter(s=>s.managerId===mgr.id);
   if(!mySubs.length){showToast('Nessun dato da esportare','error');return;}
   if(typeof ExcelJS==='undefined'){
     const sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';document.head.appendChild(sc);
@@ -7728,8 +7724,7 @@ async function exportSubTypeExcel(typeId){
 // Populate subscription type checkboxes in event creation form
 function populateSubTypeCheckboxes(){
   const mgr=store.currentUser;
-  const isMaster=mgr.role==='master';
-  const myTypes=store.subscriptionTypes.filter(t=>(isMaster||t.managerId===mgr.id)&&(t.status||'active')==='active');
+  const myTypes=store.subscriptionTypes.filter(t=>t.managerId===mgr.id&&(t.status||'active')==='active');
   // Get partner subscription types
   const partnerIds=getPartnerIdsFromForm();
   const partnerTypes=partnerIds.length?store.subscriptionTypes.filter(t=>partnerIds.includes(t.managerId)&&(t.status||'active')==='active'):[];
@@ -19695,7 +19690,7 @@ async function renderAdminDashboard(){
       });
       fh+='</div>';
       // V3.10.46: Subscription revenue card
-      const _subRevSubs=store.subscriptions.filter(s=>(isMaster||s.managerId===u.id));
+      const _subRevSubs=store.subscriptions.filter(s=>s.managerId===u.id);
       if(_subRevSubs.length>0){
         const _subPaid=_subRevSubs.filter(s=>s.paymentStatus==='pagato');
         const _subPending=_subRevSubs.filter(s=>s.paymentStatus==='da_pagare'||s.paymentStatus==='prezzo_modificato');
@@ -19714,7 +19709,7 @@ async function renderAdminDashboard(){
     } else {
       // V3.10.46: Even without archived events, show subscription revenue if any
       let _noEvtHtml='';
-      const _subRevSubs2=store.subscriptions.filter(s=>(isMaster||s.managerId===u.id));
+      const _subRevSubs2=store.subscriptions.filter(s=>s.managerId===u.id);
       if(_subRevSubs2.length>0){
         const _subPaid2=_subRevSubs2.filter(s=>s.paymentStatus==='pagato');
         const _subPending2=_subRevSubs2.filter(s=>s.paymentStatus==='da_pagare'||s.paymentStatus==='prezzo_modificato');
@@ -22375,6 +22370,8 @@ async function renderUsersTab(){
 async function showUserDetail(userId){
   const u=store.users.find(x=>x.id===userId);if(!u)return;
   await ensureInsurancesLoaded();
+  // V3.2.1: ensure subscriptions are loaded for user detail view
+  if(!_subscriptionsLoaded) await ensureSubscriptionsLoaded();
   const today=localDateStr(new Date());
   const allBks=store.bookings.filter(b=>b.userId===userId&&b.status!=='cancellata');
   // Split bookings: active (event in future or today) vs past
@@ -22440,6 +22437,34 @@ async function showUserDetail(userId){
     insHtml+='</div>';
   }
 
+  // V3.2.1: Subscription section in user detail (read-only, all organizers)
+  let subsHtml='';
+  const userSubs=store.subscriptions.filter(s=>s.userId===userId);
+  if(userSubs.length){
+    subsHtml='<h3 class="font-semibold text-white mb-2 mt-4">💳 Abbonamenti ('+userSubs.length+')</h3><div class="card mb-4" style="padding:12px">';
+    userSubs.forEach(s=>{
+      const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
+      const _isDiscSub=sType&&sType.mode==='discount';
+      const remaining=s.entriesTotal-s.entriesUsed;
+      const isActive=s.status==='active';
+      const isPending=s.status==='pending';
+      const statusBadge=isActive?'<span style="color:var(--green)">✅ Attivo</span>':isPending?'<span style="color:var(--yellow)">⏳ In attesa pagamento</span>':s.status==='suspended'?'<span style="color:var(--yellow)">⏸️ Sospeso</span>':'<span style="color:var(--red)">⏳ Scaduto</span>';
+      const payBadge=s.paymentStatus==='pagato'?'💰 Pagato':s.paymentStatus==='omaggio'||s.paymentStatus==='omaggiato'||s.paymentStatus==='gratuito'?'🎁 Omaggio':'❌ Da pagare';
+      const ownerMgr=store.managers.find(m=>m.id===s.managerId);
+      const ownerLabel=ownerMgr?escHtml(ownerMgr.orgName):'ID: '+s.managerId;
+      const usageLabel=_isDiscSub?'📉 '+(sType.discountPercent||0)+'% sconto':'🎟️ '+remaining+'/'+s.entriesTotal+' ingressi';
+      subsHtml+='<div style="padding:10px;background:var(--s200);border-radius:10px;margin-bottom:6px">';
+      subsHtml+='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">';
+      subsHtml+='<div style="flex:1;min-width:0"><div style="font-size:.84rem;font-weight:600;color:var(--txt1)">'+(sType?.name||s.typeName||s.typeId)+'</div>';
+      subsHtml+='<div style="font-size:.72rem;color:var(--txt3);margin-top:2px">Org: '+ownerLabel+' · '+usageLabel+' · '+payBadge+'</div>';
+      if(s.expiresAt) subsHtml+='<div style="font-size:.68rem;color:var(--txt3)">Scade: '+fmtDateShort(s.expiresAt.split('T')[0])+'</div>';
+      subsHtml+='</div>';
+      subsHtml+='<div>'+statusBadge+'</div>';
+      subsHtml+='</div></div>';
+    });
+    subsHtml+='</div>';
+  }
+
   const o=document.getElementById('user-form-overlay');
   o.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding:24px 12px;overflow-y:auto';
   o.innerHTML=`<div style="background:var(--s100);border:1px solid var(--s400);border-radius:20px;padding:24px;max-width:700px;width:100%;margin:20px auto">
@@ -22468,6 +22493,8 @@ async function showUserDetail(userId){
     </div>
 
     ${insHtml}
+
+    ${subsHtml}
 
     <h3 class="font-semibold text-white mb-2 mt-4">🌐 Universi (clicca per attivare/disattivare)</h3>
     <div class="card mb-4" style="padding:12px">${univHtml}</div>
