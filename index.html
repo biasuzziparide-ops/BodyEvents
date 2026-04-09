@@ -1360,8 +1360,20 @@ textarea.input{resize:none;font-family:inherit}
         <input class="input" id="org-profile-revolut" value="" placeholder="https://revolut.me/..." oninput="orgProfileChanged()">
       </div>
       <div class="mb-3">
-        <label class="label">Link Satispay</label>
-        <input class="input" id="org-profile-satispay" value="" placeholder="https://tag.satispay.com/..." oninput="orgProfileChanged()">
+        <label class="label">🔗 Altro link di pagamento</label>
+        <input class="input" id="org-profile-satispay" value="" placeholder="https://link-pagamento.esempio.com/..." oninput="orgProfileChanged()">
+      </div>
+      <div class="mb-3" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--s300)">
+        <label class="label">🏦 Bonifico bancario</label>
+        <p class="text-xs txt3 mb-2">Questi dati verranno auto-compilati nella scheda di ogni nuovo evento.</p>
+        <div class="mb-2">
+          <label class="label" style="font-size:.75rem">Intestatario</label>
+          <input class="input" id="org-profile-bank-holder" value="" placeholder="Nome e Cognome / Ragione sociale" oninput="orgProfileChanged()">
+        </div>
+        <div>
+          <label class="label" style="font-size:.75rem">IBAN</label>
+          <input class="input" id="org-profile-bank-iban" value="" placeholder="IT60X0542811101000000123456" oninput="orgProfileChanged()" style="font-family:monospace;letter-spacing:.5px">
+        </div>
       </div>
     </div>
 
@@ -1731,7 +1743,16 @@ textarea.input{resize:none;font-family:inherit}
         <h4 class="text-sm font-semibold mb-3" style="color:var(--txt2)">💳 Metodi di pagamento</h4>
         <div class="mb-3"><label class="label">Link PayPal</label><input class="input" id="ne-paypal" placeholder="https://paypal.me/..."></div>
         <div class="mb-3"><label class="label">Link Revolut</label><input class="input" id="ne-revolut" placeholder="https://revolut.me/..."></div>
-        <div class="mb-3"><label class="label">Link Satispay</label><input class="input" id="ne-satispay" placeholder="https://tag.satispay.com/..."></div>
+        <div class="mb-3"><label class="label">🔗 Altro link di pagamento</label><input class="input" id="ne-satispay" placeholder="https://link-pagamento.esempio.com/..."></div>
+        <div class="flex items-center gap-3 mt-3 mb-2">
+          <input type="checkbox" id="ne-bank-transfer" style="display:none">
+          <button type="button" id="ne-bank-transfer-btn" class="btn btn-sm" style="background:var(--s200);color:var(--txt2);border:1px solid var(--s400);font-size:.8rem;padding:8px 16px;border-radius:10px;transition:all .2s" onclick="const cb=document.getElementById('ne-bank-transfer');cb.checked=!cb.checked;const wrap=document.getElementById('ne-bank-transfer-fields');if(cb.checked){this.style.background='rgba(99,102,241,.15)';this.style.color='var(--brand-l)';this.style.borderColor='rgba(99,102,241,.4)';this.textContent='🏦 Bonifico bancario ✓';wrap.classList.remove('hidden');}else{this.style.background='var(--s200)';this.style.color='var(--txt2)';this.style.borderColor='var(--s400)';this.textContent='🏦 Bonifico bancario';wrap.classList.add('hidden');}">🏦 Bonifico bancario</button>
+        </div>
+        <div id="ne-bank-transfer-fields" class="hidden" style="margin-left:4px;padding:12px 14px;background:rgba(99,102,241,.04);border:1px solid rgba(99,102,241,.12);border-radius:12px;margin-bottom:8px">
+          <div class="mb-2"><label class="label" style="font-size:.75rem">IBAN</label><input class="input" id="ne-bank-iban" placeholder="IT60X0542811101000000123456" style="font-family:monospace;letter-spacing:.5px"></div>
+          <div class="mb-2"><label class="label" style="font-size:.75rem">Intestatario</label><input class="input" id="ne-bank-holder" placeholder="Nome Cognome / Ragione sociale"></div>
+          <div><label class="label" style="font-size:.75rem">Note (opzionale)</label><input class="input" id="ne-bank-notes" placeholder="es. Inserire come causale il proprio Nome Cognome"></div>
+        </div>
         <div class="flex items-center gap-3 mt-3">
           <input type="checkbox" id="ne-cash" checked style="display:none">
           <button type="button" id="ne-cash-btn" class="btn btn-sm" style="background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.4);font-size:.8rem;padding:8px 16px;border-radius:10px;transition:all .2s" onclick="const cb=document.getElementById('ne-cash');cb.checked=!cb.checked;if(cb.checked){this.style.background='rgba(16,185,129,.15)';this.style.color='var(--green)';this.style.borderColor='rgba(16,185,129,.4)';this.textContent='💵 Accetta contanti ✓';}else{this.style.background='var(--s200)';this.style.color='var(--txt2)';this.style.borderColor='var(--s400)';this.textContent='💵 Contanti';}">💵 Accetta contanti ✓</button>
@@ -2850,7 +2871,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.1.0';
+const APP_VERSION='V4.2.0';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -5414,7 +5435,7 @@ function renderInfoPageOrganizer(){
   s4+=warnBox('⚠️','<strong style="color:#eab308">Nota:</strong> la fascia di prezzo scelta da ciascun utente è <strong style="color:#eab308">privata</strong>. Nessun partecipante può vedere la scelta degli altri.');
   s4+=h3('Come funzionano i pagamenti');
   s4+=p('La piattaforma <strong style="color:var(--txt1)">non gestisce direttamente i pagamenti</strong> in app. Quello che fa è tracciare tutto: tiene conto di prezzi, sconti, anticipi e stati di pagamento per ogni partecipante, fornendoti <strong style="color:var(--txt1)">metriche precise</strong> su totali previsti, incassati e da incassare.');
-  s4+=p('Se vuoi offrire il pagamento online, puoi inserire il tuo <strong style="color:var(--txt1)">link di pagamento</strong> (PayPal, Satispay, o altri) nella configurazione dell\'evento. Gli utenti vedranno il link al momento della prenotazione e potranno pagare direttamente sul tuo conto. Tu poi confermi la ricezione dalla lista iscritti.');
+  s4+=p('Se vuoi offrire il pagamento online, puoi inserire i tuoi <strong style="color:var(--txt1)">link di pagamento</strong> (PayPal, Revolut, altri link) oppure i <strong style="color:var(--txt1)">dati per bonifico bancario</strong> (IBAN e intestatario) nella configurazione dell\'evento. Gli utenti vedranno i metodi disponibili al momento della prenotazione e potranno pagare direttamente sul tuo conto. Tu poi confermi la ricezione dalla lista iscritti.');
   s4+=tip('💡','<strong style="color:#6366f1">In pratica:</strong> la piattaforma è il tuo gestionale contabile per gli eventi. I soldi passano direttamente tra te e i partecipanti, senza intermediari e senza commissioni.');
   s4+=valueBox('📈','<strong style="color:#10b981">Valore:</strong> hai sempre il quadro finanziario completo — chi deve pagare, chi ha pagato, quanto manca — senza fogli di calcolo manuali. Apri l\'export e hai tutto pronto.');
   html+='<div id="org-prezzi" style="scroll-margin-top:16px">'+sec(s4)+'</div>';
@@ -6903,8 +6924,9 @@ async function requestPublicSubscription(typeId,fromEventId){
     payHtml+='<p class="text-xs font-semibold text-white mb-2">💳 Metodi di pagamento:</p>';
     if(payMethods.paypal)payHtml+='<a href="'+escHtml(payMethods.paypal)+'" target="_blank" class="badge mb-1" style="display:inline-flex;background:rgba(59,130,246,.08);color:var(--blue);padding:6px 12px">💳 PayPal ↗</a> ';
     if(payMethods.revolut)payHtml+='<a href="'+escHtml(payMethods.revolut)+'" target="_blank" class="badge mb-1" style="display:inline-flex;background:rgba(6,182,212,.08);color:#22d3ee;padding:6px 12px">💳 Revolut ↗</a> ';
-    if(payMethods.satispay)payHtml+='<a href="'+escHtml(payMethods.satispay)+'" target="_blank" class="badge mb-1" style="display:inline-flex;background:rgba(239,68,68,.08);color:var(--red);padding:6px 12px">💳 Satispay ↗</a> ';
+    if(payMethods.satispay)payHtml+='<a href="'+escHtml(payMethods.satispay)+'" target="_blank" class="badge mb-1" style="display:inline-flex;background:rgba(239,68,68,.08);color:var(--red);padding:6px 12px">💳 Altro link ↗</a> ';
     if(payMethods.cash)payHtml+='<span class="badge mb-1" style="display:inline-flex;background:var(--green-bg);color:var(--green);padding:6px 12px">💵 Contanti</span>';
+    payHtml+=_buildBankTransferHtml(payMethods.bankTransfer);
     payHtml+='<p class="text-xs txt3 mt-2">Effettua il pagamento tramite uno dei metodi sopra. L\'organizzatore confermerà la ricezione e il tuo abbonamento sarà attivato.</p>';
     payHtml+='</div>';
   }
@@ -8719,6 +8741,14 @@ function buildModificationDiffs(ev){
     if((pp.paypal||'')!==(np.paypal||''))diffs.push({label:'💳 PayPal',old:pp.paypal||'—',now:np.paypal||'rimosso',field:'payment'});
     if((pp.revolut||'')!==(np.revolut||''))diffs.push({label:'💳 Revolut',old:pp.revolut||'—',now:np.revolut||'rimosso',field:'payment'});
     if(!!pp.cash!==!!np.cash)diffs.push({label:'💵 Contanti',old:pp.cash?'accettati':'non accettati',now:np.cash?'accettati':'non accettati',field:'payment'});
+    if((pp.satispay||'')!==(np.satispay||''))diffs.push({label:'🔗 Altro link pagamento',old:pp.satispay||'—',now:np.satispay||'rimosso',field:'payment'});
+    const _ppBt=pp.bankTransfer||{};const _npBt=np.bankTransfer||{};
+    if(!!_ppBt.enabled!==!!_npBt.enabled)diffs.push({label:'🏦 Bonifico bancario',old:_ppBt.enabled?'attivo':'non attivo',now:_npBt.enabled?'attivo':'non attivo',field:'payment'});
+    else if(_ppBt.enabled&&_npBt.enabled){
+      if((_ppBt.iban||'')!==(_npBt.iban||''))diffs.push({label:'🏦 IBAN',old:_ppBt.iban||'—',now:_npBt.iban||'rimosso',field:'payment'});
+      if((_ppBt.holder||'')!==(_npBt.holder||''))diffs.push({label:'🏦 Intestatario',old:_ppBt.holder||'—',now:_npBt.holder||'rimosso',field:'payment'});
+      if((_ppBt.notes||'')!==(_npBt.notes||''))diffs.push({label:'🏦 Note bonifico',old:_ppBt.notes||'—',now:_npBt.notes||'rimosse',field:'payment'});
+    }
   }
   const prevDep=prev.deposit;const nowDep=ev.deposit;
   if(prevDep&&!nowDep)diffs.push({label:'💰 Anticipo',old:'€'+fmtEuro(prevDep.amount||0),now:'rimosso',field:'deposit'});
@@ -10861,6 +10891,10 @@ function populateOrgProfile(){
   const paypalEl=document.getElementById('org-profile-paypal');if(paypalEl)paypalEl.value=payLinks.paypal||'';
   const revolutEl=document.getElementById('org-profile-revolut');if(revolutEl)revolutEl.value=payLinks.revolut||'';
   const satispayEl=document.getElementById('org-profile-satispay');if(satispayEl)satispayEl.value=payLinks.satispay||'';
+  // V4.2.0: Bank transfer defaults
+  const bankData=payLinks.bankTransfer||{};
+  const bankHolderEl=document.getElementById('org-profile-bank-holder');if(bankHolderEl)bankHolderEl.value=bankData.holder||'';
+  const bankIbanEl=document.getElementById('org-profile-bank-iban');if(bankIbanEl)bankIbanEl.value=bankData.iban||'';
   // Universes
   const uWrap=document.getElementById('org-profile-universes');
   if(uWrap){
@@ -10973,7 +11007,11 @@ async function saveOrgProfile(){
     const paymentLinks={
       paypal:(document.getElementById('org-profile-paypal')?.value||'').trim(),
       revolut:(document.getElementById('org-profile-revolut')?.value||'').trim(),
-      satispay:(document.getElementById('org-profile-satispay')?.value||'').trim()
+      satispay:(document.getElementById('org-profile-satispay')?.value||'').trim(),
+      bankTransfer:{
+        holder:(document.getElementById('org-profile-bank-holder')?.value||'').trim(),
+        iban:(document.getElementById('org-profile-bank-iban')?.value||'').trim()
+      }
     };
     mgr.paymentLinks=paymentLinks;
     if(logoData)mgr.orgLogo=logoData;else if(logoData===false)mgr.orgLogo=null;
@@ -12020,9 +12058,11 @@ function _doBookNormal(){
       const _pmLinks=[];
       if(ev.paymentMethods?.paypal)_pmLinks.push('<a href="'+ev.paymentMethods.paypal+'" target="_blank" class="btn btn-sm" style="background:rgba(59,130,246,.15);color:var(--blue);border:1px solid rgba(59,130,246,.3);font-size:.75rem">PayPal ↗</a>');
       if(ev.paymentMethods?.revolut)_pmLinks.push('<a href="'+ev.paymentMethods.revolut+'" target="_blank" class="btn btn-sm" style="background:rgba(34,211,238,.1);color:#22d3ee;border:1px solid rgba(34,211,238,.3);font-size:.75rem">Revolut ↗</a>');
+      if(ev.paymentMethods?.satispay)_pmLinks.push('<a href="'+ev.paymentMethods.satispay+'" target="_blank" class="btn btn-sm" style="background:rgba(168,85,247,.1);color:#a855f7;border:1px solid rgba(168,85,247,.3);font-size:.75rem">🔗 Altro ↗</a>');
       if(ev.paymentMethods?.cash)_pmLinks.push('<span class="btn btn-sm" style="background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.3);font-size:.75rem">Contanti</span>');
-      if(_pmLinks.length){
-        managedInfoHtml+='<div class="card mb-3" style="padding:12px"><div class="text-xs txt3 mb-2" style="text-transform:uppercase;letter-spacing:.5px">Metodi di pagamento</div><div class="flex gap-2 flex-wrap">'+_pmLinks.join('')+'</div></div>';
+      const _btHtmlDirect=_buildBankTransferHtml(ev.paymentMethods?.bankTransfer);
+      if(_pmLinks.length||_btHtmlDirect){
+        managedInfoHtml+='<div class="card mb-3" style="padding:12px"><div class="text-xs txt3 mb-2" style="text-transform:uppercase;letter-spacing:.5px">Metodi di pagamento</div>'+((_pmLinks.length)?'<div class="flex gap-2 flex-wrap">'+_pmLinks.join('')+'</div>':'')+_btHtmlDirect+'</div>';
       }
       // Show deposit info if configured
       if(managedNeedsDeposit){
@@ -12394,7 +12434,10 @@ function _doBookNormal(){
     const payMethodBtns=[];
     if(ev.paymentMethods.paypal)payMethodBtns.push('<a href="'+ev.paymentMethods.paypal+'" target="_blank" class="btn btn-sm" style="background:rgba(59,130,246,.15);color:var(--blue);border:1px solid rgba(59,130,246,.3);font-size:.75rem">PayPal ↗</a>');
     if(ev.paymentMethods.revolut)payMethodBtns.push('<a href="'+ev.paymentMethods.revolut+'" target="_blank" class="btn btn-sm" style="background:rgba(34,211,238,.1);color:#22d3ee;border:1px solid rgba(34,211,238,.3);font-size:.75rem">Revolut ↗</a>');
+    if(ev.paymentMethods.satispay)payMethodBtns.push('<a href="'+ev.paymentMethods.satispay+'" target="_blank" class="btn btn-sm" style="background:rgba(239,68,68,.10);color:#f87171;border:1px solid rgba(239,68,68,.25);font-size:.75rem">Altro link ↗</a>');
     if(ev.paymentMethods.cash)payMethodBtns.push('<span class="btn btn-sm" style="background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.3);font-size:.75rem">Contanti</span>');
+    const _depBt=ev.paymentMethods.bankTransfer;
+    const _depBtHtml=_buildBankTransferHtml(_depBt);
     const userName=store.currentUser.username;
     const causalText=ev.deposit.causal.replace(/Nome Cognome/gi,userName).replace(/\[nome\]/gi,userName);
     depositHtml=`<div class="card mt-4" style="background:rgba(234,179,8,.06);border-color:var(--yellow);padding:14px 16px">
@@ -12416,6 +12459,7 @@ function _doBookNormal(){
       <div class="mb-3">
         <div class="text-xs txt3 mb-1" style="text-transform:uppercase;letter-spacing:.5px">Metodi di pagamento accettati</div>
         <div class="flex gap-2 flex-wrap">${payMethodBtns.join('')}</div>
+        ${_depBtHtml}
       </div>
       <div style="padding:8px 14px;border-radius:8px;background:rgba(16,185,129,.06);border-left:3px solid #10b981;display:flex;align-items:center;gap:8px;margin-top:10px;margin-bottom:10px">
         <span style="font-size:.85rem">ℹ️</span>
@@ -15672,21 +15716,47 @@ function renderEarlyBirdGrid(eb, gridId, evId, stdTiers, subDiscPct, freeWithSub
     <div class="tier-grid" style="grid-template-columns:1fr" id="${gridId}">${btnHtml}</div>
   </div>`;
 }
+// V4.2.0: Bank transfer copyable block — reusable helper
+function _buildBankTransferHtml(bt){
+  if(!bt||!bt.enabled||(!bt.iban&&!bt.holder))return '';
+  let h='<div style="margin-top:8px;padding:10px 14px;background:rgba(99,102,241,.04);border:1px solid rgba(99,102,241,.12);border-radius:10px">';
+  h+='<div class="text-xs font-semibold mb-2" style="color:var(--brand-l)">🏦 Bonifico bancario</div>';
+  if(bt.iban){
+    const _ibanEsc=bt.iban.replace(/'/g,"\\'");
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px">';
+    h+='<div><span class="text-xs txt3">IBAN: </span><span class="text-sm text-white" style="font-family:monospace;letter-spacing:.5px">'+escHtml(bt.iban)+'</span></div>';
+    h+='<button class="btn btn-ghost btn-sm" style="font-size:.65rem;padding:2px 6px;flex-shrink:0" onclick="navigator.clipboard.writeText(\''+_ibanEsc+'\');showToast(\'IBAN copiato!\')">📋</button>';
+    h+='</div>';
+  }
+  if(bt.holder){
+    const _holderEsc=bt.holder.replace(/'/g,"\\'");
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px">';
+    h+='<div><span class="text-xs txt3">Intestatario: </span><span class="text-sm text-white">'+escHtml(bt.holder)+'</span></div>';
+    h+='<button class="btn btn-ghost btn-sm" style="font-size:.65rem;padding:2px 6px;flex-shrink:0" onclick="navigator.clipboard.writeText(\''+_holderEsc+'\');showToast(\'Intestatario copiato!\')">📋</button>';
+    h+='</div>';
+  }
+  if(bt.notes){
+    h+='<div class="text-xs txt3 mt-1" style="font-style:italic">'+escHtml(bt.notes)+'</div>';
+  }
+  h+='</div>';
+  return h;
+}
 function buildPaymentMethodsHtml(ev){
   const links=[];
   if(ev.paymentMethods.paypal)links.push('<a href="'+ev.paymentMethods.paypal+'" target="_blank" class="btn btn-sm" style="background:rgba(59,130,246,.15);color:var(--blue);border:1px solid rgba(59,130,246,.3);font-size:.75rem">💳 PayPal ↗</a>');
   if(ev.paymentMethods.revolut)links.push('<a href="'+ev.paymentMethods.revolut+'" target="_blank" class="btn btn-sm" style="background:rgba(34,211,238,.1);color:#22d3ee;border:1px solid rgba(34,211,238,.3);font-size:.75rem">💳 Revolut ↗</a>');
-  if(ev.paymentMethods.satispay)links.push('<a href="'+ev.paymentMethods.satispay+'" target="_blank" class="btn btn-sm" style="background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.3);font-size:.75rem">💳 Satispay ↗</a>');
+  if(ev.paymentMethods.satispay)links.push('<a href="'+ev.paymentMethods.satispay+'" target="_blank" class="btn btn-sm" style="background:rgba(168,85,247,.1);color:#a855f7;border:1px solid rgba(168,85,247,.3);font-size:.75rem">🔗 Altro ↗</a>');
   if(ev.paymentMethods.cash)links.push('<span class="btn btn-sm" style="background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.3);font-size:.75rem">💵 Contanti</span>');
-  if(!links.length)return '';
-  return '<div class="card mb-3" style="padding:12px"><div class="text-xs txt3 mb-2" style="text-transform:uppercase;letter-spacing:.5px">Metodi di pagamento</div><div class="flex gap-2 flex-wrap">'+links.join('')+'</div></div>';
+  const _btHtml=_buildBankTransferHtml(ev.paymentMethods?.bankTransfer);
+  if(!links.length&&!_btHtml)return '';
+  return '<div class="card mb-3" style="padding:12px"><div class="text-xs txt3 mb-2" style="text-transform:uppercase;letter-spacing:.5px">Metodi di pagamento</div>'+(links.length?'<div class="flex gap-2 flex-wrap">'+links.join('')+'</div>':'')+_btHtml+'</div>';
 }
 function buildDepositHtml(ev,userName){
   if(!ev.deposit||!ev.deposit.required||!ev.deposit.amount)return '';
   const payMethodBtns=[];
   if(ev.paymentMethods.paypal)payMethodBtns.push('<a href="'+ev.paymentMethods.paypal+'" target="_blank" class="btn btn-sm" style="background:rgba(59,130,246,.15);color:var(--blue);border:1px solid rgba(59,130,246,.3);font-size:.75rem">PayPal ↗</a>');
   if(ev.paymentMethods.revolut)payMethodBtns.push('<a href="'+ev.paymentMethods.revolut+'" target="_blank" class="btn btn-sm" style="background:rgba(34,211,238,.1);color:#22d3ee;border:1px solid rgba(34,211,238,.3);font-size:.75rem">Revolut ↗</a>');
-  if(ev.paymentMethods.satispay)payMethodBtns.push('<a href="'+ev.paymentMethods.satispay+'" target="_blank" class="btn btn-sm" style="background:rgba(239,68,68,.1);color:#ef4444;border:1px solid rgba(239,68,68,.3);font-size:.75rem">Satispay ↗</a>');
+  if(ev.paymentMethods.satispay)payMethodBtns.push('<a href="'+ev.paymentMethods.satispay+'" target="_blank" class="btn btn-sm" style="background:rgba(168,85,247,.1);color:#a855f7;border:1px solid rgba(168,85,247,.3);font-size:.75rem">🔗 Altro ↗</a>');
   if(ev.paymentMethods.cash)payMethodBtns.push('<span class="btn btn-sm" style="background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.3);font-size:.75rem">Contanti</span>');
   const causalText=ev.deposit.causal.replace(/Nome Cognome/gi,userName).replace(/\[nome\]/gi,userName);
   return `<div class="card mb-3" style="background:rgba(234,179,8,.06);border-color:var(--yellow);padding:14px 16px">
@@ -15701,7 +15771,7 @@ function buildDepositHtml(ev,userName){
         <span class="text-sm" style="color:var(--brand-l);font-family:monospace;word-break:break-all">${causalText}</span>
         <button class="btn btn-ghost btn-sm" style="font-size:.7rem;padding:2px 8px;flex-shrink:0" onclick="navigator.clipboard.writeText('${causalText}');showToast('Causale copiata!')">📋</button>
       </div></div>
-    ${payMethodBtns.length?'<div class="text-xs txt3 mb-1" style="text-transform:uppercase;letter-spacing:.5px">Metodi di pagamento</div><div class="flex gap-2 flex-wrap">'+payMethodBtns.join('')+'</div>':''}
+    ${payMethodBtns.length?'<div class="text-xs txt3 mb-1" style="text-transform:uppercase;letter-spacing:.5px">Metodi di pagamento</div><div class="flex gap-2 flex-wrap">'+payMethodBtns.join('')+'</div>':''}${_buildBankTransferHtml(ev.paymentMethods?.bankTransfer)}
   </div>`;
 }
 
@@ -16221,7 +16291,8 @@ async function showEventDetail(evId,recDate){
   const payLinks=[];
   if(ev.paymentMethods.paypal)payLinks.push(`<a class="badge" style="background:rgba(59,130,246,.08);color:var(--blue);padding:6px 12px" href="${ev.paymentMethods.paypal}" target="_blank">💳 PayPal ↗</a>`);
   if(ev.paymentMethods.revolut)payLinks.push(`<a class="badge" style="background:rgba(6,182,212,.08);color:#22d3ee;padding:6px 12px" href="${ev.paymentMethods.revolut}" target="_blank">💳 Revolut ↗</a>`);
-  if(ev.paymentMethods.cash)payLinks.push('<span class="badge" style="background:var(--green-bg);color:var(--green);padding:6px 12px">💵 Cash</span>');
+  if(ev.paymentMethods.satispay)payLinks.push(`<a class="badge" style="background:rgba(168,85,247,.08);color:#a855f7;padding:6px 12px" href="${ev.paymentMethods.satispay}" target="_blank">🔗 Altro ↗</a>`);
+  if(ev.paymentMethods.cash)payLinks.push('<span class="badge" style="background:var(--green-bg);color:var(--green);padding:6px 12px">💵 Contanti</span>');
   const levelBadges=getEventLevelBadges(ev);
   const locLink=ev.locationUrl?`<a href="${ev.locationUrl}" target="_blank" style="color:var(--brand-l)">📍 ${escHtml(ev.location)} ↗</a>`:`📍 ${escHtml(ev.location)}`;
 
@@ -16674,7 +16745,8 @@ async function showEventDetail(evId,recDate){
         const _loc='<div class="flex items-center gap-2 mt-2 text-sm">'+locLink+'</div>';
         const _org='<div class="text-xs mt-2"><a style="color:var(--brand-l);cursor:pointer;text-decoration:none" onclick="event.stopPropagation();showOrgPublicProfile(\''+ev.managerId+'\')" onmouseover="this.style.textDecoration=\'underline\'" onmouseout="this.style.textDecoration=\'none\'">'+escHtml(ev.orgName)+'</a></div>';
         const _partners=(()=>{if(!ev.partnerIds||!ev.partnerIds.length)return '';const pBadges=ev.partnerIds.map(pid=>{const m=store.managers.find(x=>x.id===pid);return m?'<span class="badge" style="background:rgba(168,85,247,.1);color:#a855f7;font-size:.65rem;padding:3px 8px;cursor:pointer" onclick="event.stopPropagation();showOrgPublicProfile(\''+pid+'\')">🤝 '+escHtml(m.orgName)+'</span>':'';}).filter(Boolean).join('');return '<div class="flex gap-2 flex-wrap mt-2">'+pBadges+'</div>';})();
-        const _payHtml=payLinks.length?'<div class="flex gap-3 mt-4 flex-wrap" style="padding-top:16px;border-top:1px solid var(--s300)">'+payLinks.join('')+'</div>':'';
+        const _btHtmlSED=_buildBankTransferHtml(ev.paymentMethods?.bankTransfer);
+        const _payHtml=(payLinks.length||_btHtmlSED)?'<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--s300)">'+(payLinks.length?'<div class="flex gap-3 flex-wrap">'+payLinks.join('')+'</div>':'')+_btHtmlSED+'</div>':'';
         const _contactH=contactHtml;
         return '<div id="ev-detail-desc-block">'
           +'<div class="txt3 mt-2" id="ev-detail-desc-teaser" style="white-space:pre-wrap;line-height:1.6;max-height:3.2em;overflow:hidden;position:relative;-webkit-mask-image:linear-gradient(to bottom,#000 40%,transparent 100%);mask-image:linear-gradient(to bottom,#000 40%,transparent 100%)">'+_desc+'</div>'
@@ -16840,8 +16912,10 @@ async function showEventDetail(evId,recDate){
             const links=[];
             if(ev.paymentMethods&&ev.paymentMethods.paypal)links.push('<a class="badge" style="background:rgba(59,130,246,.08);color:var(--blue);padding:4px 10px;font-size:.72rem;text-decoration:none" href="'+ev.paymentMethods.paypal+'" target="_blank">💳 PayPal ↗</a>');
             if(ev.paymentMethods&&ev.paymentMethods.revolut)links.push('<a class="badge" style="background:rgba(6,182,212,.08);color:#22d3ee;padding:4px 10px;font-size:.72rem;text-decoration:none" href="'+ev.paymentMethods.revolut+'" target="_blank">💳 Revolut ↗</a>');
+            if(ev.paymentMethods&&ev.paymentMethods.satispay)links.push('<a class="badge" style="background:rgba(168,85,247,.08);color:#a855f7;padding:4px 10px;font-size:.72rem;text-decoration:none" href="'+ev.paymentMethods.satispay+'" target="_blank">🔗 Altro ↗</a>');
             if(ev.paymentMethods&&ev.paymentMethods.cash)links.push('<span class="badge" style="background:var(--green-bg);color:var(--green);padding:4px 10px;font-size:.72rem">💵 Cash</span>');
-            return links.length?'<div class="flex gap-2 flex-wrap mt-2">'+links.join('')+'</div>':'';
+            const _bkBtHtml=_buildBankTransferHtml(ev.paymentMethods?.bankTransfer);
+            return (links.length?'<div class="flex gap-2 flex-wrap mt-2">'+links.join('')+'</div>':'')+_bkBtHtml;
           })()
           +(function(){
             if(myBooking.paymentStatus==='pagato'||myBooking.paymentStatus==='gratuito'||myBooking.gift)return '';
@@ -18598,6 +18672,17 @@ function copyEventAsTemplate(id){
     if(document.getElementById('ne-paypal'))document.getElementById('ne-paypal').value=(ev.paymentMethods||{}).paypal||'';
     if(document.getElementById('ne-revolut'))document.getElementById('ne-revolut').value=(ev.paymentMethods||{}).revolut||'';
     const satispayEl=document.getElementById('ne-satispay');if(satispayEl)satispayEl.value=ev.paymentMethods?.satispay||'';
+    // V4.2.0: Bank transfer repopulation
+    const bt=ev.paymentMethods?.bankTransfer;
+    if(bt&&bt.enabled){
+      const btCb=document.getElementById('ne-bank-transfer');
+      const btBtn=document.getElementById('ne-bank-transfer-btn');
+      const btFields=document.getElementById('ne-bank-transfer-fields');
+      if(btCb){btCb.checked=true;if(btFields)btFields.classList.remove('hidden');if(btBtn){btBtn.style.background='rgba(99,102,241,.15)';btBtn.style.color='var(--brand-l)';btBtn.style.borderColor='rgba(99,102,241,.4)';btBtn.textContent='🏦 Bonifico bancario ✓';}}
+      const btIban=document.getElementById('ne-bank-iban');if(btIban)btIban.value=bt.iban||'';
+      const btHolder=document.getElementById('ne-bank-holder');if(btHolder)btHolder.value=bt.holder||'';
+      const btNotes=document.getElementById('ne-bank-notes');if(btNotes)btNotes.value=bt.notes||'';
+    }
     const cashEl=document.getElementById('ne-cash');if(cashEl){cashEl.checked=!!(ev.paymentMethods||{}).cash;const cashBtn=document.getElementById('ne-cash-btn');if(cashBtn){if(cashEl.checked){cashBtn.style.background='rgba(16,185,129,.15)';cashBtn.style.color='var(--green)';cashBtn.style.borderColor='rgba(16,185,129,.4)';cashBtn.textContent='💵 Accetta contanti ✓';}else{cashBtn.style.background='var(--s200)';cashBtn.style.color='var(--txt2)';cashBtn.style.borderColor='var(--s400)';cashBtn.textContent='💵 Contanti';}}}
     // === DEPOSIT ===
     if(ev.deposit&&ev.deposit.required){
@@ -18751,7 +18836,7 @@ function copyEventAsTemplate(id){
     if(ev.imageThumb||ev.imageHeader||ev.image){const ic=document.getElementById('ne-images-collapsible');if(ic){ic.classList.remove('hidden');const arrow=ic.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
     // === AUTO-EXPAND COLLAPSIBLE SECTIONS ===
     if(ev.contactPhone||ev.contactEmail||ev.groupLink){const cc=document.getElementById('ne-contacts-collapsible');if(cc){cc.classList.remove('hidden');const arrow=cc.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
-    if(ev.paymentMethods&&(ev.paymentMethods.paypal||ev.paymentMethods.revolut||ev.paymentMethods.cash)){const pc=document.getElementById('ne-payment-collapsible');if(pc){pc.classList.remove('hidden');const arrow=pc.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
+    if(ev.paymentMethods&&(ev.paymentMethods.paypal||ev.paymentMethods.revolut||ev.paymentMethods.satispay||ev.paymentMethods.cash||(ev.paymentMethods.bankTransfer&&ev.paymentMethods.bankTransfer.enabled))){const pc=document.getElementById('ne-payment-collapsible');if(pc){pc.classList.remove('hidden');const arrow=pc.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
     if(ev.pricingMode==='free'||ev.pricingMode==='managed'||ev.pricingMode==='direct'||ev.subscriptionBookable?.enabled||ev.subscriptionDiscount?.enabled||ev.deposit?.required||ev.insurance?.enabled){const sc=document.getElementById('ne-payment-collapsible');if(sc){sc.classList.remove('hidden');const arrow=sc.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
     syncToggleBtns();
     // V3.7.2: Ensure date constraints are set for the new event from template
@@ -18959,7 +19044,7 @@ function startAlertEdit(){
   const snapshot={
     title:ev.title,description:ev.description,location:ev.location,teacher:ev.teacher,
     contactPhone:ev.contactPhone||'',contactEmail:ev.contactEmail||'',groupLink:ev.groupLink||'',
-    paymentMethods:ev.paymentMethods?{paypal:ev.paymentMethods.paypal||'',revolut:ev.paymentMethods.revolut||'',cash:!!ev.paymentMethods.cash}:null,
+    paymentMethods:ev.paymentMethods?{paypal:ev.paymentMethods.paypal||'',revolut:ev.paymentMethods.revolut||'',satispay:ev.paymentMethods.satispay||'',cash:!!ev.paymentMethods.cash,bankTransfer:ev.paymentMethods.bankTransfer?{enabled:!!ev.paymentMethods.bankTransfer.enabled,iban:ev.paymentMethods.bankTransfer.iban||'',holder:ev.paymentMethods.bankTransfer.holder||'',notes:ev.paymentMethods.bankTransfer.notes||''}:{enabled:false}}:null,
     deposit:ev.deposit?{required:ev.deposit.required,amount:ev.deposit.amount||0,causal:ev.deposit.causal||''}:null,
     bookingDeadline:ev.bookingDeadline||null,bookingDeadlineDaysBefore:ev.bookingDeadlineDaysBefore!=null?ev.bookingDeadlineDaysBefore:null,
     days:ev.days.map(d=>({date:d.date,startTime:d.startTime,endTime:d.endTime,
@@ -20028,6 +20113,18 @@ function resetForm(){
       if(paypal&&!paypal.value)paypal.value=currentMgr.paymentLinks.paypal||'';
       if(revolut&&!revolut.value)revolut.value=currentMgr.paymentLinks.revolut||'';
       if(satispay&&!satispay.value)satispay.value=currentMgr.paymentLinks.satispay||'';
+      // V4.2.0: Pre-populate bank transfer from org defaults + auto-enable if data exists
+      const orgBank=currentMgr.paymentLinks.bankTransfer||{};
+      const bankIban=document.getElementById('ne-bank-iban');
+      const bankHolder=document.getElementById('ne-bank-holder');
+      if(bankIban&&!bankIban.value)bankIban.value=orgBank.iban||'';
+      if(bankHolder&&!bankHolder.value)bankHolder.value=orgBank.holder||'';
+      if((orgBank.iban||'').trim()||(orgBank.holder||'').trim()){
+        const _btCb=document.getElementById('ne-bank-transfer');
+        const _btBtn=document.getElementById('ne-bank-transfer-btn');
+        const _btWrap=document.getElementById('ne-bank-transfer-fields');
+        if(_btCb&&!_btCb.checked){_btCb.checked=true;if(_btWrap)_btWrap.classList.remove('hidden');if(_btBtn){_btBtn.style.background='rgba(99,102,241,.15)';_btBtn.style.color='var(--brand-l)';_btBtn.style.borderColor='rgba(99,102,241,.4)';_btBtn.textContent='🏦 Bonifico bancario ✓';}}
+      }
     }
   }
   // Reset collapsible sections to default state (V2.13.0)
@@ -20995,7 +21092,7 @@ function collectFormData(){
     contactPhone:document.getElementById('ne-contact-phone')?.value||'',
     contactEmail:document.getElementById('ne-contact-email')?.value||'',
     groupLink:document.getElementById('ne-group-link')?.value||'',
-    paymentMethods:{paypal:document.getElementById('ne-paypal').value||'',revolut:document.getElementById('ne-revolut').value||'',satispay:document.getElementById('ne-satispay')?.value||'',cash:document.getElementById('ne-cash')?.checked||false},
+    paymentMethods:{paypal:document.getElementById('ne-paypal').value||'',revolut:document.getElementById('ne-revolut').value||'',satispay:document.getElementById('ne-satispay')?.value||'',cash:document.getElementById('ne-cash')?.checked||false,bankTransfer:document.getElementById('ne-bank-transfer')?.checked?{enabled:true,iban:(document.getElementById('ne-bank-iban')?.value||'').trim(),holder:(document.getElementById('ne-bank-holder')?.value||'').trim(),notes:(document.getElementById('ne-bank-notes')?.value||'').trim()}:{enabled:false}},
     deposit:document.getElementById('ne-deposit-required')?.checked?{required:true,amount:parseFloat(document.getElementById('ne-deposit-amount')?.value)||0,causal:document.getElementById('ne-deposit-causal')?.value||''}:null,
     pricingMode,
     minSubscribers:null, // V2.13.0: moved to session level (s.minSubscribers)
@@ -21178,6 +21275,17 @@ function editEvent(id){
   document.getElementById('ne-paypal').value=ev.paymentMethods?.paypal||'';
   document.getElementById('ne-revolut').value=ev.paymentMethods?.revolut||'';
   const satispayEl2=document.getElementById('ne-satispay');if(satispayEl2)satispayEl2.value=ev.paymentMethods?.satispay||'';
+  // V4.2.0: Bank transfer in template duplication
+  const bt2=ev.paymentMethods?.bankTransfer;
+  if(bt2&&bt2.enabled){
+    const btCb2=document.getElementById('ne-bank-transfer');
+    const btBtn2=document.getElementById('ne-bank-transfer-btn');
+    const btFields2=document.getElementById('ne-bank-transfer-fields');
+    if(btCb2){btCb2.checked=true;if(btFields2)btFields2.classList.remove('hidden');if(btBtn2){btBtn2.style.background='rgba(99,102,241,.15)';btBtn2.style.color='var(--brand-l)';btBtn2.style.borderColor='rgba(99,102,241,.4)';btBtn2.textContent='🏦 Bonifico bancario ✓';}}
+    const btIban2=document.getElementById('ne-bank-iban');if(btIban2)btIban2.value=bt2.iban||'';
+    const btHolder2=document.getElementById('ne-bank-holder');if(btHolder2)btHolder2.value=bt2.holder||'';
+    const btNotes2=document.getElementById('ne-bank-notes');if(btNotes2)btNotes2.value=bt2.notes||'';
+  }
   const cashEl=document.getElementById('ne-cash');if(cashEl){cashEl.checked=ev.paymentMethods?.cash!==false;const cashBtn=document.getElementById('ne-cash-btn');if(cashBtn){if(cashEl.checked){cashBtn.style.background='rgba(16,185,129,.15)';cashBtn.style.color='var(--green)';cashBtn.style.borderColor='rgba(16,185,129,.4)';cashBtn.textContent='💵 Accetta contanti ✓';}else{cashBtn.style.background='var(--s200)';cashBtn.style.color='var(--txt2)';cashBtn.style.borderColor='var(--s400)';cashBtn.textContent='💵 Contanti';}}}
   // Deposit
   const depEl=document.getElementById('ne-deposit-required');
@@ -21407,7 +21515,7 @@ function editEvent(id){
   if(ev.imageThumb||ev.imageHeader||ev.image){const ic=document.getElementById('ne-images-collapsible');if(ic){ic.classList.remove('hidden');const arrow=ic.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
   // Auto-expand collapsible sections that have content
   if(ev.contactPhone||ev.contactEmail||ev.groupLink){const cc=document.getElementById('ne-contacts-collapsible');if(cc){cc.classList.remove('hidden');const arrow=cc.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
-  if(ev.paymentMethods&&(ev.paymentMethods.paypal||ev.paymentMethods.revolut||ev.paymentMethods.cash)){const pc=document.getElementById('ne-payment-collapsible');if(pc){pc.classList.remove('hidden');const arrow=pc.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
+  if(ev.paymentMethods&&(ev.paymentMethods.paypal||ev.paymentMethods.revolut||ev.paymentMethods.satispay||ev.paymentMethods.cash||(ev.paymentMethods.bankTransfer&&ev.paymentMethods.bankTransfer.enabled))){const pc=document.getElementById('ne-payment-collapsible');if(pc){pc.classList.remove('hidden');const arrow=pc.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
   if(ev.pricingMode==='free'||ev.pricingMode==='managed'||ev.pricingMode==='direct'||ev.subscriptionBookable?.enabled||ev.subscriptionDiscount?.enabled||ev.deposit?.required||ev.insurance?.enabled){const sc=document.getElementById('ne-payment-collapsible');if(sc){sc.classList.remove('hidden');const arrow=sc.previousElementSibling?.querySelector('.coll-arrow');if(arrow)arrow.textContent='\u25be';}}
   // Sync toggle button states with restored checkbox states
   syncToggleBtns();
