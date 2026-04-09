@@ -12192,7 +12192,8 @@ function _doBookNormal(){
             _existSlots.push({date:dDate,start:d.startTime,end:d.endTime,evTitle:bkEv.title,label:bkEv.title});
           }
         }else if(bkScope==='giornata'){
-          const dayBooked=bk.items&&bk.items.some(it=>(it.type||'').includes('giornata')&&it.date===fmtDateShort(d.date));
+          // V3.2.1 FIX: Compare against both template date and effective date (dDate) for compat with old+new bookings
+          const dayBooked=bk.items&&bk.items.some(it=>(it.type||'').includes('giornata')&&(it.date===fmtDateShort(d.date)||it.date===fmtDateShort(dDate)));
           if(dayBooked){
             if(d.sessions&&d.sessions.length){
               d.sessions.forEach(s=>{if(s.startTime&&s.endTime)_existSlots.push({date:dDate,start:s.startTime,end:s.endTime,evTitle:bkEv.title,label:s.name});});
@@ -12457,8 +12458,9 @@ function _doBookNormal(){
             ev.days.forEach(d=>(d.sessions||[]).forEach(s=>{if(s.name===it.name||it.name.includes(s.name))ids.add(s.id);}));
           } else if(it.type==='giornata'||it.type==='early bird giornata'){
             // Day-level → ALL sessions from that day (match by date)
+            // V3.2.1 FIX: Compare against both template date and effective date for recurring events
             ev.days.forEach(d=>{
-              if(it.date===fmtDateShort(d.date)){(d.sessions||[]).forEach(s=>ids.add(s.id));}
+              if(it.date===fmtDateShort(d.date)||it.date===fmtDateShort(_effDate(d.date))){(d.sessions||[]).forEach(s=>ids.add(s.id));}
             });
           }
         });
@@ -15897,10 +15899,18 @@ function buildFullPricingHtml(ev,prefix){
       <p class="text-xs txt3 mt-1">${_discDesc}</p></div>`;
   }
   // V3.1.6: Tier explanation banner — REMOVED (user request)
+  // V3.2.1 FIX: effective date helper for recurring events in pricing HTML
+  const _prcEffDate=(dayDate)=>{
+    if(!currentBookingRecDate||!dayDate||!ev.days||!ev.days[0]||!ev.days[0].date)return dayDate;
+    const baseMs=new Date(ev.days[0].date+'T00:00:00').getTime();
+    const recMs=new Date(currentBookingRecDate+'T00:00:00').getTime();
+    const dayMs=new Date(dayDate+'T00:00:00').getTime();
+    return localDateStr(new Date(dayMs+(recMs-baseMs)));
+  };
   // Render each day with sessions and tiers
   ev.days.forEach((day,di)=>{
     html+=`<div class="card mb-2" style="border-color:var(--brand);background:rgba(217,70,239,.03);padding:10px 14px">
-      <div class="flex items-center gap-2"><span>📅</span><span class="font-medium text-sm" style="color:var(--brand-l)">${fmtDate(day.date)}</span><span class="text-xs txt3">${day.startTime} — ${day.endTime}</span></div></div>`;
+      <div class="flex items-center gap-2"><span>📅</span><span class="font-medium text-sm" style="color:var(--brand-l)">${fmtDate(_prcEffDate(day.date))}</span><span class="text-xs txt3">${day.startTime} — ${day.endTime}</span></div></div>`;
     if(day.sessions.length>1){
       html+='<div style="margin-left:16px;padding-left:12px;border-left:2px solid rgba(217,70,239,.2);margin-top:8px;margin-bottom:8px">';
       html+='<p class="text-xs txt3 mb-2">Sessioni disponibili:</p>';
@@ -16036,7 +16046,8 @@ function collectCheckinBookingData(ev,prefix){
       items.forEach(it=>{
         if(it.sessionId){ids.add(it.sessionId);}
         else if(it.type==='giornata'||it.type==='early bird giornata'){
-          ev.days.forEach(d=>{if(it.date===fmtDateShort(d.date)){(d.sessions||[]).forEach(s=>ids.add(s.id));}});
+          // V3.2.1 FIX: Compare against both template date and effective date for recurring events
+          ev.days.forEach(d=>{if(it.date===fmtDateShort(d.date)||it.date===fmtDateShort(_effDate(d.date))){(d.sessions||[]).forEach(s=>ids.add(s.id));}});
         }
       });
     }
