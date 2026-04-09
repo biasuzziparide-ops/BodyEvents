@@ -427,7 +427,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.51</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.53</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -2849,7 +2849,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.51';
+const APP_VERSION='V3.10.53';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -6628,34 +6628,36 @@ function renderSubAssigned(c){
     html+='</div></details>';
   }
 
-  // V3.10.46: User subscription requests section
-  const userRequests=mySubs.filter(s=>s.source==='user_request'&&(s.paymentStatus==='da_pagare'||s.paymentStatus==='prezzo_modificato'));
+  // V3.10.53: User subscription requests section — ALWAYS visible
+  const userRequests=mySubs.filter(s=>s.source==='user_request'&&(s.status==='pending'||s.paymentStatus==='da_pagare'||s.paymentStatus==='prezzo_modificato'));
+  html+='<div class="card mb-4" style="border:2px solid var(--yellow);padding:16px;border-radius:16px">';
+  html+='<h3 class="font-semibold text-white mb-2" style="display:flex;align-items:center;gap:8px;font-size:1rem">📩 Richieste abbonamento <span class="badge badge-yellow" style="font-size:.75rem">'+userRequests.length+'</span></h3>';
+  html+='<p class="text-xs txt3 mb-3">Abbonamenti richiesti dagli utenti dalle pagine degli eventi. Conferma il pagamento per attivare l\'abbonamento.</p>';
   if(userRequests.length>0){
-    html+='<div class="card mb-4" style="border-color:var(--yellow);padding:16px">';
-    html+='<h3 class="font-semibold text-white mb-3" style="display:flex;align-items:center;gap:8px">📩 Richieste abbonamento <span class="badge badge-yellow" style="font-size:.75rem">'+userRequests.length+'</span></h3>';
-    html+='<p class="text-xs txt3 mb-3">Abbonamenti richiesti dagli utenti in attesa di conferma pagamento.</p>';
     userRequests.forEach(s=>{
       const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
       const _isDiscSub=sType&&sType.mode==='discount';
-      const reqDate=s.createdAt?fmtDateShort(s.createdAt.split('T')[0]):'—';
-      const fromEvName=s.requestedFromEventId?store.events.find(e=>e.id===s.requestedFromEventId)?.name:'';
+      const reqDate=s.assignedAt?fmtDateShort(s.assignedAt.split('T')[0]):'—';
+      const fromEvName=s.requestedFromEventId?(store.events.find(e=>e.id===s.requestedFromEventId)?.title||store.events.find(e=>e.id===s.requestedFromEventId)?.name):'';
       html+='<div style="background:var(--s200);border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">';
-      html+='<div style="flex:1;min-width:200px">';
+      html+='<div style="flex:1;min-width:180px">';
       html+='<div class="font-medium text-white text-sm">'+escHtml(resolveUserName(s.userId,s.userName))+'</div>';
       html+='<div class="text-xs txt3">'+(sType?.name||s.typeId)+' · '+reqDate+(fromEvName?' · da <em>'+escHtml(fromEvName)+'</em>':'')+'</div>';
       html+='<div class="text-xs mt-1">'+(_isDiscSub?'📉 Sconto '+(sType.discountPercent||0)+'%':'📦 '+(s.entriesTotal||0)+' ingressi')+' · <span style="color:var(--yellow)">€'+(s.paymentAmount||0).toFixed(2)+'</span></div>';
       html+='</div>';
-      html+='<div style="display:flex;gap:6px;align-items:center">';
-      html+='<button class="btn btn-sm" style="background:var(--green);color:#fff;font-size:.78rem" onclick="toggleSubRequestPayment(\''+s.id+'\',true)">✅ Conferm pagamento</button>';
+      html+='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">';
+      html+='<button class="btn btn-sm" style="background:var(--green);color:#fff;font-size:.78rem" onclick="toggleSubRequestPayment(\''+s.id+'\',true)">✅ Conferma pagamento</button>';
       html+='<button class="btn btn-sm btn-ghost" onclick="showSubDetail(\''+s.id+'\')">👁️</button>';
       html+='</div></div>';
     });
-    html+='</div>';
+  } else {
+    html+='<div style="text-align:center;padding:12px 0;color:var(--txt3);font-size:.85rem">Nessuna richiesta in attesa</div>';
   }
+  html+='</div>';
 
   // Filters
   html+='<div class="flex gap-3 mb-4 flex-wrap">';
-  html+='<select class="input" id="sub-filter-status" onchange="renderSubAssigned(document.getElementById(\'admin-sub-content\'))" style="max-width:180px;font-size:.85rem"><option value="">Tutti gli stati</option><option value="active">Attivi</option><option value="expired">Scaduti</option><option value="suspended">Sospesi</option></select>';
+  html+='<select class="input" id="sub-filter-status" onchange="renderSubAssigned(document.getElementById(\'admin-sub-content\'))" style="max-width:180px;font-size:.85rem"><option value="">Tutti gli stati</option><option value="active">Attivi</option><option value="pending">In attesa</option><option value="expired">Scaduti</option><option value="suspended">Sospesi</option></select>';
   html+='<select class="input" id="sub-filter-payment" onchange="renderSubAssigned(document.getElementById(\'admin-sub-content\'))" style="max-width:180px;font-size:.85rem"><option value="">Tutti i pagamenti</option><option value="pagato">Pagato</option><option value="da_pagare">Da pagare</option><option value="omaggio">Omaggio</option><option value="prezzo_modificato">Prezzo modificato</option></select>';
   html+='<button class="btn btn-sm btn-secondary" onclick="exportSubsExcel()">📊 Esporta Excel</button>';
   html+='</div>';
@@ -6682,7 +6684,7 @@ function renderSubAssigned(c){
       case 'entries':va=a.entriesTotal-a.entriesUsed;vb=b.entriesTotal-b.entriesUsed;break;
       case 'expiresAt':va=a.expiresAt||'9999';vb=b.expiresAt||'9999';break;
       case 'paymentStatus':va=a.paymentStatus||'';vb=b.paymentStatus||'';break;
-      case 'status':va=a.status==='active'?0:a.status==='expired'?1:2;vb=b.status==='active'?0:b.status==='expired'?1:2;break;
+      case 'status':va=a.status==='active'?0:a.status==='pending'?1:a.status==='expired'?2:3;vb=b.status==='active'?0:b.status==='pending'?1:b.status==='expired'?2:3;break;
       default:va=resolveUserName(a.userId,a.userName).toLowerCase();vb=resolveUserName(b.userId,b.userName).toLowerCase();
     }
     const cmp=typeof va==='number'?(va-vb):(va<vb?-1:va>vb?1:0);
@@ -6705,7 +6707,8 @@ function renderSubAssigned(c){
     const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
     const remaining=s.entriesTotal-s.entriesUsed;
     const pctUsed=s.entriesTotal?Math.round(s.entriesUsed/s.entriesTotal*100):0;
-    const statusBadge=s.status==='active'?'<span class="badge badge-pubblicato">Attivo</span>':s.status==='expired'?'<span class="badge badge-red">Scaduto</span>':'<span class="badge badge-yellow">Sospeso</span>';
+    // V3.10.53: Added 'pending' status badge
+    const statusBadge=s.status==='active'?'<span class="badge badge-pubblicato">Attivo</span>':s.status==='pending'?'<span class="badge" style="background:rgba(245,158,11,.12);color:var(--yellow)">⏳ In attesa</span>':s.status==='expired'?'<span class="badge badge-red">Scaduto</span>':'<span class="badge badge-yellow">Sospeso</span>';
     const payBadge=s.paymentStatus==='pagato'?'<span style="color:var(--green)">✅ Pagato</span>':(s.paymentStatus==='omaggio'||s.paymentStatus==='omaggiato'||s.paymentStatus==='gratuito')?'<span style="color:var(--purple)">🎁 Omaggio</span>':s.paymentStatus==='prezzo_modificato'?'<span style="color:var(--yellow)">💰 Prezzo modificato</span>':'<span style="color:var(--red)">❌ Da pagare</span>';
     const expDate=s.expiresAt?fmtDateShort(s.expiresAt.split('T')[0]):'∞';
     const _isDiscSub=sType&&sType.mode==='discount';
@@ -6831,8 +6834,9 @@ async function manualAssignSub(userId,userName,userEmail){
   if(!typeId){showToast('Seleziona una tipologia','error');return;}
   const sType=store.subscriptionTypes.find(t=>t.id===typeId);
   if(!sType){showToast('Tipologia non trovata','error');return;}
-  // Check duplicate: does user already have an active sub of the same type?
-  const existingSub=store.subscriptions.find(s=>s.userId===userId&&s.typeId===typeId&&s.status==='active');
+  // Check duplicate: does user already have an active or pending sub of the same type?
+  // V3.10.53: Also detect pending subscriptions as duplicates
+  const existingSub=store.subscriptions.find(s=>s.userId===userId&&s.typeId===typeId&&(s.status==='active'||s.status==='pending'));
   if(existingSub){
     if(!confirm('⚠️ '+userName+' ha già un abbonamento attivo "'+sType.name+'" con '+(existingSub.entriesTotal-existingSub.entriesUsed)+' ingressi rimanenti.\n\nVuoi assegnarne un altro?'))return;
   }
@@ -6861,14 +6865,19 @@ async function createSubscription(typeId,userId,userName,userEmail,managerId,pay
     expiresAt=new Date(now.getTime()+sType.validityDays*86400000).toISOString();
   }
   const _isOmaggio=paymentStatus==='omaggio'||(sType.price===0||sType.price===null||sType.price===undefined);
+  const _finalPayment=_isOmaggio?'omaggio':(paymentStatus||'da_pagare');
+  // V3.10.53: status 'pending' until payment confirmed — prevents usage before payment
+  const _initialStatus=(_finalPayment==='da_pagare'||_finalPayment==='prezzo_modificato')?'pending':'active';
+  // V3.10.53: Don't start expiry timer for pending subs — timer starts on payment confirmation
+  if(_initialStatus==='pending') expiresAt=null;
   const sub={
     id:genId('sub'),typeId,userId,userName:userName||'',userEmail:userEmail||'',managerId,
     assignedAt:now.toISOString(),expiresAt,
     entriesTotal:sType.entries||0,entriesUsed:0,
     usageHistory:[],
-    paymentStatus:_isOmaggio?'omaggio':(paymentStatus||'da_pagare'),paymentAmount:_isOmaggio?0:(paymentAmount||sType.price||0),
-    paymentDate:(paymentStatus==='pagato'||_isOmaggio)?now.toISOString():null,paymentMethod:paymentMethod||'',
-    notes:notes||'',status:'active',typeName:sType.name
+    paymentStatus:_finalPayment,paymentAmount:_isOmaggio?0:(paymentAmount||sType.price||0),
+    paymentDate:(_finalPayment==='pagato'||_isOmaggio)?now.toISOString():null,paymentMethod:paymentMethod||'',
+    notes:notes||'',status:_initialStatus,typeName:sType.name
   };
   store.subscriptions.push(sub);
   await fsSet('subscriptions',sub.id,sub).catch(console.error);
@@ -6950,7 +6959,8 @@ async function executeRedeem(){
   const p=window._pendingSubAssign;
   if(!p){showToast('Nessun abbonamento da riscattare','error');return;}
   // Check duplicate
-  const existingSub=store.subscriptions.find(s=>s.userId===user.id&&s.typeId===p.typeId&&s.status==='active');
+  // V3.10.53: Also detect pending subscriptions as duplicates
+  const existingSub=store.subscriptions.find(s=>s.userId===user.id&&s.typeId===p.typeId&&(s.status==='active'||s.status==='pending'));
   if(existingSub){
     const sType=store.subscriptionTypes.find(t=>t.id===p.typeId);
     if(!confirm('⚠️ '+(user.username||email)+' ha già un abbonamento attivo "'+(sType?sType.name:'')+'" con '+(existingSub.entriesTotal-existingSub.entriesUsed)+' ingressi rimanenti.\n\nVuoi assegnarne un altro?'))return;
@@ -7280,17 +7290,36 @@ function deleteSubType(id){
 // V3.10.46: Toggle payment status for user-requested subscriptions (reversible)
 async function toggleSubRequestPayment(subId,confirmPaid){
   const s=store.subscriptions.find(x=>x.id===subId);if(!s)return;
-  const newStatus=confirmPaid?'pagato':'da_pagare';
-  const oldStatus=s.paymentStatus;
-  if(oldStatus===newStatus)return;
+  const newPayStatus=confirmPaid?'pagato':'da_pagare';
+  const oldPayStatus=s.paymentStatus;
+  if(oldPayStatus===newPayStatus)return;
   const label=confirmPaid?'Confermare il pagamento ricevuto?':'Riportare lo stato a "da pagare"?';
   if(!confirm(label))return;
   try{
-    await fbDb.collection('subscriptions').doc(subId).update({paymentStatus:newStatus,paymentConfirmedAt:confirmPaid?new Date().toISOString():null});
-    s.paymentStatus=newStatus;
-    if(confirmPaid)s.paymentConfirmedAt=new Date().toISOString();
-    else delete s.paymentConfirmedAt;
-    showToast(confirmPaid?'Pagamento confermato ✅':'Stato riportato a "da pagare"');
+    // V3.10.53: Also update subscription status + expiresAt
+    const newSubStatus=confirmPaid?'active':'pending';
+    // Compute expiresAt on payment confirmation (timer starts NOW, not from request date)
+    let _newExpiresAt=s.expiresAt||null;
+    if(confirmPaid&&!s.expiresAt){
+      const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
+      if(sType){
+        const _expMode=sType.expiryMode||'relative';
+        if(_expMode==='absolute'&&sType.absoluteExpiry){
+          _newExpiresAt=new Date(sType.absoluteExpiry+'T23:59:59').toISOString();
+        } else if(sType.validityDays){
+          _newExpiresAt=new Date(Date.now()+sType.validityDays*86400000).toISOString();
+        }
+      }
+    }
+    if(!confirmPaid) _newExpiresAt=null;
+    const _nowISO=new Date().toISOString();
+    await fbDb.collection('subscriptions').doc(subId).update({paymentStatus:newPayStatus,status:newSubStatus,expiresAt:_newExpiresAt,paymentConfirmedAt:confirmPaid?_nowISO:null,paymentDate:confirmPaid?_nowISO:null});
+    s.paymentStatus=newPayStatus;
+    s.status=newSubStatus;
+    s.expiresAt=_newExpiresAt;
+    if(confirmPaid){s.paymentConfirmedAt=_nowISO;s.paymentDate=_nowISO;}
+    else{delete s.paymentConfirmedAt;s.paymentDate=null;}
+    showToast(confirmPaid?'Pagamento confermato ✅ — abbonamento attivato':'Stato riportato a "da pagare" — abbonamento in attesa');
     const adminC=document.getElementById('admin-sub-content');
     if(adminC)renderSubAssigned(adminC);
   }catch(e){console.error('toggleSubRequestPayment error:',e);showToast('Errore: '+e.message,'error');}
@@ -7344,15 +7373,35 @@ function showSubDetail(subId){
 async function updateSubPayment(subId,status){
   const s=store.subscriptions.find(x=>x.id===subId);if(!s)return;
   s.paymentStatus=status;
-  if(status==='pagato') s.paymentDate=new Date().toISOString();
-  await fsUpdate('subscriptions',subId,{paymentStatus:s.paymentStatus,paymentDate:s.paymentDate}).catch(console.error);
-  showToast('Pagamento aggiornato');
+  const _nowISO=new Date().toISOString();
+  if(status==='pagato'){s.paymentDate=_nowISO;s.paymentConfirmedAt=_nowISO;}
+  // V3.10.53: If subscription is pending and payment confirmed, activate it + compute expiresAt
+  const _updateObj={paymentStatus:s.paymentStatus,paymentDate:s.paymentDate,paymentConfirmedAt:s.paymentConfirmedAt};
+  if(status==='pagato'&&s.status==='pending'){
+    s.status='active';
+    _updateObj.status='active';
+    // Compute expiresAt on activation (timer starts NOW)
+    const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
+    if(sType&&!s.expiresAt){
+      const _expMode=sType.expiryMode||'relative';
+      if(_expMode==='absolute'&&sType.absoluteExpiry){
+        s.expiresAt=new Date(sType.absoluteExpiry+'T23:59:59').toISOString();
+      } else if(sType.validityDays){
+        s.expiresAt=new Date(Date.now()+sType.validityDays*86400000).toISOString();
+      }
+      _updateObj.expiresAt=s.expiresAt;
+    }
+  }
+  await fsUpdate('subscriptions',subId,_updateObj).catch(console.error);
+  showToast(status==='pagato'&&_updateObj.status?'Pagamento confermato — abbonamento attivato ✅':'Pagamento aggiornato');
   const _subC=document.getElementById('admin-sub-content');
   if(_subC){if(_subTab==='assigned')renderSubAssigned(_subC);else renderSubTypes(_subC);}
 }
 
 async function updateSubStatus(subId,status){
   const s=store.subscriptions.find(x=>x.id===subId);if(!s)return;
+  // V3.10.53: Prevent pending→active bypass — must go through payment confirmation
+  if(s.status==='pending'&&status==='active'){showToast('Per attivare un abbonamento in attesa, conferma il pagamento dalla sezione Richieste','error');return;}
   s.status=status;
   await fsUpdate('subscriptions',subId,{status}).catch(console.error);
   showToast('Stato abbonamento aggiornato');
@@ -7790,6 +7839,8 @@ function canUsePartnerDiscount(ev){
 // Use a subscription entry for booking
 async function useSubscriptionEntry(subId,eventId,eventTitle){
   const s=store.subscriptions.find(x=>x.id===subId);if(!s)return false;
+  // V3.10.53: Block entry usage if subscription is not active (e.g. pending payment)
+  if(s.status!=='active'){showToast('Abbonamento non ancora attivo — in attesa di conferma pagamento','error');return false;}
   // Discount-mode subs don't consume entries
   const _sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
   if(_sType&&_sType.mode==='discount')return false;
@@ -7853,7 +7904,8 @@ async function renderUserSubscriptionsPage(){
     c.innerHTML='<div class="card text-center txt3" style="padding:40px"><div style="font-size:2.5rem;margin-bottom:12px">💳</div><p>Non hai ancora abbonamenti.</p><p class="text-xs mt-2">Gli abbonamenti disponibili vengono mostrati nella pagina degli eventi compatibili.</p></div>';
     return;
   }
-  const pendingSubs=mySubs.filter(s=>s.paymentStatus==='da_pagare'||s.paymentStatus==='prezzo_modificato');
+  // V3.10.53: Include status==='pending' in pending filter for robustness (covers new + legacy data)
+  const pendingSubs=mySubs.filter(s=>s.status==='pending'||s.paymentStatus==='da_pagare'||s.paymentStatus==='prezzo_modificato');
   const activeSubs=mySubs.filter(s=>s.status==='active'&&s.paymentStatus!=='da_pagare'&&s.paymentStatus!=='prezzo_modificato');
   const expiredSubs=mySubs.filter(s=>s.status==='expired'||s.status==='suspended');
   let html='';
@@ -11705,6 +11757,9 @@ async function doBook(){
 
 async function bookWithSubscription(subId,eventId){
   const ev=store.events.find(e=>e.id===eventId);if(!ev)return;
+  // V3.10.53: Block booking with pending subscription
+  const _bkSub=store.subscriptions.find(x=>x.id===subId);
+  if(_bkSub&&_bkSub.status!=='active'){showToast('Abbonamento non ancora attivo — in attesa di conferma pagamento','error');return;}
   // Safety: ensure recurringDate for recurring events
   if(ev.recurrence&&ev.recurrence.active&&!currentBookingRecDate){
     const _rT=getRecurringDateTabs(ev);
@@ -16255,8 +16310,9 @@ async function showEventDetail(evId,recDate){
     const _pubSubTypes=ev.subscriptionBookable.typeIds
       .map(tid=>store.subscriptionTypes.find(t=>t.id===tid))
       .filter(t=>t&&t.isPublic&&(t.status||'active')==='active');
+    // V3.10.53: Use status check instead of paymentStatus — cleaner and covers all cases
     const _filteredPubSubs=_pubSubTypes.filter(st=>{
-      return !store.subscriptions.some(s=>s.userId===store.currentUser?.id&&s.typeId===st.id&&(s.status==='active'||s.paymentStatus==='da_pagare'));
+      return !store.subscriptions.some(s=>s.userId===store.currentUser?.id&&s.typeId===st.id&&(s.status==='active'||s.status==='pending'));
     });
     if(_filteredPubSubs.length){
       daysHtml+=`<details ${ev.subscriptionOnly?'open':''} class="card mb-4" style="background:rgba(99,102,241,.04);border:2px solid rgba(99,102,241,.15);padding:0;border-radius:16px;cursor:pointer">`;
@@ -23617,6 +23673,7 @@ async function showAdminEventDetail(evId){
         <span class="badge ${badgeStatus(ev.status)}">${capitalize(ev.status)}</span>
         ${getRecurrenceBadge(ev)}
         ${_regBadgeHtml}
+        ${(()=>{const _psr=store.subscriptions?store.subscriptions.filter(s=>s.requestedFromEventId===evId&&s.source==='user_request'&&(s.status==='pending'||s.paymentStatus==='da_pagare'||s.paymentStatus==='prezzo_modificato')):[];return _psr.length?'<span class="badge" style="background:rgba(245,158,11,.12);color:var(--yellow);cursor:pointer" onclick="go(\'admin-subscriptions\');setTimeout(()=>{const _t=document.querySelector(\'[data-sub-tab=assigned]\');if(_t)_t.click();},300)" title="Vai alle richieste abbonamento">📩 '+_psr.length+' richieste abb.</span>':'';})()}
       </div>
       <h1 class="text-2xl font-bold text-white" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px" onclick="const _d=this.nextElementSibling;_d.classList.toggle('hidden');this.querySelector('.ev-desc-arrow').textContent=_d.classList.contains('hidden')?'▸':'▾'">${escHtml(ev.title)} <span class="ev-desc-arrow" style="font-size:.7rem;color:var(--txt3);flex-shrink:0">▸</span></h1>
       <div class="hidden">
@@ -24281,7 +24338,8 @@ async function redeemSubToken(token){
       showToast('Questo abbonamento è già stato riscattato.','error');return;
     }
     // Check duplicate: does user already have an active sub of the same type?
-    const existingSub=store.subscriptions.find(s=>s.userId===u.id&&s.typeId===pend.typeId&&s.status==='active');
+    // V3.10.53: Also detect pending subscriptions as duplicates
+    const existingSub=store.subscriptions.find(s=>s.userId===u.id&&s.typeId===pend.typeId&&(s.status==='active'||s.status==='pending'));
     if(existingSub){
       // Show warning dialog and let user decide
       const overlay=document.createElement('div');overlay.className='overlay';
