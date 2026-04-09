@@ -2850,7 +2850,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.0.0';
+const APP_VERSION='V4.1.0';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -7728,8 +7728,12 @@ function populateSubTypeCheckboxes(){
   // Get partner subscription types
   const partnerIds=getPartnerIdsFromForm();
   const partnerTypes=partnerIds.length?store.subscriptionTypes.filter(t=>partnerIds.includes(t.managerId)&&(t.status||'active')==='active'):[];
+  // V4.1.0: Detect multi-session/multi-day event from form
+  const _totalFormSessions=formDays.reduce((sum,d)=>sum+(d.sessions?.length||0),0);
+  const _isMultiLevel=formDays.length>1||_totalFormSessions>1;
   ['ne-sub-bookable-types','ne-sub-discount-types'].forEach(containerId=>{
     const c=document.getElementById(containerId);if(!c)return;
+    const isBookableContainer=containerId==='ne-sub-bookable-types';
     // Save current selections
     const prevSelected=new Set(Array.from(c.querySelectorAll('.ne-subtype-sel.selected')).map(b=>b.dataset.id));
     const allTypes=[...myTypes,...partnerTypes];
@@ -7738,11 +7742,22 @@ function populateSubTypeCheckboxes(){
       const univ=store.universes.find(u=>u.id===t.universeId);
       const partnerMgr=isPartner?store.managers.find(m=>m.id===t.managerId):null;
       const partnerLabel=partnerMgr?' · 🤝 '+partnerMgr.orgName:'';
-      const sel=prevSelected.has(t.id);
-      const bg=sel?'var(--brand-bg)':'var(--s300)';const col=sel?'var(--brand-l)':'var(--txt2)';const bc=sel?'var(--brand)':'var(--s400)';
-      return '<button type="button" class="ne-subtype-sel btn btn-sm'+(sel?' selected':'')+'" data-id="'+t.id+'" data-partner="'+(isPartner?'1':'')+'" onclick="this.classList.toggle(\'selected\');this.style.background=this.classList.contains(\'selected\')?\'var(--brand-bg)\':\'var(--s300)\';this.style.color=this.classList.contains(\'selected\')?\'var(--brand-l)\':\'var(--txt2)\';this.style.borderColor=this.classList.contains(\'selected\')?\'var(--brand)\':\'var(--s400)\'" style="border:1px solid '+bc+';background:'+bg+';color:'+col+'">'+((univ?.emoji||'')+' '+t.name+' ('+t.entries+' ing.)'+partnerLabel)+'</button>';
+      // V4.1.0: Disable entry-type subs in bookable container if event is multi-level
+      const blocked=isBookableContainer&&_isMultiLevel&&t.mode==='entries';
+      const sel=blocked?false:prevSelected.has(t.id);
+      const bg=blocked?'var(--s200)':sel?'var(--brand-bg)':'var(--s300)';
+      const col=blocked?'var(--txt3)':sel?'var(--brand-l)':'var(--txt2)';
+      const bc=blocked?'var(--s300)':sel?'var(--brand)':'var(--s400)';
+      if(blocked){
+        return '<button type="button" class="ne-subtype-sel btn btn-sm" data-id="'+t.id+'" data-partner="'+(isPartner?'1':'')+'" disabled style="border:1px solid '+bc+';background:'+bg+';color:'+col+';opacity:.5;cursor:not-allowed;text-decoration:line-through">'+((univ?.emoji||'')+' '+t.name+' ('+t.entries+' ing.)'+partnerLabel)+'</button>';
+      }
+      return '<button type="button" class="ne-subtype-sel btn btn-sm'+(sel?' selected':'')+'" data-id="'+t.id+'" data-partner="'+(isPartner?'1':'')+'" onclick="this.classList.toggle(\'selected\');this.style.background=this.classList.contains(\'selected\')?\'var(--brand-bg)\':\'var(--s300)\';this.style.color=this.classList.contains(\'selected\')?\'var(--brand-l)\':\'var(--txt2)\';this.style.borderColor=this.classList.contains(\'selected\')?\'var(--brand)\':\'var(--s400)\'" style="border:1px solid '+bc+';background:'+bg+';color:'+col+'">'+((univ?.emoji||'')+' '+t.name+' ('+(t.mode==='discount'?t.discountPercent+'%':t.entries+' ing.')+')'+partnerLabel)+'</button>';
     };
     let html='';
+    // V4.1.0: Show banner if entry subs are blocked
+    if(isBookableContainer&&_isMultiLevel&&allTypes.some(t=>t.mode==='entries')){
+      html+='<div style="margin-bottom:8px;padding:8px 12px;border-radius:8px;background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.25);font-size:.75rem;color:var(--yellow);line-height:1.5">⚠️ Gli abbonamenti a ingressi non sono utilizzabili per eventi con più sessioni o più giornate. Solo gli abbonamenti a sconto restano disponibili.</div>';
+    }
     if(myTypes.length)html+=myTypes.map(t=>renderBtn(t,false)).join('');
     if(partnerTypes.length){
       if(myTypes.length)html+='<div style="width:100%;margin:8px 0 4px;padding-top:8px;border-top:1px dashed var(--s400)"><span class="text-xs txt3">🤝 Abbonamenti partner:</span></div>';
@@ -7810,6 +7825,11 @@ function getAutoSubDiscountPct(ev){
 function isSubCompatibleWithEvent(sub,ev){
   const sType=store.subscriptionTypes.find(t=>t.id===sub.typeId);
   if(!sType)return false;
+  // V4.1.0: Block entry-based subscriptions on multi-session/multi-day events
+  if(sType.mode==='entries'){
+    const totalSessions=(ev.days||[]).reduce((sum,d)=>sum+(d.sessions?.length||0),0);
+    if((ev.days?.length||1)>1||totalSessions>1)return false;
+  }
   // Check universe match — for own subs, require universe match
   const evUnivs=ev.universeIds||[ev.universeId].filter(Boolean);
   const isPartnerSub=ev.partnerIds&&ev.partnerIds.includes(sType.managerId);
@@ -11181,7 +11201,7 @@ function getEventLevelBadges(ev){
   return '<span class="badge '+badgeLevel(lvl)+'">'+capitalize(lvl)+'</span>';
 }
 function badgeStatus(s){return s==='pubblicato'?'badge-pubblicato':s==='bozza'?'badge-bozza':s==='cancellato'?'badge-cancellato':s==='archiviato'?'badge-archiviato':'badge-concluso';}
-function getConfirmationStatus(ev){
+function getConfirmationStatus(ev,recDate){
   // V2.13.0: minSubscribers is now at session level
   // Check if any session has minSubscribers > 0
   let hasMin=false;
@@ -11191,14 +11211,21 @@ function getConfirmationStatus(ev){
   if(!hasMin)return null;
   // If organizer manually confirmed despite min not reached
   if(ev.confirmedByOrganizer)return 'confermato';
-  const bkCount=(store.bookings||[]).filter(b=>b.eventId===ev.id&&b.status!=='cancellata').length;
+  // V4.1.0 FIX: For recurring events, count bookings only for the specific recurrence date
+  const _recD=recDate||(ev._recDate||null);
+  const _isRecurring=!!(ev.recurrence&&ev.recurrence.active);
+  const bkCount=(store.bookings||[]).filter(b=>{
+    if(b.eventId!==ev.id||b.status==='cancellata')return false;
+    if(_isRecurring&&_recD)return (b.recurringDate||null)===_recD||!b.recurringDate;
+    return true;
+  }).length;
   // Use max of all session minimums as event threshold
   let maxNeeded=0;
   if(ev.days)ev.days.forEach(d=>{(d.sessions||[]).forEach(s=>{if(s.minSubscribers&&s.minSubscribers>maxNeeded)maxNeeded=s.minSubscribers;});});
   if(ev.minSubscribers&&ev.minSubscribers.count>maxNeeded)maxNeeded=ev.minSubscribers.count;
   if(bkCount>=maxNeeded)return 'confermato';
-  // Check if booking deadline has expired
-  const dl=getEffectiveBookingDeadline(ev,null);
+  // Check if booking deadline has expired — V4.1.0: pass recDate for accurate deadline
+  const dl=getEffectiveBookingDeadline(ev,_recD);
   const today=localDateStr(new Date());
   if(dl&&today>dl)return 'deadline_scaduta';
   return 'attesa';
@@ -11760,6 +11787,9 @@ async function bookWithSubscription(subId,eventId){
   // V3.10.53: Block booking with pending subscription
   const _bkSub=store.subscriptions.find(x=>x.id===subId);
   if(_bkSub&&_bkSub.status!=='active'){showToast('Abbonamento non ancora attivo — in attesa di conferma pagamento','error');return;}
+  // V4.1.0: Block entry-based subs on multi-session/multi-day events
+  const _bkSubType=store.subscriptionTypes.find(t=>t.id===_bkSub?.typeId);
+  if(_bkSubType&&_bkSubType.mode==='entries'){const _ts=(ev.days||[]).reduce((s,d)=>s+(d.sessions?.length||0),0);if((ev.days?.length||1)>1||_ts>1){showToast('Gli abbonamenti a ingressi non sono utilizzabili per eventi multi-sessione o multi-giorno','error');return;}}
   // Safety: ensure recurringDate for recurring events
   if(ev.recurrence&&ev.recurrence.active&&!currentBookingRecDate){
     const _rT=getRecurringDateTabs(ev);
@@ -13243,7 +13273,7 @@ async function renderUserEvents(){
       return null;
     })();
     const pricingBadge=ev.pricingMode==='free'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🆓 Gratuito</span>':ev.pricingMode==='managed'?'<span class="badge badge-yellow">🤝 Costi con org.</span>':ev.pricingMode==='direct'?'<span class="badge" style="background:rgba(139,92,246,.1);color:var(--purple)">📞 Costo diretto</span>':(_cardSubInfo&&_cardSubInfo.type==='entry'?'<span class="badge" style="background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)">🎟️ Gratis con abb.</span>':_cardSubInfo&&_cardSubInfo.type==='discount'?'<span class="badge" style="background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)">💰 da €'+_cardSubInfo.price+' <span style="text-decoration:line-through;font-size:.6rem;opacity:.6">€'+_minP+'</span></span>':(_minP>0?'<span class="badge" style="background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)">💰 da €'+_minP+'</span>':''));
-    const confirmStatus=getConfirmationStatus(ev);
+    const confirmStatus=getConfirmationStatus(ev,ev._recDate||null);
     const confirmBadge=confirmStatus==='attesa'?'<span class="badge badge-attesa">⏳ Min. non raggiunto</span>':confirmStatus==='deadline_scaduta'?'<span class="badge" style="background:var(--red-bg);color:var(--red)">🚫 Deadline scaduta</span>':confirmStatus==='confermato'?'<span class="badge badge-confermato">✅ Confermato</span>':'';
     const _regManualCard = isRegistrationManuallyControlled(ev, ev._recDate || null);
     const _effBkDl=getEffectiveBookingDeadline(ev,ev._recDate||null);
@@ -16221,10 +16251,12 @@ async function showEventDetail(evId,recDate){
   }
 
   // Confirmation status banner (V2.13.0: session-level minSubscribers)
-  const evConfirmStatus=getConfirmationStatus(ev);
+  const _recDateForConfirm=currentBookingRecDate||null;
+  const evConfirmStatus=getConfirmationStatus(ev,_recDateForConfirm);
   if(evConfirmStatus==='attesa'){
     const _maxNeeded=getMinNeeded(ev);
-    const current=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata').length;
+    const _isRec=!!(ev.recurrence&&ev.recurrence.active);
+    const current=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata'&&(!_isRec||!_recDateForConfirm||(b.recurringDate||null)===_recDateForConfirm||!b.recurringDate)).length;
     daysHtml+=`<div class="card mb-4" style="background:rgba(234,179,8,.08);border-color:var(--yellow);padding:16px">
       <div class="flex items-center gap-3 mb-2"><span style="font-size:1.5rem">⏳</span><h3 class="font-bold" style="color:var(--yellow)">In attesa di conferma</h3></div>
       <p class="text-sm" style="color:var(--txt);line-height:1.6">Questo evento sarà confermato al raggiungimento di <strong style="color:var(--yellow)">${_maxNeeded} iscritti</strong>. Attualmente: <strong>${current}/${_maxNeeded}</strong></p>
@@ -16232,7 +16264,8 @@ async function showEventDetail(evId,recDate){
     </div>`;
   } else if(evConfirmStatus==='deadline_scaduta'){
     const _maxNeeded=getMinNeeded(ev);
-    const current=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata').length;
+    const _isRec=!!(ev.recurrence&&ev.recurrence.active);
+    const current=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata'&&(!_isRec||!_recDateForConfirm||(b.recurringDate||null)===_recDateForConfirm||!b.recurringDate)).length;
     daysHtml+=`<div class="card mb-4" style="background:var(--red-bg);border-color:var(--red);padding:16px">
       <div class="flex items-center gap-3 mb-2"><span style="font-size:1.5rem">🚫</span><h3 class="font-bold" style="color:var(--red)">Deadline scaduta — numero minimo non raggiunto</h3></div>
       <p class="text-sm" style="color:var(--txt);line-height:1.6">Servivano <strong style="color:var(--red)">${_maxNeeded} iscritti</strong>. Raggiunti: <strong>${current}/${_maxNeeded}</strong>. In attesa di decisione dell'organizzatore.</p>
@@ -17042,10 +17075,11 @@ async function renderAdminEvents(){
     const opacity=ev.status==='bozza'?'opacity:.7':ev.status==='cancellato'?'opacity:.6':ev.status==='archiviato'?'opacity:.75':'';
     const partnerBorder=isPartner?'border-left:4px solid #a855f7;':'';
     // Min participants not reached + deadline expired banner
-    const _evConfStat=isCapofila?getConfirmationStatus(ev):null;
+    const _evConfStat=isCapofila?getConfirmationStatus(ev,ev._recDate||null):null;
     const _minBanner=_evConfStat==='deadline_scaduta'?(()=>{
       const _needed=getMinNeeded(ev);
-      const _current=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata').length;
+      const _rD=ev._recDate||null;const _isRec=!!(ev.recurrence&&ev.recurrence.active);
+      const _current=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata'&&(!_isRec||!_rD||(b.recurringDate||null)===_rD||!b.recurringDate)).length;
       return `<div style="margin-top:10px;padding:10px 14px;border-radius:10px;background:var(--red-bg);border:1px solid rgba(239,68,68,.3)">
         <div class="flex items-center gap-2 mb-2"><span>⚠️</span><span class="text-xs font-bold" style="color:var(--red)">Non hai raggiunto il numero minimo di iscritti (${_current}/${_needed}): conferma o cancella l'evento!</span></div>
         <div class="flex gap-2 flex-wrap"><button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="event.stopPropagation();confirmEventDespiteMin('${ev.id}')">✅ Conferma evento</button><button class="btn btn-sm" style="background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.3)" onclick="event.stopPropagation();cancelEventDueToMin('${ev.id}')">🚫 Cancella evento</button></div>
@@ -20586,6 +20620,7 @@ function addFormDay(){
     ed.min=minEnd; // V3.7.2: Prevent end date from going before last day
   }
   renderFormDays();
+  populateSubTypeCheckboxes();
   showToast('Giornata aggiunta');
 }
 function removeFormDay(di){
@@ -20602,15 +20637,16 @@ function removeFormDay(di){
   }
   if(formDays.length===1&&sd&&ed){ed.value=sd.value;ed.min=sd.value;}
   renderFormDays();
+  populateSubTypeCheckboxes();
 }
-function addFormSession(di){formDays[di].sessions.push({name:'',startTime:'10:00',endTime:'13:00',level:'base',teacher:'',description:'',location:'',locationUrl:'',maxSpots:0,tiers:{alto:null,medio:null,basso:null}});renderFormDays();showToast('Sessione aggiunta');}
+function addFormSession(di){formDays[di].sessions.push({name:'',startTime:'10:00',endTime:'13:00',level:'base',teacher:'',description:'',location:'',locationUrl:'',maxSpots:0,tiers:{alto:null,medio:null,basso:null}});renderFormDays();populateSubTypeCheckboxes();showToast('Sessione aggiunta');}
 function autoFillMaxSpots(inputEl){
   const val=inputEl.value;if(!val)return;
   document.querySelectorAll('.ne-s-max').forEach(el=>{
     if(!el.value||el.value==='0')el.value=val;
   });
 }
-function removeFormSession(di,si){formDays[di].sessions.splice(si,1);renderFormDays();}
+function removeFormSession(di,si){formDays[di].sessions.splice(si,1);renderFormDays();populateSubTypeCheckboxes();}
 
 function toggleCustomEventType(){onEventTypeChange();}
 function onEventTypeChange(){
@@ -23945,10 +23981,11 @@ async function showAdminEventDetail(evId){
     </div>
     ${(()=>{
       const _isCapo=isEventCapofila(ev,store.currentUser.id);
-      const _cs=_isCapo?getConfirmationStatus(ev):null;
+      const _cs=_isCapo?getConfirmationStatus(ev,(recDateFilter&&recDateFilter!=='__all__')?recDateFilter:null):null;
       if(_cs!=='deadline_scaduta')return '';
       const _needed=getMinNeeded(ev);
-      const _cur=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata').length;
+      const _rfD=(recDateFilter&&recDateFilter!=='__all__')?recDateFilter:null;const _isRecEv=!!(ev.recurrence&&ev.recurrence.active);
+      const _cur=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata'&&(!_isRecEv||!_rfD||(b.recurringDate||null)===_rfD||!b.recurringDate)).length;
       return '<div class="card mb-4" style="background:var(--red-bg);border:2px solid rgba(239,68,68,.4);padding:16px"><div class="flex items-center gap-2 mb-3"><span style="font-size:1.3rem">⚠️</span><span class="font-bold" style="color:var(--red)">Non hai raggiunto il numero minimo di iscritti ('+_cur+'/'+_needed+'): conferma o cancella l\'evento!</span></div><div class="flex gap-3"><button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3);padding:8px 16px" onclick="confirmEventDespiteMin(\''+ev.id+'\')">✅ Conferma evento</button><button class="btn btn-sm" style="background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.3);padding:8px 16px" onclick="cancelEventDueToMin(\''+ev.id+'\')">🚫 Cancella evento</button></div></div>';
     })()}
 
