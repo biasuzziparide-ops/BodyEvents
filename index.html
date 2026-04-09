@@ -427,7 +427,7 @@ textarea.input{resize:none;font-family:inherit}
 <div id="modeBanner" style="display:none;background:var(--s100);border-bottom:1px solid var(--s300);padding:6px 0;text-align:center;position:sticky;top:0;z-index:45">
   <div class="container flex items-center justify-between" style="gap:8px">
     <div class="flex items-center gap-3">
-      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.54</span>
+      <span id="app-version-badge" style="font-size:.65rem;color:var(--txt3);background:var(--s200);padding:2px 8px;border-radius:6px;font-family:monospace;letter-spacing:.5px">V3.10.55</span>
       <span class="text-xs txt3" id="modeLabel">👤 Vista Utente</span>
       <select id="profileSwitcher" class="input" style="display:none;width:auto;padding:3px 28px 3px 8px;font-size:.7rem;border-radius:6px;background:var(--s200);border:1px solid var(--s400);color:var(--txt)" onchange="switchProfile(this.value)"></select>
     </div>
@@ -452,6 +452,7 @@ textarea.input{resize:none;font-family:inherit}
         <div class="mtn-item active" data-view="events" onclick="go('events')"><span>🏠</span><span class="mtn-label">Home</span></div>
         <div class="mtn-item" data-view="jams" onclick="go('jams')"><span>🤝</span><span class="mtn-label">Community</span></div>
         <div class="mtn-item" data-view="dashboard" onclick="go('dashboard')"><span>🎫</span><span class="mtn-label">Prenot.</span></div>
+        <div class="mtn-item" data-view="user-subscriptions" onclick="go('user-subscriptions')"><span>💳</span><span class="mtn-label">Abbon.</span></div>
       </div>
     </div>
     <div class="nav-links" id="navLinks">
@@ -2849,7 +2850,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.54';
+const APP_VERSION='V3.10.55';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -11686,19 +11687,23 @@ async function doBook(){
 
   // Check for subscription-based booking
   const userSubs=getUserActiveSubscriptions(store.currentUser.id);
-  const canBookWithSub=ev.subscriptionBookable?.enabled&&ev.subscriptionBookable.typeIds?.length;
+  // V3.10.55 FIX: subscriptionBookable is OPTIONAL — if not configured, default to allowing all entry subs from same manager
+  // This aligns doBook() with _userHasEntrySub logic in showEventDetail (line ~16245)
+  const _subBookExplicitlyDisabled=ev.subscriptionBookable&&ev.subscriptionBookable.enabled===false;
+  const _sbTypeIds=(ev.subscriptionBookable?.enabled&&ev.subscriptionBookable.typeIds?.length)?ev.subscriptionBookable.typeIds:null;
   const hasSubDiscount=ev.subscriptionDiscount?.enabled&&ev.subscriptionDiscount.typeIds?.length;
   let compatBookSubs=[],compatDiscSubs=[];
-  if(canBookWithSub){
+  if(!_subBookExplicitlyDisabled){
     compatBookSubs=userSubs.filter(s=>{
-      if(!ev.subscriptionBookable.typeIds.includes(s.typeId))return false;
-      if(!isSubCompatibleWithEvent(s,ev))return false;
-      // Discount-mode subs cannot be used for entry-based booking
       const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
-      if(sType&&sType.mode==='discount')return false;
-      if(sType&&ev.partnerIds&&ev.partnerIds.includes(sType.managerId)){
-        if(!canUsePartnerEntries(ev))return false;
-      }
+      if(!sType||sType.mode==='discount')return false;
+      // If event restricts to specific typeIds, check membership
+      if(_sbTypeIds&&!_sbTypeIds.includes(s.typeId))return false;
+      if(!isSubCompatibleWithEvent(s,ev))return false;
+      // Must be same organizer (or partner with entry permission)
+      const isPartner=ev.partnerIds&&ev.partnerIds.includes(sType.managerId);
+      if(sType.managerId!==ev.managerId&&!isPartner)return false;
+      if(isPartner&&!canUsePartnerEntries(ev))return false;
       return true;
     });
   }
@@ -16371,7 +16376,7 @@ async function showEventDetail(evId,recDate){
         <p class="text-xs mt-1" style="color:var(--txt2);line-height:1.5">${escHtml(ev.insurance.description||"Questo evento richiede un'assicurazione.")} Assicurazioni accettate: <strong>${escHtml(_insNames)}</strong>. Senza assicurazione verrà applicato un sovrapprezzo di <strong style="color:var(--warn)">€${_insPrice}</strong>.</p></div>`;
     }
   }
-  // V3.10.54: Recurring dates collapsible — only for recurring events
+  // V3.10.55: Recurring dates collapsible — only for recurring events
   if(ev.recurrence&&ev.recurrence.day&&(ev.recurrence.active!==false||ev.recurrence.pausedUntil)){
     daysHtml+=renderRecurringDatesCollapsible(ev);
   }
@@ -17616,7 +17621,7 @@ function getNextRecurringDates(ev,count){
   return dates;
 }
 
-// V3.10.54: Generate ALL recurring dates (past + future) for the full calendar view
+// V3.10.55: Generate ALL recurring dates (past + future) for the full calendar view
 function getAllRecurringDates(ev){
   if(!ev.recurrence||!ev.recurrence.day)return [];
   const targetDay=DAY_MAP_NUM[ev.recurrence.day];
@@ -17695,7 +17700,7 @@ function getAllRecurringDates(ev){
   return allDates;
 }
 
-// V3.10.54: Collapsible calendar of all recurring dates
+// V3.10.55: Collapsible calendar of all recurring dates
 function renderRecurringDatesCollapsible(ev){
   const allDates=getAllRecurringDates(ev);
   if(!allDates.length)return '';
@@ -17811,10 +17816,10 @@ function renderRecurringDatesCollapsible(ev){
   return html;
 }
 
-// V3.10.54: Persist collapsible state across re-renders
+// V3.10.55: Persist collapsible state across re-renders
 let _recDatesCollapsibleOpen=false;
 
-// V3.10.54: Toggle recurring dates collapsible
+// V3.10.55: Toggle recurring dates collapsible
 function toggleRecDatesCollapsible(uid){
   const body=document.getElementById(uid+'-body');
   const chev=document.getElementById(uid+'-chev');
@@ -17832,7 +17837,7 @@ function toggleRecDatesCollapsible(uid){
   }
 }
 
-// V3.10.54: Load next batch of recurring dates
+// V3.10.55: Load next batch of recurring dates
 function loadMoreRecDates(uid,pageSize,total){
   const list=document.getElementById(uid+'-list');
   const moreBtn=document.getElementById(uid+'-more');
