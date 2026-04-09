@@ -2850,7 +2850,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.56';
+const APP_VERSION='V3.10.57';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -9997,7 +9997,7 @@ function go(view){
     // not when re-entering it (e.g. after overlay close or back button on same view)
     if(_previousView!=='admin-new-event'){resetForm();_tsbShownThisSession=false;dismissTierBanner();restoreFormTitle();initEventDates();populateEventUniverseDropdown();populateSubTypeCheckboxes();populateInsuranceCheckboxes();prefillEventContacts();setTimeout(()=>{obShowTour('tour_new_event');setTimeout(()=>obShowInfoCard('ic_admin_new_event','admin-new-event-form'),300);},400);}
   }
-  if(view==='admin-new-event'&&editingEventId){const _editEv=store.events.find(e=>e.id===editingEventId);populateEventUniverseDropdown(_editEv?.type||document.getElementById('ne-type')?.value||'jam');populateSubTypeCheckboxes();populateInsuranceCheckboxes();}
+  if(view==='admin-new-event'&&editingEventId){/* V3.10.57 FIX: Do NOT call populateEventUniverseDropdown here — editEvent() already set up the correct universe selection. Calling it again would overwrite the event's actual universes with the default (mgrUnivs[0]). */populateSubTypeCheckboxes();populateInsuranceCheckboxes();}
   if(view==='admin-subscriptions'){renderAdminSubscriptions();}
   if(view==='admin-registry'){renderAdminRegistry();}
   if(view==='admin-insurances'){renderAdminInsurances();}
@@ -18548,6 +18548,8 @@ function copyEventAsTemplate(id){
   setTimeout(()=>{
     // === UNIVERSE === B2: pass event type to preserve during rebuild
     populateEventUniverseDropdown(ev.type||'jam');
+    // V3.10.57 FIX: Deselect ALL before selecting the template event's universes
+    document.querySelectorAll('.ne-univ-btn.ne-univ-selected').forEach(btn=>{btn.classList.remove('ne-univ-selected');const u=store.universes.find(x=>x.id===btn.dataset.univ);const c=u?.color||'#10b981';btn.style.border='2px solid '+c+'40';btn.style.background='transparent';btn.style.color='var(--txt2)';});
     const editUnivIds=ev.universeIds||[ev.universeId||'univ_acro'];
     document.querySelectorAll('.ne-univ-btn').forEach(btn=>{if(editUnivIds.includes(btn.dataset.univ)){btn.classList.add('ne-univ-selected');const u=store.universes.find(x=>x.id===btn.dataset.univ);const c=u?.color||'#10b981';btn.style.border='2px solid '+c;btn.style.background=c+'25';btn.style.color=c;}});
     // === TYPE ===
@@ -21120,7 +21122,9 @@ function editEvent(id){
   resetForm();
   // Populate universe — B2: pass event type to preserve it during dropdown rebuild
   populateEventUniverseDropdown(ev.type||'jam');
-  // Pre-check universes for edit
+  // V3.10.57 FIX: Deselect ALL universe buttons first (populateEventUniverseDropdown pre-selects the default,
+  // which may differ from the event's actual universes). Then select ONLY the event's universes.
+  document.querySelectorAll('.ne-univ-btn.ne-univ-selected').forEach(btn=>{btn.classList.remove('ne-univ-selected');const u=store.universes.find(x=>x.id===btn.dataset.univ);const c=u?.color||'#10b981';btn.style.border='2px solid '+c+'40';btn.style.background='transparent';btn.style.color='var(--txt2)';});
   const editUnivIds=ev.universeIds||[ev.universeId||'univ_acro'];
   document.querySelectorAll('.ne-univ-btn').forEach(btn=>{if(editUnivIds.includes(btn.dataset.univ)){btn.classList.add('ne-univ-selected');const u=store.universes.find(x=>x.id===btn.dataset.univ);const c=u?.color||'#10b981';btn.style.border='2px solid '+c;btn.style.background=c+'25';btn.style.color=c;}});
   // Populate basic fields
@@ -21235,6 +21239,7 @@ function editEvent(id){
       level:s.level||'base',teacher:s.teacher||'',description:s.description||'',
       location:s.location||'',locationUrl:s.locationUrl||'',
       maxSpots:s.maxSpots||0,
+      minSubscribers:s.minSubscribers||0, // V3.10.57 FIX: was missing — caused minSubscribers to reset to 0 on edit
       tiers:s.tiers?{alto:s.tiers.alto!=null?s.tiers.alto:null,medio:s.tiers.medio!=null?s.tiers.medio:null,basso:s.tiers.basso!=null?s.tiers.basso:null}:{alto:null,medio:null,basso:null},
       earlyBird:s.earlyBird?{price:s.earlyBird.price!=null?s.earlyBird.price:'',type:s.earlyBird.type||'date',deadline:s.earlyBird.deadline||'',maxCount:s.earlyBird.maxCount||''}:null
     }))
