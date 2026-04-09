@@ -2850,7 +2850,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V3.10.58';
+const APP_VERSION='V4.0.0';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -6642,7 +6642,7 @@ function renderSubAssigned(c){
       html+='<div style="flex:1;min-width:180px">';
       html+='<div class="font-medium text-white text-sm">'+escHtml(resolveUserName(s.userId,s.userName))+'</div>';
       html+='<div class="text-xs txt3">'+(sType?.name||s.typeId)+' · '+reqDate+(fromEvName?' · da <em>'+escHtml(fromEvName)+'</em>':'')+'</div>';
-      html+='<div class="text-xs mt-1">'+(_isDiscSub?'📉 Sconto '+(sType.discountPercent||0)+'%':'📦 '+(s.entriesTotal||0)+' ingressi')+' · <span style="color:var(--yellow)">€'+(s.paymentAmount||0).toFixed(2)+'</span></div>';
+      html+='<div class="text-xs mt-1">'+(_isDiscSub?'📉 Sconto '+(sType.discountPercent||0)+'%':'📦 '+(s.entriesTotal||0)+' ingressi')+' · <span style="color:var(--yellow)">€'+fmtEuro(s.paymentAmount||0)+'</span></div>';
       html+='</div>';
       html+='<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">';
       html+='<button class="btn btn-sm" style="background:var(--green);color:#fff;font-size:.78rem" onclick="toggleSubRequestPayment(\''+s.id+'\',true)">✅ Conferma pagamento</button>';
@@ -6739,7 +6739,7 @@ function renderSubAssignQR(c){
   }
   html+='<div class="grid grid-2 gap-4">';
   html+='<div><label class="label">Tipologia abbonamento *</label><select class="input" id="qr-sub-type">';
-  myTypes.forEach(t=>{html+='<option value="'+t.id+'">'+t.name+' ('+t.entries+' ingressi, €'+t.price+')</option>';});
+  myTypes.forEach(t=>{html+='<option value="'+t.id+'">'+t.name+' ('+t.entries+' ingressi, €'+fmtEuro(t.price)+')</option>';});
   html+='</select></div>';
   html+='<div><label class="label">Pagamento</label><select class="input" id="qr-sub-payment" onchange="if(this.value===\'omaggio\'){var a=document.getElementById(\'qr-sub-amount\');if(a){a.value=0;a.disabled=true;}}else{var a=document.getElementById(\'qr-sub-amount\');if(a)a.disabled=false;}"><option value="da_pagare">Da pagare</option><option value="pagato">Pagato</option><option value="omaggio">Omaggio</option></select></div>';
   html+='</div>';
@@ -8327,9 +8327,9 @@ function openRegistryUserDetail(uid){
     let payInfo='';
     if(ev.pricingMode!=='free'&&ev.pricingMode!=='direct'&&!showCancel){
       if(b.gift)payInfo='<span style="color:var(--purple);font-size:.72rem">🎁 Regalo</span>';
-      else if(b.paymentStatus==='pagato')payInfo='<span style="color:var(--green);font-size:.72rem">💰 €'+(b.amount||0)+'</span>';
+      else if(b.paymentStatus==='pagato')payInfo='<span style="color:var(--green);font-size:.72rem">💰 €'+fmtEuro(b.amount||0)+'</span>';
       else if(b.paymentStatus==='gratuito'||b.paymentStatus==='abbonamento')payInfo='<span style="color:var(--green);font-size:.72rem">🎟️ '+(b.paymentStatus==='abbonamento'?'Abb.':'Gratis')+'</span>';
-      else payInfo='<span style="color:var(--yellow);font-size:.72rem">⏳ €'+(b.amount||0)+'</span>';
+      else payInfo='<span style="color:var(--yellow);font-size:.72rem">⏳ €'+fmtEuro(b.amount||0)+'</span>';
     }
     const _bEvHasRoles=ev?getEventRoles(ev).length>0:true;const roleStr=(b.role&&_bEvHasRoles)?'<span style="font-size:.72rem;color:'+_roleColor(b.role,ev)+'">'+_roleName(b.role,ev)+'</span>':'';
     const borderLeft=showCancel?';border-left:3px solid var(--red)':'';
@@ -8681,14 +8681,14 @@ function buildModificationDiffs(ev){
     ['alto','medio','basso'].forEach(tk=>{
       if(prev.tiers[tk]!=null&&ev.tiers[tk]!=null&&prev.tiers[tk]!==ev.tiers[tk]){
         const tl=tk==='alto'?'Sostenitore':tk==='medio'?'Standard':'Ridotto';
-        diffs.push({label:'💰 Pacchetto evento ('+tl+')',old:'€'+prev.tiers[tk],now:'€'+ev.tiers[tk],field:'price'});
+        diffs.push({label:'💰 Pacchetto evento ('+tl+')',old:'€'+fmtEuro(prev.tiers[tk]),now:'€'+fmtEuro(ev.tiers[tk]),field:'price'});
       }
     });
   }
   if(prev.earlyBird||ev.earlyBird){
     const peb=prev.earlyBird||{};const neb=ev.earlyBird||{};
     const _prevEBPr=getEBPrice(peb);const _nowEBPr=getEBPrice(neb);
-    if(_prevEBPr!==_nowEBPr)diffs.push({label:'🏷️ Early Bird evento',old:_prevEBPr?'€'+_prevEBPr:'—',now:_nowEBPr?'€'+_nowEBPr:'rimosso',field:'earlybird'});
+    if(_prevEBPr!==_nowEBPr)diffs.push({label:'🏷️ Early Bird evento',old:_prevEBPr?'€'+fmtEuro(_prevEBPr):'—',now:_nowEBPr?'€'+fmtEuro(_nowEBPr):'rimosso',field:'earlybird'});
     if((peb.deadline||null)!==(neb.deadline||null))diffs.push({label:'🏷️ Scadenza Early Bird',old:peb.deadline?fmtDate(peb.deadline):'—',now:neb.deadline?fmtDate(neb.deadline):'rimossa',field:'earlybird'});
   }
   if(prev.contactPhone!=null&&(prev.contactPhone||'')!==(ev.contactPhone||''))diffs.push({label:'📞 Telefono contatto',old:prev.contactPhone||'—',now:ev.contactPhone||'rimosso',field:'contact'});
@@ -8701,10 +8701,10 @@ function buildModificationDiffs(ev){
     if(!!pp.cash!==!!np.cash)diffs.push({label:'💵 Contanti',old:pp.cash?'accettati':'non accettati',now:np.cash?'accettati':'non accettati',field:'payment'});
   }
   const prevDep=prev.deposit;const nowDep=ev.deposit;
-  if(prevDep&&!nowDep)diffs.push({label:'💰 Anticipo',old:'€'+(prevDep.amount||0),now:'rimosso',field:'deposit'});
-  else if(!prevDep&&nowDep&&nowDep.required)diffs.push({label:'💰 Anticipo',old:'—',now:'€'+(nowDep.amount||0),field:'deposit'});
+  if(prevDep&&!nowDep)diffs.push({label:'💰 Anticipo',old:'€'+fmtEuro(prevDep.amount||0),now:'rimosso',field:'deposit'});
+  else if(!prevDep&&nowDep&&nowDep.required)diffs.push({label:'💰 Anticipo',old:'—',now:'€'+fmtEuro(nowDep.amount||0),field:'deposit'});
   else if(prevDep&&nowDep){
-    if((prevDep.amount||0)!==(nowDep.amount||0))diffs.push({label:'💰 Importo anticipo',old:'€'+(prevDep.amount||0),now:'€'+(nowDep.amount||0),field:'deposit'});
+    if((prevDep.amount||0)!==(nowDep.amount||0))diffs.push({label:'💰 Importo anticipo',old:'€'+fmtEuro(prevDep.amount||0),now:'€'+fmtEuro(nowDep.amount||0),field:'deposit'});
     if((prevDep.causal||'')!==(nowDep.causal||''))diffs.push({label:'💰 Causale anticipo',old:prevDep.causal||'—',now:nowDep.causal||'rimossa',field:'deposit'});
   }
   if((prev.bookingDeadline||null)!==(ev.bookingDeadline||null))diffs.push({label:'⏰ Deadline prenotazione',old:prev.bookingDeadline?fmtDate(prev.bookingDeadline):'—',now:ev.bookingDeadline?fmtDate(ev.bookingDeadline):'rimossa',field:'deadline'});
@@ -8721,14 +8721,14 @@ function buildModificationDiffs(ev){
         ['alto','medio','basso'].forEach(tk=>{
           if(pd.tiers[tk]!=null&&nd.tiers[tk]!=null&&pd.tiers[tk]!==nd.tiers[tk]){
             const tl=tk==='alto'?'Sostenitore':tk==='medio'?'Standard':'Ridotto';
-            diffs.push({label:'💰 Prezzo'+dayLabel+' ('+tl+')',old:'€'+pd.tiers[tk],now:'€'+nd.tiers[tk],field:'price'});
+            diffs.push({label:'💰 Prezzo'+dayLabel+' ('+tl+')',old:'€'+fmtEuro(pd.tiers[tk]),now:'€'+fmtEuro(nd.tiers[tk]),field:'price'});
           }
         });
       }
       if(pd.earlyBird||nd.earlyBird){
         const pdeb=pd.earlyBird||{};const ndeb=nd.earlyBird||{};
         const _prevDayEBPr=getEBPrice(pdeb);const _nowDayEBPr=getEBPrice(ndeb);
-        if(_prevDayEBPr!==_nowDayEBPr)diffs.push({label:'🏷️ Early Bird'+dayLabel,old:_prevDayEBPr?'€'+_prevDayEBPr:'—',now:_nowDayEBPr?'€'+_nowDayEBPr:'rimosso',field:'earlybird'});
+        if(_prevDayEBPr!==_nowDayEBPr)diffs.push({label:'🏷️ Early Bird'+dayLabel,old:_prevDayEBPr?'€'+fmtEuro(_prevDayEBPr):'—',now:_nowDayEBPr?'€'+fmtEuro(_nowDayEBPr):'rimosso',field:'earlybird'});
         if((pdeb.deadline||null)!==(ndeb.deadline||null))diffs.push({label:'🏷️ Scadenza EB'+dayLabel,old:pdeb.deadline?fmtDate(pdeb.deadline):'—',now:ndeb.deadline?fmtDate(ndeb.deadline):'rimossa',field:'earlybird'});
       }
       if(pd.sessions&&nd.sessions){
@@ -8743,13 +8743,13 @@ function buildModificationDiffs(ev){
           ['alto','medio','basso'].forEach(tk=>{
             if(ps.tiers?.[tk]!=null&&ns.tiers?.[tk]!=null&&ps.tiers[tk]!==ns.tiers[tk]){
               const tl=tk==='alto'?'Sostenitore':tk==='medio'?'Standard':'Ridotto';
-              diffs.push({label:'💰 '+tl+' '+sLabel,old:'€'+ps.tiers[tk],now:'€'+ns.tiers[tk],field:'price',isSession:true});
+              diffs.push({label:'💰 '+tl+' '+sLabel,old:'€'+fmtEuro(ps.tiers[tk]),now:'€'+fmtEuro(ns.tiers[tk]),field:'price',isSession:true});
             }
           });
           if(ps.earlyBird||ns.earlyBird){
             const pseb=ps.earlyBird||{};const nseb=ns.earlyBird||{};
             const _prevSessEBPr=getEBPrice(pseb);const _nowSessEBPr=getEBPrice(nseb);
-            if(_prevSessEBPr!==_nowSessEBPr)diffs.push({label:'🏷️ Early Bird '+sLabel,old:_prevSessEBPr?'€'+_prevSessEBPr:'—',now:_nowSessEBPr?'€'+_nowSessEBPr:'rimosso',field:'earlybird',isSession:true});
+            if(_prevSessEBPr!==_nowSessEBPr)diffs.push({label:'🏷️ Early Bird '+sLabel,old:_prevSessEBPr?'€'+fmtEuro(_prevSessEBPr):'—',now:_nowSessEBPr?'€'+fmtEuro(_nowSessEBPr):'rimosso',field:'earlybird',isSession:true});
             if((pseb.deadline||null)!==(nseb.deadline||null))diffs.push({label:'🏷️ Scadenza EB '+sLabel,old:pseb.deadline?fmtDate(pseb.deadline):'—',now:nseb.deadline?fmtDate(nseb.deadline):'rimossa',field:'earlybird',isSession:true});
           }
         });
@@ -10110,7 +10110,7 @@ function populateProfileFields(){
   const statPresEl=document.getElementById('stat-presenze');
   if(statPresEl)statPresEl.textContent=myAttendances.length;
   const statDonEl=document.getElementById('stat-donazioni');
-  if(statDonEl)statDonEl.textContent='€'+Math.round(totalDonations);
+  if(statDonEl)statDonEl.textContent='€'+fmtEuro(totalDonations);
   // Disable save button after populating, add change listener
   disableProfileSave();
   const pu=document.getElementById('profile-username');
@@ -12002,7 +12002,7 @@ function _doBookNormal(){
           <div class="text-sm font-semibold mb-3" style="color:var(--yellow)">⚠️ Anticipo richiesto</div>
           <div class="mb-3"><div class="text-xs txt3 mb-1" style="text-transform:uppercase;letter-spacing:.5px">Importo</div>
             <div style="background:var(--s100);border:1px solid var(--s400);border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
-              <span class="font-bold text-white" style="font-size:1.1rem">€${ev.deposit.amount},00</span>
+              <span class="font-bold text-white" style="font-size:1.1rem">€${fmtEuro(ev.deposit.amount)}</span>
               <button class="btn btn-ghost btn-sm" style="font-size:.7rem;padding:2px 8px" onclick="navigator.clipboard.writeText('${ev.deposit.amount}.00');showToast('Importo copiato!')">📋</button>
             </div></div>
           ${_causal?`<div class="mb-3"><div class="text-xs txt3 mb-1" style="text-transform:uppercase;letter-spacing:.5px">Causale</div>
@@ -12346,7 +12346,7 @@ function _doBookNormal(){
   let summaryCards=items.map(it=>`<div style="background:var(--s100);border:1px solid var(--s300);border-radius:10px;padding:10px 14px;margin-bottom:8px">
     <div class="flex items-center justify-between" style="gap:8px">
       <div style="flex:1;min-width:0"><div class="text-sm font-medium text-white" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(it.name)}</div><div class="text-xs txt3" style="margin-top:2px">${escHtml(it.date)}${it.time?' · '+escHtml(it.time):''}</div></div>
-      <div style="flex-shrink:0;text-align:right"><div class="text-sm font-bold text-white">€${it.price}</div><div style="margin-top:2px"><span class="badge badge-pubblicato" style="font-size:.65rem">${it.tier}</span></div></div>
+      <div style="flex-shrink:0;text-align:right"><div class="text-sm font-bold text-white">€${fmtEuro(it.price)}</div><div style="margin-top:2px"><span class="badge badge-pubblicato" style="font-size:.65rem">${it.tier}</span></div></div>
     </div>
   </div>`).join('');
   // V3.1.7: Add insurance surcharge line to summary
@@ -12354,7 +12354,7 @@ function _doBookNormal(){
     summaryCards+=`<div style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.25);border-radius:10px;padding:10px 14px;margin-bottom:8px">
       <div class="flex items-center justify-between" style="gap:8px">
         <div style="flex:1"><div class="text-sm font-medium" style="color:var(--warn)">🛡️ Sovrapprezzo assicurazione</div><div class="text-xs txt3" style="margin-top:2px">${escHtml(ev.insurance.description||'Assicurazione non presente')}</div></div>
-        <div style="flex-shrink:0"><div class="text-sm font-bold" style="color:var(--warn)">€${_insuranceSurcharge}</div></div>
+        <div style="flex-shrink:0"><div class="text-sm font-bold" style="color:var(--warn)">€${fmtEuro(_insuranceSurcharge)}</div></div>
       </div>
     </div>`;
   }
@@ -12372,7 +12372,7 @@ function _doBookNormal(){
       <div class="mb-3">
         <div class="text-xs txt3 mb-1" style="text-transform:uppercase;letter-spacing:.5px">Importo da versare</div>
         <div style="background:var(--s100);border:1px solid var(--s400);border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
-          <span class="font-bold text-white" style="font-size:1.1rem">€${ev.deposit.amount},00</span>
+          <span class="font-bold text-white" style="font-size:1.1rem">€${fmtEuro(ev.deposit.amount)}</span>
           <button class="btn btn-ghost btn-sm" style="font-size:.7rem;padding:2px 8px" onclick="navigator.clipboard.writeText('${ev.deposit.amount}.00');showToast('Importo copiato!')">📋 Copia</button>
         </div>
       </div>
@@ -12408,7 +12408,7 @@ function _doBookNormal(){
         ${summaryCards}
         <div style="background:var(--s200);border:1px solid var(--s400);border-radius:10px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center">
           <span class="font-semibold text-white">Totale</span>
-          <span class="font-bold text-white" style="font-size:1.2rem">€${totalAmount}</span>
+          <span class="font-bold text-white" style="font-size:1.2rem">€${fmtEuro(totalAmount)}</span>
         </div>
       </div>
       ${depositHtml}
@@ -12901,7 +12901,7 @@ async function renderCheckinA(){
       <div class="flex gap-2 mb-2"><span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)}">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span><span class="badge badge-pubblicato">Check-in OK</span></div>
       <h3 class="font-semibold text-white">${escHtml(ev.title)}</h3>
       <div class="text-xs txt3 mt-2">📅 ${d0?fmtDate(d0.date)+' · '+d0.startTime+' — '+d0.endTime:''}</div>
-      ${amount>0?`<div class="text-xs txt3 mt-1">💰 €${amount}</div>`:'<div class="text-xs txt3 mt-1">🆓 Gratuito</div>'}
+      ${amount>0?`<div class="text-xs txt3 mt-1">💰 €${fmtEuro(amount)}</div>`:'<div class="text-xs txt3 mt-1">🆓 Gratuito</div>'}
       <div class="text-xs txt3 mt-1">💳 Pagamento: ${payStatus}</div>
       <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(16,185,129,.2)">
         <div class="text-xs font-medium" style="color:var(--green)">Presenze registrate:</div>
@@ -13002,7 +13002,7 @@ function confirmWalkinCheckin(evId){
   pushBookingSafe(bk);
   fsSet('bookings',bk.id,bk).catch(console.error);
   const info=document.getElementById('walkin-result-info');
-  if(info)info.textContent='Walk-in · '+tierLbl+(totalAmount>0?' — €'+totalAmount:'');
+  if(info)info.textContent='Walk-in · '+tierLbl+(totalAmount>0?' — €'+fmtEuro(totalAmount):'');
   document.getElementById('walkin-step1').classList.add('hidden');
   document.getElementById('walkin-done').classList.remove('hidden');
   showToast('Check-in walk-in completato!');
@@ -13145,7 +13145,7 @@ function confirmNewCheckin(evId){
   pushBookingSafe(bk);
   fsSet('bookings',bk.id,bk).catch(console.error);
   const info=document.getElementById('newp-result-info');
-  if(info)info.textContent='Walk-in (nuovo) · '+tierLbl+(totalAmount>0?' — €'+totalAmount:'');
+  if(info)info.textContent='Walk-in (nuovo) · '+tierLbl+(totalAmount>0?' — €'+fmtEuro(totalAmount):'');
   document.getElementById('newp-step2').classList.add('hidden');
   document.getElementById('newp-done').classList.remove('hidden');
   showToast('Registrazione e check-in completati!');
@@ -13897,7 +13897,7 @@ async function renderUserDashboard(){
     const _dispDate=fmtDate(_dashDate||d0?.date);
     const _dispTime=_cardTimeStart+' — '+_cardTimeEnd;
     const cardDateTimeLine=`<div class="text-xs txt3 mt-1">📅 ${_dispDate} · ${_dispTime}</div>`;
-    const cardPriceLine=`<div class="text-xs txt3 mt-1">💰 ${tierLabel} — €${b.amount}</div>`;
+    const cardPriceLine=`<div class="text-xs txt3 mt-1">💰 ${tierLabel} — €${fmtEuro(b.amount)}</div>`;
     // Session info line
     const _sessInfoLine=_cardSessionLabel?`<div class="text-xs txt3 mt-1">📋 Sessione: "${_cardSessionLabel}"</div>`:((b.scope==='sessioni'||b.scope==='sessione')&&b.items?'<div class="text-xs txt3 mt-1">📋 '+(b.items.filter(it=>it.type==='sessione').length||1)+' sessione/i</div>':'');
 
@@ -15663,7 +15663,7 @@ function buildDepositHtml(ev,userName){
     <div class="text-sm font-semibold mb-3" style="color:var(--yellow)">⚠️ Anticipo richiesto</div>
     <div class="mb-3"><div class="text-xs txt3 mb-1" style="text-transform:uppercase;letter-spacing:.5px">Importo</div>
       <div style="background:var(--s100);border:1px solid var(--s400);border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
-        <span class="font-bold text-white" style="font-size:1.1rem">€${ev.deposit.amount},00</span>
+        <span class="font-bold text-white" style="font-size:1.1rem">€${fmtEuro(ev.deposit.amount)}</span>
         <button class="btn btn-ghost btn-sm" style="font-size:.7rem;padding:2px 8px" onclick="navigator.clipboard.writeText('${ev.deposit.amount}.00');showToast('Importo copiato!')">📋</button>
       </div></div>
     <div class="mb-3"><div class="text-xs txt3 mb-1" style="text-transform:uppercase;letter-spacing:.5px">Causale</div>
@@ -16774,19 +16774,19 @@ async function showEventDetail(evId,recDate){
             const _baseEvCost=(myBooking.items&&myBooking.items.length)
               ?myBooking.items.reduce((s,it)=>s+(it.price||0),0)
               :((myBooking.amount||0)-(myBooking.insuranceSurcharge||0));
-            let out='<div><div class="text-xs txt3">Tariffa</div><div class="text-sm text-white mt-1">'+tierLbl+' — <strong>€'+_baseEvCost+'</strong></div>';
+            let out='<div><div class="text-xs txt3">Tariffa</div><div class="text-sm text-white mt-1">'+tierLbl+' — <strong>€'+fmtEuro(_baseEvCost)+'</strong></div>';
             // Insurance surcharge line (only if user owes insurance)
             if(myBooking.insuranceSurcharge>0){
               const _insPaidStatus=myBooking.insurancePaid;
               if(_insPaidStatus){
-                out+='<div class="text-xs mt-2" style="color:var(--green)">🛡️ Assicurazione: <strong>€'+myBooking.insuranceSurcharge+'</strong> — ✅ Pagata</div>';
+                out+='<div class="text-xs mt-2" style="color:var(--green)">🛡️ Assicurazione: <strong>€'+fmtEuro(myBooking.insuranceSurcharge)+'</strong> — ✅ Pagata</div>';
               } else {
-                out+='<div class="text-xs mt-2" style="color:var(--orange)">🛡️ Assicurazione: <strong>€'+myBooking.insuranceSurcharge+'</strong> — da pagare</div>';
+                out+='<div class="text-xs mt-2" style="color:var(--orange)">🛡️ Assicurazione: <strong>€'+fmtEuro(myBooking.insuranceSurcharge)+'</strong> — da pagare</div>';
               }
             }
             if(ev.deposit&&ev.deposit.required){
-              if(myBooking.depositStatus==='pending')out+='<div class="text-xs mt-2" style="color:var(--yellow)">⏳ Anticipo richiesto: <strong>€'+ev.deposit.amount+'</strong></div>';
-              else if(myBooking.depositStatus==='ricevuto')out+='<div class="text-xs mt-2" style="color:var(--green)">✅ Anticipo versato: <strong>€'+ev.deposit.amount+'</strong></div>';
+              if(myBooking.depositStatus==='pending')out+='<div class="text-xs mt-2" style="color:var(--yellow)">⏳ Anticipo richiesto: <strong>€'+fmtEuro(ev.deposit.amount)+'</strong></div>';
+              else if(myBooking.depositStatus==='ricevuto')out+='<div class="text-xs mt-2" style="color:var(--green)">✅ Anticipo versato: <strong>€'+fmtEuro(ev.deposit.amount)+'</strong></div>';
             }
             if(myBooking.paymentStatus!=='pagato'&&myBooking.paymentStatus!=='gratuito'&&!myBooking.gift){
               // V3.10.11: Total owed = base event cost + insurance surcharge
@@ -16795,7 +16795,7 @@ async function showEventDetail(evId,recDate){
               const _depReceived=(ev.deposit&&ev.deposit.required&&myBooking.depositStatus==='ricevuto')?ev.deposit.amount:0;
               const rem=_totalOwed-_depReceived-_insAlreadyPaid;
               if(rem>0){
-                out+='<div class="text-xs mt-2" style="color:var(--txt2)">💳 Saldo dovuto: <strong>€'+rem+'</strong></div>';
+                out+='<div class="text-xs mt-2" style="color:var(--txt2)">💳 Saldo dovuto: <strong>€'+fmtEuro(rem)+'</strong></div>';
               }
             }
             return out;
@@ -16868,7 +16868,7 @@ async function showEventDetail(evId,recDate){
         });
       })();
       const _preDepositCard=(ev.deposit&&ev.deposit.required&&ev.deposit.amount>0&&!isFreeEvent&&!isManagedByOrg&&!_userCanBookWithSub)
-        ?'<div style="margin-bottom:12px;padding:8px 14px;background:rgba(234,179,8,.04);border:1px solid rgba(234,179,8,.25);border-radius:10px;display:flex;align-items:center;gap:8px"><span style="font-size:.8rem">⚠️</span><span style="font-size:.78rem;color:var(--yellow)">Per confermare la prenotazione è richiesto un anticipo di <strong>€'+ev.deposit.amount+'</strong>. I dettagli saranno visibili nel riepilogo.</span></div>'
+        ?'<div style="margin-bottom:12px;padding:8px 14px;background:rgba(234,179,8,.04);border:1px solid rgba(234,179,8,.25);border-radius:10px;display:flex;align-items:center;gap:8px"><span style="font-size:.8rem">⚠️</span><span style="font-size:.78rem;color:var(--yellow)">Per confermare la prenotazione è richiesto un anticipo di <strong>€'+fmtEuro(ev.deposit.amount)+'</strong>. I dettagli saranno visibili nel riepilogo.</span></div>'
         :'';
       return _preRegParticipants+'<h2 class="font-semibold text-white mb-3">Programma</h2>'+daysHtml+eventPkgHtml+loyaltyHtml+'<div style="padding-top:16px">'+_preDepositCard+'<button class="btn btn-primary w-full" style="padding:14px;font-size:1rem" onclick="doBook()">'+(isFreeEvent?'✅ Iscriviti gratuitamente':isManagedByOrg?'📋 Iscriviti!':_subOnlyBlocked?'🎟️ Prenota con abbonamento':'Prenota')+'</button></div>';
     })()}
@@ -18426,7 +18426,7 @@ function updateCostItem(evId,secId,itemId,field,value){
   // Update total cell in real-time
   const total=Math.round((item.unitValue||0)*(item.quantity||1)*(item.multiplier||1)*100)/100;
   const totalEl=document.getElementById('cost-total-'+itemId);
-  if(totalEl)totalEl.textContent='€'+total;
+  if(totalEl)totalEl.textContent='€'+fmtEuro(total);
   _autoSaveCosts(evId);
   _refreshCostSummary(evId);
 }
@@ -19669,9 +19669,9 @@ async function renderAdminDashboard(){
       let fh='<h2 class="font-semibold text-white mb-3">💰 Riepilogo finanziario <span class="text-xs txt3">(eventi archiviati)</span></h2>';
       // Main summary cards
       fh+='<div class="grid gap-3 mb-4" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">';
-      fh+='<div class="stat-card" style="border:1px solid rgba(16,185,129,.3)"><div class="value" style="color:var(--green);font-size:1.4rem">€'+totalPaid+'</div><div class="label">Incassato</div></div>';
-      fh+='<div class="stat-card" style="border:1px solid rgba(239,68,68,.2)"><div class="value" style="color:var(--red);font-size:1.4rem">€'+totalCosts+'</div><div class="label">Costi</div></div>';
-      fh+='<div class="stat-card" style="border:2px solid '+(totalProfit>=0?'rgba(16,185,129,.4)':'rgba(239,68,68,.4)')+'"><div class="value" style="color:'+(totalProfit>=0?'var(--green)':'var(--red)')+';font-size:1.5rem">€'+totalProfit+'</div><div class="label">'+(totalProfit>=0?'📈 Profitto':'📉 Perdita')+'</div></div>';
+      fh+='<div class="stat-card" style="border:1px solid rgba(16,185,129,.3)"><div class="value" style="color:var(--green);font-size:1.4rem">€'+fmtEuro(totalPaid)+'</div><div class="label">Incassato</div></div>';
+      fh+='<div class="stat-card" style="border:1px solid rgba(239,68,68,.2)"><div class="value" style="color:var(--red);font-size:1.4rem">€'+fmtEuro(totalCosts)+'</div><div class="label">Costi</div></div>';
+      fh+='<div class="stat-card" style="border:2px solid '+(totalProfit>=0?'rgba(16,185,129,.4)':'rgba(239,68,68,.4)')+'"><div class="value" style="color:'+(totalProfit>=0?'var(--green)':'var(--red)')+';font-size:1.5rem">€'+fmtEuro(totalProfit)+'</div><div class="label">'+(totalProfit>=0?'📈 Profitto':'📉 Perdita')+'</div></div>';
       fh+='</div>';
       // Per-type breakdown
       fh+='<div class="grid gap-3 mb-4" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">';
@@ -19683,9 +19683,9 @@ async function renderAdminDashboard(){
         fh+='<div class="stat-card" style="padding:14px">';
         fh+='<div style="font-size:.78rem;color:var(--txt3);margin-bottom:6px">'+td.icon+' '+td.label+' <span style="opacity:.6">('+td.count+')</span></div>';
         fh+='<div style="display:flex;gap:12px;flex-wrap:wrap;font-size:.82rem">';
-        fh+='<span style="color:var(--green)">+€'+td.paid+'</span>';
-        if(td.costs>0)fh+='<span style="color:var(--red)">-€'+td.costs+'</span>';
-        fh+='<span style="font-weight:700;color:'+(tProfit>=0?'var(--green)':'var(--red)')+'">= €'+tProfit+'</span>';
+        fh+='<span style="color:var(--green)">+€'+fmtEuro(td.paid)+'</span>';
+        if(td.costs>0)fh+='<span style="color:var(--red)">-€'+fmtEuro(td.costs)+'</span>';
+        fh+='<span style="font-weight:700;color:'+(tProfit>=0?'var(--green)':'var(--red)')+'">= €'+fmtEuro(tProfit)+'</span>';
         fh+='</div></div>';
       });
       fh+='</div>';
@@ -19760,7 +19760,7 @@ async function renderAdminDashboard(){
       <div style="text-align:center;flex:1;min-width:70px"><div style="font-size:1.4rem;font-weight:800;color:var(--green)">${_dashInsured}</div><div style="font-size:.68rem;color:var(--txt3)">Attive</div></div>
       <div style="text-align:center;flex:1;min-width:70px"><div style="font-size:1.4rem;font-weight:800;color:var(--warn)">${_dashExpiring}</div><div style="font-size:.68rem;color:var(--txt3)">In scadenza</div></div>
       <div style="text-align:center;flex:1;min-width:70px"><div style="font-size:1.4rem;font-weight:800;color:var(--red)">${_dashExpired}</div><div style="font-size:.68rem;color:var(--txt3)">Scadute</div></div>
-      ${_dashInsSurchargeRev>0?'<div style="text-align:center;flex:1;min-width:70px"><div style="font-size:1.4rem;font-weight:800;color:var(--brand-l)">€'+_dashInsSurchargeRev+'</div><div style="font-size:.68rem;color:var(--txt3)">Da sovrapprezzi</div></div>':''}
+      ${_dashInsSurchargeRev>0?'<div style="text-align:center;flex:1;min-width:70px"><div style="font-size:1.4rem;font-weight:800;color:var(--brand-l)">€'+fmtEuro(_dashInsSurchargeRev)+'</div><div style="font-size:.68rem;color:var(--txt3)">Da sovrapprezzi</div></div>':''}
     </div>`;
     fc?.parentElement?.insertBefore(insEl,fc.nextSibling);
   } else {
@@ -19815,7 +19815,7 @@ async function renderAdminDashboard(){
       cumTotal.push(runTotal);
       cumCosts.push(runCosts);
       cumProfit.push(Math.round((runTotal-runCosts)*100)/100);
-      eventsByDate[d]=dps.map(p=>p.title+' (+€'+p.revenue+(p.cost?' -€'+p.cost:'')+')').join(', ');
+      eventsByDate[d]=dps.map(p=>p.title+' (+€'+fmtEuro(p.revenue)+(p.cost?' -€'+fmtEuro(p.cost):'')+')').join(', ');
     });
 
     // Time range filter
@@ -19910,7 +19910,7 @@ function _renderDashChart(rangeDays){
       },
       scales:{
         x:{ticks:{color:'#6b6b80',font:{size:10},maxRotation:45},grid:{color:'rgba(45,45,58,.5)'}},
-        y:{ticks:{color:'#6b6b80',font:{size:10},callback:v=>'€'+v},grid:{color:'rgba(45,45,58,.5)'},beginAtZero:true}
+        y:{ticks:{color:'#6b6b80',font:{size:10},callback:v=>'€'+fmtEuro(v)},grid:{color:'rgba(45,45,58,.5)'},beginAtZero:true}
       }
     }
   });
@@ -21705,7 +21705,7 @@ async function renderAdminBookings(){
         :'<span class="text-xs txt3">—</span>';
       const giftBtn=!isCancelled?'<button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:.7rem;margin-left:4px" onclick="event.stopPropagation();toggleGift(\''+b.id+'\',\'bookings\')" title="'+(b.gift?'Rimuovi regalo':'Segna come regalo')+'">'+(b.gift?'↩️':'🎁')+'</button>':'';
       const _insTag=(!isCancelled&&!b.gift&&b.insuranceSurcharge>0)?('<span style="font-size:.65rem;margin-left:4px;padding:1px 5px;border-radius:4px;'+(b.insurancePaid?'background:var(--green-bg);color:var(--green)':'background:var(--orange-bg);color:var(--orange)')+'">🛡️'+(b.insurancePaid?'✓':'')+'</span>'):'';
-      const amountHtml=!isCancelled&&b.gift?'<span style="color:var(--purple)">🎁 Regalo</span>':'€'+b.amount+_insTag;
+      const amountHtml=!isCancelled&&b.gift?'<span style="color:var(--purple)">🎁 Regalo</span>':'€'+fmtEuro(b.amount)+_insTag;
       const payHtml=isCancelled||b.gift?'<span class="text-xs txt3">—</span>'
         :b.paymentStatus==='pagato'?'<span class="badge" style="background:var(--green-bg);color:var(--green);cursor:pointer" onclick="event.stopPropagation();togglePayment(\''+b.id+'\',\'bookings\')">💰 Pagato</span>'
         :b.paymentStatus==='gratuito'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🎟️ Gratuito</span>'
@@ -22406,7 +22406,7 @@ async function showUserDetail(userId){
     // V3.2 FIX: Use recurringDate for recurring events, fallback to event first day date
     const d0=b.recurringDate?fmtDate(b.recurringDate):(ev&&ev.days&&ev.days[0]?fmtDate(ev.days[0].date):'—');
     const recLabel=b.recurringDate&&ev&&ev.recurrence?' <span style="font-size:.68rem;color:var(--txt3)">🔄</span>':'';
-    return `<tr><td class="text-sm">${ev?escHtml(ev.title):'Evento rimosso'}${recLabel}</td><td class="text-sm txt2">${d0}</td><td class="text-sm">${b.paymentStatus==='gratuito'?'🆓 Gratuito':b.paymentStatus==='pagato'?'✅ Pagato':'⏳ '+(b.paymentStatus||'in attesa')}</td><td class="text-sm text-right">${b.amount>0?b.amount+'€':'—'}</td></tr>`;
+    return `<tr><td class="text-sm">${ev?escHtml(ev.title):'Evento rimosso'}${recLabel}</td><td class="text-sm txt2">${d0}</td><td class="text-sm">${b.paymentStatus==='gratuito'?'🆓 Gratuito':b.paymentStatus==='pagato'?'✅ Pagato':'⏳ '+(b.paymentStatus||'in attesa')}</td><td class="text-sm text-right">${b.amount>0?fmtEuro(b.amount)+'€':'—'}</td></tr>`;
   };
 
   // Universes section
@@ -23575,7 +23575,7 @@ async function exportInsuranceSurveyExcel(eventId){
 
   // Info row
   ws.mergeCells(2,1,2,totalCols);
-  ws.getCell('A2').value='Assicurazioni richieste: '+reqNames+' | Sovrapprezzo: €'+(ev.insurance.price||0)+' | Esportato: '+new Date().toLocaleDateString('it-IT');
+  ws.getCell('A2').value='Assicurazioni richieste: '+reqNames+' | Sovrapprezzo: €'+fmtEuro(ev.insurance.price||0)+' | Esportato: '+new Date().toLocaleDateString('it-IT');
   ws.getCell('A2').font={name:'Arial',size:10,italic:true,color:{argb:'FF6B7280'}};
 
   // Stats row
@@ -23937,6 +23937,7 @@ async function showAdminEventDetail(evId){
       ? '<span class="badge" style="background:var(--green-bg);color:var(--green)">🔓 Riaperte</span>'
       : '';
 
+  const _twKeepScrollLeft=window._adminDetailKeepScroll?(()=>{const tw=document.querySelector('#view-admin-event-detail .card.table-wrap');return tw?tw.scrollLeft:0;})():0;
   c.innerHTML=`<div class="container" style="padding-top:32px;padding-bottom:48px;max-width:1100px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px">
       <div class="text-sm txt3" style="cursor:pointer" onclick="resetAdminDetailView();go(lastAdminListView||'admin-events')">← Torna agli eventi</div>
@@ -24074,7 +24075,7 @@ async function showAdminEventDetail(evId){
         (_evHasRoles?'<th style="cursor:pointer" onclick="sortAdminDetail(\'role\')">Ruolo '+
         (adminDetailSort.field==='role'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':'')+'<th style="cursor:pointer" onclick="sortAdminDetail(\'sessions\')">Sessioni '+
         (adminDetailSort.field==='sessions'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+
-        '</th>'})()}${_isCapo&&ev.pricingMode!=='free'&&ev.pricingMode!=='direct'?'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'tier\')">Tier '+(adminDetailSort.field==='tier'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}<th style="cursor:pointer" onclick="sortAdminDetail('checkedIn')">Presente ${adminDetailSort.field==='checkedIn'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${_isCapo&&ev.pricingMode!=='free'&&ev.pricingMode!=='direct'?'<th style="cursor:pointer" onclick="sortAdminDetail(\'amount\')">Importo '+(adminDetailSort.field==='amount'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'paymentStatus\')">Pagato '+(adminDetailSort.field==='paymentStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'depositStatus\')">Anticipo '+(adminDetailSort.field==='depositStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'daIncassare\')">Da incassare '+(adminDetailSort.field==='daIncassare'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${_isCapo&&_hasInsReq?'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'insurancePaid\')">🛡️ Assic. '+(adminDetailSort.field==='insurancePaid'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).length?'<th class="th-survey" style="border-left:2px solid var(--s400);padding-left:12px;cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+(ev.surveys[0].id)+'\')">'+ev.surveys[0].question.substring(0,20)+(ev.surveys[0].question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+ev.surveys[0].id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).slice(1).map(sq=>'<th class="th-survey" style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+sq.id+'\')">'+sq.question.substring(0,20)+(sq.question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+sq.id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>').join('')}<th>Azioni</th></tr></thead><th style="cursor:pointer" onclick="sortAdminDetail('sessions')">Sessioni ${adminDetailSort.field==='sessions'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${_isCapo&&ev.pricingMode!=='free'&&ev.pricingMode!=='direct'?'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'tier\')">Tier '+(adminDetailSort.field==='tier'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}<th style="cursor:pointer" onclick="sortAdminDetail('checkedIn')">Presente ${adminDetailSort.field==='checkedIn'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${_isCapo&&ev.pricingMode!=='free'&&ev.pricingMode!=='direct'?'<th style="cursor:pointer" onclick="sortAdminDetail(\'amount\')">Importo '+(adminDetailSort.field==='amount'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'paymentStatus\')">Pagato '+(adminDetailSort.field==='paymentStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'depositStatus\')">Anticipo '+(adminDetailSort.field==='depositStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'daIncassare\')">Da incassare '+(adminDetailSort.field==='daIncassare'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${_isCapo&&_hasInsReq?'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'insurancePaid\')">🛡️ Assic. '+(adminDetailSort.field==='insurancePaid'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).length?'<th class="th-survey" style="border-left:2px solid var(--s400);padding-left:12px;cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+(ev.surveys[0].id)+'\')">'+ev.surveys[0].question.substring(0,20)+(ev.surveys[0].question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+ev.surveys[0].id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).slice(1).map(sq=>'<th class="th-survey" style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+sq.id+'\')">'+sq.question.substring(0,20)+(sq.question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+sq.id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>').join('')}<th>Azioni</th></tr></thead>
+        '</th>'})()}${_isCapo&&ev.pricingMode!=='free'&&ev.pricingMode!=='direct'?'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'tier\')">Tier '+(adminDetailSort.field==='tier'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}<th style="cursor:pointer" onclick="sortAdminDetail('checkedIn')">Presente ${adminDetailSort.field==='checkedIn'?(adminDetailSort.dir==='asc'?'▲':'▼'):''}</th>${_isCapo&&ev.pricingMode!=='free'&&ev.pricingMode!=='direct'?'<th style="cursor:pointer" onclick="sortAdminDetail(\'amount\')">Importo '+(adminDetailSort.field==='amount'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'paymentStatus\')">Pagato '+(adminDetailSort.field==='paymentStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'depositStatus\')">Anticipo '+(adminDetailSort.field==='depositStatus'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th><th style="cursor:pointer" onclick="sortAdminDetail(\'daIncassare\')">Da incassare '+(adminDetailSort.field==='daIncassare'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${_isCapo&&_hasInsReq?'<th style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'insurancePaid\')">🛡️ Assic. '+(adminDetailSort.field==='insurancePaid'?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).length?'<th class="th-survey" style="border-left:2px solid var(--s400);padding-left:12px;cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+(ev.surveys[0].id)+'\')">'+ev.surveys[0].question.substring(0,20)+(ev.surveys[0].question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+ev.surveys[0].id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>':''}${(ev.surveys||[]).slice(1).map(sq=>'<th class="th-survey" style="cursor:pointer;white-space:nowrap" onclick="sortAdminDetail(\'survey_'+sq.id+'\')">'+sq.question.substring(0,20)+(sq.question.length>20?'…':'')+' '+(adminDetailSort.field==='survey_'+sq.id?(adminDetailSort.dir==='asc'?'▲':'▼'):'')+'</th>').join('')}<th>Azioni</th></tr></thead>
         <tbody>${active.map(b=>{
           _sanitizeBookingState(b);
           _sanitizeGiftBug(b);
@@ -24106,7 +24107,7 @@ async function showAdminEventDetail(evId){
           const _bEvHasRoles=getEventRoles(ev).length>0;
           return `<tr>
             <td class="td-participant"><div class="flex items-center gap-2"><div class="avatar ${avatarCls} hide-mobile" ${avatarStyle} style="${!avatarCls?'background:var(--s300);color:var(--txt3)':''}${_pLogo?';overflow:hidden':''}">${avatarInner}</div><div class="participant-info"><div class="font-medium text-white text-sm">${escHtml(resolveUserName(b.userId,b.userName))}</div><div class="text-xs txt3">${escHtml(b.email)}</div></div></div></td>
-            ${_bEvHasRoles?'<td><span style="color:${roleColor(b.role)}">${roleName(b.role)}</span></td>':''}
+            ${_bEvHasRoles?'<td><span style="color:'+roleColor(b.role)+'">'+roleName(b.role)+'</span></td>':''}
             <td style="min-width:140px">${getSessionNames(b.sessions)}</td>
             ${_isCapo&&ev.pricingMode!=='free'&&ev.pricingMode!=='direct'?'<td style="white-space:nowrap"><span style="font-size:.75rem;padding:2px 6px;border-radius:4px;background:'+(b.tier==='alto'?'rgba(234,179,8,.12);color:var(--yellow)':b.tier==='basso'?'rgba(59,130,246,.12);color:var(--blue)':'rgba(168,85,247,.12);color:var(--purple)')+'">'+({alto:'✦ Sost.',medio:'● Std',basso:'○ Rid.'}[b.tier]||'● Std')+'</span></td>':''}
             <td>${checkedInHtml}</td>
@@ -24118,8 +24119,8 @@ async function showAdminEventDetail(evId){
               }
               const _isInsUserInsured=isUserInsured(b.userId,ev.insurance.requiredInsuranceIds);
               if(_isInsUserInsured)return '<td><span class="badge" style="background:var(--green-bg);color:var(--green);font-size:.7rem">✅ Assicurato</span></td>';
-              if(b.insurancePaid)return '<td><span class="badge" style="background:var(--green-bg);color:var(--green);cursor:pointer;font-size:.7rem" onclick="event.stopPropagation();toggleInsurancePaid(\''+b.id+'\',\'detail\')">🛡️ €'+b.insuranceSurcharge+' Pagata</span></td>';
-              return '<td><div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start"><button class="btn btn-sm" style="background:rgba(249,115,22,.12);color:var(--orange);border:1px solid rgba(249,115,22,.3);font-size:.7rem" onclick="event.stopPropagation();toggleInsurancePaid(\''+b.id+'\',\'detail\')">🛡️ €'+b.insuranceSurcharge+' Segna pagata</button><button class="btn btn-sm" style="padding:1px 6px;font-size:.6rem;color:var(--green);background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25)" onclick="event.stopPropagation();markAlreadyInsured(\''+b.id+'\',\'detail\')" title="Rimuovi sovrapprezzo e assegna assicurazione">✅ Già assicurato</button></div></td>';
+              if(b.insurancePaid)return '<td><span class="badge" style="background:var(--green-bg);color:var(--green);cursor:pointer;font-size:.7rem" onclick="event.stopPropagation();toggleInsurancePaid(\''+b.id+'\',\'detail\')">🛡️ €'+fmtEuro(b.insuranceSurcharge)+' Pagata</span></td>';
+              return '<td><div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start"><button class="btn btn-sm" style="background:rgba(249,115,22,.12);color:var(--orange);border:1px solid rgba(249,115,22,.3);font-size:.7rem" onclick="event.stopPropagation();toggleInsurancePaid(\''+b.id+'\',\'detail\')">🛡️ €'+fmtEuro(b.insuranceSurcharge)+' Segna pagata</button><button class="btn btn-sm" style="padding:1px 6px;font-size:.6rem;color:var(--green);background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25)" onclick="event.stopPropagation();markAlreadyInsured(\''+b.id+'\',\'detail\')" title="Rimuovi sovrapprezzo e assegna assicurazione">✅ Già assicurato</button></div></td>';
             })():''}
             ${(ev.surveys||[]).length?'<td class="text-sm td-survey" style="border-left:2px solid var(--s400);padding-left:12px" title="'+(((arr)=>{const r=(b.surveyResponses||{})[arr[0]?.id];return Array.isArray(r)?r.join(', '):r||'—';})(ev.surveys))+'">'+(((arr)=>{const r=(b.surveyResponses||{})[arr[0]?.id];const d=Array.isArray(r)?r.join(', '):r||'—';return d.length>25?d.substring(0,23)+'…':d;})(ev.surveys))+'</td>':''}
             ${(ev.surveys||[]).slice(1).map(sq=>{
@@ -24149,7 +24150,7 @@ async function showAdminEventDetail(evId){
     const scrollY=window.scrollY;
     go('admin-event-detail');
     if(!_isPopState) history.replaceState({view:'admin-event-detail',eventId:evId,mode:currentMode},'',' ');
-    requestAnimationFrame(()=>window.scrollTo(0,scrollY));
+    requestAnimationFrame(()=>{window.scrollTo(0,scrollY);const tw2=document.querySelector('#view-admin-event-detail .card.table-wrap');if(tw2)tw2.scrollLeft=_twKeepScrollLeft;});
     window._adminDetailKeepScroll=false;
   } else {
     go('admin-event-detail');
