@@ -2866,7 +2866,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.4.0';
+const APP_VERSION='V4.5.0';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -16458,6 +16458,8 @@ async function showEventDetail(evId,recDate){
         <p class="text-xs mt-1" style="color:var(--txt2);line-height:1.5">${escHtml(ev.insurance.description||"Questo evento richiede un'assicurazione.")} Assicurazioni accettate: <strong>${escHtml(_insNames)}</strong>. Senza assicurazione verrà applicato un sovrapprezzo di <strong style="color:var(--warn)">€${_insPrice}</strong>.</p></div>`;
     }
   }
+  // V4.5.0: "Programma" header — spostato qui da 3 return branches per apparire immediatamente sopra Calendario date / primo giorno
+  daysHtml+='<h2 class="font-semibold text-white mb-3">Programma</h2>';
   // V3.10.55: Recurring dates collapsible — only for recurring events
   if(ev.recurrence&&ev.recurrence.day&&(ev.recurrence.active!==false||ev.recurrence.pausedUntil)){
     daysHtml+=renderRecurringDatesCollapsible(ev);
@@ -16773,7 +16775,7 @@ async function showEventDetail(evId,recDate){
           _preRegParticipants+='</div>';
         }
       }
-      if(isDisabledByAlert)return _preRegParticipants+'<h2 class="font-semibold text-white mb-3">Programma</h2>'+daysHtml+eventPkgHtml+loyaltyHtml+'<div class="card text-center" style="border:2px solid var(--red);background:var(--red-bg);padding:20px"><p class="font-bold" style="color:var(--red)">🚫 Questo evento è stato annullato</p><p class="text-sm txt3 mt-2">La prenotazione non è disponibile.</p></div>';
+      if(isDisabledByAlert)return _preRegParticipants+daysHtml+eventPkgHtml+loyaltyHtml+'<div class="card text-center" style="border:2px solid var(--red);background:var(--red-bg);padding:20px"><p class="font-bold" style="color:var(--red)">🚫 Questo evento è stato annullato</p><p class="text-sm txt3 mt-2">La prenotazione non è disponibile.</p></div>';
       let myBooking=store.bookings.find(b=>b.eventId===ev.id&&b.userId===store.currentUser.id&&b.status!=='cancellata'&&(b.recurringDate||null)===_detRecDate);
       // Fallback for recurring events: if no exact match but recDate is null, find any non-cancelled booking
       // This prevents showing the booking form when user arrived via link without recDate
@@ -16932,7 +16934,7 @@ async function showEventDetail(evId,recDate){
       const _bookingClosed=_regManualDet === true ? true : (_regManualDet === false ? false : (_detEffDl&&localDateStr(new Date())>_detEffDl));
       if(_bookingClosed){
         const _closedMsg = _regManualDet === true ? 'Prenotazioni chiuse dall\'organizzatore' : 'Le prenotazioni si sono chiuse il ' + fmtDateShort(_detEffDl);
-        return _preRegParticipants+'<h2 class="font-semibold text-white mb-3">Programma</h2>'+daysHtml+eventPkgHtml+loyaltyHtml
+        return _preRegParticipants+daysHtml+eventPkgHtml+loyaltyHtml
           +'<div class="card text-center mt-4" style="border:2px solid var(--red);background:var(--red-bg);padding:20px">'
           +'<span style="font-size:2rem">🔒</span>'
           +'<p class="font-bold mt-2" style="color:var(--red)">Prenotazioni chiuse</p>'
@@ -16960,7 +16962,7 @@ async function showEventDetail(evId,recDate){
       const _preDepositCard=(ev.deposit&&ev.deposit.required&&ev.deposit.amount>0&&!isFreeEvent&&!isManagedByOrg&&!_userCanBookWithSub)
         ?'<div style="margin-bottom:12px;padding:8px 14px;background:rgba(234,179,8,.04);border:1px solid rgba(234,179,8,.25);border-radius:10px;display:flex;align-items:center;gap:8px"><span style="font-size:.8rem">⚠️</span><span style="font-size:.78rem;color:var(--yellow)">Per confermare la prenotazione è richiesto un anticipo di <strong>€'+fmtEuro(ev.deposit.amount)+'</strong>. I dettagli saranno visibili nel riepilogo.</span></div>'
         :'';
-      return _preRegParticipants+'<h2 class="font-semibold text-white mb-3">Programma</h2>'+daysHtml+eventPkgHtml+loyaltyHtml+'<div style="padding-top:16px">'+_preDepositCard+'<button class="btn btn-primary w-full" style="padding:14px;font-size:1rem" onclick="doBook()">'+(isFreeEvent?'✅ Iscriviti gratuitamente':isManagedByOrg?'📋 Iscriviti!':_subOnlyBlocked?'🎟️ Prenota con abbonamento':'Prenota')+'</button></div>';
+      return _preRegParticipants+daysHtml+eventPkgHtml+loyaltyHtml+'<div style="padding-top:16px">'+_preDepositCard+'<button class="btn btn-primary w-full" style="padding:14px;font-size:1rem" onclick="doBook()">'+(isFreeEvent?'✅ Iscriviti gratuitamente':isManagedByOrg?'📋 Iscriviti!':_subOnlyBlocked?'🎟️ Prenota con abbonamento':'Prenota')+'</button></div>';
     })()}
     </div>
   </div>`;
