@@ -2866,7 +2866,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.5.0';
+const APP_VERSION='V4.7.0';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -13299,7 +13299,8 @@ async function renderUserEvents(){
       }
       return null;
     })();
-    const pricingBadge=ev.pricingMode==='free'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🆓 Gratuito</span>':ev.pricingMode==='managed'?'<span class="badge badge-yellow">🤝 Costi con org.</span>':ev.pricingMode==='direct'?'<span class="badge" style="background:rgba(139,92,246,.1);color:var(--purple)">📞 Costo diretto</span>':(_cardSubInfo&&_cardSubInfo.type==='entry'?'<span class="badge" style="background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)">🎟️ Gratis con abb.</span>':_cardSubInfo&&_cardSubInfo.type==='discount'?'<span class="badge" style="background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)">💰 da €'+_cardSubInfo.price+' <span style="text-decoration:line-through;font-size:.6rem;opacity:.6">€'+_minP+'</span></span>':(_minP>0?'<span class="badge" style="background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)">💰 da €'+_minP+'</span>':''));
+    // V4.7.0: rimosso badge "📞 Costo diretto" — eventi con pricingMode='direct' non mostrano più un badge dedicato (fall-through su subscription/price badge)
+    const pricingBadge=ev.pricingMode==='free'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🆓 Gratuito</span>':ev.pricingMode==='managed'?'<span class="badge badge-yellow">🤝 Costi con org.</span>':(_cardSubInfo&&_cardSubInfo.type==='entry'?'<span class="badge" style="background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)">🎟️ Gratis con abb.</span>':_cardSubInfo&&_cardSubInfo.type==='discount'?'<span class="badge" style="background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)">💰 da €'+_cardSubInfo.price+' <span style="text-decoration:line-through;font-size:.6rem;opacity:.6">€'+_minP+'</span></span>':(_minP>0?'<span class="badge" style="background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)">💰 da €'+_minP+'</span>':''));
     const confirmStatus=getConfirmationStatus(ev,ev._recDate||null);
     const confirmBadge=confirmStatus==='attesa'?'<span class="badge badge-attesa">⏳ Min. non raggiunto</span>':confirmStatus==='deadline_scaduta'?'<span class="badge" style="background:var(--red-bg);color:var(--red)">🚫 Deadline scaduta</span>':confirmStatus==='confermato'?'<span class="badge badge-confermato">✅ Confermato</span>':'';
     const _regManualCard = isRegistrationManuallyControlled(ev, ev._recDate || null);
