@@ -2396,12 +2396,7 @@ textarea.input{resize:none;font-family:inherit}
     </div>
   </div>
 
-  <!-- Guida e tutorial -->
-  <div class="card mb-4">
-    <h3 class="font-semibold text-white mb-3">📖 Guide e tutorial</h3>
-    <p class="text-xs txt3 mb-3">Rivedi subito la guida di benvenuto e tutti i badge informativi e tour guidati della piattaforma.</p>
-    <button class="btn btn-sm btn-secondary" onclick="replayAllOnboarding()">🔄 Rivedi tutti i badge e tutorial</button>
-  </div>
+  <!-- V4.4.0: card "📖 Guide e tutorial" rimossa (replayAllOnboarding non più esposto lato utente) -->
 
   <!-- Stats personali -->
   <div class="card mb-4">
@@ -2871,7 +2866,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.2.0';
+const APP_VERSION='V4.4.0';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -2895,24 +2890,9 @@ function _obFlags(){try{return JSON.parse(localStorage.getItem(OB_KEY)||'{}');}c
 function _obSet(k){const f=_obFlags();f[k]=true;localStorage.setItem(OB_KEY,JSON.stringify(f));}
 function obSeen(k){return !!_obFlags()[k];}
 function obReset(){localStorage.removeItem(OB_KEY);}
-// V3.10.38: Rigioca l'intera sequenza di onboarding immediatamente (senza logout/login).
-// Usata dal bottone "Rivedi tutti i badge e tutorial" nel profilo utente.
-function replayAllOnboarding(){
-  // 1. Reset di tutti i flag di onboarding in localStorage
-  obReset();
-  // 2. Sanity cleanup: rimuovi eventuali overlay di tour/popup attualmente aperti
-  document.getElementById('ob-tour-overlay')?.remove();
-  document.getElementById('popup-add-home')?.remove();
-  _obCurrentTour=null;_obCurrentSlide=0;
-  // 3. Determina il tipo utente corrente
-  const cu=store.currentUser;
-  if(!cu){showToast('Devi essere loggato per rivedere i tutorial.');return;}
-  const isOrganizer=store.managers.some(m=>m.id===cu.id);
-  const userType=isOrganizer?'organizer':'user';
-  // 4. Parte subito la sequenza: popup "Aggiungi a Home" (se mobile) + welcome tour
-  showToast('🔄 Rieseguo la guida di benvenuto...');
-  setTimeout(()=>_showOnboardingSequence(userType),400);
-}
+// V4.4.0: replayAllOnboarding rimossa. Il bottone che la richiamava è stato eliminato dal profilo utente
+// e non esiste un equivalente nel profilo organizzatore. obReset() continua a esistere come helper
+// per eventuali operazioni di debug/sviluppo.
 
 /* ==============================
    NOTIFICATION BADGE SYSTEM (V3.4.0)
@@ -3108,12 +3088,7 @@ function dismissTierBanner(){
 // === TOUR DEFINITIONS ===
 const OB_TOURS={
   // --- WELCOME TOUR (post-registration) ---
-  tour_welcome:{
-    slides:[
-      {icon:'👋',title:'Benvenuto su BodyEvents!',text:'Questa piattaforma è una <b>bacheca comunitaria</b> dove puoi scoprire eventi, proporne di nuovi e organizzare attività. L\'obiettivo è offrire un <b>palinsesto il più ampio possibile</b>, rappresentando diverse comunità e i loro eventi.'},
-      {icon:'🌌',title:'Gli Universi',text:'Gli eventi sono organizzati in <b>universi tematici</b>: ogni universo raccoglie un\'area di pratica o interesse (es. AcroYoga, Danza, Yoga...). All\'interno di ogni universo trovi diverse tipologie: <b>lezioni, workshop, jam, ritiri</b> e altro. Iscrivendoti agli universi che ti interessano, vedrai i relativi eventi nella home.'}
-    ]
-  },
+  // V4.4.0: tour_welcome (lato utente) rimosso. Resta solo tour_welcome_org (lato organizer).
   tour_welcome_org:{
     slides:[
       {icon:'👋',title:'Benvenuto su BodyEvents!',text:'Questa piattaforma è una <b>bacheca comunitaria</b> per scoprire, proporre e organizzare eventi. Qui puoi gestire il tuo palinsesto, condividere informazioni logistiche e raggiungere le diverse comunità.'},
@@ -3183,12 +3158,9 @@ const OB_TOURS={
 };
 
 // === INFO CARD DEFINITIONS ===
+// V4.4.0: rimosse le info cards lato utente (ic_event_detail_pricing, ic_event_detail_tiers,
+// ic_event_detail_waiting, ic_jam_create). Restano solo le info cards admin.
 const OB_INFOCARDS={
-  ic_event_detail_pricing:{icon:'💡',text:'Questo evento ha <b>più giornate</b>. Puoi prenotare l\'<b>intero pacchetto</b> oppure le <b>singole giornate</b>, ognuna con le proprie sessioni e prezzi.'},
-  ic_event_detail_tiers:{icon:'💜',text:'Questo evento offre <b>3 livelli di prezzo</b>: ✦ Sostenitore, ● Standard, ○ Ridotto: l\'esperienza è <b>identica</b> per tutti. Se questa volta sceglierai il prezzo <b>Sostenitore</b>, contribuirai alla partecipazione di chi, in questo periodo, senza il prezzo Ridotto avrebbe deciso di rinunciare. Attraverso questa piattaforma l\'organizzatore e gli altri utenti <b>non visualizzeranno</b> quale livello di prezzo hai scelto: si tratta di una <b>scelta etica libera</b>, che puoi cambiare volta per volta.'},
-
-  ic_event_detail_waiting:{icon:'⏳',text:'Questo evento richiede un <b>numero minimo di partecipanti</b>. Se non viene raggiunto entro la deadline, potrebbe essere annullato.'},
-  ic_jam_create:{icon:'💡',text:'Stai creando un <b>Community Event</b>. Scegli universo, luogo, data e orario. Puoi impostare un numero minimo: l\'evento sarà confermato solo al raggiungimento.'},
   ic_admin_community:{icon:'💡',text:'Qui puoi <b>moderare i Community Events</b> proposti dagli utenti. Come organizzatore puoi visualizzare, modificare o annullare gli eventi comunitari legati ai tuoi universi.'},
   ic_admin_new_event:{icon:'💡',text:'Ogni evento può avere più <b>giornate</b>, e ogni giornata più <b>sessioni</b>. Le sessioni hanno orari, prezzi e numero minimo iscritti propri. Apri 📋 <b>Aggiungi Sondaggio</b> per creare domande personalizzate.'}
 };
@@ -3280,24 +3252,28 @@ function _showAddToHomePopup(onComplete){
   document.body.appendChild(el);
 }
 
-// === ONBOARDING SEQUENCE ORCHESTRATOR (V3.10.38) ===
-// Ordine: prima "Aggiungi a Home", poi welcome tour adeguato al tipo utente.
+// === ONBOARDING SEQUENCE ORCHESTRATOR (V3.10.38 / V4.4.0) ===
+// Ordine: prima "Aggiungi a Home", poi welcome tour (solo per organizer).
+// V4.4.0: il welcome tour lato utente è stato rimosso. Per userType='user',
+// runTour diventa un no-op: parte solo il popup "Aggiungi a Home" (se mobile e non già visto).
 // userType: 'user' | 'organizer'
 function _showOnboardingSequence(userType){
-  const tourKey=(userType==='organizer')?'tour_welcome_org':'tour_welcome';
-  // Funzione helper: parte il tour di benvenuto
-  const runTour=()=>{obShowTour(tourKey);};
+  const isOrganizer=(userType==='organizer');
+  // Funzione helper: parte il tour di benvenuto SOLO per organizer (lato utente rimosso in V4.4.0)
+  const runTour=()=>{
+    if(isOrganizer)obShowTour('tour_welcome_org');
+  };
   // Il popup "Aggiungi a Home" ha senso solo su mobile e se non già mostrato/installato
   const canShowAddHome=
     window.innerWidth<=768 &&
     !obSeen('popup_add_home') &&
     !(window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone);
   if(!canShowAddHome){
-    // Desktop, oppure già visto, oppure già installato → vai direttamente al tour
+    // Desktop, oppure già visto, oppure già installato → vai direttamente al tour (no-op per utenti)
     runTour();
     return;
   }
-  // Mostra popup "Aggiungi a Home"; alla chiusura, parte il tour
+  // Mostra popup "Aggiungi a Home"; alla chiusura, parte il tour (no-op per utenti)
   _showAddToHomePopup(runTour);
 }
 
@@ -3324,7 +3300,10 @@ function obDismissCard(key,btn){
 // === HELP BUTTON (removed in V2.8.9) ===
 function obShowHelpBtn(){}
 
-// === FAB INFO BUTTON (V3.0.0) ===
+// === FAB INFO BUTTON (V3.0.0 / V4.4.0) ===
+// V4.4.0: tooltip e pulse animation RIMOSSI lato utente. Il FAB resta comunque visibile e cliccabile,
+// navigando a 'info-page' al click. Per gli admin/organizer il tooltip "Guida organizzatore"
+// e la pulse animation al primo passaggio rimangono invariati.
 const FAB_SEEN_KEY='bodyevents_fab_tooltip_seen';
 function showInfoFab(){
   const fab=document.getElementById('info-fab');if(!fab)return;
@@ -3339,19 +3318,23 @@ function showInfoFab(){
   fab.style.display='flex';
   // Set correct target based on context
   fab.onclick=function(){dismissInfoFabTooltip();go(isAdmin?'info-page-organizer':'info-page');};
-  // Tooltip: show only once per context (separate keys for user/admin)
-  const seenKey=isAdmin?'bodyevents_fab_org_tooltip_seen':FAB_SEEN_KEY;
+  // V4.4.0: tooltip/pulse SOLO in contesto admin. Lato utente: nessun tooltip, nessuna pulse.
   const tt=document.getElementById('info-fab-tooltip');
-  if(!localStorage.getItem(seenKey)){
-    if(tt){
-      tt.style.display='block';
-      tt.querySelector('.tt-text').innerHTML=isAdmin
-        ?'<strong style="color:var(--brand-l)">Guida organizzatore</strong><br>Scopri tutti gli strumenti per gestire i tuoi eventi!'
-        :'<strong style="color:var(--brand-l)">Nuovo su BodyEvents?</strong><br>Scopri come funziona la piattaforma!';
+  if(isAdmin){
+    const seenKey='bodyevents_fab_org_tooltip_seen';
+    if(!localStorage.getItem(seenKey)){
+      if(tt){
+        tt.style.display='block';
+        tt.querySelector('.tt-text').innerHTML='<strong style="color:var(--brand-l)">Guida organizzatore</strong><br>Scopri tutti gli strumenti per gestire i tuoi eventi!';
+      }
+      fab.classList.add('fab-pulse');
+    } else {
+      // Hide tooltip and pulse if already seen in this context
+      if(tt)tt.style.display='none';
+      fab.classList.remove('fab-pulse');
     }
-    fab.classList.add('fab-pulse');
   } else {
-    // Hide tooltip and pulse if already seen in this context
+    // isUser (lato utente, V4.4.0): FAB visibile e cliccabile ma SENZA tooltip e SENZA pulse
     if(tt)tt.style.display='none';
     fab.classList.remove('fab-pulse');
   }
@@ -16984,13 +16967,8 @@ async function showEventDetail(evId,recDate){
   go('event-detail-dynamic');
   // Replace history state with detail parameters for browser back support
   if(!_isPopState) history.replaceState({view:'event-detail-dynamic',eventId:evId,recDate:recDate||null,mode:currentMode},'',' ');
-  // Show onboarding info cards for event detail
-  setTimeout(()=>{
-    if(ev.days&&ev.days.length>1)obShowInfoCard('ic_event_detail_pricing','dynamic-event-detail');
-    // Tier ethics banner — REMOVED (user request)
-
-    if(evConfirmStatus==='attesa')obShowInfoCard('ic_event_detail_waiting','dynamic-event-detail');
-  },300);
+  // V4.4.0: info cards utente rimosse (ic_event_detail_pricing, ic_event_detail_waiting).
+  // Il setTimeout è stato eliminato perché conteneva solo call site lato utente ora rimossi.
 }
 
 /* Auto-purge cancelled events older than 10 days */
@@ -25173,9 +25151,12 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 <!-- FAB Info Button -->
 <div id="info-fab" style="display:none">ℹ️</div>
+<!-- V4.4.0: tooltip default content svuotato. Il .tt-text viene popolato dinamicamente
+     SOLO nel ramo admin di showInfoFab() con il copy "Guida organizzatore". Lato utente
+     il tooltip resta sempre display:none e non viene mai visualizzato. -->
 <div id="info-fab-tooltip" style="display:none">
   <span style="position:absolute;top:6px;right:8px;font-size:.7rem;color:var(--txt3);cursor:pointer;padding:2px 4px" onclick="event.stopPropagation();dismissInfoFabTooltip()">✕</span>
-  <div class="tt-text" style="font-size:.78rem;color:var(--txt2);line-height:1.4"><strong style="color:var(--brand-l)">Nuovo su BodyEvents?</strong><br>Scopri come funziona!</div>
+  <div class="tt-text" style="font-size:.78rem;color:var(--txt2);line-height:1.4"></div>
 </div>
 
 </body>
