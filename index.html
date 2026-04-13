@@ -2866,7 +2866,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.7.0';
+const APP_VERSION='V4.9.0';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -4615,6 +4615,10 @@ async function loadAllData(forceReload){
       fsSet('universes','univ_acro',acroUniv).catch(console.error);
     }
     _dataLoaded=true;
+    // V4.9.0: Auto-conclude e auto-archive subito dopo il caricamento dati.
+    // Spostati qui da DOMContentLoaded perché lì store.events poteva essere ancora vuoto (race condition con onAuthStateChanged).
+    autoConcludeEvents();
+    _autoArchiveConcludedEvents();
     _cleanupReadAlerts(); // V3.4.0: Cleanup stale notification data
     console.log('[BE_INIT] loadAllData: completed. Managers:',store.managers.length,', Events:',store.events.length);
     setTimeout(()=>updateNotificationBadges(),100); // V3.4.0: Update notification badges after data load
@@ -25020,9 +25024,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(el&&!el.value) el.value=today;
   });
 
-  // Auto-conclude events whose last day has passed (midnight)
-  autoConcludeEvents();
-  _autoArchiveConcludedEvents();
+  // V4.9.0: autoConcludeEvents() e _autoArchiveConcludedEvents() spostati dentro loadAllData()
+  // per garantire che store.events sia già popolato quando girano (fix race condition timing).
   _purgeInsuranceSurveyData(); // V3.10.16: Auto-purge insurance survey data
 
   // Tier suggestion banner — delegated listener on price/cost fields
