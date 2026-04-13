@@ -2866,7 +2866,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.9.0';
+const APP_VERSION='V4.10.0';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -12415,6 +12415,10 @@ function _doBookNormal(){
       </div>
     </div>`;
   }
+  // V4.10.0: Detect cash-only payment (no links, no bank transfer)
+  const _pmHasLinks=!!(ev.paymentMethods.paypal||ev.paymentMethods.revolut||ev.paymentMethods.satispay);
+  const _pmHasBankTransfer=!!(ev.paymentMethods.bankTransfer&&ev.paymentMethods.bankTransfer.enabled);
+  const _isCashOnly=!!ev.paymentMethods.cash&&!_pmHasLinks&&!_pmHasBankTransfer;
   let depositHtml='';
   const needsDeposit=ev.deposit&&ev.deposit.required&&ev.deposit.amount>0;
   if(needsDeposit){
@@ -12449,8 +12453,8 @@ function _doBookNormal(){
         ${_depBtHtml}
       </div>
       <div style="padding:8px 14px;border-radius:8px;background:rgba(16,185,129,.06);border-left:3px solid #10b981;display:flex;align-items:center;gap:8px;margin-top:10px;margin-bottom:10px">
-        <span style="font-size:.85rem">ℹ️</span>
-        <p style="font-size:.75rem;color:var(--txt2);line-height:1.5;margin:0">Link di pagamento e dettagli sempre disponibili in <strong style="color:#34d399">Le mie prenotazioni</strong></p>
+        <span style="font-size:.85rem">${_isCashOnly?'💵':'ℹ️'}</span>
+        <p style="font-size:.75rem;color:var(--txt2);line-height:1.5;margin:0">${_isCashOnly?'Il pagamento avverrà <strong style=\"color:#34d399\">in contanti</strong> in sede di evento':'Link di pagamento e dettagli sempre disponibili in <strong style=\"color:#34d399\">Le mie prenotazioni</strong>'}</p>
       </div>
       <div style="background:rgba(234,179,8,.08);border-radius:8px;padding:10px">
         <p class="text-xs" style="color:var(--yellow);line-height:1.6">⏳ Finché l'anticipo non sarà ricevuto e verificato dall'organizzatore, la prenotazione risulterà <strong>in attesa di conferma</strong>.</p>
@@ -12475,8 +12479,8 @@ function _doBookNormal(){
       ${depositHtml}
     </div>
     ${needsDeposit?'':`<div style="padding:8px 14px;border-radius:8px;background:rgba(16,185,129,.06);border-left:3px solid #10b981;display:flex;align-items:center;gap:8px;margin-top:12px">
-      <span style="font-size:.85rem">ℹ️</span>
-      <p style="font-size:.75rem;color:var(--txt2);line-height:1.5;margin:0">Link di pagamento e dettagli sempre disponibili in <strong style="color:#34d399">Le mie prenotazioni</strong></p>
+      <span style="font-size:.85rem">${_isCashOnly?'💵':'ℹ️'}</span>
+      <p style="font-size:.75rem;color:var(--txt2);line-height:1.5;margin:0">${_isCashOnly?'Il pagamento avverrà <strong style="color:#34d399">in contanti</strong> in sede di evento':'Link di pagamento e dettagli sempre disponibili in <strong style="color:#34d399">Le mie prenotazioni</strong>'}</p>
     </div>`}
     <div class="flex gap-3 mt-6" style="justify-content:flex-end">
       <button class="btn btn-ghost btn-sm" id="bookCancel">Annulla</button>
@@ -20084,6 +20088,17 @@ function resetForm(){
   ['ne-sub-bookable-opts','ne-sub-discount-opts','ne-loyalty-discount-opts','ne-deposit-opts'].forEach(optsId=>{
     const el=document.getElementById(optsId);if(el&&!el.classList.contains('hidden'))el.classList.add('hidden');
   });
+  // V4.10.0: Reset bank transfer toggle (was missing — state leaked between edits)
+  const _btCbR=document.getElementById('ne-bank-transfer');
+  const _btBtnR=document.getElementById('ne-bank-transfer-btn');
+  const _btFieldsR=document.getElementById('ne-bank-transfer-fields');
+  if(_btCbR)_btCbR.checked=false;
+  if(_btBtnR){_btBtnR.style.background='var(--s200)';_btBtnR.style.color='var(--txt2)';_btBtnR.style.borderColor='var(--s400)';_btBtnR.textContent='🏦 Bonifico bancario';}
+  if(_btFieldsR&&!_btFieldsR.classList.contains('hidden'))_btFieldsR.classList.add('hidden');
+  // V4.10.0: Reset bank transfer field values
+  const _btIbanR=document.getElementById('ne-bank-iban');if(_btIbanR)_btIbanR.value='';
+  const _btHolderR=document.getElementById('ne-bank-holder');if(_btHolderR)_btHolderR.value='';
+  const _btNotesR=document.getElementById('ne-bank-notes');if(_btNotesR)_btNotesR.value='';
   syncToggleBtns();
   // B5: Only trigger pricing mode change on new events, not during edit setup
   // (editEvent will call onPricingModeChange itself after setting pricing checkboxes)
