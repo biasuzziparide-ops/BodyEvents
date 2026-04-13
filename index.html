@@ -2866,7 +2866,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.11.0';
+const APP_VERSION='V4.13.0';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -16250,8 +16250,8 @@ function showOrgPublicProfile(managerId){
 ============================== */
 async function showEventDetail(evId,recDate){
   const ev=store.events.find(e=>e.id===evId);if(!ev)return;
-  // V3.10.40 FIX: Non-blocking bookings preload for Jam/Community participant list
-  if((ev.type==='jam'||ev.type==='social')&&!_bookingsLoaded&&!_eventBookingsLoadedSet.has(evId)){
+  // V4.13.0 FIX: Non-blocking bookings preload for ALL event types (was jam/social only → confirmation count broken for lezione/workshop)
+  if(!_bookingsLoaded&&!_eventBookingsLoadedSet.has(evId)){
     ensureEventBookingsLoaded(evId).then(()=>{
       // Refresh detail only if user is still viewing this event
       if(currentView==='event-detail-dynamic'&&currentBookingEventId===evId){
@@ -23870,8 +23870,8 @@ function getRecurringDateTabs(ev){
     const dp=new Date(today.getFullYear()-1,evStart.getMonth(),evStart.getDate());
     const dpStr=localDateStr(dp);if(!isExcl(dpStr)&&(!_eventStartDate||dpStr>=_eventStartDate))pastDates.push(dpStr);
   }
-  // Future dates (next 2)
-  const futureDates=getNextRecurringDates(ev,2);
+  // V4.13.0: All future dates (aligned with expandRecurringForList — safety limits in getNextRecurringDates prevent runaway)
+  const futureDates=getNextRecurringDates(ev,Infinity);
   const allDates=[...pastDates,...futureDates];
   if(!allDates.length)return null;
   // Default: if today's session just ended, default to today so organizer sees tonight's list
