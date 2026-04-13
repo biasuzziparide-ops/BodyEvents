@@ -1583,9 +1583,9 @@ textarea.input{resize:none;font-family:inherit}
               </div>
               <!-- V3.10.45: End date for recurrence -->
               <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--s300)">
-                <label class="label">📅 Data fine ricorrenza <span class="text-xs txt3">(opzionale)</span></label>
-                <p class="text-xs txt3 mb-2">Le ricorrenze verranno generate solo fino a questa data. Lascia vuoto per ricorrenza illimitata.</p>
-                <input type="date" class="input" id="ne-rec-end-date" style="max-width:200px">
+                <label class="label">📅 Data fine ricorrenza <span class="text-xs" style="color:var(--red)">*</span></label>
+                <p class="text-xs txt3 mb-2">Indica fino a quando l'evento si ripeterà. Le ricorrenze verranno generate solo fino a questa data.</p>
+                <input type="date" class="input" id="ne-rec-end-date" style="max-width:200px" required>
               </div>
             </div>
           </div>
@@ -2866,7 +2866,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.10.0';
+const APP_VERSION='V4.11.0';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -13571,7 +13571,7 @@ async function renderUserEvents(){
   // Update count
   const rc2=document.getElementById('filter-results-count');
   if(rc2){
-    const totalAll=store.events.filter(e=>e.status==='pubblicato'&&!(e.alert&&e.alert.type==='cancellato')&&!(e.adminSuspension&&e.adminSuspension.suspended)).length+store.communityJams.filter(j=>j.status!=='cancellato'&&!(j.alert&&j.alert.type==='cancellato')&&j.date>=localDateStr(new Date())).length;
+    const totalAll=allCards.length;
     const shownCount=Math.min(visibleCards.length,allCards.length);
     rc2.textContent=shownCount===totalAll?totalAll+' eventi disponibili':shownCount+' di '+totalAll+' eventi';
   }
@@ -17963,8 +17963,9 @@ function expandRecurringForList(events){
       else if(!ev.days||!ev.days.length)result.push(ev);
       return;
     }
-    // Recurring: generate next 2 virtual instances (V2.13.0)
-    const dates=getNextRecurringDates(ev,2);
+    // V4.11.0: Generate ALL future instances (was limited to 2 in V2.13.0).
+    // endDate is now mandatory → finite set. Safety limits in getNextRecurringDates() prevent runaway.
+    const dates=getNextRecurringDates(ev,Infinity);
     dates.forEach(dateStr=>{
       const exc=(ev.recurrence.exceptions||{})[dateStr];
       // Deep-clone days/sessions/tiers to avoid cross-instance mutation
@@ -21630,6 +21631,29 @@ function saveAsDraft(){
 }
 function publishNewEvent(){
   const ev=collectFormData();if(!ev)return;
+  // V4.11.0: Recurrence end date is mandatory for publishing
+  if(document.getElementById('ne-recurrence')?.checked){
+    const recEndVal=document.getElementById('ne-rec-end-date')?.value;
+    if(!recEndVal){
+      showToast('Inserisci una data di fine ricorrenza','error');
+      document.getElementById('ne-rec-end-date')?.focus();
+      return;
+    }
+    // Validate end date is after event start date (not just today)
+    const _evStartDate=document.getElementById('ne-event-start-date')?.value;
+    if(_evStartDate&&recEndVal<_evStartDate){
+      showToast('La data di fine ricorrenza deve essere uguale o successiva alla data di inizio evento','error');
+      document.getElementById('ne-rec-end-date')?.focus();
+      return;
+    }
+    // Also validate not in the past
+    const _todayV=localDateStr(new Date());
+    if(recEndVal<_todayV){
+      showToast('La data di fine ricorrenza deve essere oggi o nel futuro','error');
+      document.getElementById('ne-rec-end-date')?.focus();
+      return;
+    }
+  }
   ensureEventCoords(ev);
   if(editingEventId){
     // Permission check: only capofila can publish edits
