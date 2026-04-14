@@ -2866,7 +2866,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.13.0';
+const APP_VERSION='V4.14.0';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -16863,7 +16863,39 @@ async function showEventDetail(evId,recDate){
             participantsHtml+='</div>';
           }
         }
-        return '<div class="card mb-4" style="border:2px solid var(--green);background:rgba(16,185,129,.04)">'
+        // V4.14.0: Post-booking confirmation status banner (permette all'utente iscritto di monitorare se l'evento si confermerà)
+        // EDGE CASE: quando il fallback myBooking a riga 16791-16793 si attiva, _detRecDate è null ma myBooking.recurringDate può esistere.
+        // Usiamo _effectiveRecDate per ricavare la data corretta dal booking stesso, evitando conteggio gonfiato per ricorrenze.
+        const _effectiveRecDate=_detRecDate||(myBooking.recurringDate||null);
+        let _bookedConfirmBanner='';
+        const _myConfirmStatus=getConfirmationStatus(ev,_effectiveRecDate);
+        if(_myConfirmStatus==='attesa'){
+          const _maxNeeded=getMinNeeded(ev);
+          const _isRec=!!(ev.recurrence&&ev.recurrence.active);
+          const current=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata'&&(!_isRec||!_effectiveRecDate||(b.recurringDate||null)===_effectiveRecDate||!b.recurringDate)).length;
+          _bookedConfirmBanner=`<div class="card mb-4" style="background:rgba(234,179,8,.08);border-color:var(--yellow);padding:16px">
+            <div class="flex items-center gap-3 mb-2"><span style="font-size:1.5rem">⏳</span><h3 class="font-bold" style="color:var(--yellow)">In attesa di conferma</h3></div>
+            <p class="text-sm" style="color:var(--txt);line-height:1.6">Questo evento sarà confermato al raggiungimento di <strong style="color:var(--yellow)">${_maxNeeded} iscritti</strong>. Attualmente: <strong>${current}/${_maxNeeded}</strong></p>
+            <div class="mt-2" style="background:var(--s200);border-radius:8px;height:8px;overflow:hidden"><div style="height:100%;background:var(--yellow);border-radius:8px;width:${Math.min(100,Math.round(current/_maxNeeded*100))}%;transition:width .3s"></div></div>
+          </div>`;
+        } else if(_myConfirmStatus==='deadline_scaduta'){
+          const _maxNeeded=getMinNeeded(ev);
+          const _isRec=!!(ev.recurrence&&ev.recurrence.active);
+          const current=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata'&&(!_isRec||!_effectiveRecDate||(b.recurringDate||null)===_effectiveRecDate||!b.recurringDate)).length;
+          _bookedConfirmBanner=`<div class="card mb-4" style="background:var(--red-bg);border-color:var(--red);padding:16px">
+            <div class="flex items-center gap-3 mb-2"><span style="font-size:1.5rem">🚫</span><h3 class="font-bold" style="color:var(--red)">Deadline scaduta — numero minimo non raggiunto</h3></div>
+            <p class="text-sm" style="color:var(--txt);line-height:1.6">Servivano <strong style="color:var(--red)">${_maxNeeded} iscritti</strong>. Raggiunti: <strong>${current}/${_maxNeeded}</strong>. In attesa di decisione dell'organizzatore.</p>
+            <div class="mt-2" style="background:var(--s200);border-radius:8px;height:8px;overflow:hidden"><div style="height:100%;background:var(--red);border-radius:8px;width:${Math.min(100,Math.round(current/_maxNeeded*100))}%"></div></div>
+          </div>`;
+        } else if(_myConfirmStatus==='confermato'){
+          const _confirmedManually=ev.confirmedByOrganizer;
+          _bookedConfirmBanner=`<div class="card mb-4" style="background:rgba(16,185,129,.08);border-color:var(--green);padding:16px;text-align:center">
+            <span style="font-size:1.5rem">✅</span>
+            <h3 class="font-bold mt-1" style="color:var(--green)">EVENTO CONFERMATO</h3>
+            <p class="text-xs txt3 mt-1">${_confirmedManually?'L\'organizzatore ha confermato questo evento':'Numero minimo di iscritti raggiunto'}</p>
+          </div>`;
+        }
+        return _bookedConfirmBanner+'<div class="card mb-4" style="border:2px solid var(--green);background:rgba(16,185,129,.04)">'
           +'<div class="flex items-center gap-2 mb-4"><span style="font-size:1.5rem">✅</span><div><h3 class="font-bold" style="color:var(--green)">Sei iscritto!</h3><p class="text-xs txt3">Prenotazione del '+myBooking.bookedAt+'</p></div></div>'
           +'<div style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px">'
           +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
