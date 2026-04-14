@@ -2871,7 +2871,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.15.1';
+const APP_VERSION='V4.16.0';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -2908,7 +2908,8 @@ function _getReadAlerts(){
   try{const uid=store.currentUser?.id;if(!uid)return {};return JSON.parse(localStorage.getItem(READ_ALERTS_KEY+uid)||'{}');}catch(e){return {};}
 }
 
-function _markEventRead(eventId){
+function _markEventRead(eventId,recDate){
+  // V4.16.0: ora accetta recDate per salvare snapshot per-occorrenza del confirmation status
   const uid=store.currentUser?.id;if(!uid)return;
   const data=_getReadAlerts();
   const ev=store.events.find(e=>e.id===eventId);if(!ev)return;
@@ -2922,6 +2923,10 @@ function _markEventRead(eventId){
       if(dn?.text) data[eventId]['noteSeen_'+dk]=dn.updatedAt||'';
     });
   }
+  // V4.16.0: snapshot confirmation stamp type per-occorrenza (o globale se non ricorrente)
+  const _stampType=_getBookingStampType(ev,recDate||null);
+  const _key=recDate?('confirmSeen_'+recDate):'confirmSeen';
+  data[eventId][_key]=_stampType||'none';
   localStorage.setItem(READ_ALERTS_KEY+uid,JSON.stringify(data));
   updateNotificationBadges();
 }
@@ -2979,7 +2984,9 @@ function _countUnreadBookings(){
   let count=0;
   const counted=new Set();
   myBookings.forEach(b=>{
-    if(!counted.has(b.eventId)&&_isEventUnread(b.eventId)){count++;counted.add(b.eventId);}
+    // V4.16.0: conta anche cambi di stato conferma (OR con _isEventUnread)
+    if(counted.has(b.eventId))return;
+    if(_isEventUnread(b.eventId)||_isBookingConfirmChanged(b)){count++;counted.add(b.eventId);}
   });
   // V3.10.30: Count unread jam creatorNotes for jams user is joined to
   store.communityJams.forEach(jam=>{
@@ -2990,6 +2997,47 @@ function _countUnreadBookings(){
   return count;
 }
 
+// V4.16.0: calcola il tipo di stamp corrente per un evento+recDate
+// Ritorna uno di: 'min_attesa_pre', 'min_raggiunto_pre', 'confermato_post', 'in_attesa_aggiornamento', null
+function _getBookingStampType(ev,recDate){
+  if(!ev)return null;
+  if(['concluso','archiviato','bozza','cancellato'].includes(ev.status))return null;
+  if(ev.alert&&(ev.alert.type==='cancellato'||ev.alert.type==='rimandato'))return null;
+  const status=getConfirmationStatus(ev,recDate||null);
+  if(!status)return null;
+  const dl=getEffectiveBookingDeadline(ev,recDate||null);
+  const deadlinePassed=dl?(new Date()>_parseDeadlineToDate(dl)):false;
+  if(status==='confermato')return deadlinePassed?'confermato_post':'min_raggiunto_pre';
+  if(status==='attesa')return 'min_attesa_pre';
+  if(status==='deadline_scaduta')return 'in_attesa_aggiornamento';
+  return null;
+}
+// V4.16.0: rileva se lo stato di conferma della prenotazione è cambiato rispetto a lastSeen
+function _isBookingConfirmChanged(booking){
+  if(!booking||booking.status==='cancellata')return false;
+  const ev=store.events.find(e=>e.id===booking.eventId);
+  if(!ev)return false;
+  const currentType=_getBookingStampType(ev,booking.recurringDate||null);
+  if(currentType==null)return false;
+  const data=_getReadAlerts();
+  const evData=data[booking.eventId];
+  if(!evData)return false;
+  const key=booking.recurringDate?('confirmSeen_'+booking.recurringDate):'confirmSeen';
+  const seen=evData[key];
+  if(seen===undefined)return false;
+  return seen!==currentType;
+}
+// V4.16.0: costruisce HTML dello stamp rotato per un tipo di stato
+function _buildConfirmStampHtml(stampType){
+  const _cfg={
+    'min_attesa_pre':{bg:'linear-gradient(135deg,#f97316,#c2410c)',sh:'rgba(249,115,22,.5)',icon:'⏳',label:'MIN. IN ATTESA'},
+    'min_raggiunto_pre':{bg:'linear-gradient(135deg,#3b82f6,#1d4ed8)',sh:'rgba(59,130,246,.5)',icon:'✓',label:'MIN. RAGGIUNTO'},
+    'confermato_post':{bg:'linear-gradient(135deg,#10b981,#047857)',sh:'rgba(16,185,129,.5)',icon:'✅',label:'CONFERMATO'},
+    'in_attesa_aggiornamento':{bg:'linear-gradient(135deg,#ef4444,#b91c1c)',sh:'rgba(239,68,68,.5)',icon:'⚖️',label:'IN ATTESA DI AGGIORNAMENTO'}
+  };
+  const c=_cfg[stampType];if(!c)return '';
+  return `<div style="position:absolute;top:4px;right:0;z-index:10;transform:rotate(10deg);background:${c.bg};color:#fff;font-size:.6rem;font-weight:800;letter-spacing:1px;padding:4px 12px 4px 8px;border-radius:5px;box-shadow:0 3px 12px ${c.sh};border:1.5px solid rgba(255,255,255,.2);display:flex;align-items:center;gap:4px"><span style="font-size:.85rem">${c.icon}</span> ${c.label}</div>`;
+}
 function updateNotificationBadges(){
   const count=_countUnreadBookings();
   const navSelectors=[
@@ -11786,6 +11834,7 @@ async function doBook(){
       };
       pushBookingSafe(newBooking);
       await fsSet('bookings',newBooking.id,newBooking).catch(console.error);
+      _markEventRead(newBooking.eventId,newBooking.recurringDate||null); // V4.16.0: init lastSeen
       _ownOverlay.remove();
       _maybeAutoCheckin(newBooking);
       showToast('Iscrizione confermata!');
@@ -11984,6 +12033,7 @@ async function bookWithSubscription(subId,eventId){
       };
       pushBookingSafe(newBooking);
       await fsSet('bookings',newBooking.id,newBooking).catch(console.error);
+      _markEventRead(newBooking.eventId,newBooking.recurringDate||null); // V4.16.0: init lastSeen
       o.remove();
       _maybeAutoCheckin(newBooking);
       showToast('Prenotazione confermata con abbonamento! 🎟️');
@@ -12012,6 +12062,7 @@ async function bookWithSubscription(subId,eventId){
   };
   pushBookingSafe(newBooking);
   await fsSet('bookings',newBooking.id,newBooking).catch(console.error);
+  _markEventRead(newBooking.eventId,newBooking.recurringDate||null); // V4.16.0: init lastSeen
   _maybeAutoCheckin(newBooking);
   showToast('Prenotazione confermata con abbonamento! 🎟️');
   go('booking-done');
@@ -12174,6 +12225,7 @@ function _doBookNormal(){
       };
       pushBookingSafe(newBooking);
       fsSet('bookings',newBooking.id,newBooking).catch(console.error);
+      _markEventRead(newBooking.eventId,newBooking.recurringDate||null); // V4.16.0: init lastSeen
       o.remove();
       _maybeAutoCheckin(newBooking);
       showToast(evIsFree?'Iscrizione confermata!':(managedNeedsDeposit?'Prenotazione registrata — invia l\'anticipo per confermare!':'Interesse registrato — l\'organizzatore ti contatterà!'));
@@ -12629,6 +12681,7 @@ function _doBookNormal(){
     };
     pushBookingSafe(newBooking);
     fsSet('bookings',newBooking.id,newBooking).catch(console.error);
+    _markEventRead(newBooking.eventId,newBooking.recurringDate||null); // V4.16.0: init lastSeen
     _maybeAutoCheckin(newBooking);
     o.remove();
     showToast(needsDeposit?'Prenotazione registrata! Ricorda di versare l\'anticipo.':'Prenotazione confermata!');
@@ -13947,6 +14000,13 @@ async function renderUserDashboard(){
     // V3.4.0: Notification badge on card
     const _isUnread=_isEventUnread(ev.id);
     const _unreadBadge=_isUnread?'<span class="notif-card-badge" style="margin-left:auto">\u{1F4E2} Novit\u00e0</span>':'';
+    // V4.16.0: confirmation status stamp (rotated top-right). Guardrail esplicito contro cancellato/rimandato per difesa in profondità.
+    let confirmStamp='';
+    const _confSuppress=(hasAlert&&(alertType==='cancellato'||alertType==='rimandato'))||(hasAlert&&_isUnread);
+    if(!_confSuppress){
+      const _confType=_getBookingStampType(ev,b.recurringDate||null);
+      if(_confType)confirmStamp=_buildConfirmStampHtml(_confType);
+    }
 
     // V3.10.14: Alert stamp badge (Opzione B — rotated stamp top-right)
     // V3.10.15: Only show stamp when unread (disappears after user opens detail)
@@ -14111,7 +14171,7 @@ async function renderUserDashboard(){
     })();
 
     html+=`<div class="card-hover mb-4" style="border-radius:16px;overflow:hidden;padding:0;border-color:${borderColor};background:${bgColor};position:relative${alertType==='cancellato'?';opacity:.8':''}" onclick="showEventDetail('${ev.id}'${b.recurringDate?`,'${b.recurringDate}'`:''})">
-      ${alertStamp}${orgNoticeBadge}
+      ${alertStamp}${orgNoticeBadge}${confirmStamp}
       <div style="display:flex;align-items:stretch;position:relative;z-index:2">
         ${_uniStrip}
         <div style="flex:1;min-width:0;padding:14px 16px;display:flex;flex-direction:column;gap:0">
@@ -16338,7 +16398,7 @@ async function showEventDetail(evId,recDate){
   // Ensure insurances are loaded before rendering (fix: users couldn't see their valid insurance)
   if(!_insurancesLoaded) await ensureInsurancesLoaded();
   // V3.4.0: Mark event as read (dismiss notification badge)
-  _markEventRead(evId);
+  _markEventRead(evId,recDate);
   // Reset tier selections for a clean booking
   Object.keys(selectedTiers).forEach(k=>delete selectedTiers[k]);
   selectedBookRole='';
