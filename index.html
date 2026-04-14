@@ -1555,10 +1555,15 @@ textarea.input{resize:none;font-family:inherit}
       <div style="padding-top:12px;border-top:1px solid var(--s300)" class="mb-4">
         <div class="grid grid-2 gap-3">
           <div id="ne-deadline-wrap">
-            <div id="ne-deadline-date-mode"><label class="label">🔒 Prenotazioni chiudono il</label><input class="input" id="ne-booking-deadline" type="date" onchange="validateBookingDeadline(this)">
-            <p class="text-xs txt3 mt-1" id="ne-deadline-hint">Lascia vuoto per chiudere a fine evento.</p></div>
-            <div id="ne-deadline-days-mode" class="hidden"><label class="label">🔒 Chiudi iscrizioni (giorni prima)</label><input class="input" id="ne-booking-deadline-days" type="number" min="0" max="60" placeholder="es. 3" style="max-width:120px">
-            <p class="text-xs txt3 mt-1">Giorni prima di ogni ricorrenza. Lascia vuoto per chiudere all'inizio dell'evento.</p></div>
+            <label class="label">🔒 Chiudi prenotazioni prima dell'inizio evento <span style="color:var(--red)">*</span></label>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <input class="input" id="ne-booking-deadline-value" type="number" min="1" max="8760" value="1" onchange="validateBookingDeadline(this)" style="max-width:100px">
+              <select class="input" id="ne-booking-deadline-unit" onchange="onBookingDeadlineUnitChange()" style="max-width:110px">
+                <option value="hours" selected>ore</option>
+                <option value="days">giorni</option>
+              </select>
+            </div>
+            <p class="text-xs txt3 mt-1" id="ne-deadline-hint">Obbligatorio. Minimo 1 ora, massimo 365 giorni. Default: 1 ora prima.</p>
           </div>
           <div>
             <input type="checkbox" id="ne-recurrence" style="display:none">
@@ -2866,7 +2871,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.14.0';
+const APP_VERSION='V4.15.1';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -8744,8 +8749,12 @@ function buildModificationDiffs(ev){
     if((prevDep.amount||0)!==(nowDep.amount||0))diffs.push({label:'💰 Importo anticipo',old:'€'+fmtEuro(prevDep.amount||0),now:'€'+fmtEuro(nowDep.amount||0),field:'deposit'});
     if((prevDep.causal||'')!==(nowDep.causal||''))diffs.push({label:'💰 Causale anticipo',old:prevDep.causal||'—',now:nowDep.causal||'rimossa',field:'deposit'});
   }
-  if((prev.bookingDeadline||null)!==(ev.bookingDeadline||null))diffs.push({label:'⏰ Deadline prenotazione',old:prev.bookingDeadline?fmtDate(prev.bookingDeadline):'—',now:ev.bookingDeadline?fmtDate(ev.bookingDeadline):'rimossa',field:'deadline'});
-  if(prev.bookingDeadlineDaysBefore!=null&&prev.bookingDeadlineDaysBefore!==ev.bookingDeadlineDaysBefore)diffs.push({label:'⏰ Deadline (gg prima)',old:prev.bookingDeadlineDaysBefore!=null?prev.bookingDeadlineDaysBefore+' giorni':'—',now:ev.bookingDeadlineDaysBefore!=null?ev.bookingDeadlineDaysBefore+' giorni':'rimossa',field:'deadline'});
+  // V4.15.0: diff unificato su hoursBefore
+  const _prevH=_getEffectiveHoursBefore(prev),_nowH=_getEffectiveHoursBefore(ev);
+  if(_prevH!==_nowH){
+    const _fmt=h=>{if(h<=0)return 'inizio evento';if(h>=24&&h%24===0)return (h/24)+' giorni prima';return h+' ore prima';};
+    diffs.push({label:'⏰ Deadline prenotazione',old:_fmt(_prevH),now:_fmt(_nowH),field:'deadline'});
+  }
   if(prev.days&&ev.days){
     prev.days.forEach((pd,di)=>{
       const nd=ev.days[di];if(!nd)return;
@@ -11226,6 +11235,61 @@ function getEventLevelBadges(ev){
   return '<span class="badge '+badgeLevel(lvl)+'">'+capitalize(lvl)+'</span>';
 }
 function badgeStatus(s){return s==='pubblicato'?'badge-pubblicato':s==='bozza'?'badge-bozza':s==='cancellato'?'badge-cancellato':s==='archiviato'?'badge-archiviato':'badge-concluso';}
+// V4.15.0: helper per ricavare il primo istante di inizio evento/occorrenza
+// Accetta: ev (event), recDate (optional, per ricorrenze)
+// Ritorna: Date object del primo istante, oppure null
+function _getEventFirstStartDate(ev,recDate){
+  const _firstDay=ev.days&&ev.days[0];
+  if(!_firstDay)return null;
+  const _dateStr=recDate||_firstDay.date;
+  if(!_dateStr)return null;
+  let _startTime='00:00';
+  if(_firstDay.sessions&&_firstDay.sessions[0]?.startTime)_startTime=_firstDay.sessions[0].startTime;
+  else if(_firstDay.startTime)_startTime=_firstDay.startTime;
+  return new Date(_dateStr+'T'+_startTime);
+}
+// V4.15.0: ritorna il valore effettivo di "ore prima" considerando priorità nuovo > legacy
+// Se ev non ha alcuna configurazione, ritorna 0 (serve solo per i calcoli runtime; il form ha default 1 via HTML)
+function _getEffectiveHoursBefore(ev){
+  if(ev.bookingDeadlineHoursBefore!=null&&ev.bookingDeadlineHoursBefore!==''){
+    const n=parseInt(ev.bookingDeadlineHoursBefore);
+    if(!isNaN(n))return n;
+  }
+  if(ev.bookingDeadlineDaysBefore!=null&&ev.bookingDeadlineDaysBefore!==''){
+    const n=parseInt(ev.bookingDeadlineDaysBefore);
+    if(!isNaN(n))return n*24;
+  }
+  // Legacy bookingDeadline (data assoluta): calcola ore di anticipo rispetto a first start
+  if(ev.bookingDeadline){
+    const _firstStart=_getEventFirstStartDate(ev,null);
+    if(_firstStart){
+      const _dlStr=ev.bookingDeadline.indexOf('T')>=0?ev.bookingDeadline:(ev.bookingDeadline+'T23:59');
+      const _dl=new Date(_dlStr);
+      const _diffMs=_firstStart.getTime()-_dl.getTime();
+      const _h=Math.round(_diffMs/3600000);
+      return _h>0?_h:0;
+    }
+  }
+  return 0;
+}
+// V4.15.0: ritorna il valore da mostrare nel form per l'edit. Se non c'è configurazione, ritorna 1 (default UX).
+function _getFormDeadlineHoursBefore(ev){
+  const _h=_getEffectiveHoursBefore(ev);
+  return _h>0?_h:1;
+}
+// V4.15.0: formatta una stringa deadline (YYYY-MM-DDTHH:mm) per display utente "17 Apr alle 18:00"
+function _fmtDeadline(dl){
+  if(!dl)return '';
+  if(dl.indexOf('T')<0)return fmtDateShort(dl);
+  const [_d,_t]=dl.split('T');
+  return fmtDateShort(_d)+' alle '+_t.slice(0,5);
+}
+// V4.15.0: parse di una stringa deadline in Date (gestisce legacy date-only → T23:59)
+function _parseDeadlineToDate(dl){
+  if(!dl)return null;
+  const s=dl.indexOf('T')>=0?dl:(dl+'T23:59');
+  return new Date(s);
+}
 function getConfirmationStatus(ev,recDate){
   // V2.13.0: minSubscribers is now at session level
   // Check if any session has minSubscribers > 0
@@ -11249,10 +11313,9 @@ function getConfirmationStatus(ev,recDate){
   if(ev.days)ev.days.forEach(d=>{(d.sessions||[]).forEach(s=>{if(s.minSubscribers&&s.minSubscribers>maxNeeded)maxNeeded=s.minSubscribers;});});
   if(ev.minSubscribers&&ev.minSubscribers.count>maxNeeded)maxNeeded=ev.minSubscribers.count;
   if(bkCount>=maxNeeded)return 'confermato';
-  // Check if booking deadline has expired — V4.1.0: pass recDate for accurate deadline
+  // V4.15.0: datetime-aware comparison
   const dl=getEffectiveBookingDeadline(ev,_recD);
-  const today=localDateStr(new Date());
-  if(dl&&today>dl)return 'deadline_scaduta';
+  if(dl&&new Date()>_parseDeadlineToDate(dl))return 'deadline_scaduta';
   return 'attesa';
 }
 function getMinNeeded(ev){
@@ -11641,8 +11704,8 @@ async function doBook(){
   // Block booking after deadline (uses getEffectiveBookingDeadline for recurring support)
   if (!_skipDeadlineCheck) {
     const _effDeadline=getEffectiveBookingDeadline(ev,currentBookingRecDate);
-    if(_effDeadline&&localDateStr(new Date())>_effDeadline){
-      showToast('Le prenotazioni per questo evento sono chiuse (dal '+fmtDateShort(_effDeadline)+')','error');return;
+    if(_effDeadline&&new Date()>_parseDeadlineToDate(_effDeadline)){
+      showToast('Le prenotazioni per questo evento sono chiuse (dal '+_fmtDeadline(_effDeadline)+')','error');return;
     }
   }
 
@@ -13314,7 +13377,8 @@ async function renderUserEvents(){
     const _regManualCard = isRegistrationManuallyControlled(ev, ev._recDate || null);
     const _effBkDl=getEffectiveBookingDeadline(ev,ev._recDate||null);
     const _todayStr=localDateStr(new Date());
-    const _bookClosed=_regManualCard === true ? true : (_regManualCard === false ? false : (_effBkDl&&_todayStr>_effBkDl));
+    // V4.15.0: datetime-aware deadline comparison
+    const _bookClosed=_regManualCard === true ? true : (_regManualCard === false ? false : (_effBkDl&&new Date()>_parseDeadlineToDate(_effBkDl)));
     const bookClosedBadge=_bookClosed?'<div style="position:absolute;top:50%;left:50%;z-index:8;transform:translate(-50%,-50%) rotate(-8deg);width:120%;background:rgba(239,68,68,.45);color:#fff;font-size:.65rem;font-weight:800;letter-spacing:2px;padding:6px 0;text-align:center;text-transform:uppercase;white-space:nowrap;pointer-events:none;box-shadow:0 2px 10px rgba(239,68,68,.2);border-top:1px solid rgba(255,255,255,.1);border-bottom:1px solid rgba(255,255,255,.1)">🔒 PRENOTAZIONI CHIUSE</div>':'';
     /* Deadline banner — check for active early bird first */
     const _deadlineBanner=(()=>{
@@ -13387,12 +13451,13 @@ async function renderUserEvents(){
         const label=rem===1?'Ultimo posto Early Bird!':'Early Bird — '+rem+' posti rimasti su '+tot;
         return '<div style="margin-top:8px;padding:5px 10px;border-radius:8px;font-size:.7rem;font-weight:600;border:1px solid;display:inline-block;'+urgency+'">'+icon+' '+label+'</div>';
       }
-      // Fallback to standard booking deadline
+      // V4.15.0: fallback to standard booking deadline (datetime-aware)
       if(!_effBkDl||_bookClosed)return '';
-      const dlDate=new Date(_effBkDl+'T00:00:00');
+      const dlDate=_parseDeadlineToDate(_effBkDl);
       const todayDate=new Date(_todayStr+'T00:00:00');
+      if(!dlDate||dlDate<todayDate)return '';
       const diffDays=Math.round((dlDate-todayDate)/(1000*60*60*24));
-      const dlFormatted=fmtDateShort(_effBkDl);
+      const dlFormatted=_fmtDeadline(_effBkDl);
       let urgency='';let icon='📋';
       if(diffDays<=1){urgency='background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.3);color:#f87171';icon='🔥';}
       else if(diffDays<=3){urgency='background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.25);color:#fbbf24';icon='⏳';}
@@ -16972,9 +17037,10 @@ async function showEventDetail(evId,recDate){
       // === CHECK BOOKING DEADLINE (uses getEffectiveBookingDeadline for recurring support) ===
       const _regManualDet = isRegistrationManuallyControlled(ev, _detRecDate);
       const _detEffDl=getEffectiveBookingDeadline(ev,_detRecDate);
-      const _bookingClosed=_regManualDet === true ? true : (_regManualDet === false ? false : (_detEffDl&&localDateStr(new Date())>_detEffDl));
+      // V4.15.0: datetime-aware comparison + display
+      const _bookingClosed=_regManualDet === true ? true : (_regManualDet === false ? false : (_detEffDl&&new Date()>_parseDeadlineToDate(_detEffDl)));
       if(_bookingClosed){
-        const _closedMsg = _regManualDet === true ? 'Prenotazioni chiuse dall\'organizzatore' : 'Le prenotazioni si sono chiuse il ' + fmtDateShort(_detEffDl);
+        const _closedMsg = _regManualDet === true ? 'Prenotazioni chiuse dall\'organizzatore' : 'Le prenotazioni si sono chiuse il ' + _fmtDeadline(_detEffDl);
         return _preRegParticipants+daysHtml+eventPkgHtml+loyaltyHtml
           +'<div class="card text-center mt-4" style="border:2px solid var(--red);background:var(--red-bg);padding:20px">'
           +'<span style="font-size:2rem">🔒</span>'
@@ -17245,7 +17311,8 @@ async function renderAdminEvents(){
       const _abkDeadline=getEffectiveBookingDeadline(ev,null);
       const _abkActiveCnt=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata').length;
       const _abkFull=ev.maxSpots>0&&_abkActiveCnt>=ev.maxSpots;
-      const _abkClosed=_abkManual===true?true:(_abkManual===false?false:((_abkDeadline&&_abkToday>_abkDeadline)||_abkFull));
+      // V4.15.0: datetime-aware deadline comparison
+      const _abkClosed=_abkManual===true?true:(_abkManual===false?false:((_abkDeadline&&new Date()>_parseDeadlineToDate(_abkDeadline))||_abkFull));
       _bookingStatusBadge=_abkClosed
         ?'<span class="badge" style="background:var(--red-bg);color:var(--red)">🔒 Prenotazioni chiuse</span>'
         :'<span class="badge" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.25)">✅ Prenotazioni aperte</span>';
@@ -17430,14 +17497,14 @@ function toggleRegistrationClosed(evId) {
   const currentState = isRegistrationManuallyControlled(ev, recDate);
 
   if (currentState === true) {
+    // V4.15.0: datetime-aware
     const _effDl = getEffectiveBookingDeadline(ev, recDate);
-    const _today = localDateStr(new Date());
-    const deadlinePassed = _effDl && _today > _effDl;
+    const deadlinePassed = _effDl && new Date() > _parseDeadlineToDate(_effDl);
 
     if (deadlinePassed) {
       showConfirm(
         'Riapri iscrizioni',
-        'La deadline automatica (' + (_effDl ? fmtDateShort(_effDl) : '—') + ') è già scaduta. Vuoi forzare la riapertura delle iscrizioni' + (recDate ? ' per il ' + fmtDate(recDate) : '') + '? Le iscrizioni resteranno aperte finché non le chiudi di nuovo.',
+        'La deadline automatica (' + (_effDl ? _fmtDeadline(_effDl) : '—') + ') è già scaduta. Vuoi forzare la riapertura delle iscrizioni' + (recDate ? ' per il ' + fmtDate(recDate) : '') + '? Le iscrizioni resteranno aperte finché non le chiudi di nuovo.',
         () => {
           if (!ev.registrationClosedDates) ev.registrationClosedDates = {};
           ev.registrationClosedDates[key] = false;
@@ -17489,20 +17556,52 @@ function toggleRegistrationClosed(evId) {
 }
 
 function getEffectiveBookingDeadline(ev,recDate){
-  // Recurring event: always calculate per-instance deadline
+  // V4.15.0: RETROCOMPAT. Due modalità distinte in base ai campi presenti sull'evento.
+  //
+  // MODALITÀ NUOVA (campo bookingDeadlineHoursBefore esplicito): precisione oraria.
+  //   deadline = first_session_start - hoursBefore  →  ritorna YYYY-MM-DDTHH:mm
+  //
+  // MODALITÀ LEGACY (no hoursBefore; solo bookingDeadline o bookingDeadlineDaysBefore o nulla):
+  //   Preserva esattamente il comportamento V4.14.0: ritorna date-only YYYY-MM-DD.
+  //   _parseDeadlineToDate interpreterà come fine giornata (T23:59) per i confronti.
+  //
   if(ev.recurrence&&recDate){
-    // If days-before is set, calculate: recDate - N days
+    // Nuovo formato: hoursBefore esplicito → precisione oraria
+    if(ev.bookingDeadlineHoursBefore!=null&&ev.bookingDeadlineHoursBefore!==''){
+      const _h=parseInt(ev.bookingDeadlineHoursBefore);
+      if(!isNaN(_h)){
+        const _firstStart=_getEventFirstStartDate(ev,recDate);
+        if(_firstStart){
+          const _dl=new Date(_firstStart.getTime()-_h*3600000);
+          const _pad=n=>String(n).padStart(2,'0');
+          return `${_dl.getFullYear()}-${_pad(_dl.getMonth()+1)}-${_pad(_dl.getDate())}T${_pad(_dl.getHours())}:${_pad(_dl.getMinutes())}`;
+        }
+      }
+    }
+    // Legacy (daysBefore): date-only, identico a V4.14.0
     if(ev.bookingDeadlineDaysBefore!=null&&ev.bookingDeadlineDaysBefore!==''){
       const d=new Date(recDate+'T00:00:00');
       d.setDate(d.getDate()-parseInt(ev.bookingDeadlineDaysBefore));
       return localDateStr(d);
     }
-    // Otherwise deadline = the recurrence date itself (open until event day)
+    // Nessuna configurazione: deadline = recDate stessa (come V4.14.0)
     return recDate;
   }
-  // Non-recurring with explicit fixed deadline
+  // Non-recurring: nuovo formato hoursBefore?
+  if(ev.bookingDeadlineHoursBefore!=null&&ev.bookingDeadlineHoursBefore!==''){
+    const _h=parseInt(ev.bookingDeadlineHoursBefore);
+    if(!isNaN(_h)){
+      const _firstStart=_getEventFirstStartDate(ev,null);
+      if(_firstStart){
+        const _dl=new Date(_firstStart.getTime()-_h*3600000);
+        const _pad=n=>String(n).padStart(2,'0');
+        return `${_dl.getFullYear()}-${_pad(_dl.getMonth()+1)}-${_pad(_dl.getDate())}T${_pad(_dl.getHours())}:${_pad(_dl.getMinutes())}`;
+      }
+    }
+  }
+  // Legacy bookingDeadline (date o datetime string) → ritorna com'è
   if(ev.bookingDeadline)return ev.bookingDeadline;
-  // Fallback: last event day
+  // Fallback estremo: last day dell'evento (date-only, legacy V4.14.0)
   if(ev.days&&ev.days.length)return ev.days.reduce((mx,d)=>d.date>mx?d.date:mx,ev.days[0].date);
   return null;
 }
@@ -18846,11 +18945,13 @@ function copyEventAsTemplate(id){
       if(advPanel)advPanel.classList.remove('hidden');
       if(advToggle){const arrow=advToggle.querySelector('.coll-arrow');if(arrow)arrow.textContent='▾';}
     }
-    // === BOOKING DEADLINE (relative days-before, for recurring templates) ===
-    // V3.2 FIX: Copy bookingDeadlineDaysBefore — it's a relative setting, not a date
-    if(ev.bookingDeadlineDaysBefore!=null){
-      const bdDaysEl=document.getElementById('ne-booking-deadline-days');
-      if(bdDaysEl)bdDaysEl.value=ev.bookingDeadlineDaysBefore;
+    // V4.15.0: pre-populate campo unificato ne-booking-deadline-value + unit (con fallback a 1 ora)
+    const _bdValEl1=document.getElementById('ne-booking-deadline-value');
+    const _bdUnitEl1=document.getElementById('ne-booking-deadline-unit');
+    if(_bdValEl1&&_bdUnitEl1){
+      const _h=_getFormDeadlineHoursBefore(ev);
+      if(_h>=24&&_h%24===0){_bdValEl1.value=_h/24;_bdUnitEl1.value='days';_bdValEl1.dataset.prevUnit='days';}
+      else {_bdValEl1.value=_h;_bdUnitEl1.value='hours';_bdValEl1.dataset.prevUnit='hours';}
     }
     // === IMAGES (copy from source event) ===
     if(ev.imageThumb){evImages.thumb={src:ev.imageThumb.src,zoom:ev.imageThumb.zoom||100,posX:ev.imageThumb.posX||0,posY:ev.imageThumb.posY||0,maskType:ev.imageThumb.maskType||null};const img=document.getElementById('ne-img-thumb-img');const preview=document.getElementById('ne-img-thumb-preview');if(img){img.src=ev.imageThumb.src;img.style.width='100%';img.style.height='auto';img.style.display='block';img.style.objectFit='cover';}if(preview)preview.style.display='block';if(ev.imageThumb.maskType){selectedThumbMask=ev.imageThumb.maskType;selectThumbMask(ev.imageThumb.maskType);}}
@@ -19068,7 +19169,7 @@ function startAlertEdit(){
     contactPhone:ev.contactPhone||'',contactEmail:ev.contactEmail||'',groupLink:ev.groupLink||'',
     paymentMethods:ev.paymentMethods?{paypal:ev.paymentMethods.paypal||'',revolut:ev.paymentMethods.revolut||'',satispay:ev.paymentMethods.satispay||'',cash:!!ev.paymentMethods.cash,bankTransfer:ev.paymentMethods.bankTransfer?{enabled:!!ev.paymentMethods.bankTransfer.enabled,iban:ev.paymentMethods.bankTransfer.iban||'',holder:ev.paymentMethods.bankTransfer.holder||'',notes:ev.paymentMethods.bankTransfer.notes||''}:{enabled:false}}:null,
     deposit:ev.deposit?{required:ev.deposit.required,amount:ev.deposit.amount||0,causal:ev.deposit.causal||''}:null,
-    bookingDeadline:ev.bookingDeadline||null,bookingDeadlineDaysBefore:ev.bookingDeadlineDaysBefore!=null?ev.bookingDeadlineDaysBefore:null,
+    bookingDeadline:ev.bookingDeadline||null,bookingDeadlineDaysBefore:ev.bookingDeadlineDaysBefore!=null?ev.bookingDeadlineDaysBefore:null,bookingDeadlineHoursBefore:ev.bookingDeadlineHoursBefore!=null?ev.bookingDeadlineHoursBefore:null,
     days:ev.days.map(d=>({date:d.date,startTime:d.startTime,endTime:d.endTime,
       sessions:(d.sessions||[]).map(s=>({name:s.name,startTime:s.startTime,endTime:s.endTime,
         location:s.location,teacher:s.teacher,
@@ -19131,13 +19232,17 @@ function confirmAlertEdit(){
     return;
   }
   // Step 4: execute
-  const formEv=collectFormData();
+  const formEv=collectFormData(true); // V4.15.1: flow alert-edit su evento già pubblicato, passa true per non bloccare su deadline se evento legacy
   if(!formEv){alertEditStep=3;return;} // Keep at step 3 so user only re-confirms last step
   alertEditStep=0;
   try{
     const idx=store.events.findIndex(e=>e.id===editingEventId);
     if(idx<0){showToast('⚠️ Evento non trovato — operazione annullata','error');return;}
     const oldEv=store.events[idx];
+    // V4.15.1: guard di robustezza — se pre-populate è fallito per qualche motivo e hoursBefore resta null, ripristinare dal vecchio evento (Opzione A: usa oldEv, già in scope qui)
+    if(formEv.bookingDeadlineHoursBefore==null||formEv.bookingDeadlineHoursBefore===''){
+      formEv.bookingDeadlineHoursBefore=_getEffectiveHoursBefore(oldEv)||1;
+    }
     const snapshot=oldEv._pendingSnapshot;
     const oldPM=oldEv.pricingMode;const oldRefunds=oldEv.refunds;
     // Apply form data to event
@@ -20098,11 +20203,11 @@ function resetForm(){
   const ed=document.getElementById('ne-event-end-date');
   if(sd){sd.value=today;sd.min=today;} // V3.7.2: Prevent past dates in creation
   if(ed){ed.value=today;ed.min=today;}
-  // Reset booking deadline
-  const bdEl=document.getElementById('ne-booking-deadline');
-  if(bdEl){bdEl.value='';bdEl._userEdited=false;}
-  const bdDaysEl=document.getElementById('ne-booking-deadline-days');
-  if(bdDaysEl)bdDaysEl.value='';
+  // V4.15.0: reset deadline unificato (default 1 ora, prevUnit tracked)
+  const _bdResetVal=document.getElementById('ne-booking-deadline-value');
+  const _bdResetUnit=document.getElementById('ne-booking-deadline-unit');
+  if(_bdResetVal){_bdResetVal.value=1;_bdResetVal.dataset.prevUnit='hours';_bdResetVal._userEdited=false;}
+  if(_bdResetUnit)_bdResetUnit.value='hours';
   // Reset recurrence
   _recExclusions=[];
   renderRecExclusions();
@@ -20939,7 +21044,7 @@ function collectSurveysFromForm(){
   return surveys;
 }
 
-function collectFormData(){
+function collectFormData(isDraft=false){
   const title=document.getElementById('ne-title').value.trim();
   if(!title){showToast('Inserisci un titolo!','error');return null;}
   const isFreeEvent=!!document.getElementById('ne-free-event')?.checked;
@@ -21073,15 +21178,28 @@ function collectFormData(){
       console.error('[collectFormData] B4 WARNING: Type changed from',_origEv.type,'to jam! Dropdown value:',document.getElementById('ne-type')?.value,'Options:',Array.from(document.getElementById('ne-type')?.options||[]).map(o=>o.value));
     }
   }
-  // Validate booking deadline
-  const recChkPre=document.getElementById('ne-recurrence')?.checked;
-  if(!recChkPre){
-    const _bdVal=document.getElementById('ne-booking-deadline')?.value;
-    if(_bdVal){
-      const _todayVal=localDateStr(new Date());
-      const _evStartVal=document.getElementById('ne-event-start-date')?.value;
-      if(_bdVal<_todayVal){showToast('La deadline prenotazioni non può essere nel passato!','error');return null;}
-      if(_evStartVal&&_bdVal>_evStartVal){showToast('La deadline prenotazioni non può superare la data di inizio evento!','error');return null;}
+  // V4.15.0: validazione deadline unificata (ricorrenti e non). Skip se isDraft=true.
+  const _bdUnifVal=document.getElementById('ne-booking-deadline-value')?.value;
+  const _bdUnifUnit=document.getElementById('ne-booking-deadline-unit')?.value||'hours';
+  let _hoursBeforeUnif=null;
+  if(_bdUnifVal!=='' && _bdUnifVal!=null){
+    const _bdUnifN=parseInt(_bdUnifVal);
+    if(!isNaN(_bdUnifN)&&_bdUnifN>=1)_hoursBeforeUnif=(_bdUnifUnit==='days'?_bdUnifN*24:_bdUnifN);
+  }
+  if(!isDraft){
+    if(_hoursBeforeUnif==null){showToast('La deadline prenotazioni è obbligatoria.','error');return null;}
+    if(_hoursBeforeUnif<1||_hoursBeforeUnif>8760){showToast('Deadline fuori range. Max 365 giorni (8760 ore).','error');return null;}
+    const _evStartValUnif=document.getElementById('ne-event-start-date')?.value;
+    if(_evStartValUnif&&days&&days[0]){
+      const _firstDayUnif=days[0];
+      let _stTime='00:00';
+      if(_firstDayUnif.sessions&&_firstDayUnif.sessions[0]?.startTime)_stTime=_firstDayUnif.sessions[0].startTime;
+      else if(_firstDayUnif.startTime)_stTime=_firstDayUnif.startTime;
+      const _evStartDtUnif=new Date(_evStartValUnif+'T'+_stTime);
+      const _computedDeadline=new Date(_evStartDtUnif.getTime()-_hoursBeforeUnif*3600000);
+      if(_computedDeadline<=new Date()){
+        showToast('La deadline calcolata è nel passato. Riduci le ore/giorni oppure sposta la data dell\'evento.','error');return null;
+      }
     }
   }
   // Validazione cascading EB
@@ -21130,8 +21248,10 @@ function collectFormData(){
     pricingMode,
     minSubscribers:null, // V2.13.0: moved to session level (s.minSubscribers)
     surveys:collectSurveysFromForm(),
-    bookingDeadline:recChk?null:(document.getElementById('ne-booking-deadline')?.value||null),
-    bookingDeadlineDaysBefore:recChk?(document.getElementById('ne-booking-deadline-days')?.value!==''?parseInt(document.getElementById('ne-booking-deadline-days')?.value):null):null,
+    // V4.15.0: campo unificato hoursBefore (applica a ricorrenti e non). Legacy campi azzerati per cleanup.
+    bookingDeadline:null,
+    bookingDeadlineDaysBefore:null,
+    bookingDeadlineHoursBefore:_hoursBeforeUnif,
     status:'bozza',recurrence:recChk?(()=>{const _startDate=document.getElementById('ne-event-start-date')?.value||'';const _startDow=_startDate?new Date(_startDate+'T00:00:00').getDay():-1;const _dayNames=['domenica','lunedi','martedi','mercoledi','giovedi','venerdi','sabato'];const _day=_startDow>=0?_dayNames[_startDow]:'lunedi';const _exc={};_recExclusions.forEach(d=>{_exc[d]={type:'skip'};});return{day:_day,freq:recFreq,active:true,exceptions:_exc,exclusionDates:[..._recExclusions],pausedUntil:null,endDate:document.getElementById('ne-rec-end-date')?.value||null}})():null,createdAt:localDateStr(new Date()),
     allowDayPurchase:document.getElementById('ne-allow-day-purchase')?.checked!==false,
     partnerIds:getPartnerIdsFromForm(),
@@ -21501,11 +21621,14 @@ function editEvent(id){
     }
   }
   // minSubscribers: now at session level (V2.13.0) — restored via renderFormSession()
-  // Restore booking deadline (date mode for single, days-before for recurring)
-  const bdEl=document.getElementById('ne-booking-deadline');
-  if(bdEl&&ev.bookingDeadline){bdEl.value=ev.bookingDeadline;bdEl._userEdited=true;}
-  const bdDaysEl=document.getElementById('ne-booking-deadline-days');
-  if(bdDaysEl&&ev.bookingDeadlineDaysBefore!=null){bdDaysEl.value=ev.bookingDeadlineDaysBefore;}
+  // V4.15.0: pre-populate campo unificato per edit (secondo call site, con fallback 1h e prevUnit tracking)
+  const _bdValEl2=document.getElementById('ne-booking-deadline-value');
+  const _bdUnitEl2=document.getElementById('ne-booking-deadline-unit');
+  if(_bdValEl2&&_bdUnitEl2){
+    const _h=_getFormDeadlineHoursBefore(ev);
+    if(_h>=24&&_h%24===0){_bdValEl2.value=_h/24;_bdUnitEl2.value='days';_bdValEl2.dataset.prevUnit='days';}
+    else {_bdValEl2.value=_h;_bdUnitEl2.value='hours';_bdValEl2.dataset.prevUnit='hours';}
+  }
   toggleRecurrenceUI(); // Ensure correct deadline mode is shown
   // Auto-open advanced options panel if survey is present (V2.13.0 updated for collapsible)
   if(ev.surveys&&ev.surveys.length){
@@ -21588,7 +21711,7 @@ async function ensureEventCoords(ev){
   }
 }
 function saveAsDraft(){
-  const ev=collectFormData();if(!ev)return;
+  const ev=collectFormData(true);if(!ev)return; // V4.15.0: isDraft=true skippa validazione obbligatoria deadline
   ensureEventCoords(ev);
   if(editingEventId){
     // Permission check: only capofila can save edits
@@ -21606,8 +21729,8 @@ function saveAsDraft(){
           if(oldEv.bookings)ev.bookings=oldEv.bookings;
           // V3.10.28: If booking deadline changed, reset manual registration close flags
           if (oldEv.registrationClosedDates && Object.keys(oldEv.registrationClosedDates).length > 0) {
-            const deadlineChanged = (oldEv.bookingDeadline || null) !== (ev.bookingDeadline || null)
-              || (oldEv.bookingDeadlineDaysBefore != null && oldEv.bookingDeadlineDaysBefore !== ev.bookingDeadlineDaysBefore);
+            // V4.15.1: confronto su valore effettivo "ore prima" (copre legacy + nuovo formato unificato)
+            const deadlineChanged = _getEffectiveHoursBefore(oldEv) !== _getEffectiveHoursBefore(ev);
             if (deadlineChanged) {
               console.log('[V3.10.28] Deadline changed, clearing registrationClosedDates');
               ev.registrationClosedDates = null;
@@ -21662,7 +21785,7 @@ function saveAsDraft(){
   }
 }
 function publishNewEvent(){
-  const ev=collectFormData();if(!ev)return;
+  const ev=collectFormData(false);if(!ev)return; // V4.15.0: isDraft=false attiva validazione obbligatoria deadline
   // V4.11.0: Recurrence end date is mandatory for publishing
   if(document.getElementById('ne-recurrence')?.checked){
     const recEndVal=document.getElementById('ne-rec-end-date')?.value;
@@ -21702,8 +21825,8 @@ function publishNewEvent(){
           if(oldEv2.bookings)ev.bookings=oldEv2.bookings;
           // V3.10.28: If booking deadline changed, reset manual registration close flags
           if (oldEv2.registrationClosedDates && Object.keys(oldEv2.registrationClosedDates).length > 0) {
-            const deadlineChanged = (oldEv2.bookingDeadline || null) !== (ev.bookingDeadline || null)
-              || (oldEv2.bookingDeadlineDaysBefore != null && oldEv2.bookingDeadlineDaysBefore !== ev.bookingDeadlineDaysBefore);
+            // V4.15.1: confronto su valore effettivo "ore prima" (copre legacy + nuovo formato unificato)
+            const deadlineChanged = _getEffectiveHoursBefore(oldEv2) !== _getEffectiveHoursBefore(ev);
             if (deadlineChanged) {
               console.log('[V3.10.28] Deadline changed, clearing registrationClosedDates');
               ev.registrationClosedDates = null;
@@ -21783,41 +21906,51 @@ function initEventDates(){
   if(ed)ed.min=today;
   updateBookingDeadlineDefault();
 }
-// Booking deadline default: 3 days before event start date
+// V4.15.0: default = 1 ora prima. Il campo ne-booking-deadline-value è pre-impostato a 1 nell'HTML,
+// questa funzione lo reimposta solo se è stato svuotato manualmente.
 function updateBookingDeadlineDefault(){
-  const bdEl=document.getElementById('ne-booking-deadline');
-  if(!bdEl||bdEl._userEdited)return; // Don't overwrite if user already edited
-  const startDate=document.getElementById('ne-event-start-date')?.value;
-  if(!startDate){bdEl.value='';return;}
-  const d=new Date(startDate+'T00:00:00');
-  d.setDate(d.getDate()-3);
-  const today=localDateStr(new Date());
-  const defaultDate=localDateStr(d);
-  // If 3 days before is in the past, use today instead
-  bdEl.value=defaultDate<today?today:defaultDate;
+  const _valEl=document.getElementById('ne-booking-deadline-value');
+  const _unitEl=document.getElementById('ne-booking-deadline-unit');
+  if(!_valEl||!_unitEl)return;
+  if(_valEl._userEdited)return;
+  if(!_valEl.value){_valEl.value=1;_unitEl.value='hours';}
 }
+// V4.15.0: validazione semplificata — solo range check. "Deadline nel passato" viene controllato in collectFormData.
 function validateBookingDeadline(input){
   input._userEdited=true;
-  if(!input.value)return;// empty is allowed
   const hint=document.getElementById('ne-deadline-hint');
-  const today=localDateStr(new Date());
-  // Cannot be before today
-  if(input.value<today){
-    showToast('La deadline non può essere nel passato','error');
-    input.value='';
-    if(hint){hint.textContent='⚠️ Data non valida — era nel passato';hint.style.color='var(--red)';}
+  if(!input.value){
+    if(hint){hint.textContent='⚠️ Valore obbligatorio';hint.style.color='var(--red)';}
     return;
   }
-  // Cannot be after event start date
-  const evStartDate=document.getElementById('ne-event-start-date')?.value;
-  if(evStartDate&&input.value>evStartDate){
-    showToast('La deadline non può essere dopo la data di inizio evento','error');
-    input.value='';
-    if(hint){hint.textContent='⚠️ Data non valida — superava l\'inizio evento';hint.style.color='var(--red)';}
+  const _n=parseInt(input.value);
+  const _unit=document.getElementById('ne-booking-deadline-unit')?.value||'hours';
+  const _hours=_unit==='days'?_n*24:_n;
+  if(isNaN(_n)||_n<1||_hours>8760){
+    showToast('Valore non valido. Range: 1 ora - 365 giorni.','error');
+    input.value=1;
+    if(hint){hint.textContent='⚠️ Range: 1-8760 ore (max 365 giorni)';hint.style.color='var(--red)';}
     return;
   }
-  // Valid
-  if(hint){hint.textContent='Lascia vuoto per chiudere a fine evento.';hint.style.color='';}
+  if(hint){hint.textContent='Obbligatorio. Minimo 1 ora, massimo 365 giorni. Default: 1 ora prima.';hint.style.color='';}
+}
+// V4.15.0: conversione unità ore↔giorni quando l'utente cambia select (evita interpretazioni errate)
+function onBookingDeadlineUnitChange(){
+  const _valEl=document.getElementById('ne-booking-deadline-value');
+  const _unitEl=document.getElementById('ne-booking-deadline-unit');
+  if(!_valEl||!_unitEl||!_valEl.value)return;
+  const _n=parseInt(_valEl.value);
+  if(isNaN(_n))return;
+  const _prev=_valEl.dataset.prevUnit||'hours';
+  const _now=_unitEl.value;
+  if(_prev===_now)return;
+  let _newVal;
+  if(_prev==='hours'&&_now==='days'){_newVal=Math.max(1,Math.round(_n/24));}
+  else if(_prev==='days'&&_now==='hours'){_newVal=Math.min(8760,_n*24);}
+  else _newVal=_n;
+  _valEl.value=_newVal;
+  _valEl.dataset.prevUnit=_now;
+  validateBookingDeadline(_valEl);
 }
 function restoreFormTitle(){
   const titleEl=document.querySelector('#view-admin-new-event .page-title');
