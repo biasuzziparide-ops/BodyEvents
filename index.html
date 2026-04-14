@@ -2871,7 +2871,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.16.0';
+const APP_VERSION='V4.17.0';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -2989,8 +2989,9 @@ function _countUnreadBookings(){
     if(_isEventUnread(b.eventId)||_isBookingConfirmChanged(b)){count++;counted.add(b.eventId);}
   });
   // V3.10.30: Count unread jam creatorNotes for jams user is joined to
+  // V4.17.0: escludi anche jam concluso/archiviato dal counter (evento passato = nessuna azione utile)
   store.communityJams.forEach(jam=>{
-    if(jam.status==='cancellato'||(jam.alert&&jam.alert.type==='cancellato'))return;
+    if(jam.status==='cancellato'||jam.status==='concluso'||jam.status==='archiviato'||(jam.alert&&jam.alert.type==='cancellato'))return;
     const isJoined=(jam.participants||[]).some(p=>p.userId===uid);
     if(isJoined&&_isJamUnread(jam.id))count++;
   });
@@ -4672,6 +4673,8 @@ async function loadAllData(forceReload){
     // Spostati qui da DOMContentLoaded perché lì store.events poteva essere ancora vuoto (race condition con onAuthStateChanged).
     autoConcludeEvents();
     _autoArchiveConcludedEvents();
+    _autoConcludeCommunityJams();   // V4.17.0
+    _autoArchiveConcludedJams();     // V4.17.0
     _cleanupReadAlerts(); // V3.4.0: Cleanup stale notification data
     console.log('[BE_INIT] loadAllData: completed. Managers:',store.managers.length,', Events:',store.events.length);
     setTimeout(()=>updateNotificationBadges(),100); // V3.4.0: Update notification badges after data load
@@ -13820,7 +13823,8 @@ async function renderUserDashboard(){
   const active=store.bookings.filter(b=>_dedupFilter(b,false));
   // V3.10.30: Only show jams the user has JOINED (as participant), not created-only
   // Created jams are managed from the Community Events page
-  const allUserJams=store.communityJams.filter(j=>j.status!=='cancellato'&&!(j.alert&&j.alert.type==='cancellato')&&(j.participants||[]).some(p=>p.userId===uid));
+  // V4.17.0: escludi anche jam concluso/archiviato (auto-conclusi per data passata)
+  const allUserJams=store.communityJams.filter(j=>j.status!=='cancellato'&&j.status!=='concluso'&&j.status!=='archiviato'&&!(j.alert&&j.alert.type==='cancellato')&&(j.participants||[]).some(p=>p.userId===uid));
   allUserJams.sort((a,b)=>(a.date||'').localeCompare(b.date||''));
 
   // V3.3.0: Preload participant counts for Jam/Social bookings (per-occurrence)
@@ -15268,20 +15272,30 @@ function renderUserJams(){
     return matchText&&matchType&&matchDateFrom&&matchDateTo;
   });
 
-  // Status tabs
-  const activeJams=allJams.filter(j=>!j.alert||j.alert.type!=='cancellato');
+  // V4.17.0: Status tabs esteso con Conclusi e Archiviati
+  const activeJams=allJams.filter(j=>(!j.alert||j.alert.type!=='cancellato')&&j.status!=='concluso'&&j.status!=='archiviato');
   const cancelledJams=allJams.filter(j=>j.alert&&j.alert.type==='cancellato');
+  const concludedJams=allJams.filter(j=>j.status==='concluso');
+  const archivedJams=allJams.filter(j=>j.status==='archiviato');
   const _jsf=jamStatusFilter;
   const _jtStyle=(f)=>'padding:6px 12px;cursor:pointer;border:none;font-size:.8rem;'+(_jsf===f?'outline:2px solid var(--brand);outline-offset:-2px;':'');
   let tabsHtml=`<div class="flex gap-2 flex-wrap mb-4">
     <button class="badge" style="${_jtStyle('')}background:var(--brand-d);color:var(--brand-l)" onclick="filterJamStatus('')">Attivi (${activeJams.length})</button>
+    <button class="badge" style="${_jtStyle('concluso')}background:var(--blue-bg);color:var(--blue)" onclick="filterJamStatus('concluso')">Conclusi (${concludedJams.length})</button>
+    <button class="badge" style="${_jtStyle('archiviato')}background:rgba(99,102,241,.12);color:#6366f1" onclick="filterJamStatus('archiviato')">Archiviati (${archivedJams.length})</button>
     <button class="badge" style="${_jtStyle('cancellato')}background:var(--red-bg);color:var(--red)" onclick="filterJamStatus('cancellato')">Cancellati (${cancelledJams.length})</button>
   </div>`;
 
-  // Apply status filter
+  // Apply status filter (V4.17.0: aggiunti Conclusi e Archiviati)
   if(jamStatusFilter==='cancellato'){
     allJams=cancelledJams;
     tabsHtml+='<div class="card mb-4" style="background:rgba(239,68,68,.06);border-color:var(--red);padding:12px"><div class="flex items-center gap-2"><span>🗑️</span><span class="text-xs" style="color:var(--red)"><strong>I community events cancellati vengono eliminati automaticamente dopo 10 giorni.</strong></span></div></div>';
+  } else if(jamStatusFilter==='concluso'){
+    allJams=concludedJams;
+    tabsHtml+='<div class="card mb-4" style="background:var(--blue-bg);border-color:var(--blue);padding:12px"><div class="flex items-center gap-2"><span>✅</span><span class="text-xs" style="color:var(--blue)"><strong>Eventi conclusi. Verranno archiviati automaticamente dopo 10 giorni.</strong></span></div></div>';
+  } else if(jamStatusFilter==='archiviato'){
+    allJams=archivedJams;
+    tabsHtml+='<div class="card mb-4" style="background:rgba(99,102,241,.08);border-color:#6366f1;padding:12px"><div class="flex items-center gap-2"><span>📦</span><span class="text-xs" style="color:#6366f1"><strong>Eventi archiviati. Solo lettura.</strong></span></div></div>';
   } else {
     allJams=activeJams;
   }
@@ -17704,6 +17718,39 @@ function _autoArchiveConcludedEvents(){
       ev.archivedAt=ev.archivedAt||new Date().toISOString();
       fsUpdate('events',ev.id,{status:'archiviato',archivedAt:ev.archivedAt}).catch(console.error);
       console.info('_autoArchiveConcludedEvents: '+ev.title+' auto-archived after '+daysSince+' days');
+    }
+  });
+}
+
+// V4.17.0: Auto-conclude community jams (user-created events) after their date passed
+function _autoConcludeCommunityJams(){
+  const today=localDateStr(new Date());
+  store.communityJams.forEach(jam=>{
+    if(!jam.date)return;
+    if(jam.status==='concluso'||jam.status==='archiviato')return;
+    // Skip jams cancellati: hanno già il loro flow (auto-purge dopo 10 gg in renderUserJams)
+    if(jam.alert&&jam.alert.type==='cancellato')return;
+    if(jam.date<today){
+      jam.status='concluso';
+      jam.concludedAt=jam.concludedAt||new Date().toISOString();
+      fsUpdate('communityJams',jam.id,{status:'concluso',concludedAt:jam.concludedAt}).catch(console.error);
+      console.info('_autoConcludeCommunityJams: '+(jam.title||jam.id)+' → concluso');
+    }
+  });
+}
+
+// V4.17.0: Auto-archive concluded community jams after 10 days
+function _autoArchiveConcludedJams(){
+  const today=new Date();today.setHours(0,0,0,0);
+  store.communityJams.forEach(jam=>{
+    if(jam.status!=='concluso'||!jam.date)return;
+    const jamDate=new Date(jam.date+'T23:59:59');
+    const daysSince=Math.floor((today-jamDate)/(1000*60*60*24));
+    if(daysSince>=10){
+      jam.status='archiviato';
+      jam.archivedAt=jam.archivedAt||new Date().toISOString();
+      fsUpdate('communityJams',jam.id,{status:'archiviato',archivedAt:jam.archivedAt}).catch(console.error);
+      console.info('_autoArchiveConcludedJams: '+(jam.title||jam.id)+' → archiviato');
     }
   });
 }
