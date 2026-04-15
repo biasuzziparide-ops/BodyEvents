@@ -2871,7 +2871,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.19.0';
+const APP_VERSION='V4.20.0';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -11373,6 +11373,13 @@ function _parseDeadlineToDate(dl){
   const s=dl.indexOf('T')>=0?dl:(dl+'T23:59');
   return new Date(s);
 }
+// V4.20.0: ritorna true se la deadline di prenotazione è già passata per questo ev/recDate
+// Riusato sia nei banner che nei badge card per distinguere "confermato_pre" (BLU) vs "confermato_post" (VERDE)
+function _isDeadlinePassed(ev,recDate){
+  const _dl=getEffectiveBookingDeadline(ev,recDate||null);
+  if(!_dl)return false;
+  return new Date()>_parseDeadlineToDate(_dl);
+}
 function getConfirmationStatus(ev,recDate){
   // V2.13.0: minSubscribers is now at session level
   // Check if any session has minSubscribers > 0
@@ -13449,8 +13456,10 @@ async function renderUserEvents(){
   populateZonaFilter();
   const evts=getFilteredEvents();
   // V3.3.0: Preload participant counts for Jam/Social events in background (per-occurrence for recurring)
+  // V4.20.0: ADD parallel preload per eventi con minSubscribers (per badge card "min raggiunto/confermato")
   // Skip preloading if admin already has all bookings loaded (store.bookings is complete)
   if(!_bookingsLoaded){
+    // V3.3.0 — jam/social participant counts (invariato)
     const _jamSocialEvts=evts.filter(e=>e.type==='jam'||e.type==='social');
     if(_jamSocialEvts.length&&!_evPartCountsLoading){
       const _anyMissing=_jamSocialEvts.some(e=>_evPartCounts[_partCountKey(e.id,e._recDate||null)]===undefined);
@@ -13461,6 +13470,20 @@ async function renderUserEvents(){
           if(currentView==='events')renderUserEvents();
         }).catch(()=>{_evPartCountsLoading=false;});
       }
+    }
+    // V4.20.0 — eventi con minSubscribers: serve popolare store.bookings per calcolo confermato/attesa
+    // Usa ensureEventBookingsLoaded che popola direttamente store.bookings (non _evPartCounts cache)
+    const _hasMinSubs=ev=>{
+      if(ev.days)for(const d of ev.days){if(d.sessions)for(const s of d.sessions){if(s.minSubscribers&&s.minSubscribers>0)return true;}}
+      if(ev.minSubscribers&&ev.minSubscribers.count)return true;
+      return false;
+    };
+    const _minSubsEvts=evts.filter(e=>_hasMinSubs(e)&&e.type!=='jam'&&e.type!=='social'&&!_eventBookingsLoadedSet.has(e.id));
+    if(_minSubsEvts.length){
+      // Parallel batch: ensureEventBookingsLoaded popola store.bookings + aggiunge a _eventBookingsLoadedSet
+      Promise.all(_minSubsEvts.map(e=>ensureEventBookingsLoaded(e.id))).then(()=>{
+        if(currentView==='events')renderUserEvents();
+      }).catch(err=>console.warn('[V4.20.0] minSubs preload failed:',err));
     }
   }
 
@@ -13493,7 +13516,9 @@ async function renderUserEvents(){
     // V4.7.0: rimosso badge "📞 Costo diretto" — eventi con pricingMode='direct' non mostrano più un badge dedicato (fall-through su subscription/price badge)
     const pricingBadge=ev.pricingMode==='free'?'<span class="badge" style="background:var(--green-bg);color:var(--green)">🆓 Gratuito</span>':ev.pricingMode==='managed'?'<span class="badge badge-yellow">🤝 Costi con org.</span>':(_cardSubInfo&&_cardSubInfo.type==='entry'?'<span class="badge" style="background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)">🎟️ Gratis con abb.</span>':_cardSubInfo&&_cardSubInfo.type==='discount'?'<span class="badge" style="background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)">💰 da €'+_cardSubInfo.price+' <span style="text-decoration:line-through;font-size:.6rem;opacity:.6">€'+_minP+'</span></span>':(_minP>0?'<span class="badge" style="background:rgba(16,185,129,.08);color:var(--green);border:1px solid rgba(16,185,129,.2)">💰 da €'+_minP+'</span>':''));
     const confirmStatus=getConfirmationStatus(ev,ev._recDate||null);
-    const confirmBadge=confirmStatus==='attesa'?'<span class="badge badge-attesa">⏳ Min. non raggiunto</span>':confirmStatus==='deadline_scaduta'?'<span class="badge" style="background:var(--red-bg);color:var(--red)">🚫 Deadline scaduta</span>':confirmStatus==='confermato'?'<span class="badge badge-confermato">✅ Confermato</span>':'';
+    // V4.20.0: BLU se confermato+pre-deadline (provvisorio), VERDE se confermato+post-deadline (definitivo)
+    const _confBadgeDlPassed=confirmStatus==='confermato'?_isDeadlinePassed(ev,ev._recDate||null):false;
+    const confirmBadge=confirmStatus==='attesa'?'<span class="badge badge-attesa">⏳ Min. non raggiunto</span>':confirmStatus==='deadline_scaduta'?'<span class="badge" style="background:var(--red-bg);color:var(--red)">🚫 Deadline scaduta</span>':confirmStatus==='confermato'?(_confBadgeDlPassed?'<span class="badge badge-confermato">✅ Confermato</span>':'<span class="badge" style="background:var(--blue-bg);color:var(--blue)">✓ Min. raggiunto</span>'):'';
     const _regManualCard = isRegistrationManuallyControlled(ev, ev._recDate || null);
     const _effBkDl=getEffectiveBookingDeadline(ev,ev._recDate||null);
     const _todayStr=localDateStr(new Date());
@@ -16548,12 +16573,21 @@ async function showEventDetail(evId,recDate){
       <div class="mt-2" style="background:var(--s200);border-radius:8px;height:8px;overflow:hidden"><div style="height:100%;background:var(--red);border-radius:8px;width:${Math.min(100,Math.round(current/_maxNeeded*100))}%"></div></div>
     </div>`;
   } else if(evConfirmStatus==='confermato'){
-    // V4.18.0: banner BLU (coerente con stamp V4.16.0 min_raggiunto_pre). Subtitle fisso "per ora" segnala natura provvisoria.
-    daysHtml+=`<div class="card mb-4" style="background:rgba(59,130,246,.08);border-color:var(--blue);padding:16px;text-align:center">
-      <span style="font-size:1.5rem">✓</span>
-      <h3 class="font-bold mt-1" style="color:var(--blue);letter-spacing:1px">MINIMO ISCRITTI RAGGIUNTO</h3>
-      <p class="text-xs txt3 mt-1">Ci sono abbastanza iscritti: per ora l'evento è confermato</p>
-    </div>`;
+    // V4.20.0: BLU se pre-deadline (provvisorio), VERDE se post-deadline (definitivo)
+    const _dlPassed=_isDeadlinePassed(ev,_recDateForConfirm);
+    if(!_dlPassed){
+      daysHtml+=`<div class="card mb-4" style="background:rgba(59,130,246,.08);border-color:var(--blue);padding:16px;text-align:center">
+        <span style="font-size:1.5rem">✓</span>
+        <h3 class="font-bold mt-1" style="color:var(--blue);letter-spacing:1px">MINIMO ISCRITTI RAGGIUNTO</h3>
+        <p class="text-xs txt3 mt-1">Ci sono abbastanza iscritti: per ora l'evento è confermato</p>
+      </div>`;
+    } else {
+      daysHtml+=`<div class="card mb-4" style="background:rgba(16,185,129,.08);border-color:var(--green);padding:16px;text-align:center">
+        <span style="font-size:1.5rem">✅</span>
+        <h3 class="font-bold mt-1" style="color:var(--green);letter-spacing:1px">EVENTO CONFERMATO</h3>
+        <p class="text-xs txt3 mt-1">L'evento si farà come previsto</p>
+      </div>`;
+    }
   }
 
   // Check if user has an entry-based subscription compatible with this event.
@@ -17101,12 +17135,21 @@ async function showEventDetail(evId,recDate){
             <div class="mt-2" style="background:var(--s200);border-radius:8px;height:8px;overflow:hidden"><div style="height:100%;background:var(--red);border-radius:8px;width:${Math.min(100,Math.round(current/_maxNeeded*100))}%"></div></div>
           </div>`;
         } else if(_myConfirmStatus==='confermato'){
-          const _confirmedManually=ev.confirmedByOrganizer;
-          _bookedConfirmBanner=`<div class="card mb-4" style="background:rgba(16,185,129,.08);border-color:var(--green);padding:16px;text-align:center">
-            <span style="font-size:1.5rem">✅</span>
-            <h3 class="font-bold mt-1" style="color:var(--green)">EVENTO CONFERMATO</h3>
-            <p class="text-xs txt3 mt-1">${_confirmedManually?'L\'organizzatore ha confermato questo evento':'Numero minimo di iscritti raggiunto'}</p>
-          </div>`;
+          // V4.20.0: BLU se pre-deadline (provvisorio), VERDE se post-deadline (definitivo)
+          const _dlPassedForBooked=_isDeadlinePassed(ev,_effectiveRecDate);
+          if(!_dlPassedForBooked){
+            _bookedConfirmBanner=`<div class="card mb-4" style="background:rgba(59,130,246,.08);border-color:var(--blue);padding:16px;text-align:center">
+              <span style="font-size:1.5rem">✓</span>
+              <h3 class="font-bold mt-1" style="color:var(--blue);letter-spacing:1px">MINIMO ISCRITTI RAGGIUNTO</h3>
+              <p class="text-xs txt3 mt-1">Ci sono abbastanza iscritti: per ora l'evento è confermato</p>
+            </div>`;
+          } else {
+            _bookedConfirmBanner=`<div class="card mb-4" style="background:rgba(16,185,129,.08);border-color:var(--green);padding:16px;text-align:center">
+              <span style="font-size:1.5rem">✅</span>
+              <h3 class="font-bold mt-1" style="color:var(--green);letter-spacing:1px">EVENTO CONFERMATO</h3>
+              <p class="text-xs txt3 mt-1">L'evento si farà come previsto</p>
+            </div>`;
+          }
         }
         return _bookedConfirmBanner+'<div class="card mb-4" style="border:2px solid var(--green);background:rgba(16,185,129,.04)">'
           +'<div class="flex items-center gap-2 mb-4"><span style="font-size:1.5rem">✅</span><div><h3 class="font-bold" style="color:var(--green)">Sei iscritto!</h3><p class="text-xs txt3">Prenotazione del '+myBooking.bookedAt+'</p></div></div>'
