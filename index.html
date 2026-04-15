@@ -2871,7 +2871,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.18.0';
+const APP_VERSION='V4.19.0';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -11299,6 +11299,20 @@ function _getEventFirstStartDate(ev,recDate){
   else if(_firstDay.startTime)_startTime=_firstDay.startTime;
   return new Date(_dateStr+'T'+_startTime);
 }
+// V4.19.0: ritorna il datetime di fine evento (ultima sessione dell'ultimo giorno).
+// Usato per calcolare la finestra di validità del walk-in QR.
+function _getEventLastEndDate(ev,recDate){
+  const _lastDay=ev.days&&ev.days[ev.days.length-1];
+  if(!_lastDay)return null;
+  const _dateStr=recDate||_lastDay.date;
+  if(!_dateStr)return null;
+  let _endTime='23:59';
+  if(_lastDay.sessions&&_lastDay.sessions.length){
+    const _lastSess=_lastDay.sessions[_lastDay.sessions.length-1];
+    if(_lastSess.endTime)_endTime=_lastSess.endTime;
+  } else if(_lastDay.endTime){_endTime=_lastDay.endTime;}
+  return new Date(_dateStr+'T'+_endTime);
+}
 // V4.15.0: ritorna il valore effettivo di "ore prima" considerando priorità nuovo > legacy
 // Se ev non ha alcuna configurazione, ritorna 0 (serve solo per i calcoli runtime; il form ha default 1 via HTML)
 function _getEffectiveHoursBefore(ev){
@@ -11769,9 +11783,11 @@ async function doBook(){
   }
   // If manually force-opened, skip deadline check below
   const _skipDeadlineCheck = _regManualCheck === false;
+  // V4.19.0: bypass deadline se walk-in via QR attivo (corsia preferenziale)
+  const _isWalkinQR = !!(_pendingCheckinAutoMark&&_pendingCheckinAutoMark.eventId===ev.id&&(_pendingCheckinAutoMark.recDate||null)===(currentBookingRecDate||null));
 
   // Block booking after deadline (uses getEffectiveBookingDeadline for recurring support)
-  if (!_skipDeadlineCheck) {
+  if (!_skipDeadlineCheck && !_isWalkinQR) {
     const _effDeadline=getEffectiveBookingDeadline(ev,currentBookingRecDate);
     if(_effDeadline&&new Date()>_parseDeadlineToDate(_effDeadline)){
       showToast('Le prenotazioni per questo evento sono chiuse (dal '+_fmtDeadline(_effDeadline)+')','error');return;
@@ -12908,6 +12924,14 @@ function _maybeAutoCheckin(booking){
   _pendingCheckinAutoMark=null; // consume flag
   booking.checkedIn=true;
   booking.checkinTime=new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+  // V4.19.0: flag walkIn anche per il flow principale (coerenza con flow admin)
+  booking.walkIn=true;
+  // V4.19.0: check overCapacity — se maxSpots raggiunto, flag per avviso organizzatore
+  const _ev=store.events.find(e=>e.id===booking.eventId);
+  if(_ev&&_ev.maxSpots&&_ev.maxSpots>0){
+    const _active=store.bookings.filter(b=>b.eventId===_ev.id&&b.status!=='cancellata'&&b.id!==booking.id&&(b.recurringDate||null)===(booking.recurringDate||null)).length;
+    if(_active>=_ev.maxSpots)booking.overCapacity=true;
+  }
   fsSet('bookings',booking.id,booking).catch(console.error);
   // Show success overlay
   const ev=store.events.find(e=>e.id===booking.eventId);
@@ -13044,7 +13068,7 @@ function renderAttendance(){
     rows+=`<tr style="${rowBg}">
       <td><div class="flex items-center gap-2"><div class="avatar ${avatarClass}" ${avatarStyle?'style="'+avatarStyle+'"':''}>${isNew?'🆕':b.initials||'?'}</div><div><div class="font-medium text-white text-sm">${escHtml(resolveUserName(b.userId,b.userName))}</div><div class="text-xs txt3">${sessionsLabel(b)}</div></div></div></td>
       <td>${attendBtn}</td>
-      <td><span class="badge ${typeBadge}">${typeLabel}</span></td>
+      <td><span class="badge ${typeBadge}">${typeLabel}</span>${b.overCapacity?'<span class="badge" style="background:rgba(234,179,8,.15);color:var(--yellow);font-size:.65rem;padding:2px 8px;border-radius:6px;margin-left:6px" title="Walk-in oltre capacità massima">⚠️ oltre capacità</span>':''}</td>
       <td>${payBtn}</td>
       ${surveyColsHtml(b)}
     </tr>`;
@@ -13171,7 +13195,11 @@ async function renderCheckinB(){
 }
 
 function confirmWalkinCheckin(evId){
-  const ev=store.events.find(e=>e.id===evId);if(!ev)return;
+  const ev=store.events.find(e=>e.id===evId);if(!ev){checkinRecDate=null;return;}
+  // V4.19.0: guard status evento (flow admin walk-in)
+  if(['concluso','archiviato','bozza','cancellato'].includes(ev.status)||(ev.alert&&ev.alert.type==='cancellato')){
+    showToast('Questo evento non accetta walk-in (stato non valido)','error');checkinRecDate=null;return;
+  }
   const _evRoles=getEventRoles(ev);
   if(_evRoles.length&&!selectedBookRole){showToast('Seleziona il tuo ruolo preferito!','error');return;}
   const surveyResponses=collectSurveyResponses(ev,'wi_');
@@ -13189,6 +13217,9 @@ function confirmWalkinCheckin(evId){
   }
   const tierLbl=tierKey==='alto'?'Sostenitore':tierKey==='basso'?'Ridotto':'Standard';
   const needsDep=ev.deposit&&ev.deposit.required&&ev.deposit.amount>0&&!isFree&&!isManaged;
+  // V4.19.0: check capacity flag (walk-in permesso ma avviso organizzatore)
+  const _activeCountWk=store.bookings.filter(b=>b.eventId===evId&&b.status!=='cancellata'&&(b.recurringDate||null)===(checkinRecDate||null)).length;
+  const _overCapWk=!!(ev.maxSpots&&ev.maxSpots>0&&_activeCountWk>=ev.maxSpots);
   const bk={
     id:genId('bk'),eventId:evId,userId:store.currentUser.id,
     userName:store.currentUser.username,email:store.currentUser.email,
@@ -13196,13 +13227,17 @@ function confirmWalkinCheckin(evId){
     items:items.length?items:[{type:'walk-in',name:ev.title,date:fmtDateShort(ev.days[0]?.date),time:'',tier:isFree?'Gratuito':'Da definire',price:0}],
     sessions,scope,tier:tierKey,amount:totalAmount,totalAmount,
     role:selectedBookRole||null,recurringDate:checkinRecDate||null,status:needsDep?'in_attesa_anticipo':'confermata',
-    depositStatus:needsDep?'pending':null,paymentStatus:isFree?'gratuito':null,gift:false,walkIn:true,
+    depositStatus:needsDep?'pending':null,paymentStatus:isFree?'gratuito':null,gift:false,walkIn:true,overCapacity:_overCapWk,
     checkedIn:true,checkinTime:new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}),
     surveyResponses:surveyResponses,
+    insuranceSurveyResponses:(ev.insurance?.enabled&&ev.insurance.requiredInsuranceIds?.length&&!isUserInsured(store.currentUser.id,ev.insurance.requiredInsuranceIds))?(typeof collectSurveyResponses==='function'?(collectSurveyResponses(ev,'wi_ins_')||{}):{}):{},
     bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
   };
   pushBookingSafe(bk);
   fsSet('bookings',bk.id,bk).catch(console.error);
+  // V4.19.0: init lastSeen V4.16.0 + reset checkinRecDate
+  if(store.currentUser?.id===bk.userId){_markEventRead(bk.eventId,bk.recurringDate||null);}
+  checkinRecDate=null;
   const info=document.getElementById('walkin-result-info');
   if(info)info.textContent='Walk-in · '+tierLbl+(totalAmount>0?' — €'+fmtEuro(totalAmount):'');
   document.getElementById('walkin-step1').classList.add('hidden');
@@ -13312,7 +13347,11 @@ function checkinNewStep2(){
 }
 
 function confirmNewCheckin(evId){
-  const ev=store.events.find(e=>e.id===evId);if(!ev)return;
+  const ev=store.events.find(e=>e.id===evId);if(!ev){checkinRecDate=null;return;}
+  // V4.19.0: guard status evento (flow admin walk-in)
+  if(['concluso','archiviato','bozza','cancellato'].includes(ev.status)||(ev.alert&&ev.alert.type==='cancellato')){
+    showToast('Questo evento non accetta walk-in (stato non valido)','error');checkinRecDate=null;return;
+  }
   const step2=document.getElementById('newp-step2');
   const userId=step2?.dataset.newUserId||'guest';
   const userName=step2?.dataset.userName||'Nuovo utente';
@@ -13332,6 +13371,9 @@ function confirmNewCheckin(evId){
   }
   const tierLbl=tierKey==='alto'?'Sostenitore':tierKey==='basso'?'Ridotto':'Standard';
   const needsDep=ev.deposit&&ev.deposit.required&&ev.deposit.amount>0&&!isFree&&!isManaged;
+  // V4.19.0: check capacity flag (walk-in nuovo utente permesso ma avviso organizzatore)
+  const _activeCountNp=store.bookings.filter(b=>b.eventId===evId&&b.status!=='cancellata'&&(b.recurringDate||null)===(checkinRecDate||null)).length;
+  const _overCapNp=!!(ev.maxSpots&&ev.maxSpots>0&&_activeCountNp>=ev.maxSpots);
   const bk={
     id:genId('bk'),eventId:evId,userId,
     userName,email:userEmail,
@@ -13339,13 +13381,17 @@ function confirmNewCheckin(evId){
     items:items.length?items:[{type:'walk-in (nuovo)',name:ev.title,date:fmtDateShort(ev.days[0]?.date),time:'',tier:isFree?'Gratuito':'Da definire',price:0}],
     sessions,scope,tier:tierKey,amount:totalAmount,totalAmount,
     role:userRole,recurringDate:checkinRecDate||null,status:needsDep?'in_attesa_anticipo':'confermata',
-    depositStatus:needsDep?'pending':null,paymentStatus:isFree?'gratuito':null,gift:false,walkIn:true,newUser:true,
+    depositStatus:needsDep?'pending':null,paymentStatus:isFree?'gratuito':null,gift:false,walkIn:true,newUser:true,overCapacity:_overCapNp,
     checkedIn:true,checkinTime:new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}),
     surveyResponses:surveyResponses,
+    insuranceSurveyResponses:(ev.insurance?.enabled&&ev.insurance.requiredInsuranceIds?.length&&!isUserInsured(userId,ev.insurance.requiredInsuranceIds))?(typeof collectSurveyResponses==='function'?(collectSurveyResponses(ev,'np_ins_')||{}):{}):{},
     bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
   };
   pushBookingSafe(bk);
   fsSet('bookings',bk.id,bk).catch(console.error);
+  // V4.19.0: init lastSeen V4.16.0 + reset checkinRecDate
+  if(store.currentUser?.id===bk.userId){_markEventRead(bk.eventId,bk.recurringDate||null);}
+  checkinRecDate=null;
   const info=document.getElementById('newp-result-info');
   if(info)info.textContent='Walk-in (nuovo) · '+tierLbl+(totalAmount>0?' — €'+fmtEuro(totalAmount):'');
   document.getElementById('newp-step2').classList.add('hidden');
@@ -17140,7 +17186,9 @@ async function showEventDetail(evId,recDate){
       const _regManualDet = isRegistrationManuallyControlled(ev, _detRecDate);
       const _detEffDl=getEffectiveBookingDeadline(ev,_detRecDate);
       // V4.15.0: datetime-aware comparison + display
-      const _bookingClosed=_regManualDet === true ? true : (_regManualDet === false ? false : (_detEffDl&&new Date()>_parseDeadlineToDate(_detEffDl)));
+      // V4.19.0: sopprimi blocco "Prenotazioni chiuse" se walk-in via QR attivo per questo evento (corsia preferenziale)
+      const _isWalkinContext=!!(_pendingCheckinAutoMark&&_pendingCheckinAutoMark.eventId===ev.id&&(_pendingCheckinAutoMark.recDate||null)===(_detRecDate||null));
+      const _bookingClosed=_isWalkinContext?false:(_regManualDet === true ? true : (_regManualDet === false ? false : (_detEffDl&&new Date()>_parseDeadlineToDate(_detEffDl))));
       if(_bookingClosed){
         const _closedMsg = _regManualDet === true ? 'Prenotazioni chiuse dall\'organizzatore' : 'Le prenotazioni si sono chiuse il ' + _fmtDeadline(_detEffDl);
         return _preRegParticipants+daysHtml+eventPkgHtml+loyaltyHtml
@@ -25032,6 +25080,22 @@ async function handleDeepLink(){
       const _ciRecDate=dl.recDate||null;
       // Check if user has an existing booking for this event+recDate
       const _ciBooking=store.bookings.find(b=>b.eventId===ev.id&&b.userId===store.currentUser.id&&b.status!=='cancellata'&&(b.recurringDate||null)===_ciRecDate);
+      // V4.19.0: guard walk-in (applicati SOLO se no booking; iscritti fanno auto check-in sempre)
+      if(!_ciBooking){
+        // Guard status evento: walk-in vietato se non attivo
+        if(['concluso','archiviato','bozza','cancellato'].includes(ev.status)||(ev.alert&&ev.alert.type==='cancellato')){
+          showToast('Questo evento non accetta walk-in','error');checkinRecDate=null;go('events');return;
+        }
+        // Guard finestra temporale: da 24h prima inizio fino a fine ultima sessione
+        const _wiStart=_getEventFirstStartDate(ev,_ciRecDate);
+        const _wiEnd=_getEventLastEndDate(ev,_ciRecDate);
+        const _now=new Date();
+        if(_wiStart&&_wiEnd){
+          const _windowStart=new Date(_wiStart.getTime()-24*3600000);
+          if(_now<_windowStart){showToast('Il walk-in apre 24h prima dell\'evento','error');checkinRecDate=null;go('events');return;}
+          if(_now>_wiEnd){showToast('Questo evento è concluso, il walk-in non è più disponibile','error');checkinRecDate=null;go('events');return;}
+        }
+      }
       if(_ciBooking){
         // AUTO CHECK-IN: mark as checked in
         if(!_ciBooking.checkedIn){
