@@ -2871,7 +2871,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.20.0';
+const APP_VERSION='V4.21.0';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -21697,7 +21697,7 @@ function editEvent(id){
   if(ev.subscriptionBookable?.enabled){
     const sbEl=document.getElementById('ne-sub-bookable');
     if(sbEl){sbEl.checked=true;document.getElementById('ne-sub-bookable-opts')?.classList.remove('hidden');}
-    setTimeout(()=>{(ev.subscriptionBookable.typeIds||[]).forEach(tid=>{const btn=document.querySelector('#ne-sub-bookable-types .ne-subtype-sel[data-id="'+tid+'"]');if(btn){btn.classList.add('selected');btn.style.background='var(--brand-bg)';btn.style.color='var(--brand-l)';btn.style.borderColor='var(--brand)';}});},200);
+    // V4.21.0: individual button .selected restore moved to AFTER go() — see end of editEvent
     // V3.10.46: Restore subscription-only toggle
     const _soW2=document.getElementById('ne-sub-only-wrap');if(_soW2)_soW2.style.display='';
     if(ev.subscriptionOnly){const soEl2=document.getElementById('ne-sub-only');if(soEl2)soEl2.checked=true;}
@@ -21705,7 +21705,7 @@ function editEvent(id){
   if(ev.subscriptionDiscount?.enabled){
     const sdEl=document.getElementById('ne-sub-discount');
     if(sdEl){sdEl.checked=true;document.getElementById('ne-sub-discount-opts')?.classList.remove('hidden');}
-    setTimeout(()=>{(ev.subscriptionDiscount.typeIds||[]).forEach(tid=>{const btn=document.querySelector('#ne-sub-discount-types .ne-subtype-sel[data-id="'+tid+'"]');if(btn){btn.classList.add('selected');btn.style.background='var(--brand-bg)';btn.style.color='var(--brand-l)';btn.style.borderColor='var(--brand)';}});},200);
+    // V4.21.0: individual button .selected restore moved to AFTER go() — see end of editEvent
     const pctEl=document.getElementById('ne-sub-disc-pct');if(pctEl&&ev.subscriptionDiscount.percentage!=null)pctEl.value=ev.subscriptionDiscount.percentage;
   }
   // V3.1.7: Insurance settings restore
@@ -21715,7 +21715,7 @@ function editEvent(id){
     if(insEl){insEl.checked=true;document.getElementById('ne-insurance-opts')?.classList.remove('hidden');}
     const insBtnEl=document.getElementById('ne-insurance-required-btn');
     if(insBtnEl){insBtnEl.style.background='var(--brand-bg)';insBtnEl.style.color='var(--brand-l)';insBtnEl.style.borderColor='var(--brand)';}
-    setTimeout(()=>{(ev.insurance.requiredInsuranceIds||[]).forEach(iid=>{const btn=document.querySelector('#ne-insurance-types .ne-ins-sel[data-id="'+iid+'"]');if(btn){btn.classList.add('selected');btn.style.background='rgba(99,102,241,.15)';btn.style.color='var(--brand-l)';btn.style.borderColor='var(--brand)';}});},200);
+    // V4.21.0: individual button .selected restore moved to AFTER go() — see end of editEvent
     const ipEl=document.getElementById('ne-insurance-price');if(ipEl&&ev.insurance.price!=null)ipEl.value=ev.insurance.price;
     const idEl=document.getElementById('ne-insurance-desc');if(idEl&&ev.insurance.description)idEl.value=ev.insurance.description;
     const isEl=document.getElementById('ne-insurance-survey-enabled');if(isEl)isEl.checked=ev.insurance.surveyEnabled||false;
@@ -21921,6 +21921,27 @@ function editEvent(id){
   }
   console.log('[editEvent] B3: Final type check — expected:',ev.type,'actual:',document.getElementById('ne-type')?.value);
   go('admin-new-event');
+  // V4.21.0 FIX: restore individual button .selected state AFTER go() — which triggers a second
+  // populateSubTypeCheckboxes/populateInsuranceCheckboxes via line ~10092 that wipes innerHTML
+  // (the previous setTimeout(200) hack was racy against the second populate / async data loads).
+  if(ev.subscriptionBookable?.enabled){
+    (ev.subscriptionBookable.typeIds||[]).forEach(tid=>{
+      const btn=document.querySelector('#ne-sub-bookable-types .ne-subtype-sel[data-id="'+tid+'"]');
+      if(btn){btn.classList.add('selected');btn.style.background='var(--brand-bg)';btn.style.color='var(--brand-l)';btn.style.borderColor='var(--brand)';}
+    });
+  }
+  if(ev.subscriptionDiscount?.enabled){
+    (ev.subscriptionDiscount.typeIds||[]).forEach(tid=>{
+      const btn=document.querySelector('#ne-sub-discount-types .ne-subtype-sel[data-id="'+tid+'"]');
+      if(btn){btn.classList.add('selected');btn.style.background='var(--brand-bg)';btn.style.color='var(--brand-l)';btn.style.borderColor='var(--brand)';}
+    });
+  }
+  if(ev.insurance?.enabled){
+    (ev.insurance.requiredInsuranceIds||[]).forEach(iid=>{
+      const btn=document.querySelector('#ne-insurance-types .ne-ins-sel[data-id="'+iid+'"]');
+      if(btn){btn.classList.add('selected');btn.style.background='rgba(99,102,241,.15)';btn.style.color='var(--brand-l)';btn.style.borderColor='var(--brand)';}
+    });
+  }
 }
 async function ensureEventCoords(ev){
   if(ev.coords&&ev.coords.lat&&ev.coords.lng)return;
