@@ -2871,7 +2871,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.21.0';
+const APP_VERSION='V4.22.0';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -11388,6 +11388,15 @@ function getConfirmationStatus(ev,recDate){
   // Legacy: event-level minSubscribers
   if(!hasMin&&ev.minSubscribers&&ev.minSubscribers.count)hasMin=true;
   if(!hasMin)return null;
+  // V4.22.0: Per ricorrenti, exception per-occorrenza PRIMA del flag globale legacy
+  const _recDCheck=recDate||(ev._recDate||null);
+  if(ev.recurrence&&_recDCheck&&ev.recurrence.exceptions){
+    const _exc=ev.recurrence.exceptions[_recDCheck];
+    if(_exc){
+      if(_exc.type==='min_confirmed')return 'confermato';
+      if(_exc.type==='min_cancelled')return null; // occorrenza rimossa
+    }
+  }
   // If organizer manually confirmed despite min not reached
   if(ev.confirmedByOrganizer)return 'confermato';
   // V4.1.0 FIX: For recurring events, count bookings only for the specific recurrence date
@@ -16958,7 +16967,7 @@ async function showEventDetail(evId,recDate){
     <div class="text-sm txt3 mb-6" style="cursor:pointer" onclick="go('${backView}')">← Torna agli eventi</div>
     ${isAdminPreview?'<div class="badge badge-yellow mb-4" style="padding:6px 12px">👁️ Preview come la vedono gli utenti</div>':''}
     ${alertBanner}
-    ${ev.confirmedByOrganizer&&!isDisabledByAlert?'<div class="card mb-4" style="border:2px solid var(--green);background:rgba(16,185,129,.08);padding:16px;text-align:center"><div style="font-size:1.5rem">✅</div><h3 class="font-bold mt-1" style="color:var(--green)">EVENTO CONFERMATO</h3><p class="text-xs txt3 mt-1">L\'organizzatore ha confermato questo evento</p></div>':''}
+    ${ev.confirmedByOrganizer&&!isDisabledByAlert&&!(ev.recurrence&&ev.recurrence.active!==false)?'<div class="card mb-4" style="border:2px solid var(--green);background:rgba(16,185,129,.08);padding:16px;text-align:center"><div style="font-size:1.5rem">✅</div><h3 class="font-bold mt-1" style="color:var(--green)">EVENTO CONFERMATO</h3><p class="text-xs txt3 mt-1">L\'organizzatore ha confermato questo evento</p></div>':''}
     ${(()=>{
       if(ev.status!=='pubblicato')return '';
       let _noteText='',_noteDate='';
@@ -17347,9 +17356,34 @@ async function renderAdminEvents(){
   runDataCleanup(); // V3.7.0: One-time cleanup
   let evts=store.events.filter(e=>isEventVisibleToManager(e,u.id));
   evts.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||''));
+  // V4.22.0: card virtuali per istanze ricorrenti passate con banner pending (sezione Conclusi)
+  // CRITICAL: status:'concluso' forzato → rendering usa branch concluso + FIX 9 per actions differenziate
+  const _pendingCards=[];
+  evts.forEach(ev=>{
+    if(ev.status==='cancellato'||ev.status==='archiviato')return;
+    if(!ev.recurrence||ev.recurrence.active===false)return;
+    if(!isEventCapofila(ev,u.id))return;
+    const _pending=getPendingMinRecurringInstances(ev);
+    _pending.forEach(p=>{
+      const _clonedDays=(ev.days||[]).map(d=>({...d,
+        tiers:d.tiers?{...d.tiers}:null,
+        sessions:(d.sessions||[]).map(s=>({...s,tiers:s.tiers?{...s.tiers}:null}))
+      }));
+      _clonedDays.forEach(d=>{d.date=p.recDate;});
+      _pendingCards.push({
+        ...ev,
+        status:'concluso',              // CRITICAL: forza branch rendering "concluso"
+        _originalStatus:ev.status,      // preserva lo status vero dell'evento parent
+        _recDate:p.recDate,
+        _isPendingMinInstance:true,
+        days:_clonedDays,
+        tiers:ev.tiers?{...ev.tiers}:null,
+      });
+    });
+  });
   const pub=evts.filter(e=>e.status==='pubblicato').length;
   const boz=evts.filter(e=>e.status==='bozza').length;
-  const con=evts.filter(e=>e.status==='concluso').length;
+  const con=evts.filter(e=>e.status==='concluso').length+_pendingCards.length;
   const canc=evts.filter(e=>e.status==='cancellato').length;
   const arch=evts.filter(e=>e.status==='archiviato').length;
 
@@ -17372,6 +17406,10 @@ async function renderAdminEvents(){
 
   const statusFilter=_af;
   if(statusFilter==='pub_bozza')evts=evts.filter(e=>e.status==='pubblicato'||e.status==='bozza');
+  else if(statusFilter==='concluso'){
+    evts=evts.filter(e=>e.status==='concluso');
+    evts=[..._pendingCards,...evts]; // pending prima (più recenti)
+  }
   else if(statusFilter)evts=evts.filter(e=>e.status===statusFilter);
 
   const _cancNotice=statusFilter==='cancellato'?'<div class="card mb-4" style="background:rgba(239,68,68,.06);border-color:var(--red);padding:14px"><div class="flex items-center gap-2"><span>🗑️</span><span class="text-sm" style="color:var(--red)"><strong>Gli eventi cancellati vengono eliminati automaticamente dopo 10 giorni</strong> dalla data di cancellazione.</span></div></div>':'';
@@ -17420,7 +17458,9 @@ async function renderAdminEvents(){
       }
     })():
     ev.status==='archiviato'?`${eyeBtn}<button class="btn btn-sm" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3);font-size:.75rem" onclick="event.stopPropagation();showAdminEventDetail('${ev.id}')">📊 Gestisci</button><button class="btn btn-sm" style="background:rgba(99,102,241,.1);color:#6366f1;border:1px solid rgba(99,102,241,.2);font-size:.72rem" onclick="event.stopPropagation();copyEventAsTemplate('${ev.id}')">📋 Usa come template</button>`:
-    ev.status==='concluso'?`${eyeBtn}<button class="btn btn-sm" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3);font-size:.75rem" onclick="event.stopPropagation();showAdminEventDetail('${ev.id}')">📊 Gestisci</button><button class="btn btn-sm" style="background:rgba(99,102,241,.08);color:#6366f1;border:1px solid rgba(99,102,241,.2);font-size:.75rem" onclick="event.stopPropagation();archiveEvent('${ev.id}')">📦 Archivia</button><button class="btn btn-sm" style="background:rgba(99,102,241,.1);color:#6366f1;border:1px solid rgba(99,102,241,.2);font-size:.72rem" onclick="event.stopPropagation();copyEventAsTemplate('${ev.id}')">📋 Usa come template</button>`:
+    ev.status==='concluso'?(ev._isPendingMinInstance
+      ?`${eyeBtn}<span class="text-xs" style="color:var(--yellow);font-weight:600">⏳ In attesa di tua decisione</span>`
+      :`${eyeBtn}<button class="btn btn-sm" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3);font-size:.75rem" onclick="event.stopPropagation();showAdminEventDetail('${ev.id}')">📊 Gestisci</button><button class="btn btn-sm" style="background:rgba(99,102,241,.08);color:#6366f1;border:1px solid rgba(99,102,241,.2);font-size:.75rem" onclick="event.stopPropagation();archiveEvent('${ev.id}')">📦 Archivia</button><button class="btn btn-sm" style="background:rgba(99,102,241,.1);color:#6366f1;border:1px solid rgba(99,102,241,.2);font-size:.72rem" onclick="event.stopPropagation();copyEventAsTemplate('${ev.id}')">📋 Usa come template</button>`):
     ev.status==='cancellato'?(()=>{
       const _dLeft=_getCancelledDaysLeft(ev);
       return `<div class="flex items-center gap-2 flex-wrap"><span class="text-xs" style="color:var(--red)">🗑️ Eliminato tra ${_dLeft}g</span><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();showEventDetail('${ev.id}')">👁️ Preview</button><button class="btn btn-danger btn-sm" onclick="event.stopPropagation();hardDeleteEvent('${ev.id}')">🗑️ Elimina</button></div>`;
@@ -17428,15 +17468,20 @@ async function renderAdminEvents(){
       '<span class="text-xs txt3">Concluso</span>';
     const opacity=ev.status==='bozza'?'opacity:.7':ev.status==='cancellato'?'opacity:.6':ev.status==='archiviato'?'opacity:.75':'';
     const partnerBorder=isPartner?'border-left:4px solid #a855f7;':'';
-    // Min participants not reached + deadline expired banner
-    const _evConfStat=isCapofila?getConfirmationStatus(ev,ev._recDate||null):null;
+    // V4.22.0: banner con data esplicita + per-occorrenza + pending instance support
+    const _evConfStat=ev._isPendingMinInstance?'deadline_scaduta':(isCapofila?getConfirmationStatus(ev,ev._recDate||null):null);
     const _minBanner=_evConfStat==='deadline_scaduta'?(()=>{
       const _needed=getMinNeeded(ev);
-      const _rD=ev._recDate||null;const _isRec=!!(ev.recurrence&&ev.recurrence.active);
-      const _current=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata'&&(!_isRec||!_rD||(b.recurringDate||null)===_rD||!b.recurringDate)).length;
+      const _rD=ev._recDate||null;const _isRec=!!(ev.recurrence&&ev.recurrence.active!==false);
+      const _current=ev._isPendingMinInstance
+        ?store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata'&&(b.recurringDate||null)===_rD).length
+        :store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata'&&(!_isRec||!_rD||(b.recurringDate||null)===_rD||!b.recurringDate)).length;
+      const _dateLabel=_isRec&&_rD?` per la data del <strong>${fmtDate(_rD)}</strong>`:'';
+      const _rDArg=_rD?`,'${_rD}'`:'';
+      const _pastLabel=ev._isPendingMinInstance?' (occorrenza già svolta)':'';
       return `<div style="margin-top:10px;padding:10px 14px;border-radius:10px;background:var(--red-bg);border:1px solid rgba(239,68,68,.3)">
-        <div class="flex items-center gap-2 mb-2"><span>⚠️</span><span class="text-xs font-bold" style="color:var(--red)">Non hai raggiunto il numero minimo di iscritti (${_current}/${_needed}): conferma o cancella l'evento!</span></div>
-        <div class="flex gap-2 flex-wrap"><button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="event.stopPropagation();confirmEventDespiteMin('${ev.id}')">✅ Conferma evento</button><button class="btn btn-sm" style="background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.3)" onclick="event.stopPropagation();cancelEventDueToMin('${ev.id}')">🚫 Cancella evento</button></div>
+        <div class="flex items-center gap-2 mb-2"><span>⚠️</span><span class="text-xs font-bold" style="color:var(--red)">Non hai raggiunto il numero minimo di iscritti (${_current}/${_needed})${_dateLabel}${_pastLabel}: conferma o cancella l'evento!</span></div>
+        <div class="flex gap-2 flex-wrap"><button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="event.stopPropagation();confirmEventDespiteMin('${ev.id}'${_rDArg})">✅ Conferma evento</button><button class="btn btn-sm" style="background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.3)" onclick="event.stopPropagation();cancelEventDueToMin('${ev.id}'${_rDArg})">🚫 Cancella evento</button></div>
       </div>`;
     })():'';
     /* === Card layout matching Home cards === */
@@ -17569,18 +17614,73 @@ function publishEvent(id){showConfirm('Pubblica evento','Pubblicare ora? Sarà v
 function revertToDraft(id){showConfirm('Torna in bozza','Riportare questo evento in bozza? Non sarà più visibile agli utenti finché non verrà ripubblicato.',()=>{
   const ev=store.events.find(e=>e.id===id);if(ev){ev.status='bozza';fsUpdate('events',ev.id,{status:'bozza'}).catch(console.error);_refreshAdminAfterAction(id);showToast('Evento riportato in bozza');}
 })}
-function confirmEventDespiteMin(id){
-  showConfirm('Conferma evento','Confermi l\'evento nonostante il numero minimo di iscritti non sia stato raggiunto? L\'evento rimarrà in bacheca e gli utenti vedranno un banner di conferma.',()=>{
-    const ev=store.events.find(e=>e.id===id);if(!ev)return;
-    ev.confirmedByOrganizer=true;
-    fsUpdate('events',ev.id,{confirmedByOrganizer:true}).catch(console.error);
+function confirmEventDespiteMin(id,recDate){
+  const ev=store.events.find(e=>e.id===id);if(!ev)return;
+  const _isRec=!!(ev.recurrence&&ev.recurrence.active!==false);
+  const _dateLabel=_isRec&&recDate?` del ${fmtDate(recDate)}`:'';
+  const _msg=_isRec&&recDate
+    ?`Confermi l'occorrenza${_dateLabel} nonostante il numero minimo di iscritti non sia stato raggiunto? La conferma vale solo per questa data. Le altre occorrenze restano gestite indipendentemente.`
+    :`Confermi l'evento nonostante il numero minimo di iscritti non sia stato raggiunto? L'evento rimarrà in bacheca e gli utenti vedranno un banner di conferma.`;
+  showConfirm('Conferma evento'+_dateLabel,_msg,()=>{
+    const _now=new Date().toISOString();
+    const _userId=store.currentUser?.id||null;
+    if(_isRec&&recDate){
+      if(!ev.recurrence.exceptions)ev.recurrence.exceptions={};
+      ev.recurrence.exceptions[recDate]={type:'min_confirmed',resolvedAt:_now,resolvedBy:_userId};
+      fsUpdate('events',ev.id,{['recurrence.exceptions.'+recDate]:ev.recurrence.exceptions[recDate]}).catch(console.error);
+    }else{
+      ev.confirmedByOrganizer=true;
+      fsUpdate('events',ev.id,{confirmedByOrganizer:true}).catch(console.error);
+    }
     renderAdminEvents();
     if(window._currentAdminDetailEvId===id)showAdminEventDetail(id);
-    showToast('Evento confermato! Gli utenti vedranno il banner di conferma.');
+    showToast('Evento confermato'+(_isRec&&recDate?' per il '+fmtDate(recDate):'')+'!');
   });
 }
-function cancelEventDueToMin(id){
+function cancelEventDueToMin(id,recDate){
   const ev=store.events.find(e=>e.id===id);if(!ev)return;
+  const _isRec=!!(ev.recurrence&&ev.recurrence.active!==false);
+  // V4.22.0: per ricorrenti, cancella solo la singola occorrenza + cancella booking + refund crediti
+  if(_isRec&&recDate){
+    const _dateLabel=fmtDate(recDate);
+    const _occBookings=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata'&&(b.recurringDate||null)===recDate);
+    const _hasOccBookings=_occBookings.length>0;
+    const _msg=_hasOccBookings
+      ?`Cancellare l'occorrenza del ${_dateLabel}? Gli ${_occBookings.length} iscritti di quella data verranno notificati e i loro crediti abbonamento (se usati) rimborsati. Le altre occorrenze dell'evento ricorrente restano attive.`
+      :`Cancellare l'occorrenza del ${_dateLabel}? Non ha iscritti. Le altre occorrenze restano attive.`;
+    showConfirm('Cancella occorrenza del '+_dateLabel,_msg,async()=>{
+      const _now=new Date().toISOString();
+      const _userId=store.currentUser?.id||null;
+      // 1. Cancella booking dell'occorrenza + refund crediti (pattern riga 22350-22351)
+      for(const b of _occBookings){
+        b.status='cancellata';
+        b.cancelledAt=_now;
+        b.cancelReason='Occorrenza annullata: minimo iscritti non raggiunto';
+        await fsUpdate('bookings',b.id,{status:'cancellata',cancelledAt:_now,cancelReason:b.cancelReason}).catch(console.error);
+        // Refund credito abbonamento (se non discount-mode)
+        if(b.subscriptionId){
+          const sub=store.subscriptions.find(s=>s.id===b.subscriptionId);
+          if(sub&&sub.entriesUsed>0){
+            const _sType=store.subscriptionTypes.find(t=>t.id===sub.typeId);
+            if(!_sType||_sType.mode!=='discount'){
+              sub.entriesUsed--;
+              if(sub.status==='expired'&&sub.entriesUsed<sub.entriesTotal)sub.status='active';
+              await fsUpdate('subscriptions',sub.id,{entriesUsed:sub.entriesUsed,status:sub.status}).catch(console.error);
+            }
+          }
+        }
+      }
+      // 2. Aggiungi exception min_cancelled (rimuove l'occorrenza dal calendario via isExcluded FIX 1)
+      if(!ev.recurrence.exceptions)ev.recurrence.exceptions={};
+      ev.recurrence.exceptions[recDate]={type:'min_cancelled',resolvedAt:_now,resolvedBy:_userId};
+      await fsUpdate('events',ev.id,{['recurrence.exceptions.'+recDate]:ev.recurrence.exceptions[recDate]}).catch(console.error);
+      renderAdminEvents();
+      if(window._currentAdminDetailEvId===id)showAdminEventDetail(id);
+      showToast('Occorrenza del '+_dateLabel+' cancellata'+(_hasOccBookings?` (${_occBookings.length} iscritti notificati)`:'')+'.');
+    },'danger');
+    return;
+  }
+  // Non-ricorrente: comportamento legacy invariato
   const hasBookings=store.bookings.some(b=>b.eventId===ev.id&&b.status!=='cancellata');
   if(hasBookings){
     openAlertModal(id);
@@ -17792,8 +17892,8 @@ function getEffectiveBookingDeadline(ev,recDate){
       }
     }
   }
-  // Legacy bookingDeadline (date o datetime string) → ritorna com'è
-  if(ev.bookingDeadline)return ev.bookingDeadline;
+  // V4.22.0: Legacy bookingDeadline SOLO per non-ricorrenti (su ricorrenti è una data assoluta stale)
+  if(ev.bookingDeadline&&!(ev.recurrence&&ev.recurrence.day))return ev.bookingDeadline;
   // Fallback estremo: last day dell'evento (date-only, legacy V4.14.0)
   if(ev.days&&ev.days.length)return ev.days.reduce((mx,d)=>d.date>mx?d.date:mx,ev.days[0].date);
   return null;
@@ -17997,7 +18097,7 @@ function getNextRecurringDates(ev,count){
   const dates=[];
   /* Helper: check if a date is excluded */
   function isExcluded(dateStr){
-    if(exc[dateStr]&&(exc[dateStr].type==='skip'||exc[dateStr].type==='cancellato'||exc[dateStr].type==='split'))return true;
+    if(exc[dateStr]&&(exc[dateStr].type==='skip'||exc[dateStr].type==='cancellato'||exc[dateStr].type==='split'||exc[dateStr].type==='min_cancelled'))return true;
     if(exclDates.includes(dateStr))return true;
     return false;
   }
@@ -18068,6 +18168,65 @@ function getNextRecurringDates(ev,count){
     }
   }
   return dates;
+}
+
+// V4.22.0: istanze ricorrenti passate con banner "minimo non raggiunto" non risolto.
+// Supporta freq='settimanale' completo. Per freq='mensile'/'annuale', scan solo su date con booking esistenti.
+// Rispetta pausedUntil, endDate, exclusionDates, exceptions esistenti.
+function getPendingMinRecurringInstances(ev){
+  if(!ev.recurrence||!ev.recurrence.day)return [];
+  const _maxNeeded=getMinNeeded(ev);
+  if(!_maxNeeded)return [];
+  const targetDay=DAY_MAP_NUM[ev.recurrence.day];
+  if(targetDay===undefined)return [];
+  const today=new Date();today.setHours(0,0,0,0);
+  const todayStr=localDateStr(today);
+  const eventStartDate=ev.days?.[0]?.date?new Date(ev.days[0].date+'T00:00:00'):null;
+  if(!eventStartDate)return [];
+  const exc=ev.recurrence.exceptions||{};
+  const exclDates=ev.recurrence.exclusionDates||[];
+  const pausedUntil=ev.recurrence.pausedUntil?new Date(ev.recurrence.pausedUntil+'T00:00:00'):null;
+  const recEndDate=ev.recurrence.endDate?new Date(ev.recurrence.endDate+'T00:00:00'):null;
+  const bookingsByRecDate={};
+  (store.bookings||[]).forEach(b=>{
+    if(b.eventId!==ev.id||b.status==='cancellata')return;
+    const rd=b.recurringDate||null;if(!rd)return;
+    if(rd>=todayStr)return;
+    bookingsByRecDate[rd]=(bookingsByRecDate[rd]||0)+1;
+  });
+  const pastRecDates=Object.keys(bookingsByRecDate);
+  const freq=ev.recurrence.freq||'settimanale';
+  if(freq==='settimanale'){
+    const d=new Date(eventStartDate);
+    while(d.getDay()!==targetDay)d.setDate(d.getDate()+1);
+    let safety=0;
+    while(d<today&&safety<520){
+      pastRecDates.push(localDateStr(d));
+      d.setDate(d.getDate()+7);
+      safety++;
+    }
+  }
+  // Dedup + filter: rispetta pausedUntil, endDate, exclusionDates, exceptions
+  const uniq=[...new Set(pastRecDates)];
+  const results=[];
+  uniq.forEach(rd=>{
+    // Skip se exception già risolta/rimossa/splittata
+    if(exc[rd]&&(exc[rd].type==='min_confirmed'||exc[rd].type==='min_cancelled'||exc[rd].type==='skip'||exc[rd].type==='cancellato'||exc[rd].type==='split'))return;
+    // Skip se in exclusionDates
+    if(exclDates.includes(rd))return;
+    const rdDate=new Date(rd+'T00:00:00');
+    // Skip se prima di eventStartDate
+    if(rdDate<eventStartDate)return;
+    // Skip se durante pausa
+    if(pausedUntil&&rdDate<pausedUntil&&rdDate>=eventStartDate)return;
+    // Skip se oltre endDate
+    if(recEndDate&&rdDate>recEndDate)return;
+    const bkCount=bookingsByRecDate[rd]||0;
+    if(bkCount>=_maxNeeded)return;
+    results.push({recDate:rd,bkCount:bkCount,needed:_maxNeeded});
+  });
+  results.sort((a,b)=>b.recDate.localeCompare(a.recDate));
+  return results;
 }
 
 // V3.10.55: Generate ALL recurring dates (past + future) for the full calendar view
