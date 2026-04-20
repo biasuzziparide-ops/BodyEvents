@@ -2871,7 +2871,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.22.0';
+const APP_VERSION='V4.22.1';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -17468,15 +17468,25 @@ async function renderAdminEvents(){
       '<span class="text-xs txt3">Concluso</span>';
     const opacity=ev.status==='bozza'?'opacity:.7':ev.status==='cancellato'?'opacity:.6':ev.status==='archiviato'?'opacity:.75':'';
     const partnerBorder=isPartner?'border-left:4px solid #a855f7;':'';
-    // V4.22.0: banner con data esplicita + per-occorrenza + pending instance support
-    const _evConfStat=ev._isPendingMinInstance?'deadline_scaduta':(isCapofila?getConfirmationStatus(ev,ev._recDate||null):null);
+    // V4.22.1: effective recDate per card parent ricorrente non espansa + conteggio coerente con getConfirmationStatus
+    // _effectiveRecDate: se pending instance → ev._recDate; se ricorrente attivo → prossima occorrenza valida (rispetta exceptions, pausedUntil, endDate); altrimenti null
+    // Conteggio booking: per pending passato → solo data specifica; per ricorrente attivo → data specifica + legacy senza recurringDate (coerenza con getConfirmationStatus); per non-ricorrente → tutte
+    const _isEvRec=!!(ev.recurrence&&ev.recurrence.day&&ev.recurrence.active!==false);
+    const _effectiveRecDate=ev._recDate||(_isEvRec?(getNextRecurringDates(ev,1)[0]||null):null);
+    const _evConfStat=ev._isPendingMinInstance
+      ?'deadline_scaduta'
+      :(isCapofila
+          ?(_isEvRec&&!_effectiveRecDate?null:getConfirmationStatus(ev,_effectiveRecDate))
+          :null);
     const _minBanner=_evConfStat==='deadline_scaduta'?(()=>{
       const _needed=getMinNeeded(ev);
-      const _rD=ev._recDate||null;const _isRec=!!(ev.recurrence&&ev.recurrence.active!==false);
+      const _rD=_effectiveRecDate;
       const _current=ev._isPendingMinInstance
         ?store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata'&&(b.recurringDate||null)===_rD).length
-        :store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata'&&(!_isRec||!_rD||(b.recurringDate||null)===_rD||!b.recurringDate)).length;
-      const _dateLabel=_isRec&&_rD?` per la data del <strong>${fmtDate(_rD)}</strong>`:'';
+        :_isEvRec
+          ?store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata'&&((b.recurringDate||null)===_rD||!b.recurringDate)).length
+          :store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata').length;
+      const _dateLabel=_isEvRec&&_rD?` per la data del <strong>${fmtDate(_rD)}</strong>`:'';
       const _rDArg=_rD?`,'${_rD}'`:'';
       const _pastLabel=ev._isPendingMinInstance?' (occorrenza già svolta)':'';
       return `<div style="margin-top:10px;padding:10px 14px;border-radius:10px;background:var(--red-bg);border:1px solid rgba(239,68,68,.3)">
