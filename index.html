@@ -417,6 +417,15 @@ textarea.input{resize:none;font-family:inherit}
 .view-toggle button{padding:7px 18px;font-size:.8rem;font-weight:600;border:none;cursor:pointer;transition:all .15s;background:transparent;color:var(--txt3)}
 .view-toggle button.active-toggle{background:var(--brand-d);color:#fff}
 .view-toggle button:hover:not(.active-toggle){background:var(--s300);color:var(--txt2)}
+/* V4.23.0: Schema partecipanti — frecce details */
+#participant-schema-details>summary::-webkit-details-marker{display:none}
+#participant-schema-details>summary{list-style:none}
+#participant-schema-details[open]>summary .schema-arrow{transform:rotate(180deg)}
+.schema-arrow{transition:transform .2s;display:inline-block}
+.schema-role-details>summary::-webkit-details-marker{display:none}
+.schema-role-details>summary{list-style:none}
+.schema-role-details[open]>summary .schema-role-arrow{transform:rotate(90deg)}
+.schema-role-arrow{transition:transform .2s;display:inline-block}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
@@ -2871,7 +2880,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.22.1';
+const APP_VERSION='V4.23.0';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -14361,72 +14370,32 @@ async function renderUserDashboard(){
     });
   }
 
-  // V3.6.2: Archivio (past bookings) — moved to end
+  // V4.22.2: Archivio lazy render — collassato default, paginazione 5 a 5, più recente prima
+  // Uso ontoggle (nativo <details>) invece di onclick+rAF → fired DOPO che open cambia, compatibile tastiera.
+  // list-style:none + -webkit-appearance:none per sopprimere marker nativo su Chrome/FF/Safari.
+  // TO-BE (migrazione Postgres): qui si userà lazy query SQL paginata invece di cache in memoria.
   if(pastBookings.length){
-    html+=`<h2 class="font-semibold text-white mb-3 mt-6">📦 Archivio (${pastBookings.length})</h2>`;
-    pastBookings.forEach((b,i)=>{
-      const ev=store.events.find(e=>e.id===b.eventId);
-      if(!ev)return;
-      const d0=ev.days[0];
-      const _dashDate=b.recurringDate||d0?.date;
-      const dd=_dashDate?new Date(_dashDate+'T00:00:00'):null;
-      const dayNum=dd?dd.getDate():'';
-      const monthStr=dd?MONTHS_IT[dd.getMonth()]:'';
-      const _yearStr=dd?dd.getFullYear():'';
-      const _startTime=d0?.startTime||(d0?.sessions&&d0.sessions.length?d0.sessions.reduce((m,s)=>s.startTime<m?s.startTime:m,'23:59'):'');
-      const _endTime=d0?.endTime||(d0?.sessions&&d0.sessions.length?d0.sessions.reduce((m,s)=>s.endTime>m?s.endTime:m,'00:00'):'');
-      // Thumb
-      const _pThumbData=(ev.imageThumb||ev.image)?{src:ev.imageThumb?.src||ev.image,zoom:ev.imageThumb?.zoom||100,posX:ev.imageThumb?.posX||0,posY:ev.imageThumb?.posY||0}:null;
-      const _pThumbPos=_pThumbData?(()=>{const s=_pThumbData.zoom/100;const denom=72*s-72;const px=denom>0?Math.round(Math.abs(_pThumbData.posX)/denom*100):50;const py=denom>0?Math.round(Math.abs(_pThumbData.posY)/denom*100):50;return `object-position:${isNaN(px)?50:px}% ${isNaN(py)?50:py}%`})():'';
-      const _pDateContent=`<span style="font-size:1.6rem;font-weight:800;color:var(--txt3);line-height:1.1">${dayNum}</span>
-            <span style="font-size:.7rem;font-weight:700;color:rgba(240,171,252,.35);text-transform:uppercase;line-height:1;letter-spacing:.5px">${monthStr}</span>
-            <span style="font-size:.55rem;font-weight:500;color:rgba(240,171,252,.2);line-height:1;margin-top:2px">${_yearStr}</span>`;
-      const _pCardThumb=_pThumbData
-        ?`<div style="flex-shrink:0;display:flex;flex-direction:column;align-self:stretch;width:80px">
-            <div style="width:80px;flex:0 0 auto;min-height:48px;border-radius:12px 12px 0 0;overflow:hidden;filter:grayscale(.6) brightness(.7)"><img src="${_pThumbData.src}" style="width:100%;display:block;object-fit:cover;${_pThumbPos}" alt=""></div>
-            <div style="position:relative;width:80px;flex:1 0 auto;min-height:48px;border-radius:0 0 12px 12px;background:linear-gradient(160deg,rgba(100,80,120,.12),rgba(80,60,100,.06));border:1px solid rgba(120,90,140,.1);border-top:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:6px 0">
-              ${_pDateContent}
-            </div>
-          </div>`
-        :`<div style="flex-shrink:0;width:80px;align-self:stretch;display:flex;align-items:center;justify-content:center">
-            <div style="position:relative;width:80px;border-radius:12px;background:linear-gradient(160deg,rgba(100,80,120,.12),rgba(80,60,100,.06));border:1px solid rgba(120,90,140,.1);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:14px 0">
-              ${_pDateContent}
-            </div>
-          </div>`;
-      // Org logo
-      const _pMgr=store.managers.find(m=>m.id===ev.managerId);
-      const _pOrgLogo=_pMgr&&_pMgr.orgLogo?`<div style="width:22px;height:22px;border-radius:50%;overflow:hidden;border:2px solid var(--s300);flex-shrink:0;opacity:.6"><img src="${_pMgr.orgLogo}" style="width:100%;height:100%;object-fit:cover" alt=""></div>`:'';
-      // Universe strip (muted)
-      const _pUniStrip=getUniverseStripHtml(ev);
-      // V3.3.0: Participant pip for Jam/Social in past bookings
-      const _pBkIsJamSocial=ev.type==='jam'||ev.type==='social';
-      const _pBkPipHtml=(()=>{
-        if(!_pBkIsJamSocial)return '';
-        const _pipKey=_partCountKey(ev.id,b.recurringDate||null);
-        const _pCount=(_evPartCounts[_pipKey]!==undefined)?_evPartCounts[_pipKey]:store.bookings.filter(bk=>bk.eventId===ev.id&&bk.status!=='cancellata'&&(bk.recurringDate||null)===(b.recurringDate||null)).length;
-        if(_pCount<=0)return '';
-        return '<div class="participants-pip"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>'+_pCount+'</div>';
-      })();
-      html+=`<div class="card-hover mb-4" style="border-radius:16px;overflow:hidden;padding:0;border-color:var(--s300);opacity:.6;cursor:pointer" onclick="showEventDetail('${ev.id}'${b.recurringDate?`,'${b.recurringDate}'`:''})">
-        <div style="display:flex;align-items:stretch">
-          ${_pUniStrip}
-          <div style="flex:1;min-width:0;padding:14px 16px;display:flex;gap:14px;align-items:flex-start">
-            <div style="position:relative">${_pBkPipHtml}${_pCardThumb}</div>
-            <div style="flex:1;min-width:0">
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
-                ${_pOrgLogo}<h3 style="margin:0;font-size:.95rem;font-weight:600;color:var(--txt3);line-height:1.3;overflow-wrap:break-word;word-break:break-word;min-width:0">${escHtml(ev.title)}</h3>
-              </div>
-              <div style="display:flex;gap:4px;flex-wrap:wrap;row-gap:4px;margin-top:4px">
-                <span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)};opacity:.6">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>
-              </div>
-              <div style="margin-top:8px;font-size:.78rem;color:var(--txt3)">
-                🕐 dalle ${_startTime} alle ${_endTime} · ${escHtml(ev.orgName||(_pMgr?_pMgr.orgName:''))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>`;
+    // Sort desc per data evento effettiva (più recente prima)
+    pastBookings.sort((a,b)=>{
+      const evA=store.events.find(e=>e.id===a.eventId);
+      const evB=store.events.find(e=>e.id===b.eventId);
+      const dateA=a.recurringDate||evA?.days?.[evA?.days?.length-1]?.date||'';
+      const dateB=b.recurringDate||evB?.days?.[evB?.days?.length-1]?.date||'';
+      return dateB.localeCompare(dateA);
     });
+    // Cache in window per accesso dagli handler di toggle/load-more
+    window._userArchivePastCache=pastBookings;
+    html+=`
+    <details id="user-archive-details" ontoggle="_onUserArchiveToggle()" style="margin-top:24px">
+      <summary style="padding:12px 16px;background:var(--s100);border:1px solid var(--s200);border-radius:12px;cursor:pointer;list-style:none;-webkit-appearance:none;font-weight:600;color:var(--txt1);font-size:1rem;display:flex;align-items:center;justify-content:space-between;user-select:none">
+        <span>📦 Archivio</span>
+        <span class="user-archive-arrow" style="font-size:.8rem;color:var(--txt3);transition:transform .2s">▼</span>
+      </summary>
+      <div id="user-archive-list" data-rendered="0" style="margin-top:12px"></div>
+      <div id="user-archive-more-wrap" style="text-align:center;margin:12px 0;display:none">
+        <button class="btn btn-secondary btn-sm" onclick="_loadMoreUserArchive()">Mostra altre 5</button>
+      </div>
+    </details>`;
   }
 
   c.innerHTML=html;
@@ -14455,6 +14424,100 @@ function cancelUserBooking(bId){
       renderUserDashboard();
     },'danger');
   },'danger');
+}
+
+/* ==============================
+   V4.22.2: Archivio utente lazy render — helpers
+   ontoggle handler: fired nativamente quando <details>.open cambia, no requestAnimationFrame.
+============================== */
+function _onUserArchiveToggle(){
+  const det=document.getElementById('user-archive-details');
+  if(!det)return;
+  const arrow=det.querySelector('.user-archive-arrow');
+  if(arrow)arrow.style.transform=det.open?'rotate(180deg)':'rotate(0deg)';
+  if(!det.open)return; // chiusura: niente da rendereizzare
+  const list=document.getElementById('user-archive-list');
+  if(!list)return;
+  const rendered=parseInt(list.dataset.rendered||'0',10);
+  // Prima apertura → render prime 5. Riaperture successive → no-op (card già in DOM).
+  if(rendered===0)_loadMoreUserArchive();
+}
+
+function _loadMoreUserArchive(){
+  const list=document.getElementById('user-archive-list');
+  const moreWrap=document.getElementById('user-archive-more-wrap');
+  if(!list)return;
+  const past=window._userArchivePastCache||[];
+  const from=parseInt(list.dataset.rendered||'0',10);
+  const to=Math.min(from+5,past.length);
+  const parts=[];
+  for(let i=from;i<to;i++){
+    const h=_renderUserArchiveCardHtml(past[i]);
+    if(h)parts.push(h);
+  }
+  list.insertAdjacentHTML('beforeend',parts.join(''));
+  list.dataset.rendered=String(to);
+  if(moreWrap)moreWrap.style.display=(to<past.length)?'block':'none';
+}
+
+function _renderUserArchiveCardHtml(b){
+  const ev=store.events.find(e=>e.id===b.eventId);
+  if(!ev)return '';
+  const d0=ev.days[0];
+  const _dashDate=b.recurringDate||d0?.date;
+  const dd=_dashDate?new Date(_dashDate+'T00:00:00'):null;
+  const dayNum=dd?dd.getDate():'';
+  const monthStr=dd?MONTHS_IT[dd.getMonth()]:'';
+  const _yearStr=dd?dd.getFullYear():'';
+  const _startTime=d0?.startTime||(d0?.sessions&&d0.sessions.length?d0.sessions.reduce((m,s)=>s.startTime<m?s.startTime:m,'23:59'):'');
+  const _endTime=d0?.endTime||(d0?.sessions&&d0.sessions.length?d0.sessions.reduce((m,s)=>s.endTime>m?s.endTime:m,'00:00'):'');
+  const _pThumbData=(ev.imageThumb||ev.image)?{src:ev.imageThumb?.src||ev.image,zoom:ev.imageThumb?.zoom||100,posX:ev.imageThumb?.posX||0,posY:ev.imageThumb?.posY||0}:null;
+  const _pThumbPos=_pThumbData?(()=>{const s=_pThumbData.zoom/100;const denom=72*s-72;const px=denom>0?Math.round(Math.abs(_pThumbData.posX)/denom*100):50;const py=denom>0?Math.round(Math.abs(_pThumbData.posY)/denom*100):50;return `object-position:${isNaN(px)?50:px}% ${isNaN(py)?50:py}%`})():'';
+  const _pDateContent=`<span style="font-size:1.6rem;font-weight:800;color:var(--txt3);line-height:1.1">${dayNum}</span>
+        <span style="font-size:.7rem;font-weight:700;color:rgba(240,171,252,.35);text-transform:uppercase;line-height:1;letter-spacing:.5px">${monthStr}</span>
+        <span style="font-size:.55rem;font-weight:500;color:rgba(240,171,252,.2);line-height:1;margin-top:2px">${_yearStr}</span>`;
+  const _pCardThumb=_pThumbData
+    ?`<div style="flex-shrink:0;display:flex;flex-direction:column;align-self:stretch;width:80px">
+        <div style="width:80px;flex:0 0 auto;min-height:48px;border-radius:12px 12px 0 0;overflow:hidden;filter:grayscale(.6) brightness(.7)"><img src="${_pThumbData.src}" style="width:100%;display:block;object-fit:cover;${_pThumbPos}" alt=""></div>
+        <div style="position:relative;width:80px;flex:1 0 auto;min-height:48px;border-radius:0 0 12px 12px;background:linear-gradient(160deg,rgba(100,80,120,.12),rgba(80,60,100,.06));border:1px solid rgba(120,90,140,.1);border-top:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:6px 0">
+          ${_pDateContent}
+        </div>
+      </div>`
+    :`<div style="flex-shrink:0;width:80px;align-self:stretch;display:flex;align-items:center;justify-content:center">
+        <div style="position:relative;width:80px;border-radius:12px;background:linear-gradient(160deg,rgba(100,80,120,.12),rgba(80,60,100,.06));border:1px solid rgba(120,90,140,.1);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:14px 0">
+          ${_pDateContent}
+        </div>
+      </div>`;
+  const _pMgr=store.managers.find(m=>m.id===ev.managerId);
+  const _pOrgLogo=_pMgr&&_pMgr.orgLogo?`<div style="width:22px;height:22px;border-radius:50%;overflow:hidden;border:2px solid var(--s300);flex-shrink:0;opacity:.6"><img src="${_pMgr.orgLogo}" style="width:100%;height:100%;object-fit:cover" alt=""></div>`:'';
+  const _pUniStrip=getUniverseStripHtml(ev);
+  const _pBkIsJamSocial=ev.type==='jam'||ev.type==='social';
+  const _pBkPipHtml=(()=>{
+    if(!_pBkIsJamSocial)return '';
+    const _pipKey=_partCountKey(ev.id,b.recurringDate||null);
+    const _pCount=(_evPartCounts[_pipKey]!==undefined)?_evPartCounts[_pipKey]:store.bookings.filter(bk=>bk.eventId===ev.id&&bk.status!=='cancellata'&&(bk.recurringDate||null)===(b.recurringDate||null)).length;
+    if(_pCount<=0)return '';
+    return '<div class="participants-pip"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>'+_pCount+'</div>';
+  })();
+  return `<div class="card-hover mb-4" style="border-radius:16px;overflow:hidden;padding:0;border-color:var(--s300);opacity:.6;cursor:pointer" onclick="showEventDetail('${ev.id}'${b.recurringDate?`,'${b.recurringDate}'`:''})">
+    <div style="display:flex;align-items:stretch">
+      ${_pUniStrip}
+      <div style="flex:1;min-width:0;padding:14px 16px;display:flex;gap:14px;align-items:flex-start">
+        <div style="position:relative">${_pBkPipHtml}${_pCardThumb}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+            ${_pOrgLogo}<h3 style="margin:0;font-size:.95rem;font-weight:600;color:var(--txt3);line-height:1.3;overflow-wrap:break-word;word-break:break-word;min-width:0">${escHtml(ev.title)}</h3>
+          </div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;row-gap:4px;margin-top:4px">
+            <span class="badge ${badgeType(ev.type)}" style="${badgeTypeStyle(ev.type)};opacity:.6">${getEventTypeIcon(ev.type)} ${getEventTypeLabel(ev.type)}</span>
+          </div>
+          <div style="margin-top:8px;font-size:.78rem;color:var(--txt3)">
+            🕐 dalle ${_startTime} alle ${_endTime} · ${escHtml(ev.orgName||(_pMgr?_pMgr.orgName:''))}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
 }
 
 
@@ -24473,6 +24536,8 @@ function setAdminRecDateFilter(dateStr,evId){
 async function showAdminEventDetail(evId){
   window._currentAdminDetailEvId=evId;
   const ev=store.events.find(e=>e.id===evId);if(!ev)return;
+  // V4.23.0: distruggi eventuale grafico Schema partecipanti del render precedente
+  if(typeof _destroyParticipantSchemaChart==='function')_destroyParticipantSchemaChart();
   if(!_bookingsLoaded){await ensureBookingsLoaded();}
   const isArchived=ev.status==='archiviato';
   const _isCapo=isEventCapofila(ev,store.currentUser.id);
@@ -24538,6 +24603,8 @@ async function showAdminEventDetail(evId){
       return 0;
     });
   }
+  // V4.23.0: cache contesto per Schema partecipanti (active = subset che rispetta filtro recDate/sessione)
+  window._participantSchemaCtx={ev:ev,active:active};
   const depAmount=(ev.deposit&&ev.deposit.required&&ev.deposit.amount)?ev.deposit.amount:0;
   const pendingDep=active.filter(b=>b.depositStatus==='pending');
   const receivedDep=active.filter(b=>b.depositStatus==='ricevuto');
@@ -24598,7 +24665,7 @@ async function showAdminEventDetail(evId){
     const _daysSinceEnd=Math.floor((new Date()-new Date(_lastDay+'T23:59:59'))/(1000*60*60*24));
     return _daysSinceEnd<5;
   })();
-  const excelBtn=_isCapo?'<button class="btn btn-sm" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3);font-size:.8rem;margin-left:auto" onclick="downloadExcel()">📥 Scarica Excel</button>'+(_insDataAvailable?'<button class="btn btn-sm" style="background:rgba(99,102,241,.12);color:var(--brand-l);border:1px solid rgba(99,102,241,.3);font-size:.8rem" onclick="exportInsuranceSurveyExcel(\''+ev.id+'\')">🛡️ Excel Assicurazioni</button>':''):'';
+  const excelBtn=_isCapo?'<button class="btn btn-sm" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3);font-size:.8rem;margin-left:auto" onclick="downloadExcel()">📥 Scarica Excel</button>'+'<button class="btn btn-sm" style="background:rgba(168,85,247,.12);color:#a855f7;border:1px solid rgba(168,85,247,.3);font-size:.8rem" onclick="openParticipantSchema()">📊 Schema partecipanti</button>'+(_insDataAvailable?'<button class="btn btn-sm" style="background:rgba(99,102,241,.12);color:var(--brand-l);border:1px solid rgba(99,102,241,.3);font-size:.8rem" onclick="exportInsuranceSurveyExcel(\''+ev.id+'\')">🛡️ Excel Assicurazioni</button>':''):'';
   let viewToggleHtml='';
   if(showSessionToggle){
     const sessionOptions=[];
@@ -24742,6 +24809,15 @@ async function showAdminEventDetail(evId){
 
     ${recTabsHtml}
     ${viewToggleHtml}
+
+    ${(_isCapo&&active.length>0)?`
+    <details id="participant-schema-details" ontoggle="_onParticipantSchemaToggle()" style="margin-bottom:20px">
+      <summary style="padding:12px 16px;background:rgba(168,85,247,.06);border:1px solid rgba(168,85,247,.25);border-radius:12px;cursor:pointer;font-weight:600;color:var(--txt1);font-size:.95rem;display:flex;align-items:center;justify-content:space-between;user-select:none">
+        <span>📊 Schema partecipanti</span>
+        <span class="schema-arrow" style="font-size:.8rem;color:var(--txt3)">▼</span>
+      </summary>
+      <div id="participant-schema-body" data-rendered="0" style="margin-top:12px"></div>
+    </details>`:''}
 
     <!-- Stats overview -->
     <h2 class="font-semibold text-white mb-3">📊 Riepilogo Prenotazioni${viewSubtitle}</h2>
@@ -24906,6 +24982,213 @@ async function showAdminEventDetail(evId){
     go('admin-event-detail');
     if(!_isPopState) history.replaceState({view:'admin-event-detail',eventId:evId,mode:currentMode},'',' ');
     setTimeout(()=>obShowTour('tour_admin_event_detail'),500);
+  }
+}
+
+/* ==============================
+   V4.23.0: Schema partecipanti — analisi visiva ruoli + risposte sondaggio
+============================== */
+let _participantSchemaChart=null;
+
+function _destroyParticipantSchemaChart(){
+  if(_participantSchemaChart){
+    try{_participantSchemaChart.destroy();}catch(e){}
+    _participantSchemaChart=null;
+  }
+}
+
+// onclick pulsante: apre la sezione e ci scrolla
+function openParticipantSchema(){
+  const det=document.getElementById('participant-schema-details');
+  if(!det)return;
+  det.open=true; // se cambia stato → triggera ontoggle → lazy render
+  requestAnimationFrame(()=>det.scrollIntoView({behavior:'smooth',block:'start'}));
+}
+
+// ontoggle sezione principale: lazy render al primo open (la freccia ruota via CSS)
+function _onParticipantSchemaToggle(){
+  const det=document.getElementById('participant-schema-details');
+  if(!det||!det.open)return;
+  const body=document.getElementById('participant-schema-body');
+  if(!body||body.dataset.rendered==='1')return;
+  _renderParticipantSchemaBody();
+  body.dataset.rendered='1';
+}
+
+// Colore ruolo (replica logica roleColor di showAdminEventDetail in scope globale)
+function _schemaRoleColorOf(roleKey,ev){
+  if(roleKey==='base')return 'var(--green)';
+  if(roleKey==='flyer')return 'var(--blue)';
+  if(roleKey==='non_so')return 'var(--txt3)';
+  if(roleKey==='entrambi')return 'var(--purple)';
+  const univIds=ev?.universeIds||[ev?.universeId||'univ_acro'].filter(Boolean);
+  for(const uid of univIds){
+    const univ=store.universes.find(u=>u.id===uid);
+    if(univ&&univ.roles&&univ.roles.some(ur=>ur.toLowerCase().replace(/\s+/g,'_')===roleKey))return safeColor(univ.color);
+  }
+  return 'var(--brand-l)';
+}
+
+// Palette ciclica per le barre di distribuzione risposte
+const _SCHEMA_BAR_PALETTE=['#a855f7','#3b82f6','#10b981','#f59e0b','#ef4444','#06b6d4','#ec4899','#84cc16'];
+
+// Raggruppa i partecipanti per ruolo. Ordine: ruoli universe → non_so → ruoli residui/legacy → senza ruolo
+function _schemaBuildRoleGroups(ev,active){
+  const groups=[];
+  const assigned=new Set();
+  const _push=(key,bks)=>{
+    groups.push({key:key,label:resolveRoleLabel(key,ev),color:_schemaRoleColorOf(key,ev),bookings:bks});
+    bks.forEach(b=>assigned.add(b.id));
+  };
+  // 1. Ruoli ufficiali dell'universe (dinamici)
+  getEventRoles(ev).forEach(roleName=>{
+    const key=roleName.toLowerCase().replace(/\s+/g,'_');
+    const bks=active.filter(b=>b.role===key);
+    if(bks.length)_push(key,bks);
+  });
+  // 2. "Non lo so ancora"
+  const nonSo=active.filter(b=>b.role==='non_so'&&!assigned.has(b.id));
+  if(nonSo.length)_push('non_so',nonSo);
+  // 3. Ruoli residui/legacy non in getEventRoles (es. base/flyer/entrambi storici, ruoli rimossi dall'universe)
+  const restKeys=[...new Set(active.filter(b=>b.role&&!assigned.has(b.id)).map(b=>b.role))];
+  restKeys.forEach(key=>{
+    const bks=active.filter(b=>b.role===key&&!assigned.has(b.id));
+    if(bks.length)_push(key,bks);
+  });
+  // 4. Senza ruolo indicato
+  const noRole=active.filter(b=>!assigned.has(b.id));
+  if(noRole.length)groups.push({key:'__none__',label:'Senza ruolo indicato',color:'var(--txt3)',bookings:noRole});
+  return groups;
+}
+
+// HTML barre orizzontali per distribuzione di una domanda radio/checkbox
+function _schemaRenderDistributionBars(question,bookings){
+  const total=bookings.length;
+  const counts={};
+  (question.options||[]).forEach(opt=>{counts[opt]=0;});
+  let answeredCount=0;
+  bookings.forEach(b=>{
+    const r=(b.surveyResponses||{})[question.id];
+    if(r==null||r===''||(Array.isArray(r)&&r.length===0))return;
+    answeredCount++;
+    if(Array.isArray(r)){
+      r.forEach(v=>{counts[v]=(counts[v]||0)+1;});
+    }else{
+      counts[r]=(counts[r]||0)+1;
+    }
+  });
+  const maxCount=Math.max(1,...Object.values(counts));
+  let html='';let ci=0;
+  Object.keys(counts).forEach(opt=>{
+    const c=counts[opt];
+    const pct=total>0?Math.round(c/total*100):0;
+    const barPct=Math.round(c/maxCount*100);
+    const color=_SCHEMA_BAR_PALETTE[ci%_SCHEMA_BAR_PALETTE.length];ci++;
+    html+=`<div style="margin-bottom:10px">
+      <div style="font-size:.8rem;color:var(--txt1);line-height:1.4;margin-bottom:4px">${escHtml(opt)}</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="flex:1;background:var(--s200);border-radius:6px;height:18px;overflow:hidden">
+          <div style="height:100%;width:${barPct}%;background:${color};border-radius:6px;transition:width .3s"></div>
+        </div>
+        <div style="font-size:.74rem;color:var(--txt3);white-space:nowrap;min-width:60px;text-align:right">${c} · ${pct}%</div>
+      </div>
+    </div>`;
+  });
+  if(question.type==='checkbox'){
+    html+=`<div style="font-size:.68rem;color:var(--txt3);font-style:italic;margin-top:2px">Domanda a risposta multipla: la somma può superare il numero di partecipanti.</div>`;
+  }
+  html+=`<div style="font-size:.68rem;color:var(--txt3);margin-top:4px">${answeredCount}/${total} hanno risposto</div>`;
+  return html;
+}
+
+// HTML lista risposte testuali (domande type='text')
+function _schemaRenderTextAnswers(question,bookings){
+  const items=[];
+  bookings.forEach(b=>{
+    const r=(b.surveyResponses||{})[question.id];
+    if(r==null||r===''||(Array.isArray(r)&&r.length===0))return;
+    const name=resolveUserName(b.userId,b.userName);
+    items.push(`<li style="margin-bottom:6px;font-size:.8rem;color:var(--txt1);line-height:1.45"><span style="color:var(--txt3)">${escHtml(name)}:</span> ${escHtml(String(r))}</li>`);
+  });
+  if(!items.length)return `<div style="font-size:.76rem;color:var(--txt3);font-style:italic">Nessuna risposta.</div>`;
+  return `<ul style="margin:0;padding:0;list-style:none">${items.join('')}</ul>`
+    +`<div style="font-size:.68rem;color:var(--txt3);margin-top:4px">${items.length}/${bookings.length} hanno risposto</div>`;
+}
+
+// Render principale del corpo Schema partecipanti
+function _renderParticipantSchemaBody(){
+  const ctx=window._participantSchemaCtx;
+  const body=document.getElementById('participant-schema-body');
+  if(!body)return;
+  if(!ctx||!ctx.ev){body.innerHTML='<div style="font-size:.8rem;color:var(--txt3)">Dati non disponibili.</div>';return;}
+  const ev=ctx.ev;
+  const active=ctx.active||[];
+  _destroyParticipantSchemaChart();
+  if(!active.length){body.innerHTML='<div style="font-size:.8rem;color:var(--txt3)">Nessun partecipante.</div>';return;}
+  const groups=_schemaBuildRoleGroups(ev,active);
+  const surveys=(ev.surveys||[]);
+  let html='';
+  // --- Panoramica ---
+  html+=`<div class="card" style="padding:16px;margin-bottom:14px">
+    <div style="font-size:.9rem;font-weight:600;color:var(--txt1);margin-bottom:4px">👥 ${active.length} partecipant${active.length===1?'e':'i'}</div>`;
+  if(groups.length>1){
+    html+=`<div style="font-size:.76rem;color:var(--txt3);margin-bottom:12px">Distribuzione per ruolo</div>
+      <div style="max-width:260px;margin:0 auto"><canvas id="schema-roles-chart" height="220"></canvas></div>`;
+  }else if(groups.length===1){
+    html+=`<div style="font-size:.78rem;color:var(--txt3)">Tutti i partecipanti hanno ruolo: <strong style="color:var(--txt1)">${escHtml(groups[0].label)}</strong></div>`;
+  }
+  html+=`</div>`;
+  // --- Sezioni per ruolo ---
+  if(!surveys.length){
+    html+=`<div style="font-size:.8rem;color:var(--txt3);font-style:italic;padding:4px 2px">Questo evento non ha un sondaggio di iscrizione: nessuna risposta da analizzare.</div>`;
+  }else{
+    groups.forEach((g,gi)=>{
+      html+=`<details class="schema-role-details" ${gi===0?'open':''} style="margin-bottom:8px;border:1px solid var(--s300);border-radius:10px;background:var(--s100)">
+        <summary style="padding:10px 14px;cursor:pointer;font-weight:600;font-size:.85rem;color:var(--txt1);display:flex;align-items:center;gap:8px">
+          <span class="schema-role-arrow" style="color:var(--txt3);font-size:.7rem">▸</span>
+          <span style="width:10px;height:10px;border-radius:50%;background:${g.color};display:inline-block;flex-shrink:0"></span>
+          <span>${escHtml(g.label)}</span>
+          <span style="color:var(--txt3);font-weight:400">· ${g.bookings.length}</span>
+        </summary>
+        <div style="padding:4px 14px 14px">`;
+      surveys.forEach(q=>{
+        html+=`<div style="margin:12px 0 4px"><div style="font-size:.82rem;font-weight:600;color:var(--txt1);margin-bottom:8px">${escHtml(q.question)}</div>`;
+        html+=(q.type==='text')?_schemaRenderTextAnswers(q,g.bookings):_schemaRenderDistributionBars(q,g.bookings);
+        html+=`</div>`;
+      });
+      html+=`</div></details>`;
+    });
+  }
+  body.innerHTML=html;
+  // --- Grafico ciambella ruoli (unico Chart.js della feature) ---
+  if(groups.length>1){
+    const canvas=document.getElementById('schema-roles-chart');
+    if(canvas&&typeof Chart!=='undefined'){
+      const _resolveColor=(cssVal)=>{
+        if(cssVal&&cssVal.indexOf('var(')===0){
+          const name=cssVal.slice(4,-1).trim();
+          const v=getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+          return v||'#a855f7';
+        }
+        return cssVal||'#a855f7';
+      };
+      _participantSchemaChart=new Chart(canvas.getContext('2d'),{
+        type:'doughnut',
+        data:{
+          labels:groups.map(g=>g.label),
+          datasets:[{
+            data:groups.map(g=>g.bookings.length),
+            backgroundColor:groups.map(g=>_resolveColor(g.color)),
+            borderColor:'#1e1e28',
+            borderWidth:2
+          }]
+        },
+        options:{
+          responsive:true,
+          plugins:{legend:{position:'bottom',labels:{color:'#c9d1d9',font:{size:11},padding:10}}}
+        }
+      });
+    }
   }
 }
 
