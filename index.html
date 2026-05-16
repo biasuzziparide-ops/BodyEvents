@@ -2880,7 +2880,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.23.0';
+const APP_VERSION='V4.23.1';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -25062,7 +25062,7 @@ function _schemaBuildRoleGroups(ev,active){
 }
 
 // HTML barre orizzontali per distribuzione di una domanda radio/checkbox
-function _schemaRenderDistributionBars(question,bookings){
+function _schemaRenderDistributionBars(question,bookings,groupKey){
   const total=bookings.length;
   const counts={};
   (question.options||[]).forEach(opt=>{counts[opt]=0;});
@@ -25078,14 +25078,20 @@ function _schemaRenderDistributionBars(question,bookings){
     }
   });
   const maxCount=Math.max(1,...Object.values(counts));
+  const _gk=groupKey||'__all__';
   let html='';let ci=0;
   Object.keys(counts).forEach(opt=>{
     const c=counts[opt];
     const pct=total>0?Math.round(c/total*100):0;
     const barPct=Math.round(c/maxCount*100);
     const color=_SCHEMA_BAR_PALETTE[ci%_SCHEMA_BAR_PALETTE.length];ci++;
-    html+=`<div style="margin-bottom:10px">
-      <div style="font-size:.8rem;color:var(--txt1);line-height:1.4;margin-bottom:4px">${escHtml(opt)}</div>
+    const clickable=c>0;
+    // V4.23.1: riga cliccabile → modale con nomi/ruoli (solo se conteggio > 0)
+    const rowAttrs=clickable
+      ?` data-gk="${escHtml(_gk)}" data-qid="${escHtml(question.id)}" data-opt="${escHtml(opt)}" onclick="event.stopPropagation();_schemaShowResponders(this)" onmouseover="this.style.background='var(--s200)'" onmouseout="this.style.background='transparent'" style="margin-bottom:6px;padding:6px 8px;border-radius:8px;cursor:pointer;transition:background .15s"`
+      :` style="margin-bottom:6px;padding:6px 8px"`;
+    html+=`<div${rowAttrs}>
+      <div style="font-size:.8rem;color:var(--txt1);line-height:1.4;margin-bottom:4px">${escHtml(opt)}${clickable?' <span style="color:var(--txt3);font-size:.7rem" title="Vedi chi ha risposto">👁️</span>':''}</div>
       <div style="display:flex;align-items:center;gap:8px">
         <div style="flex:1;background:var(--s200);border-radius:6px;height:18px;overflow:hidden">
           <div style="height:100%;width:${barPct}%;background:${color};border-radius:6px;transition:width .3s"></div>
@@ -25115,6 +25121,73 @@ function _schemaRenderTextAnswers(question,bookings){
     +`<div style="font-size:.68rem;color:var(--txt3);margin-top:4px">${items.length}/${bookings.length} hanno risposto</div>`;
 }
 
+// V4.23.1: modale in sovraimpressione con i nomi di chi ha scelto una risposta
+function _schemaShowResponders(el){
+  const ctx=window._participantSchemaCtx;
+  const cache=window._participantSchemaGroupsCache;
+  if(!ctx||!ctx.ev||!cache)return;
+  const ev=ctx.ev;
+  const gk=el.dataset.gk;
+  const qid=el.dataset.qid;
+  const opt=el.dataset.opt;
+  const bookings=(gk==='__all__')?(cache.all||[]):((cache.byKey&&cache.byKey[gk])||[]);
+  // Chi ha scelto questa opzione
+  const responders=bookings.filter(b=>{
+    const r=(b.surveyResponses||{})[qid];
+    if(r==null)return false;
+    if(Array.isArray(r))return r.includes(opt);
+    return r===opt;
+  });
+  // Conteggio per ruolo
+  const roleCounts={};
+  responders.forEach(b=>{
+    const rk=b.role||'__none__';
+    if(!roleCounts[rk])roleCounts[rk]={label:(rk==='__none__'?'Senza ruolo':resolveRoleLabel(rk,ev)),color:(rk==='__none__'?'var(--txt3)':_schemaRoleColorOf(rk,ev)),count:0};
+    roleCounts[rk].count++;
+  });
+  // Costruzione modale
+  let h='<div style="background:var(--s100);border:1px solid var(--s300);border-radius:14px;padding:18px 20px;max-width:420px;width:90%;max-height:80vh;overflow-y:auto">';
+  h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px">';
+  h+='<div style="font-size:.9rem;font-weight:700;color:var(--txt1);line-height:1.4">'+escHtml(opt)+'</div>';
+  h+='<button onclick="_closeSchemaResponders()" style="background:none;border:none;color:var(--txt3);font-size:1.2rem;cursor:pointer;flex-shrink:0;line-height:1;padding:0">✕</button>';
+  h+='</div>';
+  h+='<div style="font-size:.82rem;color:var(--txt1);margin-bottom:10px">👥 <strong>'+responders.length+'</strong> '+(responders.length===1?'persona ha':'persone hanno')+' scelto questa risposta</div>';
+  if(Object.keys(roleCounts).length){
+    h+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">';
+    Object.values(roleCounts).forEach(rc=>{
+      h+='<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:8px;background:var(--s200);font-size:.74rem;color:var(--txt2)"><span style="width:8px;height:8px;border-radius:50%;background:'+rc.color+';display:inline-block"></span>'+escHtml(rc.label)+': <strong>'+rc.count+'</strong></span>';
+    });
+    h+='</div>';
+  }
+  h+='<div style="border-top:1px solid var(--s300);padding-top:10px">';
+  if(responders.length){
+    responders.forEach(b=>{
+      const name=resolveUserName(b.userId,b.userName);
+      const rk=b.role||'__none__';
+      const rlabel=(rk==='__none__')?'Senza ruolo':resolveRoleLabel(rk,ev);
+      const rcolor=(rk==='__none__')?'var(--txt3)':_schemaRoleColorOf(rk,ev);
+      h+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:.8rem"><span style="width:8px;height:8px;border-radius:50%;background:'+rcolor+';display:inline-block;flex-shrink:0"></span><span style="color:var(--txt1)">'+escHtml(name)+'</span><span style="color:var(--txt3);margin-left:auto;font-size:.72rem">'+escHtml(rlabel)+'</span></div>';
+    });
+  }else{
+    h+='<div style="font-size:.78rem;color:var(--txt3)">Nessuno.</div>';
+  }
+  h+='</div></div>';
+  // Overlay in sovraimpressione
+  let overlay=document.getElementById('schema-responders-overlay');
+  if(overlay)overlay.remove();
+  overlay=document.createElement('div');
+  overlay.id='schema-responders-overlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.innerHTML=h;
+  overlay.onclick=function(e){if(e.target===overlay)_closeSchemaResponders();};
+  document.body.appendChild(overlay);
+}
+
+function _closeSchemaResponders(){
+  const o=document.getElementById('schema-responders-overlay');
+  if(o)o.remove();
+}
+
 // Render principale del corpo Schema partecipanti
 function _renderParticipantSchemaBody(){
   const ctx=window._participantSchemaCtx;
@@ -25138,26 +25211,47 @@ function _renderParticipantSchemaBody(){
     html+=`<div style="font-size:.78rem;color:var(--txt3)">Tutti i partecipanti hanno ruolo: <strong style="color:var(--txt1)">${escHtml(groups[0].label)}</strong></div>`;
   }
   html+=`</div>`;
-  // --- Sezioni per ruolo ---
+  // --- V4.23.1: cache gruppi per il modale dettaglio risposte ---
+  window._participantSchemaGroupsCache={all:active,byKey:{}};
+  groups.forEach(g=>{window._participantSchemaGroupsCache.byKey[g.key]=g.bookings;});
+  // --- V4.23.1: Risposte sondaggio — gruppo totale (aperto) + sezioni per ruolo (collassate) ---
   if(!surveys.length){
     html+=`<div style="font-size:.8rem;color:var(--txt3);font-style:italic;padding:4px 2px">Questo evento non ha un sondaggio di iscrizione: nessuna risposta da analizzare.</div>`;
   }else{
-    groups.forEach((g,gi)=>{
-      html+=`<details class="schema-role-details" ${gi===0?'open':''} style="margin-bottom:8px;border:1px solid var(--s300);border-radius:10px;background:var(--s100)">
-        <summary style="padding:10px 14px;cursor:pointer;font-weight:600;font-size:.85rem;color:var(--txt1);display:flex;align-items:center;gap:8px">
-          <span class="schema-role-arrow" style="color:var(--txt3);font-size:.7rem">▸</span>
-          <span style="width:10px;height:10px;border-radius:50%;background:${g.color};display:inline-block;flex-shrink:0"></span>
-          <span>${escHtml(g.label)}</span>
-          <span style="color:var(--txt3);font-weight:400">· ${g.bookings.length}</span>
-        </summary>
-        <div style="padding:4px 14px 14px">`;
+    // Helper interno: rende il blocco domande per un sottoinsieme di bookings
+    const _renderSurveyBlock=(bks,groupKey)=>{
+      let h='';
       surveys.forEach(q=>{
-        html+=`<div style="margin:12px 0 4px"><div style="font-size:.82rem;font-weight:600;color:var(--txt1);margin-bottom:8px">${escHtml(q.question)}</div>`;
-        html+=(q.type==='text')?_schemaRenderTextAnswers(q,g.bookings):_schemaRenderDistributionBars(q,g.bookings);
-        html+=`</div>`;
+        h+=`<div style="margin:12px 0 4px"><div style="font-size:.82rem;font-weight:600;color:var(--txt1);margin-bottom:8px">${escHtml(q.question)}</div>`;
+        h+=(q.type==='text')?_schemaRenderTextAnswers(q,bks):_schemaRenderDistributionBars(q,bks,groupKey);
+        h+=`</div>`;
       });
-      html+=`</div></details>`;
-    });
+      return h;
+    };
+    // Sezione gruppo TOTALE — aperta di default
+    html+=`<details class="schema-role-details" open style="margin-bottom:8px;border:1px solid var(--s300);border-radius:10px;background:var(--s100)">
+      <summary style="padding:10px 14px;cursor:pointer;font-weight:600;font-size:.85rem;color:var(--txt1);display:flex;align-items:center;gap:8px">
+        <span class="schema-role-arrow" style="color:var(--txt3);font-size:.7rem">▸</span>
+        <span style="font-size:.95rem">👥</span>
+        <span>Tutti i partecipanti</span>
+        <span style="color:var(--txt3);font-weight:400">· ${active.length}</span>
+      </summary>
+      <div style="padding:4px 14px 14px">${_renderSurveyBlock(active,'__all__')}</div>
+    </details>`;
+    // Sezioni per singolo ruolo (tutte collassate) — solo se c'è più di un gruppo
+    if(groups.length>1){
+      groups.forEach(g=>{
+        html+=`<details class="schema-role-details" style="margin-bottom:8px;border:1px solid var(--s300);border-radius:10px;background:var(--s100)">
+          <summary style="padding:10px 14px;cursor:pointer;font-weight:600;font-size:.85rem;color:var(--txt1);display:flex;align-items:center;gap:8px">
+            <span class="schema-role-arrow" style="color:var(--txt3);font-size:.7rem">▸</span>
+            <span style="width:10px;height:10px;border-radius:50%;background:${g.color};display:inline-block;flex-shrink:0"></span>
+            <span>${escHtml(g.label)}</span>
+            <span style="color:var(--txt3);font-weight:400">· ${g.bookings.length}</span>
+          </summary>
+          <div style="padding:4px 14px 14px">${_renderSurveyBlock(g.bookings,g.key)}</div>
+        </details>`;
+      });
+    }
   }
   body.innerHTML=html;
   // --- Grafico ciambella ruoli (unico Chart.js della feature) ---
