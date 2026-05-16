@@ -2880,7 +2880,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.24.2';
+const APP_VERSION='V4.24.3';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -25527,7 +25527,30 @@ function _renderParticipantSchemaBody(){
         options:{
           responsive:true,
           plugins:{legend:{position:'bottom',labels:{color:'#c9d1d9',font:{size:11},padding:10}}}
-        }
+        },
+        plugins:[{
+          // V4.24.3: disegna il numero di partecipanti su ogni fetta della ciambella
+          id:'schemaSliceCounts',
+          afterDatasetsDraw(chart){
+            const ctx=chart.ctx;
+            const meta=chart.getDatasetMeta(0);
+            if(!ctx||!meta||!meta.data)return;
+            meta.data.forEach((arc,i)=>{
+              const val=chart.data.datasets[0].data[i];
+              if(val==null||val===0)return;
+              const pos=(typeof arc.tooltipPosition==='function')?arc.tooltipPosition():{x:arc.x,y:arc.y};
+              ctx.save();
+              ctx.font='bold 15px -apple-system,BlinkMacSystemFont,system-ui,sans-serif';
+              ctx.textAlign='center';
+              ctx.textBaseline='middle';
+              ctx.lineWidth=3;ctx.strokeStyle='rgba(0,0,0,.6)';
+              ctx.strokeText(String(val),pos.x,pos.y);
+              ctx.fillStyle='#ffffff';
+              ctx.fillText(String(val),pos.x,pos.y);
+              ctx.restore();
+            });
+          }
+        }]
       });
     }
   }
