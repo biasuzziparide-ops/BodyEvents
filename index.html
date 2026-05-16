@@ -2880,7 +2880,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.23.1';
+const APP_VERSION='V4.23.2';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -11791,6 +11791,12 @@ async function doBook(){
   const ev=store.events.find(e=>e.id===currentBookingEventId);
   if(!ev){showToast('Errore: evento non trovato','error');return;}
 
+  // V4.23.2: se walk-in via QR attivo per questo evento, allinea currentBookingRecDate alla recDate del QR
+  // (garantisce che il bypass _isWalkinQR funzioni anche su eventi ricorrenti)
+  if(_pendingCheckinAutoMark&&_pendingCheckinAutoMark.eventId===ev.id&&_pendingCheckinAutoMark.recDate&&currentBookingRecDate!==_pendingCheckinAutoMark.recDate){
+    console.info('[WALKIN-QR] doBook: allineo currentBookingRecDate da '+(currentBookingRecDate||'—')+' a '+_pendingCheckinAutoMark.recDate);
+    currentBookingRecDate=_pendingCheckinAutoMark.recDate;
+  }
   // Safety: ensure recurringDate is set for recurring events
   if(ev.recurrence&&ev.recurrence.active&&!currentBookingRecDate){
     const _recTabs=getRecurringDateTabs(ev);
@@ -11800,16 +11806,17 @@ async function doBook(){
     }
   }
 
-  // Block booking if manually closed
+  // V4.19.0+V4.23.2: bypass walk-in via QR (corsia preferenziale) — calcolato PRIMA di ogni blocco "iscrizioni chiuse"
+  const _isWalkinQR = !!(_pendingCheckinAutoMark&&_pendingCheckinAutoMark.eventId===ev.id&&(_pendingCheckinAutoMark.recDate||null)===(currentBookingRecDate||null));
+  if(_isWalkinQR)console.info('[WALKIN-QR] doBook: corsia walk-in QR attiva per evento '+ev.id+' recDate='+(currentBookingRecDate||'—')+' → bypass blocchi iscrizioni chiuse');
+  // Block booking if manually closed (V4.23.2: bypassato per walk-in QR)
   const _regManualCheck = isRegistrationManuallyControlled(ev, currentBookingRecDate);
-  if (_regManualCheck === true) {
+  if (_regManualCheck === true && !_isWalkinQR) {
     showToast('Le iscrizioni per questo evento sono state chiuse dall\'organizzatore', 'error');
     return;
   }
   // If manually force-opened, skip deadline check below
   const _skipDeadlineCheck = _regManualCheck === false;
-  // V4.19.0: bypass deadline se walk-in via QR attivo (corsia preferenziale)
-  const _isWalkinQR = !!(_pendingCheckinAutoMark&&_pendingCheckinAutoMark.eventId===ev.id&&(_pendingCheckinAutoMark.recDate||null)===(currentBookingRecDate||null));
 
   // Block booking after deadline (uses getEffectiveBookingDeadline for recurring support)
   if (!_skipDeadlineCheck && !_isWalkinQR) {
@@ -17303,6 +17310,7 @@ async function showEventDetail(evId,recDate){
       // V4.15.0: datetime-aware comparison + display
       // V4.19.0: sopprimi blocco "Prenotazioni chiuse" se walk-in via QR attivo per questo evento (corsia preferenziale)
       const _isWalkinContext=!!(_pendingCheckinAutoMark&&_pendingCheckinAutoMark.eventId===ev.id&&(_pendingCheckinAutoMark.recDate||null)===(_detRecDate||null));
+      if(_pendingCheckinAutoMark&&_pendingCheckinAutoMark.eventId===ev.id)console.info('[WALKIN-QR] showEventDetail: walkinContext='+_isWalkinContext+' (flagRecDate='+(_pendingCheckinAutoMark.recDate||'—')+' detRecDate='+(_detRecDate||'—')+')');
       const _bookingClosed=_isWalkinContext?false:(_regManualDet === true ? true : (_regManualDet === false ? false : (_detEffDl&&new Date()>_parseDeadlineToDate(_detEffDl))));
       if(_bookingClosed){
         const _closedMsg = _regManualDet === true ? 'Prenotazioni chiuse dall\'organizzatore' : 'Le prenotazioni si sono chiuse il ' + _fmtDeadline(_detEffDl);
@@ -25685,6 +25693,7 @@ async function handleDeepLink(){
   } else if(dl.type==='checkin'){
     // Handle check-in deep link
     const ev=store.events.find(e=>e.id===dl.id);
+    console.info('[WALKIN-QR] handleDeepLink checkin: evento='+dl.id+' trovato='+!!ev+' recDate='+(dl.recDate||'—'));
     if(ev){
       checkinRecDate=dl.recDate||null;
       const _ciRecDate=dl.recDate||null;
@@ -25694,6 +25703,7 @@ async function handleDeepLink(){
       if(!_ciBooking){
         // Guard status evento: walk-in vietato se non attivo
         if(['concluso','archiviato','bozza','cancellato'].includes(ev.status)||(ev.alert&&ev.alert.type==='cancellato')){
+          console.warn('[WALKIN-QR] BLOCCATO da guard stato evento: status='+ev.status+' alert='+(ev.alert&&ev.alert.type||'—'));
           showToast('Questo evento non accetta walk-in','error');checkinRecDate=null;go('events');return;
         }
         // Guard finestra temporale: da 24h prima inizio fino a fine ultima sessione
@@ -25702,8 +25712,8 @@ async function handleDeepLink(){
         const _now=new Date();
         if(_wiStart&&_wiEnd){
           const _windowStart=new Date(_wiStart.getTime()-24*3600000);
-          if(_now<_windowStart){showToast('Il walk-in apre 24h prima dell\'evento','error');checkinRecDate=null;go('events');return;}
-          if(_now>_wiEnd){showToast('Questo evento è concluso, il walk-in non è più disponibile','error');checkinRecDate=null;go('events');return;}
+          if(_now<_windowStart){console.warn('[WALKIN-QR] BLOCCATO da finestra temporale: ora='+_now.toISOString()+' apertura='+_windowStart.toISOString());showToast('Il walk-in apre 24h prima dell\'evento','error');checkinRecDate=null;go('events');return;}
+          if(_now>_wiEnd){console.warn('[WALKIN-QR] BLOCCATO da finestra temporale: ora='+_now.toISOString()+' fine='+_wiEnd.toISOString());showToast('Questo evento è concluso, il walk-in non è più disponibile','error');checkinRecDate=null;go('events');return;}
         }
       }
       if(_ciBooking){
@@ -25745,6 +25755,7 @@ async function handleDeepLink(){
       } else {
         // No booking found → set auto-checkin flag, then open event detail so user can register
         _pendingCheckinAutoMark={eventId:ev.id,recDate:_ciRecDate};
+        console.info('[WALKIN-QR] flag _pendingCheckinAutoMark impostato: '+JSON.stringify(_pendingCheckinAutoMark)+' → apertura dettaglio evento per iscrizione');
         go('events');
         setTimeout(()=>showEventDetail(dl.id,dl.recDate||undefined),300);
         showToast('Registrati all\'evento per completare il check-in!','info');
