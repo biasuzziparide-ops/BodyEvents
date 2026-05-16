@@ -2880,7 +2880,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.24.1';
+const APP_VERSION='V4.24.2';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -24917,7 +24917,7 @@ async function showAdminEventDetail(evId){
     const _daysSinceEnd=Math.floor((new Date()-new Date(_lastDay+'T23:59:59'))/(1000*60*60*24));
     return _daysSinceEnd<5;
   })();
-  const excelBtn=_isCapo?'<button class="btn btn-sm" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3);font-size:.8rem;margin-left:auto" onclick="downloadExcel()">📥 Scarica Excel</button>'+'<button class="btn btn-sm" style="background:rgba(168,85,247,.12);color:#a855f7;border:1px solid rgba(168,85,247,.3);font-size:.8rem" onclick="openParticipantSchema()">📊 Schema partecipanti</button>'+(_insDataAvailable?'<button class="btn btn-sm" style="background:rgba(99,102,241,.12);color:var(--brand-l);border:1px solid rgba(99,102,241,.3);font-size:.8rem" onclick="exportInsuranceSurveyExcel(\''+ev.id+'\')">🛡️ Excel Assicurazioni</button>':''):'';
+  const excelBtn=_isCapo?'<button class="btn btn-sm" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3);font-size:.8rem;margin-left:auto" onclick="downloadExcel()">📥 Scarica Excel</button>'+(_insDataAvailable?'<button class="btn btn-sm" style="background:rgba(99,102,241,.12);color:var(--brand-l);border:1px solid rgba(99,102,241,.3);font-size:.8rem" onclick="exportInsuranceSurveyExcel(\''+ev.id+'\')">🛡️ Excel Assicurazioni</button>':''):'';
   let viewToggleHtml='';
   if(showSessionToggle){
     const sessionOptions=[];
@@ -25250,14 +25250,6 @@ function _destroyParticipantSchemaChart(){
     try{_participantSchemaChart.destroy();}catch(e){}
     _participantSchemaChart=null;
   }
-}
-
-// onclick pulsante: apre la sezione e ci scrolla
-function openParticipantSchema(){
-  const det=document.getElementById('participant-schema-details');
-  if(!det)return;
-  det.open=true; // se cambia stato → triggera ontoggle → lazy render
-  requestAnimationFrame(()=>det.scrollIntoView({behavior:'smooth',block:'start'}));
 }
 
 // ontoggle sezione principale: lazy render al primo open (la freccia ruota via CSS)
