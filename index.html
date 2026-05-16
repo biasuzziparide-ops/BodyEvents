@@ -2880,7 +2880,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.23.2';
+const APP_VERSION='V4.24.1';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -3691,6 +3691,12 @@ function genId(prefix){return prefix+'_'+Date.now().toString(36)+'_'+Math.random
 function _stripUndefined(obj){
   if(obj===null||obj===undefined||typeof obj!=='object')return obj;
   if(Array.isArray(obj))return obj.map(v=>_stripUndefined(v));
+  // V4.23.3: ricostruisci SOLO i plain object (per rimuovere i campi undefined, rifiutati da Firestore).
+  // Gli oggetti speciali — sentinella FieldValue (delete/serverTimestamp/arrayUnion/arrayRemove/increment),
+  // Date, Timestamp, GeoPoint — sono istanze di classe e vanno preservati intatti: ricostruirli con
+  // Object.keys li distruggerebbe (es. la rimozione di un campo via FieldValue.delete() non avverrebbe).
+  const _proto=Object.getPrototypeOf(obj);
+  if(_proto!==null&&_proto!==Object.prototype)return obj;
   const out={};for(const k of Object.keys(obj)){if(obj[k]!==undefined)out[k]=_stripUndefined(obj[k]);}return out;
 }
 async function fsSet(col,id,data){
@@ -13277,6 +13283,219 @@ function confirmWalkinCheckin(evId){
   showToast('Check-in walk-in completato!');
 }
 
+/* ==============================
+   V4.24.0: Aggiungi iscritto manuale (organizzatore)
+============================== */
+let _manualBookingCtx=null; // {evId, userId, recDate}
+
+async function openManualBookingModal(evId){
+  const ev=store.events.find(e=>e.id===evId);
+  if(!ev){showToast('Evento non trovato','error');return;}
+  if(!isEventCapofila(ev,store.currentUser.id)){showToast('Solo l\'organizzatore può aggiungere iscritti','error');return;}
+  _manualBookingCtx={evId:evId,userId:null,recDate:null};
+  selectedBookRole=null;
+  Object.keys(selectedTiers).forEach(k=>{if(k.startsWith('mb_'))delete selectedTiers[k];});
+  let overlay=document.getElementById('manual-booking-overlay');
+  if(overlay)overlay.remove();
+  overlay=document.createElement('div');
+  overlay.id='manual-booking-overlay';
+  overlay.className='overlay';
+  overlay.innerHTML=`<div class="dialog" style="max-width:520px;width:92%;max-height:88vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <h3 class="text-lg font-semibold text-white" style="margin:0">➕ Aggiungi iscritto</h3>
+      <button onclick="closeManualBookingModal()" style="background:none;border:none;color:var(--txt3);font-size:1.3rem;cursor:pointer;line-height:1">✕</button>
+    </div>
+    <div id="mb-step1">
+      <p class="text-sm txt3 mb-2">Cerca la persona da iscrivere (deve essere registrata in piattaforma):</p>
+      <input class="input" id="mb-user-search" placeholder="🔍 Nome o email..." oninput="_filterManualBookingUsers(this.value)" autocomplete="off">
+      <div id="mb-user-results" style="margin-top:10px;max-height:320px;overflow-y:auto"></div>
+    </div>
+    <div id="mb-step2" class="hidden"></div>
+  </div>`;
+  overlay.addEventListener('click',e=>{if(e.target===overlay)closeManualBookingModal();});
+  document.body.appendChild(overlay);
+  const _res=document.getElementById('mb-user-results');
+  if(_res)_res.innerHTML='<div class="text-sm txt3" style="padding:8px">Caricamento utenti...</div>';
+  await ensureUsersLoaded();
+  _filterManualBookingUsers('');
+}
+
+function closeManualBookingModal(){
+  const o=document.getElementById('manual-booking-overlay');
+  if(o)o.remove();
+  _manualBookingCtx=null;
+  // V4.24.0: reset variabili globali condivise per non lasciare stato stale
+  selectedBookRole=null;
+  Object.keys(selectedTiers).forEach(k=>{if(k.startsWith('mb_'))delete selectedTiers[k];});
+}
+
+function _filterManualBookingUsers(query){
+  const res=document.getElementById('mb-user-results');
+  if(!res)return;
+  const q=(query||'').trim().toLowerCase();
+  let users=(store.users||[]).filter(u=>u.id&&u.id!=='guest'&&(u.status||'attivo')==='attivo');
+  if(q){
+    users=users.filter(u=>((u.username||'').toLowerCase().includes(q))||((u.email||'').toLowerCase().includes(q)));
+  }
+  users=users.sort((a,b)=>(a.username||'').localeCompare(b.username||'')).slice(0,30);
+  if(!users.length){
+    res.innerHTML='<div class="text-sm txt3" style="padding:8px">'+(q?'Nessun utente trovato.':'Inizia a digitare per cercare.')+'</div>';
+    return;
+  }
+  res.innerHTML=users.map(u=>{
+    const initials=(u.username||'?').split(' ').map(p=>p[0]).join('').toUpperCase().substring(0,2);
+    return `<div onclick="_manualBookingSelectUser('${u.id}')" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--s200)'" onmouseout="this.style.background='transparent'">
+      <div style="width:34px;height:34px;border-radius:50%;background:var(--brand-bg);color:var(--brand-l);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;flex-shrink:0">${escHtml(initials)}</div>
+      <div style="min-width:0"><div class="text-sm text-white" style="font-weight:600">${escHtml(u.username||'(senza nome)')}</div><div class="text-xs txt3" style="overflow:hidden;text-overflow:ellipsis">${escHtml(u.email||'')}</div></div>
+    </div>`;
+  }).join('');
+}
+
+function _manualBookingSelectUser(userId){
+  if(!_manualBookingCtx)return;
+  const u=store.users.find(x=>x.id===userId);
+  if(!u){showToast('Utente non trovato','error');return;}
+  _manualBookingCtx.userId=userId;
+  const ev=store.events.find(e=>e.id===_manualBookingCtx.evId);
+  if(!ev)return;
+  const _isRec=!!(ev.recurrence&&ev.recurrence.day);
+  if(_isRec){
+    const _tabs=getRecurringDateTabs(ev);
+    _manualBookingCtx.recDate=(_tabs&&(_tabs.defaultDate||_tabs.futureDates?.[0]||_tabs.dates?.[0]))||null;
+  } else {
+    _manualBookingCtx.recDate=null;
+  }
+  _renderManualBookingStep2();
+}
+
+function _renderManualBookingStep2(){
+  if(!_manualBookingCtx)return;
+  const ev=store.events.find(e=>e.id===_manualBookingCtx.evId);
+  const u=store.users.find(x=>x.id===_manualBookingCtx.userId);
+  if(!ev||!u)return;
+  const step1=document.getElementById('mb-step1');
+  const step2=document.getElementById('mb-step2');
+  if(!step2)return;
+  if(step1)step1.classList.add('hidden');
+  step2.classList.remove('hidden');
+  // V4.24.0: currentBookingEventId/RecDate guidano buildFullPricingHtml, collectCheckinBookingData e selectTier (mutua esclusione giorno/sessione)
+  currentBookingEventId=ev.id;
+  currentBookingRecDate=_manualBookingCtx.recDate||null;
+  Object.keys(selectedTiers).forEach(k=>{if(k.startsWith('mb_'))delete selectedTiers[k];});
+  selectedBookRole=null;
+  const _isRec=!!(ev.recurrence&&ev.recurrence.day);
+  let recPickerHtml='';
+  if(_isRec){
+    const _tabs=getRecurringDateTabs(ev);
+    const _dates=(_tabs&&_tabs.dates)?_tabs.dates:[];
+    recPickerHtml=`<div class="card mb-3" style="padding:10px 14px">
+      <label class="text-sm font-medium text-white mb-1" style="display:block">📅 Data occorrenza</label>
+      <select class="input" onchange="_onManualBookingRecDateChange(this.value)">
+        ${_dates.map(d=>`<option value="${d}" ${d===_manualBookingCtx.recDate?'selected':''}>${fmtDate(d)}</option>`).join('')}
+      </select>
+    </div>`;
+  }
+  const pricingHtml=buildFullPricingHtml(ev,'mb_');
+  step2.innerHTML=`
+    <div class="card mb-3" style="background:rgba(99,102,241,.06);border-color:rgba(99,102,241,.2);padding:10px 14px">
+      <div class="text-sm text-white" style="font-weight:600">${escHtml(u.username||'')}</div>
+      <div class="text-xs txt3">${escHtml(u.email||'')}</div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:6px;font-size:.72rem;padding:2px 8px" onclick="_manualBookingBackToStep1()">↩ Cambia persona</button>
+    </div>
+    ${recPickerHtml}
+    ${buildRoleSelectorHtml(ev)}
+    ${pricingHtml}
+    ${renderSurveyQuestions(ev,'mb_')}
+    ${renderInsuranceSurveyForBooking(ev,'mb_ins_',_manualBookingCtx.userId)}
+    <button class="btn btn-primary w-full" style="padding:13px;margin-top:8px" onclick="confirmManualBooking()">✅ Aggiungi iscritto</button>`;
+  const pref=getUserEffectiveRole(u,ev);
+  if(pref){const b=step2.querySelector('.book-role-btn[data-role="'+pref+'"]');if(b)selectBookRole(b);}
+}
+
+function _manualBookingBackToStep1(){
+  const step1=document.getElementById('mb-step1');
+  const step2=document.getElementById('mb-step2');
+  if(step1)step1.classList.remove('hidden');
+  if(step2){step2.classList.add('hidden');step2.innerHTML='';}
+  if(_manualBookingCtx)_manualBookingCtx.userId=null;
+}
+
+function _onManualBookingRecDateChange(recDate){
+  if(!_manualBookingCtx)return;
+  _manualBookingCtx.recDate=recDate||null;
+  _renderManualBookingStep2();
+}
+
+async function confirmManualBooking(){
+  if(!_manualBookingCtx)return;
+  const ev=store.events.find(e=>e.id===_manualBookingCtx.evId);
+  const u=store.users.find(x=>x.id===_manualBookingCtx.userId);
+  if(!ev||!u){showToast('Dati non validi','error');return;}
+  const mbRecDate=_manualBookingCtx.recDate||null;
+  currentBookingRecDate=mbRecDate;
+  currentBookingEventId=ev.id;
+  // Anti-duplicato — store locale
+  const _dup=store.bookings.find(b=>b.eventId===ev.id&&b.userId===u.id&&b.status!=='cancellata'&&(b.recurringDate||null)===mbRecDate);
+  if(_dup){showToast(escHtml(u.username||'L\'utente')+' è già iscritto a questo evento'+(mbRecDate?' per il '+fmtDate(mbRecDate):'')+'.','error');return;}
+  // Anti-duplicato — verifica Firestore (guard contro cache locale stale)
+  try{
+    const _fbSnap=await fbDb.collection('bookings').where('eventId','==',ev.id).where('userId','==',u.id).get();
+    const _fbDup=_fbSnap.docs.find(d=>{const b=d.data();return b.status!=='cancellata'&&(b.recurringDate||null)===mbRecDate;});
+    if(_fbDup){
+      const _fbBk=_fbDup.data();
+      if(!store.bookings.find(b=>b.id===_fbBk.id))store.bookings.push(_fbBk);
+      showToast(escHtml(u.username||'L\'utente')+' è già iscritto a questo evento.','error');return;
+    }
+  }catch(e){console.warn('Manual booking: verifica duplicato Firestore fallita, procedo con check locale:',e);}
+  // Ruolo obbligatorio se l'evento ha ruoli
+  const _evRoles=getEventRoles(ev);
+  if(_evRoles.length&&!selectedBookRole){showToast('Seleziona il ruolo del partecipante','error');return;}
+  // Sondaggio evento
+  const surveyResponses=collectSurveyResponses(ev,'mb_');
+  if(surveyResponses===null)return;
+  // Questionario assicurativo (se l'utente non è coperto)
+  let insSurveyResponses={};
+  if(ev.insurance?.enabled&&ev.insurance.surveyEnabled&&ev.insurance.requiredInsuranceIds?.length&&!isUserInsured(u.id,ev.insurance.requiredInsuranceIds)){
+    const _ins=collectInsuranceSurveyResponses(ev,'mb_ins_',u.id);
+    if(_ins===null)return; // domanda assicurativa obbligatoria mancante
+    insSurveyResponses=_ins||{};
+  }
+  // Pricing
+  const isFree=ev.pricingMode==='free';const isManaged=ev.pricingMode==='managed';const isDirect=ev.pricingMode==='direct';
+  let items,totalAmount,scope,tierKey,sessions;
+  if(isFree||isManaged||isDirect){
+    const allSessIds=[];ev.days.forEach(d=>(d.sessions||[]).forEach(s=>allSessIds.push(s.id)));
+    items=[];totalAmount=0;scope='evento';tierKey='medio';sessions=allSessIds;
+  } else {
+    const data=collectCheckinBookingData(ev,'mb_');
+    items=data.items;totalAmount=data.totalAmount;scope=data.scope;tierKey=data.tierKey;sessions=data.sessions;
+    if(!items.length){showToast('Seleziona un\'opzione di prezzo (sessione, giornata o evento)','error');return;}
+  }
+  const needsDep=ev.deposit&&ev.deposit.required&&ev.deposit.amount>0&&!isFree&&!isManaged;
+  const _activeCnt=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata'&&(b.recurringDate||null)===mbRecDate).length;
+  const _overCap=!!(ev.maxSpots&&ev.maxSpots>0&&_activeCnt>=ev.maxSpots);
+  const bk={
+    id:genId('bk'),eventId:ev.id,userId:u.id,
+    userName:u.username,email:u.email,
+    initials:(u.username||'?').split(' ').map(p=>p[0]).join('').toUpperCase().substring(0,2),color:'avatar-brand',
+    items:items.length?items:[{type:'manual',name:ev.title,date:fmtDateShort(ev.days[0]?.date),time:'',tier:isFree?'Gratuito':'Da definire',price:0}],
+    sessions,scope,tier:tierKey,amount:totalAmount,totalAmount,
+    role:selectedBookRole||null,recurringDate:mbRecDate,
+    status:needsDep?'in_attesa_anticipo':'confermata',
+    depositStatus:needsDep?'pending':null,paymentStatus:isFree?'gratuito':null,
+    gift:false,walkIn:false,addedManually:true,overCapacity:_overCap,
+    checkedIn:false,
+    surveyResponses:surveyResponses,
+    insuranceSurveyResponses:insSurveyResponses,
+    bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
+  };
+  pushBookingSafe(bk);
+  fsSet('bookings',bk.id,bk).catch(console.error);
+  closeManualBookingModal();
+  showToast('✅ '+escHtml(u.username||'Iscritto')+' aggiunto agli iscritti'+(_overCap?' (oltre capacità)':'')+'!');
+  if(window._currentAdminDetailEvId===ev.id)showAdminEventDetail(ev.id);
+}
+
 async function renderCheckinC(){
   const c=document.getElementById('checkin-c-content');if(!c)return;
   if(!_bookingsLoaded){_showDeferredLoading(c);await ensureBookingsLoaded();if(currentView!=='checkin-new')return;}
@@ -16148,11 +16367,13 @@ function collectSurveyResponses(ev,prefix){
 }
 
 // V3.1.7: Insurance survey rendering for uninsured users during booking
-function renderInsuranceSurveyForBooking(ev,prefix){
+function renderInsuranceSurveyForBooking(ev,prefix,userIdOverride){
+  // V4.24.0: userIdOverride permette l'uso per un utente diverso da currentUser (aggiunta manuale iscritto)
+  const _insUid=userIdOverride||store.currentUser.id;
   // Only show if insurance enabled, surveyEnabled, and user is NOT insured
   if(!ev.insurance?.enabled||!ev.insurance.surveyEnabled)return '';
   if(!ev.insurance.requiredInsuranceIds?.length)return '';
-  if(isUserInsured(store.currentUser.id,ev.insurance.requiredInsuranceIds))return '';
+  if(isUserInsured(_insUid,ev.insurance.requiredInsuranceIds))return '';
   // Get manager's insurance survey template
   const mgr=store.managers.find(m=>m.id===ev.managerId);
   const survey=mgr?.insuranceSurvey||[];
@@ -16188,10 +16409,12 @@ function renderInsuranceSurveyForBooking(ev,prefix){
   return html;
 }
 
-function collectInsuranceSurveyResponses(ev,prefix){
+function collectInsuranceSurveyResponses(ev,prefix,userIdOverride){
+  // V4.24.0: userIdOverride per la raccolta risposte di un utente diverso da currentUser
+  const _insUid=userIdOverride||store.currentUser.id;
   if(!ev.insurance?.enabled||!ev.insurance.surveyEnabled)return {};
   if(!ev.insurance.requiredInsuranceIds?.length)return {};
-  if(isUserInsured(store.currentUser.id,ev.insurance.requiredInsuranceIds))return {};
+  if(isUserInsured(_insUid,ev.insurance.requiredInsuranceIds))return {};
   const mgr=store.managers.find(m=>m.id===ev.managerId);
   const survey=mgr?.insuranceSurvey||[];
   if(!survey.length)return {};
@@ -17528,7 +17751,7 @@ async function renderAdminEvents(){
         <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteEvent('${ev.id}')">🗑️ Elimina</button>`;
       }
     })():
-    ev.status==='archiviato'?`${eyeBtn}<button class="btn btn-sm" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3);font-size:.75rem" onclick="event.stopPropagation();showAdminEventDetail('${ev.id}')">📊 Gestisci</button><button class="btn btn-sm" style="background:rgba(99,102,241,.1);color:#6366f1;border:1px solid rgba(99,102,241,.2);font-size:.72rem" onclick="event.stopPropagation();copyEventAsTemplate('${ev.id}')">📋 Usa come template</button>`:
+    ev.status==='archiviato'?`${eyeBtn}<button class="btn btn-sm" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3);font-size:.75rem" onclick="event.stopPropagation();showAdminEventDetail('${ev.id}')">📊 Gestisci</button><button class="btn btn-sm" style="background:rgba(234,179,8,.12);color:var(--yellow);border:1px solid rgba(234,179,8,.3);font-size:.72rem" onclick="event.stopPropagation();unarchiveEvent('${ev.id}')">♻️ Riporta tra i conclusi</button><button class="btn btn-sm" style="background:rgba(99,102,241,.1);color:#6366f1;border:1px solid rgba(99,102,241,.2);font-size:.72rem" onclick="event.stopPropagation();copyEventAsTemplate('${ev.id}')">📋 Usa come template</button>`:
     ev.status==='concluso'?(ev._isPendingMinInstance
       ?`${eyeBtn}<span class="text-xs" style="color:var(--yellow);font-weight:600">⏳ In attesa di tua decisione</span>`
       :`${eyeBtn}<button class="btn btn-sm" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3);font-size:.75rem" onclick="event.stopPropagation();showAdminEventDetail('${ev.id}')">📊 Gestisci</button><button class="btn btn-sm" style="background:rgba(99,102,241,.08);color:#6366f1;border:1px solid rgba(99,102,241,.2);font-size:.75rem" onclick="event.stopPropagation();archiveEvent('${ev.id}')">📦 Archivia</button><button class="btn btn-sm" style="background:rgba(99,102,241,.1);color:#6366f1;border:1px solid rgba(99,102,241,.2);font-size:.72rem" onclick="event.stopPropagation();copyEventAsTemplate('${ev.id}')">📋 Usa come template</button>`):
@@ -18008,6 +18231,8 @@ function _autoArchiveConcludedEvents(){
   const today=new Date();today.setHours(0,0,0,0);
   store.events.forEach(ev=>{
     if(ev.status!=='concluso')return;
+    // V4.24.0: eventi riportati manualmente dall'archivio NON si ri-archiviano da soli
+    if(ev._unarchivedAt)return;
     // Determine when event concluded: use last day date or concludedAt
     const lastDayDate=ev.days?.[ev.days.length-1]?.date;
     if(!lastDayDate)return;
@@ -19223,10 +19448,29 @@ function archiveEvent(id){
       const ev=store.events.find(e=>e.id===id);if(!ev)return;
       ev.status='archiviato';
       ev.archivedAt=new Date().toISOString();
+      ev._unarchivedAt=null; // V4.24.0: azzera flag unarchive — l'auto-archiviazione torna normale (fsSet merge salva il null)
       fsSet('events',ev.id,ev).catch(console.error);
       if(window._currentAdminDetailEvId===id){window._adminDetailKeepScroll=true;}
       renderAdminEvents();showToast('Evento archiviato');
     });
+  });
+}
+
+// V4.24.0: riporta un evento archiviato tra i conclusi (per riabilitarne la gestione)
+// archivedAt resta come timestamp storico innocuo; _unarchivedAt sospende l'auto-archiviazione
+function unarchiveEvent(id){
+  const ev=store.events.find(e=>e.id===id);if(!ev)return;
+  if(ev.status!=='archiviato'){showToast('Solo gli eventi archiviati possono essere riportati tra i conclusi','error');return;}
+  showConfirm('Riporta tra i conclusi','Vuoi riportare questo evento archiviato tra i conclusi? Tornerà nella sezione "Conclusi" e potrai gestirne di nuovo presenze, pagamenti e iscritti.',()=>{
+    showConfirm('Conferma','Sei sicuro? L\'evento uscirà dall\'archivio. NON verrà ri-archiviato automaticamente: quando hai finito le modifiche dovrai archiviarlo di nuovo manualmente.',()=>{
+      const _ev=store.events.find(e=>e.id===id);if(!_ev)return;
+      _ev.status='concluso';
+      _ev._unarchivedAt=new Date().toISOString();
+      fsUpdate('events',_ev.id,{status:'concluso',_unarchivedAt:_ev._unarchivedAt}).catch(console.error);
+      if(window._currentAdminDetailEvId===id){window._adminDetailKeepScroll=true;}
+      renderAdminEvents();
+      showToast('Evento riportato tra i conclusi');
+    },'danger');
   });
 }
 
@@ -24901,7 +25145,10 @@ async function showAdminEventDetail(evId){
 
 
     <!-- Participants table -->
-    <h2 class="font-semibold text-white mb-3">👥 Lista Partecipanti (${active.length}${active.filter(b=>b.checkedIn).length>0?' · <span style="color:var(--green)">'+active.filter(b=>b.checkedIn).length+' presenti</span>':''})${viewSubtitle}</h2>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <h2 class="font-semibold text-white" style="margin:0">👥 Lista Partecipanti (${active.length}${active.filter(b=>b.checkedIn).length>0?' · <span style="color:var(--green)">'+active.filter(b=>b.checkedIn).length+' presenti</span>':''})${viewSubtitle}</h2>
+      ${_isCapo?`<button class="btn btn-sm" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3);font-size:.8rem" onclick="openManualBookingModal('${ev.id}')">➕ Aggiungi iscritto</button>`:''}
+    </div>
     ${active.length?`<div class="card table-wrap" style="padding:0">
       <table class="table">
         ${(()=>{const _evHasRoles=getEventRoles(ev).length>0;return '<thead><tr><th class="th-participant" style="cursor:pointer" onclick="sortAdminDetail(\'userName\')">Partecipante '+
