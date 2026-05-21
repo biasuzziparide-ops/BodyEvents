@@ -426,6 +426,27 @@ textarea.input{resize:none;font-family:inherit}
 .schema-role-details>summary{list-style:none}
 .schema-role-details[open]>summary .schema-role-arrow{transform:rotate(90deg)}
 .schema-role-arrow{transition:transform .2s;display:inline-block}
+/* V4.24.4: Schema partecipanti — distribuzione per sessione */
+.schema-sess-row{display:flex;align-items:center;gap:0;margin:6px 0;padding:4px 6px;border-radius:7px;cursor:pointer;transition:background .15s}
+.schema-sess-row:hover{background:rgba(168,85,247,.06)}
+.schema-sess-lbl{flex:0 0 auto;max-width:42%;min-width:140px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.schema-sess-leader{flex:1 1 auto;min-width:14px;align-self:center;height:1px;border-top:1px dotted rgba(180,200,255,.16);margin:0 10px}
+.schema-sess-barcol{flex:0 0 36%;display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0}
+.schema-sess-labels{position:relative;height:13px;display:block}
+.schema-sess-segnum{position:absolute;transform:translateX(-50%);bottom:0;font-size:.62rem;font-weight:700;line-height:1;white-space:nowrap;pointer-events:none;letter-spacing:.2px}
+.schema-sess-bar{width:100%;background:var(--s200);border-radius:6px;height:15px;overflow:hidden;position:relative}
+.schema-sess-fill{height:100%;border-radius:6px;transition:width .3s ease;position:relative}
+.schema-sess-fill::after{content:"";position:absolute;left:0;right:0;top:0;height:1px;background:rgba(255,255,255,.07)}
+.schema-sess-cnt{flex:0 0 auto;font-size:.75rem;color:var(--txt2);min-width:34px;text-align:right;font-weight:700;margin-left:10px}
+.schema-sess-row.lvl-event .schema-sess-lbl{font-size:.82rem}
+.schema-sess-row.lvl-day .schema-sess-lbl{font-size:.78rem}
+.schema-sess-row.lvl-sess .schema-sess-lbl{font-size:.74rem}
+.schema-sess-row.lvl-event .schema-sess-bar{height:17px}
+.schema-sess-row.lvl-day .schema-sess-bar{height:15px}
+.schema-sess-row.lvl-sess .schema-sess-bar{height:13px}
+.schema-sess-legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid rgba(180,200,255,.06)}
+.schema-sess-legend .item{display:flex;align-items:center;gap:6px;font-size:.72rem;color:var(--txt3)}
+.schema-sess-legend .sw{display:inline-block;width:12px;height:12px;border-radius:3px}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
@@ -2880,7 +2901,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.24.3';
+const APP_VERSION='V4.24.4';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -25368,6 +25389,193 @@ function _schemaRenderTextAnswers(question,bookings){
     +`<div style="font-size:.68rem;color:var(--txt3);margin-top:4px">${items.length}/${bookings.length} hanno risposto</div>`;
 }
 
+// V4.24.4: helper — colore (hex o var(--name)) → rgba string con alpha
+function _schemaHexToRgba(cssVal,alpha){
+  let h=(cssVal||'').trim();
+  if(h.indexOf('var(')===0){
+    const name=h.slice(4,-1).trim();
+    h=getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+  h=h.replace('#','');
+  if(h.length===3)h=h.split('').map(c=>c+c).join('');
+  if(h.length!==6)return 'rgba(168,85,247,'+alpha+')';
+  const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);
+  return 'rgba('+r+','+g+','+b+','+alpha+')';
+}
+
+// V4.24.4: helper — linear-gradient sfumato per i segmenti di ruolo (~6% transizione)
+function _schemaBuildSegGradient(roles,byRole,total){
+  const segments=roles.filter(r=>(byRole[r.key]||0)>0);
+  if(!segments.length||total<=0)return 'var(--s300)';
+  if(segments.length===1)return _schemaHexToRgba(segments[0].color,.82);
+  const stops=[];
+  let acc=0;
+  segments.forEach((r,i)=>{
+    const start=acc/total*100;
+    const end=(acc+byRole[r.key])/total*100;
+    const c=_schemaHexToRgba(r.color,.80);
+    if(i===0){
+      stops.push(c+' 0%');
+      stops.push(c+' calc('+end.toFixed(2)+'% - 3%)');
+    }else if(i===segments.length-1){
+      stops.push(c+' calc('+start.toFixed(2)+'% + 3%)');
+      stops.push(c+' 100%');
+    }else{
+      stops.push(c+' calc('+start.toFixed(2)+'% + 3%)');
+      stops.push(c+' calc('+end.toFixed(2)+'% - 3%)');
+    }
+    acc+=byRole[r.key];
+  });
+  return 'linear-gradient(to right, '+stops.join(', ')+')';
+}
+
+// V4.24.4: helper — numeretti centrati sui segmenti, colorati come il ruolo
+function _schemaBuildSegNumbers(roles,byRole,total){
+  const segments=roles.filter(r=>(byRole[r.key]||0)>0);
+  if(!segments.length||total<=0)return '';
+  let html='';let acc=0;
+  segments.forEach(r=>{
+    const n=byRole[r.key];
+    const center=(acc+n/2)/total*100;
+    html+='<span class="schema-sess-segnum" style="left:'+center.toFixed(1)+'%;color:'+r.color+'">'+n+'</span>';
+    acc+=n;
+  });
+  return html;
+}
+
+// V4.24.4: render del grafico gerarchico distribuzione per sessione
+// Ritorna stringa HTML; popola window._schemaSessRowCache con {title (raw), total, people} per il modale.
+function _schemaRenderSessionChart(ev,active,groups){
+  if(adminDetailView.mode==='sessione')return '';
+  const _totalSess=(ev.days||[]).reduce((s,d)=>s+((d.sessions||[]).length),0);
+  if(_totalSess<=1)return '';
+  const _eventTotal=active.length;
+  const _isMultiDay=(ev.days||[]).length>1;
+  // Lista ruoli per il grafico — riusa groups (già con colori e label risolti)
+  const _rolesForChart=(groups||[]).filter(g=>g.bookings&&g.bookings.length).map(g=>({key:g.key,label:g.label,color:g.color}));
+  // Cache righe per modale click
+  window._schemaSessRowCache={};
+  // Helper riga: titleClean è testo RAW (no HTML, no escape), usato solo nel modale via escHtml
+  const _row=(id,levelClass,labelHtml,titleClean,peopleList,indentPx)=>{
+    const total=peopleList.length;
+    const byRole={};
+    _rolesForChart.forEach(r=>{byRole[r.key]=0;});
+    peopleList.forEach(b=>{
+      const rk=b.role||'__none__';
+      if(byRole.hasOwnProperty(rk))byRole[rk]++;
+    });
+    const widthPct=_eventTotal>0?(total/_eventTotal*100):0;
+    const gradient=_schemaBuildSegGradient(_rolesForChart,byRole,total);
+    const segNums=_schemaBuildSegNumbers(_rolesForChart,byRole,total);
+    window._schemaSessRowCache[id]={title:titleClean,total:total,people:peopleList};
+    return '<div class="schema-sess-row '+levelClass+'" style="margin-left:'+indentPx+'px" onclick="_schemaOnSessRowClick(\''+id+'\')">'
+      +'<div class="schema-sess-lbl">'+labelHtml+'</div>'
+      +'<div class="schema-sess-leader"></div>'
+      +'<div class="schema-sess-barcol">'
+        +'<div class="schema-sess-labels" style="width:'+widthPct.toFixed(1)+'%">'+segNums+'</div>'
+        +'<div class="schema-sess-bar"><div class="schema-sess-fill" style="width:'+widthPct.toFixed(1)+'%;background:'+gradient+'"></div></div>'
+      +'</div>'
+      +'<div class="schema-sess-cnt">'+total+'</div>'
+    +'</div>';
+  };
+  // Compose HTML
+  let html='<div class="card" style="padding:16px;margin-bottom:14px">';
+  html+='<div style="font-size:.85rem;font-weight:600;color:var(--txt1);margin-bottom:10px">📊 Distribuzione per sessione</div>';
+  // Legenda ruoli
+  if(_rolesForChart.length){
+    html+='<div class="schema-sess-legend">';
+    _rolesForChart.forEach(r=>{
+      html+='<span class="item"><span class="sw" style="background:'+r.color+'"></span>'+escHtml(r.label)+'</span>';
+    });
+    html+='</div>';
+  }
+  // Riga "Evento completo" — solo multi-day
+  if(_isMultiDay){
+    html+=_row('event','lvl-event','🎫 <strong>Evento completo</strong>','🎫 Evento completo',active,0);
+  }
+  // Giornate + sessioni
+  (ev.days||[]).forEach((day,di)=>{
+    const _daySessIds=(day.sessions||[]).map(s=>s.id);
+    const _dayPeople=active.filter(b=>(b.sessions||[]).some(sid=>_daySessIds.includes(sid)));
+    const _dayLabel=_isMultiDay
+      ?'📅 <strong>Giorno '+(di+1)+'</strong> <span style="color:var(--txt3);font-weight:400">— '+escHtml(fmtDateShort(day.date))+'</span>'
+      :'📅 <strong>'+escHtml(fmtDate(day.date))+'</strong>';
+    const _dayTitleClean=_isMultiDay
+      ?'📅 Giorno '+(di+1)+' · '+fmtDateShort(day.date)
+      :'📅 '+fmtDate(day.date);
+    html+=_row('day-'+di,'lvl-day',_dayLabel,_dayTitleClean,_dayPeople,_isMultiDay?14:0);
+    (day.sessions||[]).forEach(s=>{
+      const _sessPeople=active.filter(b=>(b.sessions||[]).includes(s.id));
+      const _sessLabel='⏰ '+escHtml(s.name||'Sessione')+' <span style="color:var(--txt3);font-weight:400">'+escHtml(s.startTime||'')+'-'+escHtml(s.endTime||'')+'</span>';
+      const _sessTitleClean='⏰ '+(s.name||'Sessione')+' · '+(s.startTime||'')+'-'+(s.endTime||'');
+      html+=_row('sess-'+s.id,'lvl-sess',_sessLabel,_sessTitleClean,_sessPeople,_isMultiDay?28:14);
+    });
+  });
+  html+='</div>';
+  return html;
+}
+
+// V4.24.4: handler click su riga sessione → apre modale dettaglio iscritti
+function _schemaOnSessRowClick(rowId){
+  const ctx=window._participantSchemaCtx;
+  const cache=window._schemaSessRowCache;
+  if(!ctx||!ctx.ev||!cache||!cache[rowId])return;
+  const data=cache[rowId];
+  _schemaShowSessionPeople(data.title,data.total+' '+(data.total===1?'iscritto':'iscritti'),data.people,ctx.ev);
+}
+
+// V4.24.4: modale dettaglio iscritti per una riga del grafico sessioni
+function _schemaShowSessionPeople(title,subtitle,peopleList,ev){
+  const _people=(peopleList||[]).map(b=>{
+    const rk=b.role||'__none__';
+    const rlabel=(rk==='__none__')?'Senza ruolo':resolveRoleLabel(rk,ev);
+    const rcolor=(rk==='__none__')?'var(--txt3)':_schemaRoleColorOf(rk,ev);
+    return {name:resolveUserName(b.userId,b.userName),role:rlabel,color:rcolor};
+  });
+  const roleCounts={};
+  _people.forEach(p=>{
+    if(!roleCounts[p.role])roleCounts[p.role]={count:0,color:p.color};
+    roleCounts[p.role].count++;
+  });
+  let h='<div style="background:var(--s100);border:1px solid var(--s300);border-radius:14px;padding:18px 20px;max-width:440px;width:92%;max-height:84vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.5)">';
+  h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px">';
+  h+='<div><div style="font-size:.95rem;font-weight:700;color:var(--txt1);line-height:1.4">'+escHtml(title)+'</div>';
+  if(subtitle)h+='<div style="font-size:.74rem;color:var(--txt3);margin-top:2px;font-style:italic">'+escHtml(subtitle)+'</div>';
+  h+='</div>';
+  h+='<button onclick="_closeSchemaSessionPeople()" style="background:none;border:none;color:var(--txt3);font-size:1.25rem;cursor:pointer;line-height:1;padding:0">✕</button>';
+  h+='</div>';
+  h+='<div style="font-size:.82rem;color:var(--txt1);margin:10px 0 8px">👥 <strong>'+_people.length+'</strong> '+(_people.length===1?'persona iscritta':'persone iscritte')+'</div>';
+  if(Object.keys(roleCounts).length){
+    h+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px">';
+    Object.entries(roleCounts).forEach(function(entry){
+      const role=entry[0],info=entry[1];
+      h+='<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:8px;background:var(--s200);font-size:.72rem;color:var(--txt2)"><span style="width:8px;height:8px;border-radius:50%;background:'+info.color+';display:inline-block"></span>'+escHtml(role)+': <strong style="color:var(--txt1)">'+info.count+'</strong></span>';
+    });
+    h+='</div>';
+  }
+  h+='<div style="border-top:1px solid var(--s300);padding-top:10px">';
+  if(_people.length){
+    _people.forEach(p=>{
+      h+='<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:.8rem"><span style="width:8px;height:8px;border-radius:50%;background:'+p.color+';display:inline-block;flex-shrink:0"></span><span style="color:var(--txt1)">'+escHtml(p.name)+'</span><span style="color:var(--txt3);margin-left:auto;font-size:.72rem">'+escHtml(p.role)+'</span></div>';
+    });
+  }else{
+    h+='<div style="font-size:.78rem;color:var(--txt3)">Nessuno.</div>';
+  }
+  h+='</div></div>';
+  let overlay=document.getElementById('schema-session-overlay');
+  if(overlay)overlay.remove();
+  overlay=document.createElement('div');
+  overlay.id='schema-session-overlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(2px)';
+  overlay.innerHTML=h;
+  overlay.onclick=function(e){if(e.target===overlay)_closeSchemaSessionPeople();};
+  document.body.appendChild(overlay);
+}
+function _closeSchemaSessionPeople(){
+  const o=document.getElementById('schema-session-overlay');
+  if(o)o.remove();
+}
+
 // V4.23.1: modale in sovraimpressione con i nomi di chi ha scelto una risposta
 function _schemaShowResponders(el){
   const ctx=window._participantSchemaCtx;
@@ -25458,6 +25666,8 @@ function _renderParticipantSchemaBody(){
     html+=`<div style="font-size:.78rem;color:var(--txt3)">Tutti i partecipanti hanno ruolo: <strong style="color:var(--txt1)">${escHtml(groups[0].label)}</strong></div>`;
   }
   html+=`</div>`;
+  // --- V4.24.4: Distribuzione per sessione (gerarchica + segmentata per ruolo + click → dettaglio) ---
+  html+=_schemaRenderSessionChart(ev,active,groups);
   // --- V4.23.1: cache gruppi per il modale dettaglio risposte ---
   window._participantSchemaGroupsCache={all:active,byKey:{}};
   groups.forEach(g=>{window._participantSchemaGroupsCache.byKey[g.key]=g.bookings;});
