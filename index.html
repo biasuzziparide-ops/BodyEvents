@@ -2901,7 +2901,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.25.1';
+const APP_VERSION='V4.25.2';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -20714,8 +20714,8 @@ async function renderAdminDashboard(){
   // === V4.25.0: GRAFICO ANDAMENTO FINANZIARIO con filtri dinamici (tipologia + programma ricorrente) ===
   const chartContainer=document.getElementById('admin-dash-chart');
   if(chartContainer){
-    // Reset stato filtri al render
-    window._dashFilters={type:'__all__',recurringId:'__all__',range:99999};
+    // Reset stato filtri al render (V4.25.2: + modalità custom intervallo date)
+    window._dashFilters={type:'__all__',recurringId:'__all__',range:99999,rangeMode:'preset',dateFrom:null,dateTo:null};
     // Lista tipologie effettivamente presenti negli archiviati visibili
     const _archivedForTypes=allEvts.filter(e=>e.status==='archiviato');
     const _availableTypes=[...new Set(_archivedForTypes.map(e=>e.type||'altro'))];
@@ -20731,6 +20731,14 @@ async function renderAdminDashboard(){
       const isDefault=r.label==='Tutto';
       ch+='<button class="btn btn-sm" data-range="'+r.days+'" style="font-size:.72rem;padding:4px 10px;background:'+(isDefault?'var(--brand-bg)':'var(--s200)')+';color:'+(isDefault?'var(--brand-l)':'var(--txt3)')+';border:1px solid '+(isDefault?'var(--brand)':'var(--s400)')+'" onclick="updateDashChart('+r.days+',this)">'+r.label+'</button>';
     });
+    ch+='</div>';
+    // V4.25.2: riga intervallo date personalizzato
+    ch+='<div class="flex gap-2 mb-3 flex-wrap" style="align-items:center" id="dash-custom-range-row">';
+    ch+='<span style="font-size:.72rem;color:var(--txt3)">o intervallo personalizzato:</span>';
+    ch+='<input type="date" id="dash-date-from" onchange="updateDashCustomRange()" style="padding:4px 8px;font-size:.72rem;background:var(--s200);color:var(--txt1);border:1px solid var(--s400);border-radius:6px;color-scheme:dark">';
+    ch+='<span style="font-size:.72rem;color:var(--txt3)">→</span>';
+    ch+='<input type="date" id="dash-date-to" onchange="updateDashCustomRange()" style="padding:4px 8px;font-size:.72rem;background:var(--s200);color:var(--txt1);border:1px solid var(--s400);border-radius:6px;color-scheme:dark">';
+    ch+='<button class="btn btn-sm" onclick="clearDashCustomRange()" title="Reimposta a range predefinito" style="font-size:.72rem;padding:4px 10px;background:var(--s200);color:var(--txt3);border:1px solid var(--s400)">↺ reset</button>';
     ch+='</div>';
     // Filtri tipologia + ricorrente
     ch+='<div class="flex gap-3 flex-wrap mb-3" style="align-items:center">';
@@ -20959,20 +20967,42 @@ function _dashComputeAndRender(){
     eventsByDate[d]=dps.map(p=>p.title+' (+€'+fmtEuro(p.revenue)+(p.cost?' -€'+fmtEuro(p.cost):'')+')').join(', ');
   });
   window._dashChartData={dateSet,cumTotal,cumCosts,cumProfit,eventsByDate};
-  _renderDashChart(filterRange);
+  _renderDashChart();
 }
 
-function _renderDashChart(rangeDays){
+function _renderDashChart(){
   const d=window._dashChartData;if(!d)return;
   const canvas=document.getElementById('dash-revenue-chart');if(!canvas)return;
-  const cutoff=new Date();cutoff.setDate(cutoff.getDate()-rangeDays);
-  const cutoffStr=localDateStr(cutoff);
+  const emptyEl=document.getElementById('dash-chart-empty');
+  const canvasWrap=document.getElementById('dash-chart-canvas-wrap');
+  // V4.25.2: cutoff calcolato da _dashFilters (preset o custom)
+  const filters=window._dashFilters||{rangeMode:'preset',range:99999};
+  let startCutoff='',endCutoff='';
+  if(filters.rangeMode==='custom'){
+    startCutoff=filters.dateFrom||'';
+    endCutoff=filters.dateTo||'';
+  } else {
+    const rangeDays=filters.range||99999;
+    const cutoff=new Date();cutoff.setDate(cutoff.getDate()-rangeDays);
+    startCutoff=localDateStr(cutoff);
+    endCutoff='';
+  }
   const indices=[];
-  d.dateSet.forEach((dt,i)=>{if(dt>=cutoffStr)indices.push(i);});
+  d.dateSet.forEach((dt,i)=>{
+    if(startCutoff&&dt<startCutoff)return;
+    if(endCutoff&&dt>endCutoff)return;
+    indices.push(i);
+  });
   if(!indices.length){
+    // V4.25.2: empty state contestuale quando il range temporale esclude tutti i datapoint
     if(window._dashChart){try{window._dashChart.destroy();}catch(e){}window._dashChart=null;}
+    if(emptyEl){emptyEl.style.display='block';emptyEl.textContent='Nessun dato nell\'intervallo temporale selezionato.';}
+    if(canvasWrap)canvasWrap.style.display='none';
     return;
   }
+  // Mostra canvas, nascondi empty
+  if(emptyEl)emptyEl.style.display='none';
+  if(canvasWrap)canvasWrap.style.display='';
   const labels=indices.map(i=>fmtDateShort(d.dateSet[i]));
   const totalData=indices.map(i=>d.cumTotal[i]);
   const costsData=indices.map(i=>d.cumCosts[i]);
@@ -21020,9 +21050,58 @@ function updateDashChart(days,btn){
     b.style.background='var(--s200)';b.style.color='var(--txt3)';b.style.borderColor='var(--s400)';
   });
   if(btn){btn.style.background='var(--brand-bg)';btn.style.color='var(--brand-l)';btn.style.borderColor='var(--brand)';}
-  if(!window._dashFilters)window._dashFilters={type:'__all__',recurringId:'__all__',range:99999};
+  if(!window._dashFilters)window._dashFilters={type:'__all__',recurringId:'__all__',range:99999,rangeMode:'preset',dateFrom:null,dateTo:null};
+  // V4.25.2: passa a modalità preset, svuota campi date custom
   window._dashFilters.range=days;
-  _renderDashChart(days);
+  window._dashFilters.rangeMode='preset';
+  window._dashFilters.dateFrom=null;
+  window._dashFilters.dateTo=null;
+  const fromEl=document.getElementById('dash-date-from');const toEl=document.getElementById('dash-date-to');
+  if(fromEl)fromEl.value='';
+  if(toEl)toEl.value='';
+  _renderDashChart();
+}
+
+// V4.25.2: filtro intervallo data personalizzato (alternativo ai range predefiniti)
+function updateDashCustomRange(){
+  const fromEl=document.getElementById('dash-date-from');
+  const toEl=document.getElementById('dash-date-to');
+  const from=fromEl?fromEl.value:'';
+  const to=toEl?toEl.value:'';
+  // V4.25.2: se entrambi i campi sono vuoti (es. utente li ha cancellati a mano), torna esplicitamente a preset "Tutto"
+  if(!from&&!to){
+    clearDashCustomRange();
+    return;
+  }
+  if(!window._dashFilters)window._dashFilters={type:'__all__',recurringId:'__all__',range:99999,rangeMode:'preset',dateFrom:null,dateTo:null};
+  window._dashFilters.rangeMode='custom';
+  window._dashFilters.dateFrom=from||null;
+  window._dashFilters.dateTo=to||null;
+  // Deseleziona visivamente tutti i range button (siamo in custom)
+  document.querySelectorAll('#chart-range-btns button').forEach(b=>{
+    b.style.background='var(--s200)';b.style.color='var(--txt3)';b.style.borderColor='var(--s400)';
+  });
+  _renderDashChart();
+}
+
+function clearDashCustomRange(){
+  const fromEl=document.getElementById('dash-date-from');
+  const toEl=document.getElementById('dash-date-to');
+  if(fromEl)fromEl.value='';
+  if(toEl)toEl.value='';
+  if(!window._dashFilters)window._dashFilters={type:'__all__',recurringId:'__all__',range:99999,rangeMode:'preset',dateFrom:null,dateTo:null};
+  // Torna alla modalità preset "Tutto"
+  window._dashFilters.rangeMode='preset';
+  window._dashFilters.range=99999;
+  window._dashFilters.dateFrom=null;
+  window._dashFilters.dateTo=null;
+  // Riattiva visivamente il bottone "Tutto"
+  document.querySelectorAll('#chart-range-btns button').forEach(b=>{
+    const isAll=b.getAttribute('data-range')==='99999';
+    if(isAll){b.style.background='var(--brand-bg)';b.style.color='var(--brand-l)';b.style.borderColor='var(--brand)';}
+    else{b.style.background='var(--s200)';b.style.color='var(--txt3)';b.style.borderColor='var(--s400)';}
+  });
+  _renderDashChart();
 }
 
 function updateDashTypeFilter(type){
