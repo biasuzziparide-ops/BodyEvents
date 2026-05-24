@@ -2901,7 +2901,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.24.4';
+const APP_VERSION='V4.25.0';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -20577,44 +20577,9 @@ async function renderAdminDashboard(){
     const archivedIds=new Set(archivedEvts.map(e=>e.id));
     const archivedBookings=store.bookings.filter(b=>archivedIds.has(b.eventId)&&b.status!=='cancellata');
 
-    // Helper: calculate total costs for an event from eventCosts
-    function _calcEventCosts(ev){
-      const costs=ev.eventCosts;if(!costs)return 0;
-      let total=0;
-      (costs.sections||[]).forEach(sec=>{
-        (sec.items||[]).forEach(item=>{
-          total+=Math.round((item.unitValue||0)*(item.quantity||1)*(item.multiplier||1)*100)/100;
-        });
-      });
-      Object.values(costs.sessions||{}).forEach(sc=>{total+=(sc.amount||0);});
-      return Math.round(total*100)/100;
-    }
-    // Helper: calculate costs assigned to current user (for partners)
-    function _calcMyCosts(ev){
-      const costs=ev.eventCosts;if(!costs)return 0;
-      const myId=u.id;
-      const isCapo=ev.managerId===myId;
-      const allParts=[ev.managerId,...(ev.partnerIds||[])];
-      let total=0;
-      // General costs
-      (costs.sections||[]).forEach(sec=>{
-        (sec.items||[]).forEach(item=>{
-          const itemTotal=Math.round((item.unitValue||0)*(item.quantity||1)*(item.multiplier||1)*100)/100;
-          const sm=item.splitMode||'equal';
-          if(sm==='equal')total+=Math.round(itemTotal/allParts.length*100)/100;
-          else if(sm==='solo_'+myId)total+=itemTotal;
-          else if(sm==='custom'&&item.splits)total+=Math.round(itemTotal*(item.splits[myId]||0)/100*100)/100;
-        });
-      });
-      // Session costs (with splitMode support)
-      Object.entries(costs.sessions||{}).forEach(([sid,sc])=>{
-        const scSm=sc.splitMode||'assigned';
-        if(scSm==='equal'){total+=Math.round((sc.amount||0)/allParts.length*100)/100;}
-        else if(scSm==='solo_'+myId){total+=(sc.amount||0);}
-        else if(scSm==='assigned'){const assignee=sc.assignedTo||ev.managerId;if(assignee===myId)total+=(sc.amount||0);}
-      });
-      return Math.round(total*100)/100;
-    }
+    // V4.25.0: alias verso _dashCalcEventCosts/_dashCalcMyCosts globali (definite sotto, dopo renderAdminDashboard)
+    const _calcEventCosts=_dashCalcEventCosts;
+    const _calcMyCosts=(ev)=>_dashCalcMyCosts(ev,u.id);
 
     // Calculate revenue and costs by event type
     const typeData={};
@@ -20746,121 +20711,224 @@ async function renderAdminDashboard(){
     if(oldInsCard)oldInsCard.remove();
   }
 
-  // === CUMULATIVE REVENUE CHART ===
+  // === V4.25.0: GRAFICO ANDAMENTO FINANZIARIO con filtri dinamici (tipologia + programma ricorrente) ===
   const chartContainer=document.getElementById('admin-dash-chart');
   if(chartContainer){
-    const archivedEvts=allEvts.filter(e=>e.status==='archiviato');
-    if(!archivedEvts.length){chartContainer.innerHTML='';return;}
+    // Reset stato filtri al render
+    window._dashFilters={type:'__all__',recurringId:'__all__',range:99999};
+    // Lista tipologie effettivamente presenti negli archiviati visibili
+    const _archivedForTypes=allEvts.filter(e=>e.status==='archiviato');
+    const _availableTypes=[...new Set(_archivedForTypes.map(e=>e.type||'altro'))];
+    // Lista programmi ricorrenti visibili (capofila o partner)
+    const _availableRecurring=allEvts.filter(e=>e.recurrence&&e.recurrence.day).sort((a,b)=>(a.title||'').localeCompare(b.title||''));
+    // Time range options
+    const ranges=[
+      {label:'1 sett.',days:7},{label:'1 mese',days:30},{label:'1 anno',days:365},{label:'3 anni',days:1095},{label:'5 anni',days:1825},{label:'Tutto',days:99999}
+    ];
+    let ch='<h2 class="font-semibold text-white mb-3">📈 Andamento finanziario nel tempo</h2>';
+    ch+='<div class="flex gap-2 mb-3 flex-wrap" id="chart-range-btns">';
+    ranges.forEach(r=>{
+      const isDefault=r.label==='Tutto';
+      ch+='<button class="btn btn-sm" data-range="'+r.days+'" style="font-size:.72rem;padding:4px 10px;background:'+(isDefault?'var(--brand-bg)':'var(--s200)')+';color:'+(isDefault?'var(--brand-l)':'var(--txt3)')+';border:1px solid '+(isDefault?'var(--brand)':'var(--s400)')+'" onclick="updateDashChart('+r.days+',this)">'+r.label+'</button>';
+    });
+    ch+='</div>';
+    // Filtri tipologia + ricorrente
+    ch+='<div class="flex gap-3 flex-wrap mb-3" style="align-items:center">';
+    ch+='<div style="display:flex;align-items:center;gap:6px">';
+    ch+='<label style="font-size:.72rem;color:var(--txt3)">Tipologia:</label>';
+    ch+='<select id="dash-filter-type" onchange="updateDashTypeFilter(this.value)" style="padding:5px 8px;font-size:.75rem;background:var(--s200);color:var(--txt1);border:1px solid var(--s400);border-radius:6px;min-width:120px">';
+    ch+='<option value="__all__">Tutte</option>';
+    _availableTypes.forEach(t=>{
+      ch+='<option value="'+escHtml(t)+'">'+getEventTypeIcon(t)+' '+escHtml(getEventTypeLabel(t))+'</option>';
+    });
+    ch+='</select></div>';
+    if(_availableRecurring.length){
+      ch+='<div style="display:flex;align-items:center;gap:6px">';
+      ch+='<label style="font-size:.72rem;color:var(--txt3)">Programma ricorrente:</label>';
+      ch+='<select id="dash-filter-recurring" onchange="updateDashRecurringFilter(this.value)" style="padding:5px 8px;font-size:.75rem;background:var(--s200);color:var(--txt1);border:1px solid var(--s400);border-radius:6px;min-width:200px;max-width:340px">';
+      ch+='<option value="__all__">Tutti</option>';
+      _availableRecurring.forEach(ev=>{
+        const _freqLbl=ev.recurrence.freq==='mensile'?'mens.':ev.recurrence.freq==='annuale'?'ann.':'sett.';
+        ch+='<option value="'+escHtml(ev.id)+'">🔄 '+escHtml(ev.title||'(senza titolo)')+' ('+_freqLbl+')</option>';
+      });
+      ch+='</select></div>';
+    }
+    ch+='</div>';
+    ch+='<div class="flex gap-3 flex-wrap mb-3" id="chart-legend">';
+    ch+='<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--txt2)"><input type="checkbox" checked data-type="__total__" onchange="toggleChartSeries(this)" style="accent-color:#10b981"><span style="width:10px;height:3px;background:#10b981;display:inline-block;border-radius:2px"></span> Ricavi</label>';
+    ch+='<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--txt2)"><input type="checkbox" checked data-type="__costs__" onchange="toggleChartSeries(this)" style="accent-color:#ef4444"><span style="width:10px;height:3px;background:#ef4444;display:inline-block;border-radius:2px"></span> Costi</label>';
+    ch+='<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--txt2)"><input type="checkbox" checked data-type="__profit__" onchange="toggleChartSeries(this)" style="accent-color:#d946ef"><span style="width:10px;height:3px;background:#d946ef;display:inline-block;border-radius:2px"></span> Profitto</label>';
+    ch+='</div>';
+    ch+='<div id="dash-chart-hint" style="display:none;font-size:.7rem;color:var(--txt3);margin-bottom:8px;font-style:italic"></div>';
+    ch+='<div id="dash-chart-empty" style="display:none;padding:24px;text-align:center;color:var(--txt3);font-size:.85rem;background:var(--s100);border:1px dashed var(--s400);border-radius:10px"></div>';
+    ch+='<div id="dash-chart-canvas-wrap" class="card" style="padding:16px;position:relative"><canvas id="dash-revenue-chart" height="280"></canvas></div>';
+    chartContainer.innerHTML=ch;
+    _dashComputeAndRender();
+  }
+}
 
-    // Build data points: each archived event contributes revenue AND costs on its date
-    const dataPoints=[];
-    archivedEvts.forEach(ev=>{
+// V4.25.0: helper costi evento (estratti da renderAdminDashboard per riuso esterno)
+function _dashCalcEventCosts(ev){
+  const costs=ev.eventCosts;if(!costs)return 0;
+  let total=0;
+  (costs.sections||[]).forEach(sec=>{
+    (sec.items||[]).forEach(item=>{
+      total+=Math.round((item.unitValue||0)*(item.quantity||1)*(item.multiplier||1)*100)/100;
+    });
+  });
+  Object.values(costs.sessions||{}).forEach(sc=>{total+=(sc.amount||0);});
+  return Math.round(total*100)/100;
+}
+function _dashCalcMyCosts(ev,myId){
+  const costs=ev.eventCosts;if(!costs)return 0;
+  const isCapo=ev.managerId===myId;
+  const allParts=[ev.managerId,...(ev.partnerIds||[])];
+  let total=0;
+  (costs.sections||[]).forEach(sec=>{
+    (sec.items||[]).forEach(item=>{
+      const itemTotal=Math.round((item.unitValue||0)*(item.quantity||1)*(item.multiplier||1)*100)/100;
+      const sm=item.splitMode||'equal';
+      if(sm==='equal')total+=Math.round(itemTotal/allParts.length*100)/100;
+      else if(sm==='solo_'+myId)total+=itemTotal;
+      else if(sm==='custom'&&item.splits)total+=Math.round(itemTotal*(item.splits[myId]||0)/100*100)/100;
+    });
+  });
+  Object.entries(costs.sessions||{}).forEach(([sid,sc])=>{
+    const scSm=sc.splitMode||'assigned';
+    if(scSm==='equal'){total+=Math.round((sc.amount||0)/allParts.length*100)/100;}
+    else if(scSm==='solo_'+myId){total+=(sc.amount||0);}
+    else if(scSm==='assigned'){const assignee=sc.assignedTo||ev.managerId;if(assignee===myId)total+=(sc.amount||0);}
+  });
+  return Math.round(total*100)/100;
+}
+
+// V4.25.0: ricalcola i dati cumulativi applicando i filtri correnti, poi rende
+function _dashComputeAndRender(){
+  const u=store.currentUser;
+  const allEvts=store.events.filter(e=>isEventVisibleToManager(e,u.id));
+  const filters=window._dashFilters||{type:'__all__',recurringId:'__all__',range:99999};
+  const filterType=filters.type;
+  const filterRecurringId=filters.recurringId;
+  const filterRange=filters.range||99999;
+  const hintEl=document.getElementById('dash-chart-hint');
+  const emptyEl=document.getElementById('dash-chart-empty');
+  const canvasWrap=document.getElementById('dash-chart-canvas-wrap');
+  let dataPoints=[];
+  let _modeHint='';
+  if(filterRecurringId&&filterRecurringId!=='__all__'){
+    // FILTRO PROGRAMMA RICORRENTE
+    const programEv=allEvts.find(e=>e.id===filterRecurringId);
+    if(programEv){
+      if(filterType==='__all__'||(programEv.type||'altro')===filterType){
+        const programBks=store.bookings.filter(b=>b.eventId===filterRecurringId&&b.status!=='cancellata'&&!b.gift&&b.paymentStatus==='pagato');
+        const byDate={};
+        programBks.forEach(b=>{
+          const d=b.recurringDate||programEv.days?.[0]?.date||'';
+          if(!d)return;
+          if(!byDate[d])byDate[d]={revenue:0,count:0};
+          byDate[d].revenue+=(b.amount||0);
+          byDate[d].count++;
+        });
+        const sortedDates=Object.keys(byDate).sort();
+        const isCapo=programEv.managerId===u.id;
+        const totalCosts=isCapo?_dashCalcEventCosts(programEv):_dashCalcMyCosts(programEv,u.id);
+        const _shareForPartner=(rev)=>{
+          if(isCapo)return rev;
+          if(programEv.eventCosts?.revenueSharing){
+            const pct=programEv.eventCosts.revenueSharing[u.id]||0;
+            return Math.round(rev*pct/100);
+          }
+          return rev;
+        };
+        const _progTitle=programEv.title||'(senza titolo)';
+        sortedDates.forEach((d,i)=>{
+          dataPoints.push({
+            date:d,
+            revenue:_shareForPartner(byDate[d].revenue),
+            cost:i===0?totalCosts:0,
+            type:programEv.type||'altro',
+            title:_progTitle+' · '+fmtDateShort(d)+' ('+byDate[d].count+(byDate[d].count===1?' iscritto':' iscritti')+')'
+          });
+        });
+        _modeHint='🔄 Filtro programma ricorrente attivo: ricavi per occorrenza · costi attribuiti alla prima data';
+      }
+    }
+  } else {
+    // MODO STANDARD: solo archiviati, opzionale filtro tipologia
+    let workingEvts=allEvts.filter(e=>e.status==='archiviato');
+    if(filterType!=='__all__'){
+      workingEvts=workingEvts.filter(e=>(e.type||'altro')===filterType);
+      _modeHint='Filtro tipologia attivo: '+(getEventTypeIcon(filterType)+' '+getEventTypeLabel(filterType));
+    }
+    workingEvts.forEach(ev=>{
       const date=ev.days?.[0]?.date||ev.archivedAt?.substring(0,10)||'';
       if(!date)return;
       const type=ev.type||'altro';
       const evBks=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata'&&!b.gift&&b.paymentStatus==='pagato');
       const revenue=evBks.reduce((s,b)=>s+(b.amount||0),0);
       const isCapo=ev.managerId===u.id;
-      const cost=isCapo?_calcEventCosts(ev):_calcMyCosts(ev);
+      const cost=isCapo?_dashCalcEventCosts(ev):_dashCalcMyCosts(ev,u.id);
       let adjRevenue=revenue;
       if(!isCapo&&ev.eventCosts?.revenueSharing){
         const pct=ev.eventCosts.revenueSharing[u.id]||0;
         adjRevenue=Math.round(revenue*pct/100);
       }
-      dataPoints.push({date,revenue:isCapo?revenue:adjRevenue,cost,type,title:ev.title});
+      dataPoints.push({date,revenue:isCapo?revenue:adjRevenue,cost,type,title:ev.title||'(senza titolo)'});
     });
-
-    dataPoints.sort((a,b)=>a.date.localeCompare(b.date));
-    if(!dataPoints.length){chartContainer.innerHTML='';return;}
-
-    // All known types
-    const allTypes=[...new Set(dataPoints.map(d=>d.type))];
-    const typeColors={jam:'#eab308',lezione:'#6366f1',workshop:'#f97316',social:'#d946ef',altro:'#a1a1b5'};
-
-    // Build cumulative series: revenue, costs, profit per type + totals
-    const dateSet=[...new Set(dataPoints.map(d=>d.date))].sort();
-    const cumByType={};allTypes.forEach(t=>{cumByType[t]=[];});
-    const cumTotal=[],cumCosts=[],cumProfit=[];
-    let runTotal=0,runCosts=0;
-    const runByType={};allTypes.forEach(t=>{runByType[t]=0;});
-    const eventsByDate={};
-
-    dateSet.forEach(d=>{
-      const dps=dataPoints.filter(p=>p.date===d);
-      dps.forEach(p=>{runByType[p.type]+=p.revenue;runTotal+=p.revenue;runCosts+=p.cost;});
-      allTypes.forEach(t=>{cumByType[t].push(runByType[t]);});
-      cumTotal.push(runTotal);
-      cumCosts.push(runCosts);
-      cumProfit.push(Math.round((runTotal-runCosts)*100)/100);
-      eventsByDate[d]=dps.map(p=>p.title+' (+€'+fmtEuro(p.revenue)+(p.cost?' -€'+fmtEuro(p.cost):'')+')').join(', ');
-    });
-
-    // Time range filter
-    const ranges=[
-      {label:'1 sett.',days:7},{label:'1 mese',days:30},{label:'1 anno',days:365},{label:'3 anni',days:1095},{label:'5 anni',days:1825},{label:'Tutto',days:99999}
-    ];
-
-    let ch='<h2 class="font-semibold text-white mb-3">📈 Andamento finanziario nel tempo</h2>';
-    ch+='<div class="flex gap-2 mb-3 flex-wrap" id="chart-range-btns">';
-    ranges.forEach((r,i)=>{
-      const isDefault=r.label==='Tutto';
-      ch+='<button class="btn btn-sm" data-range="'+r.days+'" style="font-size:.72rem;padding:4px 10px;background:'+(isDefault?'var(--brand-bg)':'var(--s200)')+';color:'+(isDefault?'var(--brand-l)':'var(--txt3)')+';border:1px solid '+(isDefault?'var(--brand)':'var(--s400)')+'" onclick="updateDashChart('+r.days+',this)">'+r.label+'</button>';
-    });
-    ch+='</div>';
-
-    // Legend — main lines
-    ch+='<div class="flex gap-3 flex-wrap mb-3" id="chart-legend">';
-    ch+='<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--txt2)"><input type="checkbox" checked data-type="__total__" onchange="toggleChartSeries(this)" style="accent-color:#10b981"><span style="width:10px;height:3px;background:#10b981;display:inline-block;border-radius:2px"></span> Ricavi</label>';
-    ch+='<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--txt2)"><input type="checkbox" checked data-type="__costs__" onchange="toggleChartSeries(this)" style="accent-color:#ef4444"><span style="width:10px;height:3px;background:#ef4444;display:inline-block;border-radius:2px"></span> Costi</label>';
-    ch+='<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--txt2)"><input type="checkbox" checked data-type="__profit__" onchange="toggleChartSeries(this)" style="accent-color:#d946ef"><span style="width:10px;height:3px;background:#d946ef;display:inline-block;border-radius:2px"></span> Profitto</label>';
-    ch+='<span style="width:1px;height:14px;background:var(--s400);margin:0 4px"></span>';
-    allTypes.forEach(t=>{
-      ch+='<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:.75rem;color:var(--txt2)"><input type="checkbox" data-type="'+t+'" onchange="toggleChartSeries(this)" style="accent-color:'+typeColors[t]+'"><span style="width:10px;height:3px;background:'+typeColors[t]+';display:inline-block;border-radius:2px"></span> '+getEventTypeLabel(t)+'</label>';
-    });
-    ch+='</div>';
-    ch+='<div class="card" style="padding:16px;position:relative"><canvas id="dash-revenue-chart" height="280"></canvas></div>';
-    chartContainer.innerHTML=ch;
-
-    // Store chart data globally for filtering
-    window._dashChartData={dateSet,cumTotal,cumCosts,cumProfit,cumByType,allTypes,typeColors,eventsByDate};
-    _renderDashChart(99999);
   }
+  if(hintEl){
+    if(_modeHint){hintEl.style.display='block';hintEl.textContent=_modeHint;}
+    else hintEl.style.display='none';
+  }
+  if(!dataPoints.length){
+    if(emptyEl){
+      emptyEl.style.display='block';
+      emptyEl.textContent='Nessun dato finanziario per i filtri selezionati.';
+    }
+    if(canvasWrap)canvasWrap.style.display='none';
+    if(window._dashChart){try{window._dashChart.destroy();}catch(e){}window._dashChart=null;}
+    return;
+  }
+  if(emptyEl)emptyEl.style.display='none';
+  if(canvasWrap)canvasWrap.style.display='';
+  dataPoints.sort((a,b)=>a.date.localeCompare(b.date));
+  const dateSet=[...new Set(dataPoints.map(d=>d.date))].sort();
+  const cumTotal=[],cumCosts=[],cumProfit=[];
+  let runTotal=0,runCosts=0;
+  const eventsByDate={};
+  dateSet.forEach(d=>{
+    const dps=dataPoints.filter(p=>p.date===d);
+    dps.forEach(p=>{runTotal+=p.revenue;runCosts+=p.cost;});
+    cumTotal.push(Math.round(runTotal*100)/100);
+    cumCosts.push(Math.round(runCosts*100)/100);
+    cumProfit.push(Math.round((runTotal-runCosts)*100)/100);
+    eventsByDate[d]=dps.map(p=>p.title+' (+€'+fmtEuro(p.revenue)+(p.cost?' -€'+fmtEuro(p.cost):'')+')').join(', ');
+  });
+  window._dashChartData={dateSet,cumTotal,cumCosts,cumProfit,eventsByDate};
+  _renderDashChart(filterRange);
 }
 
 function _renderDashChart(rangeDays){
   const d=window._dashChartData;if(!d)return;
   const canvas=document.getElementById('dash-revenue-chart');if(!canvas)return;
-
-  // Filter by range
-  const today=localDateStr(new Date());
   const cutoff=new Date();cutoff.setDate(cutoff.getDate()-rangeDays);
   const cutoffStr=localDateStr(cutoff);
   const indices=[];
   d.dateSet.forEach((dt,i)=>{if(dt>=cutoffStr)indices.push(i);});
-  if(!indices.length)return;
-
+  if(!indices.length){
+    if(window._dashChart){try{window._dashChart.destroy();}catch(e){}window._dashChart=null;}
+    return;
+  }
   const labels=indices.map(i=>fmtDateShort(d.dateSet[i]));
   const totalData=indices.map(i=>d.cumTotal[i]);
   const costsData=indices.map(i=>d.cumCosts[i]);
   const profitData=indices.map(i=>d.cumProfit[i]);
-
   const datasets=[
     {label:'Ricavi',data:totalData,borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.08)',fill:true,tension:.3,borderWidth:2.5,pointRadius:3,pointHoverRadius:6},
     {label:'Costi',data:costsData,borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.06)',fill:true,tension:.3,borderWidth:2,pointRadius:2,pointHoverRadius:5,borderDash:[5,3]},
     {label:'Profitto',data:profitData,borderColor:'#d946ef',backgroundColor:'transparent',tension:.3,borderWidth:2,pointRadius:2,pointHoverRadius:5}
   ];
-
-  d.allTypes.forEach(t=>{
-    datasets.push({
-      label:getEventTypeLabel(t),data:indices.map(i=>d.cumByType[t][i]),
-      borderColor:d.typeColors[t]||'#a1a1b5',backgroundColor:'transparent',
-      tension:.3,borderWidth:1.5,pointRadius:2,pointHoverRadius:5,hidden:true
-    });
-  });
-
-  // Destroy existing chart
-  if(window._dashChart)window._dashChart.destroy();
-
+  if(window._dashChart){try{window._dashChart.destroy();}catch(e){}window._dashChart=null;}
   window._dashChart=new Chart(canvas,{
     type:'line',
     data:{labels,datasets},
@@ -20897,8 +20965,22 @@ function updateDashChart(days,btn){
   document.querySelectorAll('#chart-range-btns button').forEach(b=>{
     b.style.background='var(--s200)';b.style.color='var(--txt3)';b.style.borderColor='var(--s400)';
   });
-  btn.style.background='var(--brand-bg)';btn.style.color='var(--brand-l)';btn.style.borderColor='var(--brand)';
+  if(btn){btn.style.background='var(--brand-bg)';btn.style.color='var(--brand-l)';btn.style.borderColor='var(--brand)';}
+  if(!window._dashFilters)window._dashFilters={type:'__all__',recurringId:'__all__',range:99999};
+  window._dashFilters.range=days;
   _renderDashChart(days);
+}
+
+function updateDashTypeFilter(type){
+  if(!window._dashFilters)window._dashFilters={type:'__all__',recurringId:'__all__',range:99999};
+  window._dashFilters.type=type||'__all__';
+  _dashComputeAndRender();
+}
+
+function updateDashRecurringFilter(recurringId){
+  if(!window._dashFilters)window._dashFilters={type:'__all__',recurringId:'__all__',range:99999};
+  window._dashFilters.recurringId=recurringId||'__all__';
+  _dashComputeAndRender();
 }
 
 function toggleChartSeries(checkbox){
@@ -20908,10 +20990,6 @@ function toggleChartSeries(checkbox){
   if(type==='__total__'){ds[0].hidden=!checkbox.checked;}
   else if(type==='__costs__'){ds[1].hidden=!checkbox.checked;}
   else if(type==='__profit__'){ds[2].hidden=!checkbox.checked;}
-  else{
-    const idx=ds.findIndex(d=>d.label===getEventTypeLabel(type));
-    if(idx>=0)ds[idx].hidden=!checkbox.checked;
-  }
   window._dashChart.update();
 }
 
