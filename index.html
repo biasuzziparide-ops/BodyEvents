@@ -2901,7 +2901,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.25.0';
+const APP_VERSION='V4.25.1';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -20816,41 +20816,95 @@ function _dashComputeAndRender(){
   let dataPoints=[];
   let _modeHint='';
   if(filterRecurringId&&filterRecurringId!=='__all__'){
-    // FILTRO PROGRAMMA RICORRENTE
+    // V4.25.1: FILTRO PROGRAMMA RICORRENTE — include split events + tutte le booking attive
     const programEv=allEvts.find(e=>e.id===filterRecurringId);
     if(programEv){
       if(filterType==='__all__'||(programEv.type||'altro')===filterType){
-        const programBks=store.bookings.filter(b=>b.eventId===filterRecurringId&&b.status!=='cancellata'&&!b.gift&&b.paymentStatus==='pagato');
-        const byDate={};
-        programBks.forEach(b=>{
-          const d=b.recurringDate||programEv.days?.[0]?.date||'';
-          if(!d)return;
-          if(!byDate[d])byDate[d]={revenue:0,count:0};
-          byDate[d].revenue+=(b.amount||0);
-          byDate[d].count++;
-        });
-        const sortedDates=Object.keys(byDate).sort();
-        const isCapo=programEv.managerId===u.id;
-        const totalCosts=isCapo?_dashCalcEventCosts(programEv):_dashCalcMyCosts(programEv,u.id);
-        const _shareForPartner=(rev)=>{
+        // Recupera padre + tutti i suoi eventi splittati (occorrenze gestite individualmente)
+        const splitEvts=allEvts.filter(e=>e.parentRecurringId===filterRecurringId);
+        const validEvts=[programEv,...splitEvts];
+        // Helper share per uno specifico evento (padre o split possono avere revenueSharing diversi)
+        const _shareForEv=(rev,ev)=>{
+          const isCapo=ev.managerId===u.id;
           if(isCapo)return rev;
-          if(programEv.eventCosts?.revenueSharing){
-            const pct=programEv.eventCosts.revenueSharing[u.id]||0;
+          if(ev.eventCosts?.revenueSharing){
+            const pct=ev.eventCosts.revenueSharing[u.id]||0;
             return Math.round(rev*pct/100);
           }
           return rev;
         };
+        // byDate aggregato su tutti gli eventi (padre + split)
+        const byDate={};
+        let _splitsWithBookings=0;
+        validEvts.forEach(ev=>{
+          const evBks=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata');
+          // Raggruppa per data: per split usa recurringInstanceDate; per padre usa b.recurringDate
+          const evByDate={};
+          evBks.forEach(b=>{
+            let d;
+            if(ev.parentRecurringId){
+              d=ev.recurringInstanceDate||ev.days?.[0]?.date||'';
+            } else {
+              d=b.recurringDate||ev.days?.[0]?.date||'';
+            }
+            if(!d)return;
+            if(!evByDate[d])evByDate[d]={revenue:0,count:0};
+            evByDate[d].count++;
+            if(!b.gift&&b.paymentStatus==='pagato'){
+              evByDate[d].revenue+=(b.amount||0);
+            }
+          });
+          if(ev.parentRecurringId&&Object.keys(evByDate).length)_splitsWithBookings++;
+          // Costi di questo evento (skip se split con costi ereditati dal padre → già contati lì)
+          let evCost=0;
+          if(!(ev.parentRecurringId&&ev._costsInherited)){
+            const isCapo=ev.managerId===u.id;
+            evCost=isCapo?_dashCalcEventCosts(ev):_dashCalcMyCosts(ev,u.id);
+          }
+          // Aggrega in byDate, attribuendo i costi dell'evento alla sua prima data con booking (se nessuna, alla data di partenza dell'evento)
+          const evSortedDates=Object.keys(evByDate).sort();
+          let costAttributed=false;
+          evSortedDates.forEach(d=>{
+            if(!byDate[d])byDate[d]={revenue:0,cost:0,count:0};
+            byDate[d].count+=evByDate[d].count;
+            byDate[d].revenue+=_shareForEv(evByDate[d].revenue,ev);
+            if(!costAttributed&&evCost>0){
+              byDate[d].cost+=evCost;
+              costAttributed=true;
+            }
+          });
+          // Fallback: evento con costi ma 0 booking → attribuisci alla data nominale dell'evento
+          if(evCost>0&&!costAttributed){
+            let dFallback;
+            if(ev.parentRecurringId)dFallback=ev.recurringInstanceDate||ev.days?.[0]?.date;
+            else dFallback=ev.days?.[0]?.date;
+            if(dFallback){
+              if(!byDate[dFallback])byDate[dFallback]={revenue:0,cost:0,count:0};
+              byDate[dFallback].cost+=evCost;
+            }
+          }
+        });
+        const sortedDates=Object.keys(byDate).sort();
         const _progTitle=programEv.title||'(senza titolo)';
-        sortedDates.forEach((d,i)=>{
+        let _totalRevenueProgram=0;
+        sortedDates.forEach(d=>{
+          const e=byDate[d];
+          _totalRevenueProgram+=e.revenue;
           dataPoints.push({
             date:d,
-            revenue:_shareForPartner(byDate[d].revenue),
-            cost:i===0?totalCosts:0,
+            revenue:e.revenue,
+            cost:e.cost,
             type:programEv.type||'altro',
-            title:_progTitle+' · '+fmtDateShort(d)+' ('+byDate[d].count+(byDate[d].count===1?' iscritto':' iscritti')+')'
+            title:_progTitle+' · '+fmtDateShort(d)+' ('+e.count+(e.count===1?' iscritto':' iscritti')+(e.revenue>0?' · €'+fmtEuro(e.revenue):'')+')'
           });
         });
-        _modeHint='🔄 Filtro programma ricorrente attivo: ricavi per occorrenza · costi attribuiti alla prima data';
+        // Hint dinamico
+        const _splitInfo=_splitsWithBookings?' · '+_splitsWithBookings+' occorrenz'+(_splitsWithBookings===1?'a gestita':'e gestite')+' separatamente':'';
+        if(sortedDates.length&&_totalRevenueProgram===0){
+          _modeHint='🔄 Programma ricorrente attivo'+_splitInfo+' · '+sortedDates.length+' occorrenz'+(sortedDates.length===1?'a':'e')+' con iscritti · 0 pagamenti registrati come "pagato" (evento gratuito, con abbonamento, o stati pagamento da aggiornare)';
+        } else {
+          _modeHint='🔄 Programma ricorrente attivo · ricavi per occorrenza · costi attribuiti per evento'+_splitInfo;
+        }
       }
     }
   } else {
