@@ -2901,7 +2901,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.25.2';
+const APP_VERSION='V4.26.0';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -6038,6 +6038,74 @@ async function updateUniversePreferredRole(univId,role){
   if(userRec)userRec.role=effectiveRole;
   await fsUpdate('users',store.currentUser.id,{subscribedUniverses:store.currentUser.subscribedUniverses,role:effectiveRole});
   showToast('Ruolo preferito aggiornato');
+}
+
+/* === V4.26.0: Editor ruoli per-universo lato ADMIN (opera su un utente TARGET, non su currentUser) === */
+function renderAdminUserUniverses(userId,containerId){
+  const c=document.getElementById(containerId);
+  if(!c)return;
+  const user=store.users.find(u=>u.id===userId);
+  if(!user){c.innerHTML='<div class="text-xs txt3">Utente non trovato</div>';return;}
+  if(!Array.isArray(user.subscribedUniverses))user.subscribedUniverses=[];
+  const activeUnivs=getActiveUniverses();
+  let html='';
+  activeUnivs.forEach(u=>{
+    const sub=user.subscribedUniverses.find(s=>s.universeId===u.id);
+    const isSub=!!sub;
+    html+='<div style="padding:12px;background:'+safeColor(u.color)+'11;border:1px solid '+safeColor(u.color)+'33;border-radius:12px;margin-bottom:8px">';
+    html+='<div style="display:flex;align-items:center;justify-content:space-between;gap:12px">';
+    html+='<div><div style="color:'+safeColor(u.color)+';font-weight:600;font-size:.95rem">'+escHtml(u.emoji)+' '+escHtml(u.name)+'</div>';
+    html+='<div class="text-xs txt3 mt-1">Ruoli: '+((u.roles&&u.roles.length)?u.roles.map(r=>escHtml(r)).join(', '):'nessuno')+'</div></div>';
+    html+='<button class="btn btn-sm '+(isSub?'btn-primary':'btn-secondary')+'" onclick="adminToggleUniverseSubscription(\''+userId+'\',\''+u.id+'\','+(!isSub)+')">'+(isSub?'✓ Iscritto':'+ Iscriviti')+'</button>';
+    html+='</div>';
+    if(isSub&&u.roles&&u.roles.length){
+      const currentRole=sub?sub.preferredRole:'';
+      html+='<div style="margin-top:10px;padding-top:10px;border-top:1px solid '+safeColor(u.color)+'33">';
+      html+='<label class="text-xs font-medium txt2">Ruolo preferito:</label>';
+      html+='<select class="input mt-1" style="font-size:.8rem" onchange="adminUpdateUniversePreferredRole(\''+userId+'\',\''+u.id+'\',this.value)">';
+      html+='<option value=""'+(currentRole?'':' selected')+'>— Seleziona —</option>';
+      u.roles.forEach(r=>{html+='<option value="'+escHtml(r)+'"'+(currentRole===r?' selected':'')+'>'+escHtml(r)+'</option>';});
+      html+='</select></div>';
+    }
+    html+='</div>';
+  });
+  c.innerHTML=html||'<div class="text-xs txt3">Nessun universo attivo disponibile</div>';
+}
+
+async function adminToggleUniverseSubscription(userId,univId,subscribe){
+  const user=store.users.find(u=>u.id===userId);
+  if(!user){showToast('Utente non trovato','error');return;}
+  if(!Array.isArray(user.subscribedUniverses))user.subscribedUniverses=[];
+  if(subscribe){
+    if(!user.subscribedUniverses.find(s=>s.universeId===univId)){
+      const univ=store.universes.find(u=>u.id===univId);
+      user.subscribedUniverses.push({universeId:univId,preferredRole:(univ&&univ.roles&&univ.roles[0])||''});
+    }
+  }else{
+    user.subscribedUniverses=user.subscribedUniverses.filter(s=>s.universeId!==univId);
+  }
+  const effRole=getUserEffectiveRole(user);
+  user.role=effRole;
+  try{await fsUpdate('users',userId,{subscribedUniverses:user.subscribedUniverses,role:effRole});}
+  catch(e){console.error('adminToggleUniverseSubscription error:',e);showToast('Errore: '+e.message,'error');return;}
+  showToast(subscribe?'Iscritto all\'universo':'Disiscritto dall\'universo');
+  renderAdminUserUniverses(userId,'uf-universe-roles');
+  renderUsersTab();
+}
+
+async function adminUpdateUniversePreferredRole(userId,univId,role){
+  const user=store.users.find(u=>u.id===userId);
+  if(!user){showToast('Utente non trovato','error');return;}
+  if(!Array.isArray(user.subscribedUniverses))user.subscribedUniverses=[];
+  const sub=user.subscribedUniverses.find(s=>s.universeId===univId);
+  if(sub){sub.preferredRole=role;}
+  else{user.subscribedUniverses.push({universeId:univId,preferredRole:role});}
+  const effRole=getUserEffectiveRole(user);
+  user.role=effRole;
+  try{await fsUpdate('users',userId,{subscribedUniverses:user.subscribedUniverses,role:effRole});}
+  catch(e){console.error('adminUpdateUniversePreferredRole error:',e);showToast('Errore: '+e.message,'error');return;}
+  showToast('Ruolo aggiornato');
+  renderUsersTab();
 }
 
 // Render universe settings in user profile (handles both users and managers)
@@ -23989,22 +24057,28 @@ function openUserForm(type,editId){
       <h3 class="font-semibold text-white" style="font-size:.9rem">👤 Dati personali</h3>
       <div><label class="label">Username *</label><input class="input" id="uf-username" maxlength="25" value="${escHtml(data.username||'')}"></div>
       <div><label class="label">Email *</label><input class="input" type="email" id="uf-email" value="${escHtml(data.email||'')}"></div>
-      ${type==='user'?`
-      <div><label class="label">Ruolo preferito</label>
-        <select class="input" id="uf-role">
-          <option value="non_so" ${data.role==='non_so'||!data.role?'selected':''}>Non lo so ancora</option>
-          <option value="base" ${data.role==='base'?'selected':''}>Base</option>
-          <option value="flyer" ${data.role==='flyer'?'selected':''}>Flyer</option>
-          <option value="entrambi" ${data.role==='entrambi'?'selected':''}>Entrambi</option>
-        </select>
+      ${type==='user'?(isEdit?`
+      <div><label class="label">Ruoli per universo</label>
+        <div id="uf-universe-roles"></div>
+        <p class="text-xs txt3 mt-1">Il ruolo preferito è gestito per universo (opzioni da universe.roles). Le modifiche sono salvate subito.</p>
       </div>
-      ${isEdit?`<div><label class="label">Stato</label>
+      <div><label class="label">Stato</label>
         <select class="input" id="uf-status">
           <option value="attivo" ${data.status==='attivo'?'selected':''}>Attivo</option>
           <option value="sospeso" ${data.status==='sospeso'?'selected':''}>Sospeso</option>
         </select>
-      </div>`:''}
-      `:''}
+      </div>
+      `:`
+      <div><label class="label">Ruolo preferito</label>
+        <select class="input" id="uf-role">
+          <option value="non_so" selected>Non lo so ancora</option>
+          <option value="base">Base</option>
+          <option value="flyer">Flyer</option>
+          <option value="entrambi">Entrambi</option>
+        </select>
+        <p class="text-xs txt3 mt-1">Dopo la creazione potrai assegnare i ruoli per universo aprendo la modifica.</p>
+      </div>
+      `):''}
       ${type==='org'?`
       <div style="border-top:1px solid var(--s400);margin:8px 0"></div>
       <h3 class="font-semibold text-white" style="font-size:.9rem">🛡️ Dati organizzazione</h3>
@@ -24024,6 +24098,7 @@ function openUserForm(type,editId){
       <button class="btn btn-secondary" onclick="document.getElementById('user-form-overlay').style.display='none'">Annulla</button>
     </div>
   </div>`;
+  if(type==='user'&&isEdit){renderAdminUserUniverses(editId,'uf-universe-roles');}
 }
 
 async function saveUserForm(type,editId){
@@ -24045,8 +24120,9 @@ async function saveUserForm(type,editId){
     if(editId){
       const u=store.users.find(x=>x.id===editId);
       if(u){
-        u.username=username;u.email=email;u.role=role;u.status=status;
-        try{await fsUpdate('users',u.id,{username,email,role,status});}catch(e){console.error('saveUserForm fsUpdate error:',e);showToast('Errore salvataggio: '+e.message,'error');return;}
+        // V4.26.0: role è gestito dall'editor per-universo (salvataggio live). NON sovrascriverlo qui.
+        u.username=username;u.email=email;u.status=status;
+        try{await fsUpdate('users',u.id,{username,email,status});}catch(e){console.error('saveUserForm fsUpdate error:',e);showToast('Errore salvataggio: '+e.message,'error');return;}
       }
       showToast('✅ Utente aggiornato: '+username);
     } else {
