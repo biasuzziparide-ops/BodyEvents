@@ -2901,7 +2901,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.26.0';
+const APP_VERSION='V4.27.3';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -4653,7 +4653,7 @@ async function doQuickAssign(userId,btn){
 /* Safe push: add booking to store only if not already present (prevents in-memory duplicates).
    Checks BOTH by booking ID and by (eventId, userId, recurringDate) tuple for idempotency. */
 function pushBookingSafe(newBooking){
-  if(store.bookings.find(b=>b.id===newBooking.id))return;
+  if(store.bookings.find(b=>b.id===newBooking.id))return false;
   // Also check for semantic duplicate: same event + user + recurringDate (non-cancelled)
   const semanticDup=store.bookings.find(b=>
     b.eventId===newBooking.eventId&&
@@ -4663,9 +4663,10 @@ function pushBookingSafe(newBooking){
   );
   if(semanticDup){
     console.warn('pushBookingSafe: semantic duplicate blocked',{existing:semanticDup.id,new:newBooking.id});
-    return;
+    return false;
   }
   store.bookings.push(newBooking);
+  return true;
 }
 
 // Load all data from Firestore into local store
@@ -7974,9 +7975,11 @@ function getUserActiveSubscriptions(userId){
   });
 }
 // Get automatic discount % from user's discount-mode subscriptions (NOT event-level subscriptionDiscount)
-function getAutoSubDiscountPct(ev){
-  if(!store.currentUser)return 0;
-  const userSubs=getUserActiveSubscriptions(store.currentUser.id);
+function getAutoSubDiscountPct(ev,targetUserId){
+  // V4.27.1: targetUserId opzionale (default utente loggato) per manual booking sull'iscritto
+  const _uid=targetUserId||(store.currentUser&&store.currentUser.id);
+  if(!_uid)return 0;
+  const userSubs=getUserActiveSubscriptions(_uid);
   let bestPct=0;
   for(const s of userSubs){
     const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
@@ -9764,6 +9767,8 @@ function showPendingApprovalView(){
 }
 
 function doLogout(){
+  // V4.27.2 (FIX 7): azzera il flag walk-in per evitare flag stale su device condiviso.
+  _pendingCheckinAutoMark=null;
   fbAuth.signOut().then(()=>{
     store.currentUser={id:'guest',username:'Ospite',email:'',role:'non_so'};
     resetStoreData();
@@ -11879,9 +11884,13 @@ function selectBookRole(el){
   el.style.background='var(--brand-d)';el.style.color='#fff';el.style.borderColor='var(--brand)';
   selectedBookRole=el.dataset.role;
 }
+let _doBookInFlight=false; // V4.27.2 (FIX 8): re-entry guard anti doppio-tap / doppio-dispatch
 async function doBook(){
   // Block booking if data hasn't loaded yet
   if(!_dataLoaded){showToast('Caricamento dati in corso, attendi...','error');return;}
+  if(_doBookInFlight){console.warn('[doBook] chiamata ignorata: booking già in corso');return;}
+  _doBookInFlight=true;
+  try{
 
   const ev=store.events.find(e=>e.id===currentBookingEventId);
   if(!ev){showToast('Errore: evento non trovato','error');return;}
@@ -11996,7 +12005,7 @@ async function doBook(){
         insuranceSurveyResponses:insSurveyResponses,
         bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
       };
-      pushBookingSafe(newBooking);
+      if(!pushBookingSafe(newBooking)){_ownOverlay.remove();showToast('Sei già iscritto a questo evento!','error');go('booking-done');return;}
       await fsSet('bookings',newBooking.id,newBooking).catch(console.error);
       _markEventRead(newBooking.eventId,newBooking.recurringDate||null); // V4.16.0: init lastSeen
       _ownOverlay.remove();
@@ -12081,6 +12090,7 @@ async function doBook(){
   }
 
   _doBookNormal();
+  }finally{_doBookInFlight=false;} // V4.27.2 (FIX 8): rilascia il guard
 }
 
 async function bookWithSubscription(subId,eventId){
@@ -12195,7 +12205,7 @@ async function bookWithSubscription(subId,eventId){
         surveyResponses:surveyResponses,
         bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
       };
-      pushBookingSafe(newBooking);
+      if(!pushBookingSafe(newBooking)){o.remove();showToast('Sei già iscritto a questo evento!','error');go('booking-done');return;}
       await fsSet('bookings',newBooking.id,newBooking).catch(console.error);
       _markEventRead(newBooking.eventId,newBooking.recurringDate||null); // V4.16.0: init lastSeen
       o.remove();
@@ -12224,7 +12234,7 @@ async function bookWithSubscription(subId,eventId){
     surveyResponses:{},
     bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
   };
-  pushBookingSafe(newBooking);
+  if(!pushBookingSafe(newBooking)){showToast('Sei già iscritto a questo evento!','error');go('booking-done');return;}
   await fsSet('bookings',newBooking.id,newBooking).catch(console.error);
   _markEventRead(newBooking.eventId,newBooking.recurringDate||null); // V4.16.0: init lastSeen
   _maybeAutoCheckin(newBooking);
@@ -12387,7 +12397,7 @@ function _doBookNormal(){
         recurringDate:currentBookingRecDate||null,
         bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
       };
-      pushBookingSafe(newBooking);
+      if(!pushBookingSafe(newBooking)){o.remove();showToast('Sei già iscritto a questo evento!','error');go('booking-done');return;}
       fsSet('bookings',newBooking.id,newBooking).catch(console.error);
       _markEventRead(newBooking.eventId,newBooking.recurringDate||null); // V4.16.0: init lastSeen
       o.remove();
@@ -12843,7 +12853,7 @@ function _doBookNormal(){
       insuranceSurveyResponses:insSurveyResponses,
       bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
     };
-    pushBookingSafe(newBooking);
+    if(!pushBookingSafe(newBooking)){o.remove();showToast('Sei già iscritto a questo evento!','error');go('booking-done');return;}
     fsSet('bookings',newBooking.id,newBooking).catch(console.error);
     _markEventRead(newBooking.eventId,newBooking.recurringDate||null); // V4.16.0: init lastSeen
     _maybeAutoCheckin(newBooking);
@@ -13046,6 +13056,26 @@ function _maybeAutoCheckin(booking){
   if(!_pendingCheckinAutoMark)return;
   if(booking.eventId!==_pendingCheckinAutoMark.eventId)return;
   if((booking.recurringDate||null)!==(_pendingCheckinAutoMark.recDate||null))return;
+  // V4.27.2 (FIX 7): match anche su userId — un flag stale non deve marcare walk-in
+  // il booking di un ALTRO utente. Se il flag non ha userId non blocca.
+  if(_pendingCheckinAutoMark.userId&&booking.userId!==_pendingCheckinAutoMark.userId)return;
+  // V4.27.2 (FIX 7): ri-valida la finestra walk-in ALLA CREAZIONE. Fail-OPEN se start/end null.
+  {
+    const _ckEv=store.events.find(e=>e.id===booking.eventId);
+    if(_ckEv){
+      const _ckStart=_getEventFirstStartDate(_ckEv,booking.recurringDate||null);
+      const _ckEnd=_getEventLastEndDate(_ckEv,booking.recurringDate||null);
+      const _ckNow=new Date();
+      if(_ckStart&&_ckEnd){
+        const _ckWindowStart=new Date(_ckStart.getTime()-24*3600000);
+        if(_ckNow<_ckWindowStart||_ckNow>_ckEnd){
+          console.warn('[WALKIN-QR] _maybeAutoCheckin: finestra non valida alla creazione, salto auto-checkin');
+          _pendingCheckinAutoMark=null;
+          return;
+        }
+      }
+    }
+  }
   // Match! Auto mark as checked in
   const flag=_pendingCheckinAutoMark;
   _pendingCheckinAutoMark=null; // consume flag
@@ -13360,7 +13390,8 @@ function confirmWalkinCheckin(evId){
     insuranceSurveyResponses:(ev.insurance?.enabled&&ev.insurance.requiredInsuranceIds?.length&&!isUserInsured(store.currentUser.id,ev.insurance.requiredInsuranceIds))?(typeof collectSurveyResponses==='function'?(collectSurveyResponses(ev,'wi_ins_')||{}):{}):{},
     bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
   };
-  pushBookingSafe(bk);
+  // V4.27.3: gate su pushBookingSafe — su duplicato semantico NON scrivere su Firestore (evita doc fantasma)
+  if(!pushBookingSafe(bk)){showToast('Sei già iscritto a questo evento!','error');checkinRecDate=null;return;}
   fsSet('bookings',bk.id,bk).catch(console.error);
   // V4.19.0: init lastSeen V4.16.0 + reset checkinRecDate
   if(store.currentUser?.id===bk.userId){_markEventRead(bk.eventId,bk.recurringDate||null);}
@@ -13375,13 +13406,47 @@ function confirmWalkinCheckin(evId){
 /* ==============================
    V4.24.0: Aggiungi iscritto manuale (organizzatore)
 ============================== */
-let _manualBookingCtx=null; // {evId, userId, recDate}
+let _manualBookingCtx=null; // {evId, userId, recDate, useSubId}
+let _mbConfirming=false; // re-entry guard contro doppio click / race su await Firestore
+
+// V4.27.1: abbonamenti a INGRESSI compatibili dell'iscritto (replica esatta del calcolo compatBookSubs di doBook ~12016-12032)
+function _mbCompatEntrySubs(ev,userId){
+  if(!userId)return [];
+  const userSubs=getUserActiveSubscriptions(userId); // entry-mode già filtrati per ingressi residui; include anche discount-mode
+  const _subBookExplicitlyDisabled=ev.subscriptionBookable&&ev.subscriptionBookable.enabled===false;
+  if(_subBookExplicitlyDisabled)return [];
+  const _sbTypeIds=(ev.subscriptionBookable?.enabled&&ev.subscriptionBookable.typeIds?.length)?ev.subscriptionBookable.typeIds:null;
+  return userSubs.filter(s=>{
+    const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
+    if(!sType||sType.mode==='discount')return false;
+    if(_sbTypeIds&&!_sbTypeIds.includes(s.typeId))return false;
+    if(!isSubCompatibleWithEvent(s,ev))return false;
+    const isPartner=ev.partnerIds&&ev.partnerIds.includes(sType.managerId);
+    if(sType.managerId!==ev.managerId&&!isPartner)return false;
+    if(isPartner&&!canUsePartnerEntries(ev))return false;
+    return true;
+  });
+}
+// V4.27.1: abbonamenti SCONTO (event-level subscriptionDiscount) compatibili dell'iscritto (replica doBook ~12034-12044)
+function _mbCompatDiscSubs(ev,userId){
+  if(!userId)return [];
+  if(!(ev.subscriptionDiscount?.enabled&&ev.subscriptionDiscount.typeIds?.length))return [];
+  return getUserActiveSubscriptions(userId).filter(s=>{
+    if(!ev.subscriptionDiscount.typeIds.includes(s.typeId))return false;
+    if(!isSubCompatibleWithEvent(s,ev))return false;
+    const sType=store.subscriptionTypes.find(t=>t.id===s.typeId);
+    if(sType&&ev.partnerIds&&ev.partnerIds.includes(sType.managerId)){
+      if(!canUsePartnerDiscount(ev))return false;
+    }
+    return true;
+  });
+}
 
 async function openManualBookingModal(evId){
   const ev=store.events.find(e=>e.id===evId);
   if(!ev){showToast('Evento non trovato','error');return;}
-  if(!isEventCapofila(ev,store.currentUser.id)){showToast('Solo l\'organizzatore può aggiungere iscritti','error');return;}
-  _manualBookingCtx={evId:evId,userId:null,recDate:null};
+  if(!isEventVisibleToManager(ev,store.currentUser.id)){showToast('Solo organizzatore o partner possono aggiungere iscritti','error');return;}
+  _manualBookingCtx={evId:evId,userId:null,recDate:null,useSubId:null};
   selectedBookRole=null;
   Object.keys(selectedTiers).forEach(k=>{if(k.startsWith('mb_'))delete selectedTiers[k];});
   let overlay=document.getElementById('manual-booking-overlay');
@@ -13413,6 +13478,7 @@ function closeManualBookingModal(){
   const o=document.getElementById('manual-booking-overlay');
   if(o)o.remove();
   _manualBookingCtx=null;
+  _mbConfirming=false;
   // V4.24.0: reset variabili globali condivise per non lasciare stato stale
   selectedBookRole=null;
   Object.keys(selectedTiers).forEach(k=>{if(k.startsWith('mb_'))delete selectedTiers[k];});
@@ -13422,7 +13488,20 @@ function _filterManualBookingUsers(query){
   const res=document.getElementById('mb-user-results');
   if(!res)return;
   const q=(query||'').trim().toLowerCase();
-  let users=(store.users||[]).filter(u=>u.id&&u.id!=='guest'&&(u.status||'attivo')==='attivo');
+  // V4.27.0: pool = unione anagrafiche (registry.entries) di capofila + partner, dedup per utente risolto
+  const _ev=_manualBookingCtx&&store.events.find(e=>e.id===_manualBookingCtx.evId);
+  const _poolMgrIds=_ev?[_ev.managerId,...(_ev.partnerIds||[])].filter(Boolean):[];
+  const _seen=new Map();
+  _poolMgrIds.forEach(mid=>{
+    const mgr=store.managers.find(m=>m.id===mid);
+    (mgr&&mgr.registry&&mgr.registry.entries||[]).forEach(e=>{
+      if(!e||!e.uid)return;
+      const su=store.users.find(u=>u.id===e.uid)||store.users.find(u=>u.email===(e.email||e.uid));
+      if(!su||!su.id||su.id==='guest'||(su.status||'attivo')!=='attivo')return;
+      if(!_seen.has(su.id))_seen.set(su.id,su); // dedup per id utente risolto
+    });
+  });
+  let users=Array.from(_seen.values());
   if(q){
     users=users.filter(u=>((u.username||'').toLowerCase().includes(q))||((u.email||'').toLowerCase().includes(q)));
   }
@@ -13450,7 +13529,13 @@ function _manualBookingSelectUser(userId){
   const _isRec=!!(ev.recurrence&&ev.recurrence.day);
   if(_isRec){
     const _tabs=getRecurringDateTabs(ev);
-    _manualBookingCtx.recDate=(_tabs&&(_tabs.defaultDate||_tabs.futureDates?.[0]||_tabs.dates?.[0]))||null;
+    if(!_tabs||!(_tabs.dates&&_tabs.dates.length)){
+      showToast('Questo evento ricorrente non ha occorrenze disponibili: impossibile iscrivere.','error');
+      return;
+    }
+    const _cur=(typeof _adminRecDateFilter!=='undefined')?_adminRecDateFilter:null;
+    const _curValid=_cur&&_cur!=='__all__'&&_tabs.dates.includes(_cur);
+    _manualBookingCtx.recDate=_curValid?_cur:(_tabs.defaultDate||_tabs.futureDates?.[0]||_tabs.dates[0]);
   } else {
     _manualBookingCtx.recDate=null;
   }
@@ -13477,6 +13562,14 @@ function _renderManualBookingStep2(){
   if(_isRec){
     const _tabs=getRecurringDateTabs(ev);
     const _dates=(_tabs&&_tabs.dates)?_tabs.dates:[];
+    if(!_dates.length){
+      step2.innerHTML='<div class="card mb-3" style="padding:14px"><p class="text-sm txt3">Questo evento ricorrente non ha occorrenze disponibili: impossibile iscrivere.</p><button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="_manualBookingBackToStep1()">↩ Cambia persona</button></div>';
+      return;
+    }
+    if(!_manualBookingCtx.recDate||!_dates.includes(_manualBookingCtx.recDate)){
+      _manualBookingCtx.recDate=(_tabs.defaultDate||_tabs.futureDates?.[0]||_dates[0]);
+      currentBookingRecDate=_manualBookingCtx.recDate;
+    }
     recPickerHtml=`<div class="card mb-3" style="padding:10px 14px">
       <label class="text-sm font-medium text-white mb-1" style="display:block">📅 Data occorrenza</label>
       <select class="input" onchange="_onManualBookingRecDateChange(this.value)">
@@ -13484,7 +13577,24 @@ function _renderManualBookingStep2(){
       </select>
     </div>`;
   }
-  const pricingHtml=buildFullPricingHtml(ev,'mb_');
+  // V4.27.1: selettore ingresso abbonamento dell'iscritto; se selezionato → niente blocco prezzi (prenotazione €0)
+  const _mbEntrySubs=_mbCompatEntrySubs(ev,_manualBookingCtx.userId);
+  const _mbUseSub=_manualBookingCtx.useSubId?store.subscriptions.find(s=>s.id===_manualBookingCtx.useSubId):null;
+  let _mbSubHtml='';
+  if(_mbUseSub){
+    const _st=store.subscriptionTypes.find(t=>t.id===_mbUseSub.typeId);
+    const _rem=(_mbUseSub.entriesTotal||0)-(_mbUseSub.entriesUsed||0);
+    _mbSubHtml=`<div class="card mb-3" style="background:rgba(16,185,129,.08);border-color:var(--green);padding:10px 14px">
+      <div class="text-sm" style="color:var(--green);font-weight:600">🎟️ Ingresso abbonamento selezionato</div>
+      <div class="text-xs txt3 mt-1">${escHtml(_st?.name||'Abbonamento')} · ${_rem} ingress${_rem===1?'o':'i'} rimanent${_rem===1?'e':'i'} · prenotazione a €0</div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:6px;font-size:.72rem;padding:2px 8px" onclick="_mbClearUseSub()">↩ Usa invece il prezzo</button>
+    </div>`;
+  }else if(_mbEntrySubs.length){
+    _mbSubHtml=`<div class="card mb-3" style="background:rgba(99,102,241,.05);border-color:rgba(99,102,241,.25);padding:10px 14px"><div class="text-xs txt3 mb-2">${escHtml(u.username||'L\'utente')} ha un abbonamento a ingressi compatibile:</div>`
+      +_mbEntrySubs.map(s=>{const _st=store.subscriptionTypes.find(t=>t.id===s.typeId);const _rem=(s.entriesTotal||0)-(s.entriesUsed||0);return `<button class="btn btn-sm w-full" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3);text-align:left;margin-bottom:6px" onclick="_mbUseSubEntry('${s.id}')">🎟️ Usa ingresso — ${escHtml(_st?.name||'Abbonamento')} (${_rem} rimanent${_rem===1?'e':'i'})</button>`;}).join('')
+      +`</div>`;
+  }
+  const pricingHtml=_mbUseSub?'':buildFullPricingHtml(ev,'mb_',_manualBookingCtx.userId);
   step2.innerHTML=`
     <div class="card mb-3" style="background:rgba(99,102,241,.06);border-color:rgba(99,102,241,.2);padding:10px 14px">
       <div class="text-sm text-white" style="font-weight:600">${escHtml(u.username||'')}</div>
@@ -13493,10 +13603,11 @@ function _renderManualBookingStep2(){
     </div>
     ${recPickerHtml}
     ${buildRoleSelectorHtml(ev)}
+    ${_mbSubHtml}
     ${pricingHtml}
     ${renderSurveyQuestions(ev,'mb_')}
     ${renderInsuranceSurveyForBooking(ev,'mb_ins_',_manualBookingCtx.userId)}
-    <button class="btn btn-primary w-full" style="padding:13px;margin-top:8px" onclick="confirmManualBooking()">✅ Aggiungi iscritto</button>`;
+    <button id="mb-confirm-btn" class="btn btn-primary w-full" style="padding:13px;margin-top:8px" onclick="confirmManualBooking()">✅ Aggiungi iscritto</button>`;
   const pref=getUserEffectiveRole(u,ev);
   if(pref){const b=step2.querySelector('.book-role-btn[data-role="'+pref+'"]');if(b)selectBookRole(b);}
 }
@@ -13506,12 +13617,24 @@ function _manualBookingBackToStep1(){
   const step2=document.getElementById('mb-step2');
   if(step1)step1.classList.remove('hidden');
   if(step2){step2.classList.add('hidden');step2.innerHTML='';}
-  if(_manualBookingCtx)_manualBookingCtx.userId=null;
+  if(_manualBookingCtx){_manualBookingCtx.userId=null;_manualBookingCtx.useSubId=null;}
 }
 
 function _onManualBookingRecDateChange(recDate){
   if(!_manualBookingCtx)return;
   _manualBookingCtx.recDate=recDate||null;
+  _renderManualBookingStep2();
+}
+
+// V4.27.1: selezione/deselezione ingresso abbonamento per il manual booking → re-render step2
+function _mbUseSubEntry(subId){
+  if(!_manualBookingCtx)return;
+  _manualBookingCtx.useSubId=subId;
+  _renderManualBookingStep2();
+}
+function _mbClearUseSub(){
+  if(!_manualBookingCtx)return;
+  _manualBookingCtx.useSubId=null;
   _renderManualBookingStep2();
 }
 
@@ -13521,8 +13644,16 @@ async function confirmManualBooking(){
   const u=store.users.find(x=>x.id===_manualBookingCtx.userId);
   if(!ev||!u){showToast('Dati non validi','error');return;}
   const mbRecDate=_manualBookingCtx.recDate||null;
+  if(ev.recurrence&&ev.recurrence.day&&(!mbRecDate||mbRecDate==='__all__')){
+    showToast('Seleziona una data occorrenza valida prima di iscrivere.','error');return;
+  }
   currentBookingRecDate=mbRecDate;
   currentBookingEventId=ev.id;
+  if(_mbConfirming)return;
+  _mbConfirming=true;
+  const _btn=document.getElementById('mb-confirm-btn');
+  if(_btn){_btn.disabled=true;_btn.textContent='⏳ Aggiungo...';}
+  try{
   // Anti-duplicato — store locale
   const _dup=store.bookings.find(b=>b.eventId===ev.id&&b.userId===u.id&&b.status!=='cancellata'&&(b.recurringDate||null)===mbRecDate);
   if(_dup){showToast(escHtml(u.username||'L\'utente')+' è già iscritto a questo evento'+(mbRecDate?' per il '+fmtDate(mbRecDate):'')+'.','error');return;}
@@ -13536,6 +13667,14 @@ async function confirmManualBooking(){
       showToast(escHtml(u.username||'L\'utente')+' è già iscritto a questo evento.','error');return;
     }
   }catch(e){console.warn('Manual booking: verifica duplicato Firestore fallita, procedo con check locale:',e);}
+  // V4.27.1 (F5): gate subscriptionOnly — blocca se l'iscritto non ha né ingresso né sconto compatibile (rispecchia doBook ~12048)
+  if(ev.subscriptionOnly){
+    const _compatEntry=_mbCompatEntrySubs(ev,u.id);
+    const _compatDisc=_mbCompatDiscSubs(ev,u.id);
+    if(!_compatEntry.length&&!_compatDisc.length){
+      showToast('Questo evento è riservato agli abbonati e '+escHtml(u.username||'l\'utente')+' non ha un abbonamento compatibile.','error');return;
+    }
+  }
   // Ruolo obbligatorio se l'evento ha ruoli
   const _evRoles=getEventRoles(ev);
   if(_evRoles.length&&!selectedBookRole){showToast('Seleziona il ruolo del partecipante','error');return;}
@@ -13549,6 +13688,41 @@ async function confirmManualBooking(){
     if(_ins===null)return; // domanda assicurativa obbligatoria mancante
     insSurveyResponses=_ins||{};
   }
+  // V4.27.1 (F5): percorso INGRESSO ABBONAMENTO dell'iscritto — bypassa prezzi/surcharge, prenotazione €0 (rispecchia bookWithSubscription)
+  if(_manualBookingCtx.useSubId){
+    // Consuma l'ingresso DOPO i dup-check (così non si brucia un ingresso su un duplicato)
+    const _subOk=await useSubscriptionEntry(_manualBookingCtx.useSubId,ev.id,ev.title);
+    if(!_subOk)return; // useSubscriptionEntry mostra il proprio toast; il finally riabilita bottone/flag
+    const _subSessIds=[];ev.days.forEach(d=>(d.sessions||[]).forEach(s=>_subSessIds.push(s.id)));
+    const _subActiveCnt=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata'&&(b.recurringDate||null)===mbRecDate).length;
+    const _subOverCap=!!(ev.maxSpots&&ev.maxSpots>0&&_subActiveCnt>=ev.maxSpots);
+    const _subBk={
+      id:genId('bk'),eventId:ev.id,userId:u.id,
+      userName:u.username,email:u.email,
+      initials:(u.username||'?').split(' ').map(p=>p[0]).join('').toUpperCase().substring(0,2),color:'avatar-brand',
+      items:[{type:'abbonamento',name:ev.title,date:fmtDateShort(mbRecDate||ev.days[0]?.date),time:'',tier:'Abbonamento',price:0}],
+      sessions:_subSessIds,scope:'evento',tier:'medio',amount:0,totalAmount:0,
+      role:selectedBookRole||null,recurringDate:mbRecDate,
+      status:'confermata',
+      depositStatus:null,paymentStatus:'abbonamento',
+      gift:false,walkIn:false,addedManually:true,overCapacity:_subOverCap,subscriptionId:_manualBookingCtx.useSubId,
+      checkedIn:false,
+      insuranceSurcharge:0,insurancePaid:null,
+      surveyResponses:surveyResponses,
+      insuranceSurveyResponses:insSurveyResponses,
+      bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
+    };
+    const _subAdded=pushBookingSafe(_subBk);
+    if(!_subAdded){
+      showToast(escHtml(u.username||'L\'utente')+' è già iscritto a questo evento.','error');
+      return; // ingresso già consumato (dup sfuggito ai 2 check precedenti: caso teorico, re-entry guard previene il doppio click)
+    }
+    fsSet('bookings',_subBk.id,_subBk).catch(console.error);
+    closeManualBookingModal();
+    showToast('✅ '+escHtml(u.username||'Iscritto')+' aggiunto con ingresso abbonamento'+(_subOverCap?' (oltre capacità)':'')+'!');
+    if(window._currentAdminDetailEvId===ev.id)showAdminEventDetail(ev.id);
+    return;
+  }
   // Pricing
   const isFree=ev.pricingMode==='free';const isManaged=ev.pricingMode==='managed';const isDirect=ev.pricingMode==='direct';
   let items,totalAmount,scope,tierKey,sessions;
@@ -13556,9 +13730,15 @@ async function confirmManualBooking(){
     const allSessIds=[];ev.days.forEach(d=>(d.sessions||[]).forEach(s=>allSessIds.push(s.id)));
     items=[];totalAmount=0;scope='evento';tierKey='medio';sessions=allSessIds;
   } else {
-    const data=collectCheckinBookingData(ev,'mb_');
+    const data=collectCheckinBookingData(ev,'mb_',u.id);
     items=data.items;totalAmount=data.totalAmount;scope=data.scope;tierKey=data.tierKey;sessions=data.sessions;
     if(!items.length){showToast('Seleziona un\'opzione di prezzo (sessione, giornata o evento)','error');return;}
+  }
+  // V4.27.1 (F3): sovrapprezzo assicurativo dell'iscritto (rispecchia doBook ~12671-12676), FUORI da sconto, mai come item
+  let _mbInsuranceSurcharge=0;
+  if(ev.insurance?.enabled&&ev.insurance.requiredInsuranceIds?.length&&ev.insurance.price>0&&!isUserInsured(u.id,ev.insurance.requiredInsuranceIds)){
+    _mbInsuranceSurcharge=ev.insurance.price;
+    totalAmount+=_mbInsuranceSurcharge;
   }
   const needsDep=ev.deposit&&ev.deposit.required&&ev.deposit.amount>0&&!isFree&&!isManaged;
   const _activeCnt=store.bookings.filter(b=>b.eventId===ev.id&&b.status!=='cancellata'&&(b.recurringDate||null)===mbRecDate).length;
@@ -13574,15 +13754,26 @@ async function confirmManualBooking(){
     depositStatus:needsDep?'pending':null,paymentStatus:isFree?'gratuito':null,
     gift:false,walkIn:false,addedManually:true,overCapacity:_overCap,
     checkedIn:false,
+    insuranceSurcharge:_mbInsuranceSurcharge||0,
+    insurancePaid:_mbInsuranceSurcharge>0?false:null,
     surveyResponses:surveyResponses,
     insuranceSurveyResponses:insSurveyResponses,
     bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
   };
-  pushBookingSafe(bk);
+  const _added=pushBookingSafe(bk);
+  if(!_added){
+    showToast(escHtml(u.username||'L\'utente')+' è già iscritto a questo evento.','error');
+    return; // nessuna scrittura Firestore: evita doc fantasma (il finally riabilita bottone/flag)
+  }
   fsSet('bookings',bk.id,bk).catch(console.error);
   closeManualBookingModal();
   showToast('✅ '+escHtml(u.username||'Iscritto')+' aggiunto agli iscritti'+(_overCap?' (oltre capacità)':'')+'!');
   if(window._currentAdminDetailEvId===ev.id)showAdminEventDetail(ev.id);
+  }finally{
+    _mbConfirming=false;
+    const _b=document.getElementById('mb-confirm-btn');
+    if(_b){_b.disabled=false;_b.textContent='✅ Aggiungi iscritto';}
+  }
 }
 
 async function renderCheckinC(){
@@ -13605,23 +13796,18 @@ async function renderCheckinC(){
     <div id="newp-step1">
       <div class="text-center mb-4">
         <div style="font-size:3rem;margin-bottom:12px">🆕</div>
-        <h1 class="text-xl font-bold text-white">Benvenuto!</h1>
-        <p class="txt3 text-sm mt-2">Prima volta? Registrati in 30 secondi per fare il check-in.</p>
+        <h1 class="text-xl font-bold text-white">Nuovo partecipante?</h1>
       </div>
-      <div class="card mb-4">
-        <h3 class="font-semibold text-white mb-3 text-sm">Registrazione rapida</h3>
-        <div class="mb-3"><label class="label">Username *</label><input class="input" id="ci-username" maxlength="25" placeholder="Il tuo nome o nickname"></div>
-        <div class="mb-3"><label class="label">Email *</label><input class="input" type="email" id="ci-email" placeholder="mario@email.it"></div>
-        <label class="flex items-center gap-2 text-sm mb-3" style="cursor:pointer;align-items:flex-start">
-          <input type="checkbox" id="ci-privacy-check" style="margin-top:2px">
-          <span>Accetto l'<a onclick="go('privacy-policy')" style="color:var(--brand-l);cursor:pointer;text-decoration:underline">Informativa sulla Privacy</a> *</span>
-        </label>
-        <label class="flex items-center gap-2 text-sm mb-3" style="cursor:pointer;align-items:flex-start">
-          <input type="checkbox" id="ci-marketing-check" style="margin-top:2px">
-          <span style="color:var(--txt3)">Acconsento a ricevere comunicazioni su nuovi eventi e aggiornamenti della community (facoltativo)</span>
-        </label>
+      <div class="card mb-4" style="text-align:left">
+        <p class="txt2 text-sm mb-2">Per registrare una persona <strong>non ancora iscritta</strong> alla piattaforma:</p>
+        <ol class="txt3 text-sm" style="padding-left:18px;line-height:1.7">
+          <li>Falle <strong>scansionare il QR di check-in</strong> dell'evento.</li>
+          <li>Completerà la <strong>registrazione</strong> dal proprio telefono (crea il suo account).</li>
+          <li>Subito dopo potrà fare il <strong>check-in</strong> con il proprio account.</li>
+        </ol>
+        <p class="txt3 text-xs mt-3">In questo modo il partecipante ha un account reale e la presenza viene registrata correttamente.</p>
       </div>
-      <button class="btn btn-primary w-full" style="padding:14px" onclick="checkinNewStep2()">Continua →</button>
+      <button class="btn btn-secondary w-full" style="padding:14px" onclick="go('admin-checkin')">← Torna al check-in</button>
     </div>
     <div id="newp-step2" class="hidden">
       <div class="text-center mb-4">
@@ -13654,89 +13840,17 @@ async function renderCheckinC(){
 }
 
 function checkinNewStep2(){
-  const username=(document.getElementById('ci-username')?.value||'').trim();
-  const email=(document.getElementById('ci-email')?.value||'').trim();
-  const privacyCheck=document.getElementById('ci-privacy-check')?.checked||false;
-  const marketingCheck=document.getElementById('ci-marketing-check')?.checked||false;
-  const role='non_so';
-
-  if(!username||!email){showToast('Compila tutti i campi obbligatori','error');return;}
-  if(username.length>25){showToast('Username troppo lungo (max 25 caratteri)','error');return;}
-  if(!email.includes('@')){showToast('Email non valida','error');return;}
-  if(!privacyCheck){showToast('Devi accettare l\'Informativa sulla Privacy','error');return;}
-
-  const dup=store.users.find(u=>u.email.toLowerCase()===email.toLowerCase());
-  if(dup){showToast('Email già registrata — usa lo scenario Walk-in (B)','error');return;}
-
-  const now=new Date().toISOString();
-  const newId='u'+Date.now();
-  const newUser={
-    id:newId,username,email,role,status:'attivo',registeredAt:now.split('T')[0],authMethod:'magic_link',
-    consents:{privacy:true,privacyDate:now,marketing:marketingCheck,marketingDate:marketingCheck?now:null}
-  };
-  store.users.push(newUser);
-  fsSet('users',newId,newUser).catch(console.error);
-
-  document.getElementById('newp-step2').dataset.newUserId=newId;
-  document.getElementById('newp-step2').dataset.userName=username;
-  document.getElementById('newp-step2').dataset.userEmail=email;
-  document.getElementById('newp-step2').dataset.userRole=role;
-  document.getElementById('newp-step1').classList.add('hidden');
-  document.getElementById('newp-step2').classList.remove('hidden');
-  showToast('Utente registrato: '+username);
+  // V4.27.2 (FIX 6): la creazione guest con id sintetico veniva RIFIUTATA dalla rule
+  // users create: if isOwner(userId). Il flusso corretto è l'AUTO-REGISTRAZIONE.
+  showToast('Per registrare un nuovo partecipante: fagli scansionare il QR check-in e completare la registrazione. Dopo potrà fare il check-in con il proprio account.','info');
 }
 
 function confirmNewCheckin(evId){
-  const ev=store.events.find(e=>e.id===evId);if(!ev){checkinRecDate=null;return;}
-  // V4.19.0: guard status evento (flow admin walk-in)
-  if(['concluso','archiviato','bozza','cancellato'].includes(ev.status)||(ev.alert&&ev.alert.type==='cancellato')){
-    showToast('Questo evento non accetta walk-in (stato non valido)','error');checkinRecDate=null;return;
-  }
-  const step2=document.getElementById('newp-step2');
-  const userId=step2?.dataset.newUserId||'guest';
-  const userName=step2?.dataset.userName||'Nuovo utente';
-  const userEmail=step2?.dataset.userEmail||'';
-  const userRole=step2?.dataset.userRole||'non_so';
-  const surveyResponses=collectSurveyResponses(ev,'np_');
-  if(surveyResponses===null)return;
-  const isFree=ev.pricingMode==='free';const isManaged=ev.pricingMode==='managed';const isDirect=ev.pricingMode==='direct';
-  let items,totalAmount,scope,tierKey,sessions;
-  if(isFree||isManaged||isDirect){
-    const allSessIds=[];ev.days.forEach(d=>(d.sessions||[]).forEach(s=>allSessIds.push(s.id)));
-    items=[];totalAmount=0;scope='evento';tierKey='medio';sessions=allSessIds;
-  } else {
-    const data=collectCheckinBookingData(ev,'np_');
-    items=data.items;totalAmount=data.totalAmount;scope=data.scope;tierKey=data.tierKey;sessions=data.sessions;
-    if(!items.length){showToast('Seleziona almeno un tier di prezzo!','error');return;}
-  }
-  const tierLbl=tierKey==='alto'?'Sostenitore':tierKey==='basso'?'Ridotto':'Standard';
-  const needsDep=ev.deposit&&ev.deposit.required&&ev.deposit.amount>0&&!isFree&&!isManaged;
-  // V4.19.0: check capacity flag (walk-in nuovo utente permesso ma avviso organizzatore)
-  const _activeCountNp=store.bookings.filter(b=>b.eventId===evId&&b.status!=='cancellata'&&(b.recurringDate||null)===(checkinRecDate||null)).length;
-  const _overCapNp=!!(ev.maxSpots&&ev.maxSpots>0&&_activeCountNp>=ev.maxSpots);
-  const bk={
-    id:genId('bk'),eventId:evId,userId,
-    userName,email:userEmail,
-    initials:userName.split(' ').map(w=>w[0]).join('').toUpperCase().substring(0,2),color:'avatar-brand',
-    items:items.length?items:[{type:'walk-in (nuovo)',name:ev.title,date:fmtDateShort(ev.days[0]?.date),time:'',tier:isFree?'Gratuito':'Da definire',price:0}],
-    sessions,scope,tier:tierKey,amount:totalAmount,totalAmount,
-    role:userRole,recurringDate:checkinRecDate||null,status:needsDep?'in_attesa_anticipo':'confermata',
-    depositStatus:needsDep?'pending':null,paymentStatus:isFree?'gratuito':null,gift:false,walkIn:true,newUser:true,overCapacity:_overCapNp,
-    checkedIn:true,checkinTime:new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}),
-    surveyResponses:surveyResponses,
-    insuranceSurveyResponses:(ev.insurance?.enabled&&ev.insurance.requiredInsuranceIds?.length&&!isUserInsured(userId,ev.insurance.requiredInsuranceIds))?(typeof collectSurveyResponses==='function'?(collectSurveyResponses(ev,'np_ins_')||{}):{}):{},
-    bookedAt:localDateStr(new Date()),createdAt:new Date().toISOString()
-  };
-  pushBookingSafe(bk);
-  fsSet('bookings',bk.id,bk).catch(console.error);
-  // V4.19.0: init lastSeen V4.16.0 + reset checkinRecDate
-  if(store.currentUser?.id===bk.userId){_markEventRead(bk.eventId,bk.recurringDate||null);}
+  // V4.27.2 (FIX 6): NEUTRALIZZATO. Creava un booking orfano con userId=guest/id-sintetico.
+  // Il nuovo partecipante deve AUTO-REGISTRARSI e fare il walk-in col proprio uid.
   checkinRecDate=null;
-  const info=document.getElementById('newp-result-info');
-  if(info)info.textContent='Walk-in (nuovo) · '+tierLbl+(totalAmount>0?' — €'+fmtEuro(totalAmount):'');
-  document.getElementById('newp-step2').classList.add('hidden');
-  document.getElementById('newp-done').classList.remove('hidden');
-  showToast('Registrazione e check-in completati!');
+  showToast('Per registrare un nuovo partecipante: fagli scansionare il QR check-in e completare la registrazione. Dopo potrà fare il check-in con il proprio account.','info');
+  go('admin-checkin');
 }
 
 /* ==============================
@@ -16532,10 +16646,12 @@ function collectInsuranceSurveyResponses(ev,prefix,userIdOverride){
 }
 
 /* Check if current user qualifies for subscription discount, return percentage or 0 */
-function getSubDiscountPct(ev){
+function getSubDiscountPct(ev,targetUserId){
   if(!ev.subscriptionDiscount?.enabled||!ev.subscriptionDiscount.typeIds?.length)return 0;
-  if(!store.currentUser)return 0;
-  const userSubs=getUserActiveSubscriptions(store.currentUser.id);
+  // V4.27.1: targetUserId opzionale (default utente loggato)
+  const _uid=targetUserId||(store.currentUser&&store.currentUser.id);
+  if(!_uid)return 0;
+  const userSubs=getUserActiveSubscriptions(_uid);
   const compat=userSubs.some(s=>{
     if(!ev.subscriptionDiscount.typeIds.includes(s.typeId))return false;
     if(!isSubCompatibleWithEvent(s,ev))return false;
@@ -16547,10 +16663,11 @@ function getSubDiscountPct(ev){
   });
   return compat?(ev.subscriptionDiscount.percentage||15):0;
 }
-function getLoyaltyDiscountPct(ev){
+function getLoyaltyDiscountPct(ev,targetUserId){
   if(!ev.loyaltyDiscount?.enabled||!ev.loyaltyDiscount.eventIds?.length)return 0;
-  if(!store.currentUser)return 0;
-  const uid=store.currentUser.id;
+  // V4.27.1: targetUserId opzionale (default utente loggato)
+  const uid=targetUserId||(store.currentUser&&store.currentUser.id);
+  if(!uid)return 0;
   const requiredEvIds=ev.loyaltyDiscount.eventIds;
   // Check 1: store.attendances (array of event title strings, keyed by userId)
   const userAttTitles=store.attendances[uid]||[];
@@ -16563,18 +16680,20 @@ function getLoyaltyDiscountPct(ev){
   const attendedByBooking=userCheckedInEvIds.length>0;
   return (attendedByTitle||attendedByBooking)?(ev.loyaltyDiscount.percentage||15):0;
 }
-function getEffectiveDiscountPct(ev){
+function getEffectiveDiscountPct(ev,targetUserId){
   // Returns the best applicable discount — subscription, auto-sub-discount, and loyalty NEVER stack
-  const subPct=getSubDiscountPct(ev);        // Event-level subscriptionDiscount (per-event config)
-  const autoSubPct=getAutoSubDiscountPct(ev); // Subscription-type-level discount (auto, from sub mode=discount)
-  const loyPct=getLoyaltyDiscountPct(ev);
+  // V4.27.1: targetUserId inoltrato alle 3 sorgenti (default utente loggato)
+  const subPct=getSubDiscountPct(ev,targetUserId);        // Event-level subscriptionDiscount (per-event config)
+  const autoSubPct=getAutoSubDiscountPct(ev,targetUserId); // Subscription-type-level discount (auto, from sub mode=discount)
+  const loyPct=getLoyaltyDiscountPct(ev,targetUserId);
   return Math.max(subPct,autoSubPct,loyPct);
 }
-function getEffectiveDiscountInfo(ev){
+function getEffectiveDiscountInfo(ev,targetUserId){
   // Returns {pct, source} for banner display
-  const subPct=getSubDiscountPct(ev);
-  const autoSubPct=getAutoSubDiscountPct(ev);
-  const loyPct=getLoyaltyDiscountPct(ev);
+  // V4.27.1: targetUserId inoltrato alle 3 sorgenti (default utente loggato)
+  const subPct=getSubDiscountPct(ev,targetUserId);
+  const autoSubPct=getAutoSubDiscountPct(ev,targetUserId);
+  const loyPct=getLoyaltyDiscountPct(ev,targetUserId);
   const best=Math.max(subPct,autoSubPct,loyPct);
   if(best===0)return {pct:0,source:null};
   if(autoSubPct>=subPct&&autoSubPct>=loyPct&&autoSubPct>0)return {pct:autoSubPct,source:'subscription'};
@@ -16582,7 +16701,7 @@ function getEffectiveDiscountInfo(ev){
   if(loyPct>0)return {pct:loyPct,source:'loyalty'};
   return {pct:0,source:null};
 }
-function buildFullPricingHtml(ev,prefix){
+function buildFullPricingHtml(ev,prefix,targetUserId){
   const isFree=ev.pricingMode==='free';
   const isManaged=ev.pricingMode==='managed';
   const isDirect=ev.pricingMode==='direct';
@@ -16609,7 +16728,7 @@ function buildFullPricingHtml(ev,prefix){
     return html;
   }
   // Effective discount: subscription or loyalty (non-cumulative, pick higher)
-  const _discInfo=getEffectiveDiscountInfo(ev);
+  const _discInfo=getEffectiveDiscountInfo(ev,targetUserId);
   const subDiscPct=_discInfo.pct;
   if(subDiscPct>0){
     const _discIcon=_discInfo.source==='loyalty'?'🎁':'🎟️';
@@ -16700,7 +16819,7 @@ function buildFullPricingHtml(ev,prefix){
   }
   return html;
 }
-function collectCheckinBookingData(ev,prefix){
+function collectCheckinBookingData(ev,prefix,targetUserId){
   const isFree=ev.pricingMode==='free';const isManaged=ev.pricingMode==='managed';const isDirect=ev.pricingMode==='direct';
   if(isFree||isManaged||isDirect){
     const allSessIds=[];ev.days.forEach(d=>(d.sessions||[]).forEach(s=>allSessIds.push(s.id)));
@@ -16746,7 +16865,7 @@ function collectCheckinBookingData(ev,prefix){
     if(selectedTiers[evEb]&&ev.earlyBird){const price=getEBPrice(ev.earlyBird);items.push({type:'early bird evento',name:'🐦 EB evento',date:'',time:'',tier:'Early Bird',tierKey:'eb',price});totalAmount+=price;}
   }
   // Apply effective discount (subscription or loyalty, non-cumulative)
-  const _sdPctBook=getEffectiveDiscountPct(ev);
+  const _sdPctBook=getEffectiveDiscountPct(ev,targetUserId);
   if(_sdPctBook>0){
     totalAmount=0;
     items.forEach(it=>{
@@ -25101,6 +25220,8 @@ async function showAdminEventDetail(evId){
   if(!_bookingsLoaded){await ensureBookingsLoaded();}
   const isArchived=ev.status==='archiviato';
   const _isCapo=isEventCapofila(ev,store.currentUser.id);
+  // V4.27.0: gate "Aggiungi iscritto" — disponibile a capofila E partner (NON tocca _isCapo, che gate i dati finanziari)
+  const _canManualBook=isEventVisibleToManager(ev,store.currentUser.id);
   if(currentView==='admin-community-events')lastAdminListView='admin-community-events';
   else if(currentView==='admin-events')lastAdminListView='admin-events';
   const c=document.getElementById('admin-event-detail-content');if(!c)return;
@@ -25356,7 +25477,7 @@ async function showAdminEventDetail(evId){
         </div>
         <div class="text-sm mt-2">${locLink}</div>
         <div class="text-xs mt-2"><a style="color:var(--brand-l);cursor:pointer;text-decoration:none" onclick="event.stopPropagation();showOrgPublicProfile('${ev.managerId}')" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${escHtml(ev.orgName)}</a> ${getPartnerBadgesHtml(ev)}</div>
-        ${!isEventCapofila(ev,store.currentUser.id)?'<div style="margin-top:6px"><span style="display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:8px;font-size:.75rem;background:rgba(168,85,247,.12);color:#a855f7;border:1px solid rgba(168,85,247,.25)">🤝 Sei partner di questo evento — visualizzazione in sola lettura</span></div>':''}
+        ${!isEventCapofila(ev,store.currentUser.id)?'<div style="margin-top:6px"><span style="display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:8px;font-size:.75rem;background:rgba(168,85,247,.12);color:#a855f7;border:1px solid rgba(168,85,247,.25)">🤝 Sei partner di questo evento — puoi gestire le iscrizioni; i dati finanziari restano riservati all\'organizzatore</span></div>':''}
       </div>
     </div>
 
@@ -25455,7 +25576,7 @@ async function showAdminEventDetail(evId){
     <!-- Participants table -->
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:12px">
       <h2 class="font-semibold text-white" style="margin:0">👥 Lista Partecipanti (${active.length}${active.filter(b=>b.checkedIn).length>0?' · <span style="color:var(--green)">'+active.filter(b=>b.checkedIn).length+' presenti</span>':''})${viewSubtitle}</h2>
-      ${_isCapo?`<button class="btn btn-sm" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3);font-size:.8rem" onclick="openManualBookingModal('${ev.id}')">➕ Aggiungi iscritto</button>`:''}
+      ${_canManualBook?`<button class="btn btn-sm" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3);font-size:.8rem" onclick="openManualBookingModal('${ev.id}')">➕ Aggiungi iscritto</button>`:''}
     </div>
     ${active.length?`<div class="card table-wrap" style="padding:0">
       <table class="table">
@@ -26454,8 +26575,20 @@ async function handleDeepLink(){
     const ev=store.events.find(e=>e.id===dl.id);
     console.info('[WALKIN-QR] handleDeepLink checkin: evento='+dl.id+' trovato='+!!ev+' recDate='+(dl.recDate||'—'));
     if(ev){
-      checkinRecDate=dl.recDate||null;
-      const _ciRecDate=dl.recDate||null;
+      // V4.27.2 (FIX 7): valida recDate dall'URL. SOLO ricorrenti: se getRecurringDateTabs(ev)===null
+      // l'evento NON è ricorrente → recDate resta null e NON si applica .includes.
+      let _dlRecDate=dl.recDate||null;
+      {
+        const _tabs=getRecurringDateTabs(ev);
+        if(_tabs===null){
+          _dlRecDate=null;
+        } else if(_dlRecDate&&!_tabs.dates.includes(_dlRecDate)){
+          console.warn('[WALKIN-QR] handleDeepLink: recDate URL non valida → uso default');
+          _dlRecDate=_tabs.defaultDate||(_tabs.futureDates[0]||_tabs.dates[0])||null;
+        }
+      }
+      checkinRecDate=_dlRecDate;
+      const _ciRecDate=_dlRecDate;
       // Check if user has an existing booking for this event+recDate
       const _ciBooking=store.bookings.find(b=>b.eventId===ev.id&&b.userId===store.currentUser.id&&b.status!=='cancellata'&&(b.recurringDate||null)===_ciRecDate);
       // V4.19.0: guard walk-in (applicati SOLO se no booking; iscritti fanno auto check-in sempre)
@@ -26485,7 +26618,7 @@ async function handleDeepLink(){
         // Show check-in success page
         go('events');
         setTimeout(()=>{
-          showEventDetail(dl.id,dl.recDate||undefined);
+          showEventDetail(dl.id,_ciRecDate||undefined);
           // Show success overlay
           const _ciOv=document.createElement('div');_ciOv.className='overlay';
           const _ciD0=ev.days[0];
@@ -26513,10 +26646,10 @@ async function handleDeepLink(){
         },300);
       } else {
         // No booking found → set auto-checkin flag, then open event detail so user can register
-        _pendingCheckinAutoMark={eventId:ev.id,recDate:_ciRecDate};
+        _pendingCheckinAutoMark={eventId:ev.id,recDate:_ciRecDate,userId:store.currentUser.id};
         console.info('[WALKIN-QR] flag _pendingCheckinAutoMark impostato: '+JSON.stringify(_pendingCheckinAutoMark)+' → apertura dettaglio evento per iscrizione');
         go('events');
-        setTimeout(()=>showEventDetail(dl.id,dl.recDate||undefined),300);
+        setTimeout(()=>showEventDetail(dl.id,_ciRecDate||undefined),300);
         showToast('Registrati all\'evento per completare il check-in!','info');
       }
     } else {
