@@ -2901,7 +2901,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.29.0';
+const APP_VERSION='V4.29.1';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -9695,7 +9695,9 @@ async function loadCurrentUser(uid){
     await ensureUserBookingsLoaded(uid);
     updateNotificationBadges(); // V3.4.1: Badges ready now that bookings are loaded
     // Check if no master exists — show master setup for first user
-    if(!checkMasterExists()){
+    // V4.29.1: gate su _dataLoaded — se loadAllData è FALLITO (store.managers vuoto per errore, non perché non c'è master),
+    // NON mostrare il master-setup a un utente esistente (evita misroute sotto carico nella riautenticazione di massa).
+    if(_dataLoaded&&!checkMasterExists()){
       document.getElementById('modeBanner').style.display='none';
       document.getElementById('navbar-user').classList.remove('hidden');
       go('events');
@@ -27080,6 +27082,7 @@ fbAuth.onAuthStateChanged(async(user)=>{
 // Also show login view as fallback so user isn't stuck on blank screen
 setTimeout(()=>{
   _redirectPending=false;
+  _registrationInProgress=false; // V4.29.1: backstop — evita un orgreg interrotto che blocca onAuthStateChanged
   try{sessionStorage.removeItem('_authIntent');sessionStorage.removeItem('_orgRegPayload');}catch(_){}
   const sp=document.getElementById('auth-splash');
   if(sp){
