@@ -2901,7 +2901,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.27.3';
+const APP_VERSION='V4.29.0';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -2915,7 +2915,11 @@ firebase.initializeApp(firebaseConfig);
 const fbAuth = firebase.auth();
 const fbDb = firebase.firestore();
 // Ensure auth persistence is LOCAL (survives tab close, browser restart)
-fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(e=>console.warn('setPersistence error:',e));
+window.__BE_SAMEORIGIN_AUTH=false; // il prompt 02 lo porterà a true DOPO l'authDomain same-origin
+const _persistenceReady=Promise.race([
+  fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(e=>console.warn('setPersistence error:',e)),
+  new Promise(r=>setTimeout(r,1500))
+]);
 
 /* ==============================
    ONBOARDING SYSTEM
@@ -9458,6 +9462,17 @@ function getInAppBrowserName(){
   if(/MicroMessenger/i.test(ua))return 'WeChat';
   return 'in-app';
 }
+// === Standalone PWA + auth routing (V4.29.0) ===
+function isStandalonePWA(){return window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;}
+// true solo su mobile reale: navigator.standalone è iOS-only e non esiste su desktop
+function _isMobileDevice(){return window.navigator.standalone===true||(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)&&isStandalonePWA());}
+// Flag Tier-2: messo a true SOLO dopo authDomain same-origin live & verificato (prompt 02)
+function _sameOriginAuthReady(){return window.__BE_SAMEORIGIN_AUTH===true;}
+function _useRedirectForAuth(){
+  if(isInAppBrowser())return true;                       // webview social: redirect (come oggi)
+  if(_isMobileDevice()&&_sameOriginAuthReady())return true; // standalone iOS/Android: redirect SOLO dopo Tier 2
+  return false;                                          // desktop (tab o PWA installata), mobile-standalone-pre-Tier2 → popup
+}
 function showInAppBrowserBanner(){
   if(document.getElementById('inapp-banner'))return;
   const appName=getInAppBrowserName();
@@ -9489,17 +9504,23 @@ function showInAppBrowserBanner(){
 let _loginInProgress=false;
 let _registrationInProgress=false;
 async function loginWithGoogle(){
-  if(isInAppBrowser()){
-    // In-app browsers can't do popup reliably — use redirect
+  await _persistenceReady; // già timeout-raced (≤1.5s): non può bloccare il click
+  if(_useRedirectForAuth()){
     try{
-      _loginInProgress=true;
+      _loginInProgress=true; _redirectPending=true;
+      try{sessionStorage.setItem('_authIntent','login');}catch(_){}
       const provider=new firebase.auth.GoogleAuthProvider();
       await fbAuth.signInWithRedirect(provider);
-      // Page will redirect — no further code runs
+      // la pagina viene rediretta — nient'altro gira
     }catch(e){
-      _loginInProgress=false;
-      showInAppBrowserBanner();
-      showToast('Il browser di '+getInAppBrowserName()+' non supporta il login Google. Apri in Safari/Chrome oppure usa email e password.','error');
+      _loginInProgress=false; _redirectPending=false;
+      try{sessionStorage.removeItem('_authIntent');}catch(_){}
+      if(isInAppBrowser()){
+        showInAppBrowserBanner();
+        showToast('Il browser di '+getInAppBrowserName()+' non supporta il login Google. Apri in Safari/Chrome oppure usa email e password.','error');
+      } else {
+        showToast('Login Google non disponibile qui. Usa email e password.','error');
+      }
     }
     return;
   }
@@ -9548,13 +9569,17 @@ async function loginWithGoogle(){
     showToast('Login effettuato!');
   }catch(e){
     _loginInProgress=false;
-    if(e.code==='auth/popup-blocked'||e.code==='auth/cancelled-popup-request'){
-      // Popup blocked — fallback to redirect
+    if(['auth/popup-blocked','auth/cancelled-popup-request','auth/popup-closed-by-user','auth/operation-not-supported-in-this-environment'].includes(e.code)){
+      // Popup chiuso/bloccato/non supportato → fallback a redirect (niente più vicolo cieco silenzioso)
       try{
-        const provider=new firebase.auth.GoogleAuthProvider();
-        await fbAuth.signInWithRedirect(provider);
-      }catch(e2){showToast('Errore login: '+e2.message,'error');}
-    } else if(e.code!=='auth/popup-closed-by-user'){
+        _redirectPending=true; try{sessionStorage.setItem('_authIntent','login');}catch(_){}
+        const p=new firebase.auth.GoogleAuthProvider();
+        await fbAuth.signInWithRedirect(p);
+      }catch(e2){
+        _redirectPending=false; try{sessionStorage.removeItem('_authIntent');}catch(_){}
+        showToast('Errore login: '+e2.message,'error');
+      }
+    } else {
       showToast('Errore login Google: '+e.message,'error');
     }
   }
@@ -9715,6 +9740,7 @@ async function loadCurrentUser(uid){
       reRegisteredAt:_reNow,
       consents:{privacy:false,privacyDate:null,marketing:false,marketingDate:null}
     };
+    try{ if(sessionStorage.getItem('_authIntent')==='orgreg'){ _loadingUserInProgress=false; return; } }catch(_){}
     await fbDb.collection('users').doc(uid).set(_reUserData);
     store.currentUser=_reUserData;
     store.currentUser.id=uid;
@@ -9879,6 +9905,25 @@ async function submitOrgRegistrationGoogle(){
   if(isInAppBrowser()){
     showInAppBrowserBanner();
     showToast('Per registrarti con Google, apri il sito in Safari/Chrome. Oppure usa email e password qui sotto.','error');
+    return;
+  }
+  await _persistenceReady; // già timeout-raced
+  if(_useRedirectForAuth()){
+    // I dati del form vivono solo nel DOM: serializzali per sopravvivere al redirect
+    const _regPayload={orgName,city,desc,selectedUnivs,newUnivName,newUnivEmoji,newUnivRoles,privacyCheck,termsCheck,marketingCheck,ageCheck,ts:Date.now()};
+    try{
+      sessionStorage.setItem('_authIntent','orgreg');
+      sessionStorage.setItem('_orgRegPayload',JSON.stringify(_regPayload));
+    }catch(_){}
+    _registrationInProgress=true; _redirectPending=true;
+    try{
+      const p=new firebase.auth.GoogleAuthProvider();
+      await fbAuth.signInWithRedirect(p);
+    }catch(e){
+      _registrationInProgress=false; _redirectPending=false;
+      try{sessionStorage.removeItem('_authIntent');sessionStorage.removeItem('_orgRegPayload');}catch(_){}
+      showToast('Errore registrazione: '+e.message,'error');
+    }
     return;
   }
   try{
@@ -17948,11 +17993,12 @@ async function renderAdminEvents(){
       <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteEvent('${ev.id}')">🗑️ Elimina</button>`
     :ev.status==='pubblicato'?(()=>{
       const hasBookings=store.bookings.some(b=>b.eventId===ev.id&&b.status!=='cancellata');
+      const isRec=!!(ev.recurrence&&ev.recurrence.day);
       const isPausedRec=ev.recurrence&&ev.recurrence.active===false;
       const resumeBtn=isPausedRec?`<button class="btn btn-sm" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="event.stopPropagation();resumeRecurring('${ev.id}')">▶️ Riprendi</button>`:'';
       const shareBtn=`<button class="btn btn-sm" style="background:rgba(59,130,246,.1);color:var(--blue);border:1px solid rgba(59,130,246,.25)" onclick="event.stopPropagation();openShareModal('${ev.id}')">📤 Condividi</button>`;
-      if(hasBookings){
-        return `${eyeBtn}${shareBtn}<button class="btn btn-sm" style="background:rgba(249,115,22,.12);color:var(--orange);border:1px solid rgba(249,115,22,.3)" onclick="event.stopPropagation();openAlertModal('${ev.id}')">⚠️ Modifica</button>${resumeBtn}`;
+      if(hasBookings||isRec){
+        return `${eyeBtn}${shareBtn}<button class="btn btn-sm" style="background:rgba(249,115,22,.12);color:var(--orange);border:1px solid rgba(249,115,22,.3)" onclick="event.stopPropagation();openAlertModal('${ev.id}')">⚠️ Modifica o Cancella</button>${resumeBtn}`;
       } else {
         return `${eyeBtn}${shareBtn}${resumeBtn}
         <button class="btn btn-sm" style="background:rgba(234,179,8,.15);color:var(--yellow);border:1px solid rgba(234,179,8,.3)" onclick="event.stopPropagation();revertToDraft('${ev.id}')">📝 Torna in bozza</button>
@@ -19928,6 +19974,9 @@ function openAlertModal(evId){
       <button class="btn btn-sm flex-1 alert-action-btn" data-action="skip" onclick="selectAlertAction(this)" style="padding:14px 10px;border:2px solid var(--s400);border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:6px;background:transparent${isRecurring?'':';display:none'}">
         <span style="font-size:1.5rem">⏭️</span><span class="text-sm font-semibold" style="color:white">Salta</span><span class="text-xs" style="color:var(--txt3)">Salta questa data</span>
       </button>
+      <button class="btn btn-sm flex-1 alert-action-btn" data-action="move" onclick="selectAlertAction(this)" style="padding:14px 10px;border:2px solid var(--s400);border-radius:12px;display:flex;flex-direction:column;align-items:center;gap:6px;background:transparent${isRecurring?'':';display:none'}">
+        <span style="font-size:1.5rem">📅</span><span class="text-sm font-semibold" style="color:white">Sposta</span><span class="text-xs" style="color:var(--txt3)">Sposta a nuova data</span>
+      </button>
     </div>
     <div id="alert-action-form" style="display:none"></div>
     <div class="flex gap-2 justify-end mt-4">
@@ -19957,6 +20006,8 @@ function selectAlertRecDate(btn){
     document.getElementById('alert-action-btns').style.display='';
     const skipBtn=document.querySelector('.alert-action-btn[data-action="skip"]');
     if(skipBtn)skipBtn.style.display=date!=='all'?'':'none';
+    const moveBtn=document.querySelector('.alert-action-btn[data-action="move"]');
+    if(moveBtn)moveBtn.style.display=(date!=='all'&&date!=='pause')?'':'none';
     document.getElementById('alert-action-form').style.display='none';
   }
 }
@@ -19974,7 +20025,7 @@ function selectAlertAction(btn){
   document.querySelectorAll('.alert-action-btn').forEach(b=>{b.style.borderColor='var(--s400)';b.style.background='transparent';});
   const action=btn.dataset.action;
   selectedAlertAction=action;
-  const colors={modificato:['var(--orange)','rgba(249,115,22,.08)'],cancellato:['var(--red)','rgba(239,68,68,.06)'],rimandato:['var(--yellow)','rgba(234,179,8,.06)'],skip:['var(--blue)','rgba(59,130,246,.06)']};
+  const colors={modificato:['var(--orange)','rgba(249,115,22,.08)'],cancellato:['var(--red)','rgba(239,68,68,.06)'],rimandato:['var(--yellow)','rgba(234,179,8,.06)'],skip:['var(--blue)','rgba(59,130,246,.06)'],move:['#6366f1','rgba(99,102,241,.06)']};
   const c=colors[action]||['var(--s400)',''];
   btn.style.borderColor=c[0];btn.style.background=c[1];
   const formArea=document.getElementById('alert-action-form');if(!formArea)return;
@@ -19985,6 +20036,19 @@ function selectAlertAction(btn){
     formArea.innerHTML=`<div class="card" style="background:rgba(59,130,246,.06);border-color:var(--blue);padding:14px">
       <p class="text-sm" style="color:var(--blue)">⏭️ La data <b>${dateLabel}</b> verrà saltata. L'evento riprenderà normalmente dalla settimana successiva.</p>
       <button class="btn btn-sm mt-3" style="background:var(--blue);color:#fff" onclick="executeAlertAction()">⏭️ Conferma: salta ${dateLabel}</button>
+    </div>`;
+    return;
+  }
+  if(action==='move'){
+    const _ev=store.events.find(e=>e.id===alertModalEvId);
+    const _origLabel=alertModalRecDate?fmtDate(alertModalRecDate):'questa data';
+    const _nBk=_ev?store.bookings.filter(b=>b.eventId===_ev.id&&(b.recurringDate||null)===alertModalRecDate&&b.status!=='cancellata').length:0;
+    const _tomorrow=new Date();_tomorrow.setDate(_tomorrow.getDate()+1);
+    formArea.innerHTML=`<div class="card" style="background:rgba(99,102,241,.06);border-color:#6366f1;padding:14px">
+      <p class="text-sm" style="color:#6366f1">📅 L'occorrenza del <b>${_origLabel}</b> diventerà un evento singolo alla nuova data scelta. Le altre date restano invariate.${_nBk?` <b>${_nBk}</b> iscritt${_nBk===1?'o':'i'} verrann${_nBk===1?'o':'o'} trasferit${_nBk===1?'o':'i'} al nuovo evento.`:''}</p>
+      <label class="label" style="font-size:.75rem;margin-top:8px">Nuova data</label>
+      <input type="date" class="input" id="alert-move-newdate" value="${alertModalRecDate}" min="${localDateStr(_tomorrow)}" style="max-width:220px">
+      <button class="btn btn-sm mt-3" style="background:#6366f1;color:#fff" onclick="executeAlertMove()">📅 Conferma spostamento</button>
     </div>`;
     return;
   }
@@ -20076,6 +20140,107 @@ function executeAlertAction(){
   _refreshAdminAfterAction(ev.id);
   const label=action==='cancellato'?'Evento cancellato':'Evento rimandato';
   showToast(label+' — comunicazione pubblicata agli iscritti');
+}
+// V4.28.0: Sposta una singola occorrenza ricorrente futura a una nuova data (SPLIT).
+// Replica il corpo del loop di _splitConcludedRecurringDates UNA volta, con 4 divergenze
+// (days[0].date=newDate, recurringInstanceDate=newDate, status='pubblicato', recurrence:null/parentRecurringId/alert:null/_costsInherited:true).
+// Preserva lo storico: l'eccezione resta sulla chiave originalDate; le prenotazioni vengono MIGRATE (mai duplicate); tocca solo un'occorrenza FUTURA.
+async function executeAlertMove(){
+  const ev=store.events.find(e=>e.id===alertModalEvId);
+  if(!ev||!ev.recurrence||!ev.recurrence.day)return;
+  if(!isEventCapofila(ev,store.currentUser.id)){showToast('Solo l\'organizzatore può spostare le date','error');return;}
+  const originalDate=alertModalRecDate;
+  const newDate=(document.getElementById('alert-move-newdate')?.value||'').trim();
+  const _tomorrow=new Date();_tomorrow.setDate(_tomorrow.getDate()+1);
+  if(!originalDate||originalDate==='all'||originalDate==='pause'){showToast('Seleziona una data specifica','error');return;}
+  if(!newDate){showToast('Scegli la nuova data','error');return;}
+  if(newDate===originalDate){showToast('La nuova data coincide con quella attuale','error');return;}
+  if(newDate<localDateStr(_tomorrow)){showToast('La nuova data deve essere futura','error');return;}
+  if(!ev.recurrence.exceptions)ev.recurrence.exceptions={};
+  // (d) IDEMPOTENZA su originalDate (anti doppio-click)
+  if(ev.recurrence.exceptions[originalDate]&&ev.recurrence.exceptions[originalDate].type==='split'){showToast('Questa data è già stata spostata','error');return;}
+  // (e) COLLISIONE su newDate: altro split del padre o altra occorrenza della serie
+  const _collide=store.events.some(e=>e.parentRecurringId===ev.id&&e.recurringInstanceDate===newDate)||getNextRecurringDates(ev,Infinity).includes(newDate);
+  if(_collide){showToast('Esiste già un\'occorrenza a quella data','error');return;}
+  // (f) PRE-MARCA l'eccezione su originalDate e persisti atomicamente (come _splitConcludedRecurringDates)
+  ev.recurrence.exceptions[originalDate]={type:'split',linkedEventId:'_pending_',date:localDateStr(new Date()),movedTo:newDate};
+  await fbDb.collection('events').doc(ev.id).update({['recurrence.exceptions.'+originalDate]:ev.recurrence.exceptions[originalDate]}).catch(console.error);
+  // (g) Costruisci l'evento standalone clonando ev (4 divergenze applicate)
+  const instanceId=genId('ev');
+  const instanceDays=ev.days.map((d,i)=>{
+    const cloned=JSON.parse(JSON.stringify(d));
+    if(i===0){cloned.date=newDate;}else{
+      const startDate=new Date(newDate+'T00:00:00');startDate.setDate(startDate.getDate()+i);
+      cloned.date=localDateStr(startDate);
+    }
+    return cloned;
+  });
+  const instanceCosts=ev.eventCosts?JSON.parse(JSON.stringify(ev.eventCosts)):null;
+  const instance={
+    id:instanceId,
+    managerId:ev.managerId,
+    orgName:ev.orgName,
+    universeId:ev.universeId,
+    universeIds:ev.universeIds||[],
+    title:ev.title,
+    description:ev.description,
+    type:ev.type,
+    level:ev.level||'auto',
+    location:ev.location,
+    locationUrl:ev.locationUrl,
+    coords:ev.coords||null,
+    teacher:ev.teacher,
+    maxSpots:ev.maxSpots||0,
+    image:ev.image||null,
+    imageThumb:ev.imageThumb||null,
+    imageHeader:ev.imageHeader||null,
+    days:instanceDays,
+    tiers:ev.tiers?JSON.parse(JSON.stringify(ev.tiers)):null,
+    loyaltyDiscount:ev.loyaltyDiscount||null,
+    earlyBird:ev.earlyBird||null,
+    contactPhone:ev.contactPhone||'',
+    contactEmail:ev.contactEmail||'',
+    groupLink:ev.groupLink||'',
+    paymentMethods:ev.paymentMethods?JSON.parse(JSON.stringify(ev.paymentMethods)):{},
+    deposit:ev.deposit?JSON.parse(JSON.stringify(ev.deposit)):null,
+    pricingMode:ev.pricingMode||'standard',
+    surveys:ev.surveys?JSON.parse(JSON.stringify(ev.surveys)):[],
+    eventCosts:instanceCosts,
+    _costsInherited:true,
+    status:'pubblicato',
+    recurrence:null,
+    createdAt:ev.createdAt,
+    partnerIds:ev.partnerIds||[],
+    partnerEntryPolicy:ev.partnerEntryPolicy||null,
+    subscriptionBookable:ev.subscriptionBookable||null,
+    subscriptionDiscount:ev.subscriptionDiscount||null,
+    insurance:ev.insurance||null,
+    alert:null,
+    confirmedByOrganizer:ev.confirmedByOrganizer||false,
+    parentRecurringId:ev.id,
+    recurringInstanceDate:newDate,
+    allowDayPurchase:ev.allowDayPurchase||false
+  };
+  // (h) Salva l'istanza. Su errore → ROLLBACK (rimuovi l'eccezione), niente migrazione booking.
+  const instOk=await fsSet('events',instanceId,instance);
+  if(!instOk){
+    delete ev.recurrence.exceptions[originalDate];
+    await fbDb.collection('events').doc(ev.id).update({['recurrence.exceptions.'+originalDate]:firebase.firestore.FieldValue.delete()}).catch(console.error);
+    showToast('Errore nello spostamento, riprova','error');
+    return;
+  }
+  store.events.push(instance);
+  // (i) MIGRA le prenotazioni dell'occorrenza (sposta il puntatore, mai copia)
+  const booksToMigrate=store.bookings.filter(b=>b.eventId===ev.id&&(b.recurringDate||null)===originalDate&&b.status!=='cancellata');
+  for(const b of booksToMigrate){
+    b.eventId=instanceId;b.recurringDate=null;
+    await fsUpdate('bookings',b.id,{eventId:instanceId,recurringDate:null}).catch(console.error);
+  }
+  // (j) FINALIZZA l'eccezione con l'ID definitivo (atomico, no fsSet intero padre)
+  ev.recurrence.exceptions[originalDate].linkedEventId=instanceId;
+  await fbDb.collection('events').doc(ev.id).update({['recurrence.exceptions.'+originalDate+'.linkedEventId']:instanceId}).catch(console.error);
+  // (k)
+  closeAlertModal();_refreshAdminAfterAction(ev.id);showToast('Occorrenza spostata al '+fmtDate(newDate));
 }
 function startAlertEdit(){
   const ev=store.events.find(e=>e.id===alertModalEvId);if(!ev)return;
@@ -25407,6 +25572,7 @@ async function showAdminEventDetail(evId){
     if(ev.status==='bozza')return _eyeBtn+'<button class="btn btn-secondary btn-sm" onclick="editEvent(\''+ev.id+'\')">✏️ Modifica</button><button class="btn btn-primary btn-sm" onclick="publishEvent(\''+ev.id+'\')">🚀 Pubblica</button><button class="btn btn-danger btn-sm" onclick="deleteEvent(\''+ev.id+'\')">🗑️ Elimina</button>';
     if(ev.status==='pubblicato'){
       const _hb=store.bookings.some(b=>b.eventId===ev.id&&b.status!=='cancellata');
+      const _isRec=!!(ev.recurrence&&ev.recurrence.day);
       const _isPaused=ev.recurrence&&ev.recurrence.active===false;
       const _resumeBtn=_isPaused?'<button class="btn btn-sm" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3)" onclick="resumeRecurring(\''+ev.id+'\')">▶️ Riprendi</button>':'';
       const _regRecDate=(ev.recurrence&&typeof recDateFilter!=='undefined'&&recDateFilter&&recDateFilter!=='__all__')?recDateFilter:null;
@@ -25418,7 +25584,7 @@ async function showAdminEventDetail(evId){
           ?'<button class="btn btn-sm" style="background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.25);border-radius:20px;font-size:.7rem;font-weight:700" onclick="event.stopPropagation();toggleRegistrationClosed(\''+ev.id+'\')">🔒 Chiudi Iscrizioni'+_regDateLabel+'</button>'
           :'<button class="btn btn-sm" style="background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.25);border-radius:20px;font-size:.7rem;font-weight:700" onclick="event.stopPropagation();toggleRegistrationClosed(\''+ev.id+'\')">🔒 Chiudi Iscrizioni'+_regDateLabel+'</button>';
       const _shareBtn='<button class="btn btn-sm" style="background:rgba(59,130,246,.1);color:var(--blue);border:1px solid rgba(59,130,246,.25)" onclick="openShareModal(\''+ev.id+'\''+ (_regRecDate ? ',\''+_regRecDate+'\'' : '') +')">📤 Condividi</button>';
-      if(_hb)return _eyeBtn+_shareBtn+'<button class="btn btn-sm" style="background:rgba(249,115,22,.12);color:var(--orange);border:1px solid rgba(249,115,22,.3)" onclick="openAlertModal(\''+ev.id+'\')">⚠️ Modifica o Cancella</button>'+_resumeBtn+_regCloseBtn;
+      if(_hb||_isRec)return _eyeBtn+_shareBtn+'<button class="btn btn-sm" style="background:rgba(249,115,22,.12);color:var(--orange);border:1px solid rgba(249,115,22,.3)" onclick="openAlertModal(\''+ev.id+'\')">⚠️ Modifica o Cancella</button>'+_resumeBtn+_regCloseBtn;
       return _eyeBtn+_shareBtn+_resumeBtn+_regCloseBtn+'<button class="btn btn-sm" style="background:rgba(234,179,8,.15);color:var(--yellow);border:1px solid rgba(234,179,8,.3)" onclick="revertToDraft(\''+ev.id+'\')">📝 Torna in bozza</button><button class="btn btn-danger btn-sm" onclick="deleteEvent(\''+ev.id+'\')">🗑️ Elimina</button>';
     }
     if(ev.status==='cancellato')return '<button class="btn btn-ghost btn-sm" onclick="showEventDetail(\''+ev.id+'\')">👁️ Preview</button><button class="btn btn-danger btn-sm" onclick="hardDeleteEvent(\''+ev.id+'\')">🗑️ Elimina</button>';
@@ -26760,10 +26926,48 @@ setTimeout(showCookieBannerIfNeeded,800);
 // Parse deep link immediately (before auth resolves)
 checkDeepLink();
 
+// Gate anti-lampeggio del login al ritorno dal redirect: ri-derivato da sessionStorage
+// perché la navigazione del redirect DISTRUGGE ogni stato JS in memoria.
+let _redirectPending=false;
+try{_redirectPending=!!sessionStorage.getItem('_authIntent');}catch(_){_redirectPending=false;}
+function _releaseAuthGate(){
+  _redirectPending=false;
+  if(!fbAuth.currentUser){
+    const sp=document.getElementById('auth-splash');
+    if(sp){document.getElementById('view-login').classList.add('active');dismissAuthSplash();}
+  }
+}
+
 // Handle redirect result (for in-app browsers that used signInWithRedirect)
+const _bootIntent=(()=>{try{return sessionStorage.getItem('_authIntent');}catch(_){return null;}})();
+if(_bootIntent==='orgreg'){ _registrationInProgress=true; } // SINCRONO: prima che getRedirectResult risolva
 fbAuth.getRedirectResult().then(async(result)=>{
   if(result&&result.user){
     const user=result.user;
+    if(_bootIntent==='orgreg'){
+      let p=null; try{p=JSON.parse(sessionStorage.getItem('_orgRegPayload')||'null');}catch(_){}
+      const exU=await fbDb.collection('users').doc(user.uid).get();
+      const exM=await fbDb.collection('managers').doc(user.uid).get();
+      if(p&&!exU.exists&&!exM.exists){
+        const now=new Date().toISOString();
+        let sel=Array.isArray(p.selectedUnivs)?p.selectedUnivs.slice():[];
+        if(!store.universes.length){try{const snap=await fbDb.collection('universes').get();store.universes=[];snap.forEach(d=>{const x=d.data();x.id=d.id;store.universes.push(x);});}catch(_){}}
+        if(p.newUnivName){
+          const id=genId('univ');
+          const roles=p.newUnivRoles?p.newUnivRoles.split(',').map(r=>r.trim()).filter(Boolean):[];
+          await fbDb.collection('universes').doc(id).set({id,name:p.newUnivName,emoji:p.newUnivEmoji||'🌐',color:UNIVERSE_PALETTE[store.universes.length%UNIVERSE_PALETTE.length],roles,pendingRoles:[],status:'pending',createdBy:user.uid,approvedBy:null,createdAt:now});
+          sel.push(id);
+        }
+        const mgrData={id:user.uid,username:user.displayName||user.email.split('@')[0],email:user.email,orgName:p.orgName,city:p.city,description:p.desc,role:'manager',status:'pending_approval',universes:sel,authMethod:'google',consents:{privacy:!!p.privacyCheck,privacyDate:p.privacyCheck?now:null,terms:!!p.termsCheck,termsDate:p.termsCheck?now:null,marketing:!!p.marketingCheck,marketingDate:p.marketingCheck?now:null},requestedAt:now.split('T')[0]};
+        await fbDb.collection('managers').doc(user.uid).set(mgrData);
+        document.getElementById('reg-org-form')?.classList.add('hidden');
+        document.getElementById('reg-org-sent')?.classList.remove('hidden');
+        showToast('Richiesta organizzatore inviata per: '+p.orgName);
+      } else if(p){
+        showToast('Questo account Google è già registrato. Usa il login normale.','error');
+      }
+      await loadCurrentUser(user.uid);
+    } else {
     // Check if user exists, create if new (same logic as loginWithGoogle)
     let userDoc=await fbDb.collection('users').doc(user.uid).get();
     if(!userDoc.exists){
@@ -26797,6 +27001,7 @@ fbAuth.getRedirectResult().then(async(result)=>{
     // Ensure loadCurrentUser is called so checkPrivacyConsent fires for redirect users too
     await loadCurrentUser(user.uid);
     showToast('Login effettuato!');
+    }
   }
 }).catch(e=>{
   if(e.code==='auth/missing-initial-state'){
@@ -26806,6 +27011,10 @@ fbAuth.getRedirectResult().then(async(result)=>{
   } else if(e.code!=='auth/popup-closed-by-user'){
     console.error('Redirect result error:',e);
   }
+}).finally(()=>{
+  _registrationInProgress=false; _redirectPending=false;
+  try{sessionStorage.removeItem('_authIntent');sessionStorage.removeItem('_orgRegPayload');}catch(_){}
+  _releaseAuthGate();
 });
 
 // Firebase Auth State Listener
@@ -26836,6 +27045,7 @@ fbAuth.onAuthStateChanged(async(user)=>{
     console.log('[BE_INIT] loadCurrentUser completed');
     dismissAuthSplash();
   } else {
+    if(_redirectPending) return; // redirect ancora in corso: tieni lo splash, non lampeggiare il login
     // No user logged in — show login page
     document.getElementById('view-login').classList.add('active');
     dismissAuthSplash();
@@ -26869,6 +27079,8 @@ fbAuth.onAuthStateChanged(async(user)=>{
 // Safety: dismiss splash after 15s max (in case auth hangs)
 // Also show login view as fallback so user isn't stuck on blank screen
 setTimeout(()=>{
+  _redirectPending=false;
+  try{sessionStorage.removeItem('_authIntent');sessionStorage.removeItem('_orgRegPayload');}catch(_){}
   const sp=document.getElementById('auth-splash');
   if(sp){
     document.getElementById('view-login').classList.add('active');
