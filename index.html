@@ -2901,7 +2901,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.29.2';
+const APP_VERSION='V4.29.3';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -2915,7 +2915,7 @@ firebase.initializeApp(firebaseConfig);
 const fbAuth = firebase.auth();
 const fbDb = firebase.firestore();
 // Ensure auth persistence is LOCAL (survives tab close, browser restart)
-window.__BE_SAMEORIGIN_AUTH=false; // il prompt 02 lo porterà a true DOPO l'authDomain same-origin
+window.__BE_SAMEORIGIN_AUTH=true; // V4.29.3: attivato dopo authDomain same-origin live & verificato su desktop (Tier 2 STEP 7)
 const _persistenceReady=Promise.race([
   fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(e=>console.warn('setPersistence error:',e)),
   new Promise(r=>setTimeout(r,1500))
