@@ -2901,7 +2901,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.29.3';
+const APP_VERSION='V4.29.5';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -11413,6 +11413,23 @@ const MONTHS_IT_FULL=['gennaio','febbraio','marzo','aprile','maggio','giugno','l
 function localDateStr(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function fmtDate(ds){if(!ds)return'';const d=new Date(ds+'T00:00:00');return DAYS_IT[d.getDay()].substring(0,3)+' '+d.getDate()+' '+MONTHS_IT[d.getMonth()]+' '+d.getFullYear();}
 function fmtDateShort(ds){if(!ds)return'';const d=new Date(ds+'T00:00:00');return d.getDate()+' '+MONTHS_IT[d.getMonth()]+' '+d.getFullYear();}
+// V4.29.4: REGOLA — il "Calendario date" va SEMPRE mostrato per ogni evento che appartiene a una
+// serie ricorrente, a prescindere dalla tipologia (jam/lezione/workshop/...). Un evento appartiene a
+// una serie se ha ricorrenza propria con day, OPPURE è un'istanza spostata/split (parentRecurringId).
+function isRecurringSeriesEvent(ev){
+  return !!(ev && ((ev.recurrence && ev.recurrence.day) || ev.parentRecurringId));
+}
+// Evento che POSSIEDE il calendario da renderizzare per `ev`:
+//  - ricorrenza propria -> se stesso;  - istanza split -> il genitore (se in store);  - altrimenti null (no crash)
+function getRecurringSeriesOwner(ev){
+  if(!ev) return null;
+  if(ev.recurrence && ev.recurrence.day) return ev;
+  if(ev.parentRecurringId){
+    const parent=store.events.find(e=>e.id===ev.parentRecurringId);
+    if(parent && parent.recurrence && parent.recurrence.day) return parent;
+  }
+  return null;
+}
 function fmtDateFull(ds){if(!ds)return'';const d=new Date(ds+'T00:00:00');return d.getDate()+' '+MONTHS_IT_FULL[d.getMonth()]+' '+d.getFullYear();}
 function badgeType(t){const known={jam:'badge-jam',lezione:'badge-lezione',workshop:'badge-workshop',social:'badge-social'};return known[t]||'badge-type-dynamic';}
 function badgeTypeStyle(t){const colors={jam:'var(--green-bg);color:var(--green)',lezione:'var(--blue-bg);color:var(--blue)',workshop:'rgba(190,24,93,.15);color:#e11d7a',social:'rgba(234,179,8,.12);color:#eab308'};return colors[t]?'':'background:rgba(168,85,247,.15);color:#a855f7';}
@@ -17274,8 +17291,17 @@ async function showEventDetail(evId,recDate){
   // V4.5.0: "Programma" header — spostato qui da 3 return branches per apparire immediatamente sopra Calendario date / primo giorno
   daysHtml+='<h2 class="font-semibold text-white mb-3">Programma</h2>';
   // V3.10.55: Recurring dates collapsible — only for recurring events
-  if(ev.recurrence&&ev.recurrence.day&&(ev.recurrence.active!==false||ev.recurrence.pausedUntil)){
-    daysHtml+=renderRecurringDatesCollapsible(ev);
+  // V4.29.4: Calendario date SEMPRE per un evento di una serie ricorrente (vedi isRecurringSeriesEvent).
+  // - ricorrenza propria: comportamento invariato (rispetta active/pausedUntil)
+  // - istanza spostata/split: SEMPRE, col calendario del GENITORE e la data dell'istanza evidenziata
+  if(isRecurringSeriesEvent(ev)){
+    const _seriesOwner=getRecurringSeriesOwner(ev);
+    const _isSplit=!(ev.recurrence&&ev.recurrence.day)&&!!ev.parentRecurringId;
+    const _ownerVisible=_isSplit||(ev.recurrence.active!==false||ev.recurrence.pausedUntil);
+    if(_seriesOwner&&_ownerVisible){
+      const _highlightDate=_isSplit?(ev.recurringInstanceDate||ev.days?.[0]?.date||null):null;
+      daysHtml+=renderRecurringDatesCollapsible(_seriesOwner,_highlightDate,ev.id);
+    }
   }
 
   // V3.2 FIX: Compute effective dates for recurring events in Programma section
@@ -18820,10 +18846,11 @@ function getAllRecurringDates(ev){
 
   function pushDate(ds,excType){
     const _isPaused=pausedUntilStr&&ds>=todayStr&&ds<pausedUntilStr?true:false;
+    const _movedTo=(exc[ds]&&exc[ds].type==='split'&&exc[ds].movedTo)?exc[ds].movedTo:null;
     if(excType==='excluded'){
-      allDates.push({date:ds,excluded:true,modified:false,paused:false});
+      allDates.push({date:ds,excluded:true,modified:false,paused:false,movedTo:_movedTo});
     } else {
-      allDates.push({date:ds,excluded:false,modified:excType==='modified',paused:_isPaused});
+      allDates.push({date:ds,excluded:false,modified:excType==='modified',paused:_isPaused,movedTo:null});
     }
   }
 
@@ -18867,11 +18894,21 @@ function getAllRecurringDates(ev){
       year++;safety++;
     }
   }
+  // V4.29.5: includi le date di DESTINAZIONE degli spostamenti (eccezioni split con movedTo)
+  // come righe REALI, così il calendario riflette QUANDO si svolge davvero l'occorrenza spostata.
+  // (L'auto-split, split SENZA movedTo, non viene iniettato: la sua data è già una riga reale.)
+  Object.keys(exc).forEach(_origDate=>{
+    const _e=exc[_origDate];
+    if(_e && _e.type==='split' && _e.movedTo && !allDates.some(_x=>_x.date===_e.movedTo)){
+      allDates.push({date:_e.movedTo,excluded:false,modified:false,paused:false,movedTo:null,movedFrom:_origDate});
+    }
+  });
+  allDates.sort((a,b)=>a.date.localeCompare(b.date));
   return allDates;
 }
 
 // V3.10.55: Collapsible calendar of all recurring dates
-function renderRecurringDatesCollapsible(ev){
+function renderRecurringDatesCollapsible(ev, highlightDate, uidScope){
   const allDates=getAllRecurringDates(ev);
   if(!allDates.length)return '';
   const today=localDateStr(new Date());
@@ -18889,7 +18926,7 @@ function renderRecurringDatesCollapsible(ev){
   const _ld=new Date(lastDate+'T00:00:00');
   const rangeLabel=_fd.getDate()+' '+MONTHS_FULL[_fd.getMonth()]+' '+_fd.getFullYear()+' – '+_ld.getDate()+' '+MONTHS_FULL[_ld.getMonth()]+' '+_ld.getFullYear();
   const _firstUpcomingIdx=allDates.findIndex(d=>!d.excluded&&d.date>=today);
-  const _uid='rdc-'+ev.id.slice(0,8);
+  const _uid='rdc-'+((uidScope||ev.id).slice(0,8));
 
   let html='<div class="card mb-4" style="border:1px solid var(--s300);padding:0;border-radius:16px;overflow:hidden" id="'+_uid+'-wrap">';
   html+='<button onclick="toggleRecDatesCollapsible(\''+_uid+'\')" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:none;border:none;cursor:pointer;color:var(--txt);font-family:inherit">';
@@ -18931,6 +18968,7 @@ function renderRecurringDatesCollapsible(ev){
     const isToday=!item.excluded&&item.date===today;
     const isNext=_firstUpcomingIdx>=0&&!item.excluded&&!isToday&&item.date>today&&idx===_firstUpcomingIdx+(hasToday?1:0);
     const isLast=idx===allDates.length-1&&!item.excluded;
+    const isHighlight=!!highlightDate&&item.date===highlightDate;
     const dayNum=d.getDate();
     const dayName=DAYS_SHORT[d.getDay()];
     const _multiDay=ev.days&&ev.days.length>1;
@@ -18943,7 +18981,8 @@ function renderRecurringDatesCollapsible(ev){
 
     let boxStyle='width:40px;height:40px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:10px;flex-shrink:0;line-height:1;';
     let numColor='color:var(--txt);';
-    if(isToday){boxStyle+='background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);';numColor='color:var(--green);';}
+    if(isHighlight){boxStyle+='background:rgba(217,70,239,.18);border:1px solid rgba(217,70,239,.55);';numColor='color:var(--brand-l);';}
+    else if(isToday){boxStyle+='background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);';numColor='color:var(--green);';}
     else if(isNext&&!isToday){boxStyle+='background:rgba(217,70,239,.12);border:1px solid rgba(217,70,239,.3);';numColor='color:var(--brand-l);';}
     else{boxStyle+='background:var(--s200);';}
 
@@ -18956,7 +18995,10 @@ function renderRecurringDatesCollapsible(ev){
       +DAYS_IT[d.getDay()]+' '+dayNum+' '+MONTHS_FULL[d.getMonth()]+'</div>';
     if(_time)html+='<div style="font-size:.7rem;color:var(--txt3);margin-top:1px">'+_time+'</div>';
     html+='</div>';
-    if(item.excluded)html+='<span style="font-size:.65rem;font-weight:600;padding:3px 8px;border-radius:20px;color:var(--red);background:rgba(239,68,68,.12);text-decoration:line-through;flex-shrink:0">Esclusa</span>';
+    if(isHighlight)html+='<span style="font-size:.65rem;font-weight:600;padding:3px 8px;border-radius:20px;color:var(--brand-l);background:rgba(217,70,239,.16);flex-shrink:0">📍 Questa data</span>';
+    else if(item.excluded&&item.movedTo)html+='<span style="font-size:.65rem;font-weight:600;padding:3px 8px;border-radius:20px;color:var(--orange);background:rgba(249,115,22,.12);flex-shrink:0">↪ Spostata al '+fmtDateShort(item.movedTo)+'</span>';
+    else if(item.movedFrom)html+='<span style="font-size:.65rem;font-weight:600;padding:3px 8px;border-radius:20px;color:#6366f1;background:rgba(99,102,241,.12);flex-shrink:0">↪ Spostata dal '+fmtDateShort(item.movedFrom)+'</span>';
+    else if(item.excluded)html+='<span style="font-size:.65rem;font-weight:600;padding:3px 8px;border-radius:20px;color:var(--red);background:rgba(239,68,68,.12);text-decoration:line-through;flex-shrink:0">Esclusa</span>';
     else if(item.paused)html+='<span style="font-size:.65rem;font-weight:600;padding:3px 8px;border-radius:20px;color:var(--yellow);background:rgba(234,179,8,.12);flex-shrink:0">⏸️ In pausa</span>';
     else if(item.modified)html+='<span style="font-size:.65rem;font-weight:600;padding:3px 8px;border-radius:20px;color:var(--orange);background:rgba(249,115,22,.12);flex-shrink:0">Modificata</span>';
     else if(isToday)html+='<span style="font-size:.65rem;font-weight:600;padding:3px 8px;border-radius:20px;color:var(--green);background:rgba(16,185,129,.12);flex-shrink:0">● Oggi</span>';
@@ -25653,7 +25695,7 @@ async function showAdminEventDetail(evId){
 
     ${ev.parentRecurringId?(()=>{
       const parent=store.events.find(e=>e.id===ev.parentRecurringId);
-      return parent?'<div class="card mb-3" style="padding:10px 14px;background:rgba(99,102,241,.06);border-color:rgba(99,102,241,.2)"><span class="text-sm" style="color:#6366f1">🔄 Istanza del '+fmtDateShort(ev.recurringInstanceDate||ev.days[0]?.date)+' dall\'evento ricorrente <a style="color:var(--brand-l);cursor:pointer;text-decoration:underline" onclick="showAdminEventDetail(\''+ev.parentRecurringId+'\')">'+escHtml(parent.title)+'</a></span></div>':'';
+      return parent?'<div class="card mb-3" style="padding:10px 14px;background:rgba(99,102,241,.06);border-color:rgba(99,102,241,.2)"><span class="text-sm" style="color:#6366f1">🔄 Istanza del '+fmtDateShort(ev.recurringInstanceDate||ev.days[0]?.date)+' dall\'evento ricorrente <a style="color:var(--brand-l);cursor:pointer;text-decoration:underline" onclick="showAdminEventDetail(\''+ev.parentRecurringId+'\')">'+escHtml(parent.title)+'</a></span></div>'+renderRecurringDatesCollapsible(parent,ev.recurringInstanceDate||ev.days[0]?.date||null,ev.id):'';
     })():''}
 
     ${recTabsHtml}
