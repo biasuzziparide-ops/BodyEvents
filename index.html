@@ -2901,7 +2901,7 @@ textarea.input{resize:none;font-family:inherit}
 
 <!-- ============ JS ENGINE V1.1.0 ============ -->
 <script>
-const APP_VERSION='V4.29.5';
+const APP_VERSION='V4.29.6';
 // Firebase Init
 const firebaseConfig = {
   apiKey: "AIzaSyDxA8812V9HUGcb5WOiJ3eBGjoTRYMnTFw",
@@ -19984,6 +19984,29 @@ function openAlertModal(evId){
   alertModalEvId=evId;
   alertModalRecDate='';
   const isRecurring=!!(ev.recurrence&&ev.recurrence.day);
+  // V4.29.6: date saltate/annullate ripristinabili (skip/cancellato + membership in exclusionDates).
+  // Costruite iterando le eccezioni: NON possono mai comparire tra le chip (escluse dai selettori).
+  const _amExc=(ev.recurrence&&ev.recurrence.exceptions)||{};
+  const _amExcl=(ev.recurrence&&ev.recurrence.exclusionDates)||[];
+  const _amRestorable=Array.from(new Set([
+    ...Object.keys(_amExc).filter(d=>_amExc[d]&&(_amExc[d].type==='skip'||_amExc[d].type==='cancellato')),
+    ..._amExcl
+  ])).sort((a,b)=>a.localeCompare(b));
+  const _amIsCapo=isEventCapofila(ev,store.currentUser.id);
+  const _skippedSection=(isRecurring&&_amIsCapo&&_amRestorable.length)?`
+    <div style="border-top:1px solid var(--s400);margin-top:10px;padding-top:10px">
+      <p class="text-xs txt3 mb-2">⏭️ Date saltate o annullate — puoi ripristinarle nella serie:</p>
+      <div class="flex flex-col gap-1">
+      ${_amRestorable.map(d=>{
+        const _t=_amExc[d]&&_amExc[d].type;
+        const _lbl=_t==='cancellato'?'(annullata)':'(saltata)';
+        return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;border-radius:8px;background:var(--s200)">
+          <span class="text-sm" style="color:var(--txt2);text-decoration:line-through">📅 ${fmtDate(d)}<span class="text-xs txt3" style="margin-left:6px;text-decoration:none">${_lbl}</span></span>
+          <button class="btn btn-sm" style="background:rgba(59,130,246,.12);color:var(--blue);border:1px solid rgba(59,130,246,.3);font-size:.72rem;flex-shrink:0" onclick="restoreRecurringDate('${ev.id}','${d}')">♻️ Ripristina</button>
+        </div>`;
+      }).join('')}
+      </div>
+    </div>`:'';
   // For recurring events, show date picker first
   const recDatePicker=isRecurring?`<div class="card mb-4" style="background:rgba(234,179,8,.06);border-color:var(--yellow);padding:14px">
     <p class="text-sm font-semibold mb-2" style="color:var(--yellow)">🔄 Evento ricorrente — a cosa si riferisce la modifica?</p>
@@ -19992,6 +20015,7 @@ function openAlertModal(evId){
       <button class="btn btn-sm alert-rec-date-btn" data-date="all" onclick="selectAlertRecDate(this)" style="border:1px solid var(--s400)">🔄 Tutte le date</button>
       <button class="btn btn-sm alert-rec-date-btn" data-date="pause" onclick="selectAlertRecDate(this)" style="border:1px solid var(--yellow)">⏸️ Metti in pausa</button>
     </div>
+    ${_skippedSection}
     <div id="alert-rec-pause-opts" class="hidden mt-2">
       <label class="label" style="font-size:.75rem">Riprendi il:</label>
       <input type="date" class="input" id="alert-rec-pause-until" style="max-width:200px">
@@ -20440,6 +20464,56 @@ function confirmAlertEdit(){
 function closeAlertModal(){
   const o=document.getElementById('alert-modal-overlay');if(o)o.remove();
   selectedAlertAction='';
+}
+// V4.29.6: Ripristina una data saltata/annullata (skip/cancellato). Rifiuta split e min_*.
+function restoreRecurringDate(evId,date){
+  const ev=store.events.find(e=>e.id===evId);
+  if(!ev||!ev.recurrence)return;
+  if(!isEventCapofila(ev,store.currentUser.id)){showToast("Solo l'organizzatore può ripristinare le date",'error');return;}
+  const x=(ev.recurrence.exceptions||{})[date];
+  if(x&&x.type==='split'){showToast('Questa data è stata spostata/archiviata e non può essere ripristinata da qui','error');return;}
+  if(x&&x.type!=='skip'&&x.type!=='cancellato'){showToast('Questa data non può essere ripristinata automaticamente','error');return;}
+  const inExcl=Array.isArray(ev.recurrence.exclusionDates)&&ev.recurrence.exclusionDates.includes(date);
+  if(!x&&!inExcl){showToast('Niente da ripristinare per questa data','error');return;}
+  // Guardia data PASSATA con iscritti: l'auto-archiviazione (_splitConcludedRecurringDates) la convertirà
+  // in istanza conclusa al prossimo caricamento → NON tornerà prenotabile nella serie.
+  const today=localDateStr(new Date());
+  const hasLiveBookings=(store.bookings||[]).some(b=>b.eventId===evId&&(b.recurringDate||null)===date&&b.status!=='cancellata');
+  if(date<today&&hasLiveBookings){
+    showConfirm('Ripristinare una data passata?',
+      'La data '+fmtDate(date)+' è passata e ha iscritti. Verrà archiviata automaticamente come istanza conclusa (storico) e NON tornerà disponibile per nuove prenotazioni nella serie. Procedere?',
+      ()=>_doRestoreRecurringDate(evId,date),'warn');
+    return;
+  }
+  _doRestoreRecurringDate(evId,date);
+}
+function _doRestoreRecurringDate(evId,date){
+  const ev=store.events.find(e=>e.id===evId);
+  if(!ev||!ev.recurrence)return;
+  const x=(ev.recurrence.exceptions||{})[date];
+  const inExcl=Array.isArray(ev.recurrence.exclusionDates)&&ev.recurrence.exclusionDates.includes(date);
+  const _prevExc=x?JSON.parse(JSON.stringify(x)):undefined;
+  // delete ottimistico locale (entrambi i percorsi di nascondimento) — i selettori leggono store.events
+  if(x)delete ev.recurrence.exceptions[date];
+  if(inExcl)ev.recurrence.exclusionDates=ev.recurrence.exclusionDates.filter(d=>d!==date);
+  const _upd={};
+  if(_prevExc!==undefined)_upd['recurrence.exceptions.'+date]=firebase.firestore.FieldValue.delete();
+  if(inExcl)_upd['recurrence.exclusionDates']=firebase.firestore.FieldValue.arrayRemove(date);
+  if(!Object.keys(_upd).length){closeAlertModal();return;}
+  // .update() diretto (single-field, race-safe) — NON fsSet. Come il rollback split (L5209).
+  fbDb.collection('events').doc(evId).update(_upd)
+    .then(()=>{
+      closeAlertModal();_refreshAdminAfterAction(evId);
+      const t2=localDateStr(new Date());
+      showToast('Data '+fmtDateShort(date)+(date<t2?' ripristinata nello storico':' ripristinata nella serie'));
+    })
+    .catch(e=>{
+      console.error('restoreRecurringDate',e);
+      if(_prevExc!==undefined){if(!ev.recurrence.exceptions)ev.recurrence.exceptions={};ev.recurrence.exceptions[date]=_prevExc;}
+      if(inExcl){if(!Array.isArray(ev.recurrence.exclusionDates))ev.recurrence.exclusionDates=[];if(!ev.recurrence.exclusionDates.includes(date))ev.recurrence.exclusionDates.push(date);}
+      _refreshAdminAfterAction(evId);
+      showToast('Errore nel ripristino','error');
+    });
 }
 
 /* ==============================
